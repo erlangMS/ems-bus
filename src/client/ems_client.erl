@@ -15,7 +15,8 @@
 -export([insert/1, update/1, all/0, delete/1, 
 		 find_by_id/1,		 
 		 find_by_codigo/1,
-		 find_by_name/1]).
+		 find_by_name/1,
+		 find_by_codigo_and_secret/2]).
 
 find_by_id(Id) -> ems_db:get(client, Id).
 
@@ -48,6 +49,17 @@ find_by_codigo(Codigo) ->
 	case mnesia:dirty_index_read(client, Codigo, #client.codigo) of
 		[] -> {error, enoent};
 		[Record|_] -> {ok, Record}
+	end.
+	
+
+find_by_codigo_and_secret(Codigo, Secret) ->
+	case find_by_codigo(Codigo) of
+		{ok, Client = #client{secret = CliSecret}} -> 
+			case CliSecret =:= ems_util:criptografia_sha1(Secret) of
+				true -> {ok, Client};
+				false -> {error, enoent}
+			end;
+		_ -> {error, enoent}
 	end.
 
 

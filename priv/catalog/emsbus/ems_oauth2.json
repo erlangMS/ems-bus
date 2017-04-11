@@ -114,7 +114,12 @@
 				"name": "state",
 				"type": "string",
 				"comment": ""
-			}
+				},
+			{
+				"name": "refresh_token",
+				"type": "string",
+				"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
+				}
 		],
 		"lang" : "erlang"
 	},
@@ -126,12 +131,11 @@
 		"version": "1",
 		"service" : "oauth2ems_recurso:execute",
 		"url": "/recurso",
-		"type": "GET",
+		"type": "POST",
 		"querystring": [
 			{
 				"name": "token",
 				"type": "string",
-				"default" : "0",
 				"comment": "Token de acesso"
 			}
 		],
