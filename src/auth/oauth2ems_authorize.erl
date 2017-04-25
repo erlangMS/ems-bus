@@ -46,7 +46,6 @@ execute(Request = #request{type = Type, protocol_bin = Protocol, host = Host}) -
 			%};
 		{redirect, ClientId, RedirectUri} ->
 			LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<":2301/login/index.html?response_type=code&client_id=">>, ClientId, <<"&redirect_uri=">>, RedirectUri]),
-			io:format("\nURL: ~p\n",[LocationPath]),
 			{ok, Request#request{code = 302, 
 									 response_header = #{
 															<<"location">> => LocationPath
@@ -74,9 +73,9 @@ code_request(Request = #request{authorization = Authorization}) ->
 			case issue_code(Authz) of
 				{ok, Response} ->
 					Code = element(2,lists:nth(1,Response)),
-					LocationPath = <<RedirectUri/binary,"?code=", Code/binary,"&state=",State/binary>>,
-					io:format("\n LocationPath: ~p\n",[LocationPath]),
-					{ok, Request#request{code = 302, 
+					LocationPath = <<RedirectUri/binary,"?code=", Code/binary>>,
+					% mudar code para 302
+					{ok, Request#request{code = 200, 
 						response_data = <<"{}">>,
 						response_header = #{
 											<<"location">> => LocationPath
@@ -85,7 +84,8 @@ code_request(Request = #request{authorization = Authorization}) ->
 					};
 				Error ->
 					LocationPath = <<RedirectUri/binary,"?error=access_denied&state=",State/binary>>,
-					{ok, Request#request{code = 302, 
+					% mudar code para 302
+					{ok, Request#request{code = 200, 
 						 response_data = <<"{}">>,
 						 response_header = #{
 												<<"location">> => LocationPath
@@ -132,7 +132,7 @@ client_credentials_grant(Request = #request{authorization = Authorization}) ->
 				false -> {error, invalid_request}
 			end;
 		false -> 			
-			Secret = ems_request:get_querystring(<<"secret">>, <<>>, Request),
+			Secret = ems_request:get_querystring(<<"client_secret">>, <<>>, Request),
 			Auth = oauth2:authorize_client_credentials({ClientId, Secret}, Scope, []),
 			issue_token(Auth)
 	end.
@@ -174,7 +174,7 @@ refresh_token_request(Request) ->
     issue_token(Authorization).  
 
 %% Requisita o token de acesso com o código de autorização - seções  4.1.3. e  4.1.4 do RFC 6749.
-%% URL de teste: GET http://127.0.0.1:2301/authorize?grant_type=authorization_code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w&secret=qwer&code=dxUlCWj2JYxnGp59nthGfXFFtn3hJTqx
+%% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=authorization_code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w&secret=qwer&code=dxUlCWj2JYxnGp59nthGfXFFtn3hJTqx
 access_token_request(Request = #request{authorization = Authorization}) ->
 	Code = ems_request:get_querystring(<<"code">>, [],Request),
 	ClientId    = ems_request:get_querystring(<<"client_id">>, [],Request),

@@ -173,6 +173,7 @@ Login.LoginSistemas = (function() {
 			beforeSend: function (xhr) {
 				xhr.setRequestHeader ("Authorization", "Basic " + btoa($('#username').val() + ":" + sha1($('#pass').val())));
 			},
+
 			headers: {
 				  'name-api-key':'ewf45r4435trge',
 				  'Content-Type':'application/x-www-form-urlencoded'
@@ -193,11 +194,10 @@ Login.LoginSistemas = (function() {
 				}
 
 			},
-			complete: function(xmlHttp) {
-				// xmlHttp is a XMLHttpRquest object
-				alert(xmlHttp.status);
+			complete: function(data, textStatus) {
+				window.location.href = data.getResponseHeader("Location");
 			  }
-  			
+
 		});
 	}
 	
@@ -211,6 +211,10 @@ Login.LoginSistemas = (function() {
 		this.error.append('<div class="alert alert-danger" role="alert">Ok.</div>');
 	}
 	
+	function onComplete(estilo) {
+				window.location.replace('http://127.0.0.1:2301/code_request?client_id=man&redirect_uri=https%3A%2F%2Fwww.getpostman.com%2Foauth2%2Fcallback'+'&username='+this.username.val()+'&password='+this.pass.val());
+	}
+
 	function getRdirectUri(){
 		var vars = [], hash;
 		var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
