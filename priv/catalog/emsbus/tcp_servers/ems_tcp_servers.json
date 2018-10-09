@@ -1,5 +1,4 @@
 [
-
 	{
 		"catalog": "/emsbus/tcp_servers/ems_http_server", 
 		"file": "ems_http_server.json"
@@ -8,11 +7,5 @@
 	{
 		"catalog": "/emsbus/tcp_servers/ems_ldap_server", 
 		"file": "ems_ldap_server.json"
-	},
-
-	{
-		"catalog": "/emsbus/tcp_servers/ems_dns_server", 
-		"file": "ems_dns_server.json"
 	}
-
 ]

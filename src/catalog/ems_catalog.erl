@@ -83,7 +83,7 @@ get_metadata_json(#service{id = Id,
 
 new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, FunctionName, 
 			   Type, Enable, Comment, Version, Owner, Group, Glyphicon, Async, Querystring, 
-			   QtdQuerystringRequired, Host, HostName, ResultCache,
+			   QtdQuerystringRequired, Host, HostName, ResultCache, ResultCacheShared,
 			   Authorization, Node, Lang, Datasource,
 			   Debug, SchemaIn, SchemaOut, PoolSize, PoolMax, Properties,
 			   Timeout, TimeoutAlertThreshold,
@@ -103,7 +103,8 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 			   ServiceResendMsg1, 
 			   AuthorizationPublicCheckCredential,
 			   HttpMaxContentLength, HttpHeaders, 
-			   LogShowResponse, LogShowPayload, Restricted) ->
+			   LogShowResponse, LogShowPayload, Restricted,
+			   ShowDebugResponseHeader) ->
 	PatternKey = ems_util:make_rowid_from_url(Url, Type),
 	{ok, Id_re_compiled} = re:compile(PatternKey),
 	Contract = #service{
@@ -132,6 +133,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					host = Host,
 					host_name = HostName,
 					result_cache = ResultCache,
+					result_cache_shared = ResultCacheShared,
 					authorization = Authorization,
 					node = Node,
 					datasource = Datasource,
@@ -185,14 +187,15 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					http_headers = HttpHeaders,
 					log_show_response = LogShowResponse,
 					log_show_payload = LogShowPayload,
-					restricted = Restricted
+					restricted = Restricted,
+					show_debug_response_headers = ShowDebugResponseHeader
 				},
 	Contract#service{metadata = get_metadata_json(Contract)}.
 	
 
 new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, FunctionName,
 			Type, Enable, Comment, Version, Owner, Group, Glyphicon, Async, Querystring, 
-			QtdQuerystringRequired, Host, HostName, ResultCache,
+			QtdQuerystringRequired, Host, HostName, ResultCache, ResultCacheShared,
 			Authorization, Node, Lang, Datasource, Debug, SchemaIn, SchemaOut, 
 			PoolSize, PoolMax, Properties, Timeout, TimeoutAlertThreshold,
 			Middleware, CacheControl, ExpiresMinute, Public, 
@@ -209,7 +212,8 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 		    ServiceResendMsg1, 
 			AuthorizationPublicCheckCredential,
 			HttpMaxContentLength, HttpHeaders, 
-			LogShowResponse, LogShowPayload, Restricted) ->
+			LogShowResponse, LogShowPayload, Restricted,
+			ShowDebugResponseHeader) ->
 	Contract = #service{
 				id = Id,
 				rowid = Rowid,
@@ -234,6 +238,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			    host = Host,
 			    host_name = HostName,
 			    result_cache = ResultCache,
+			    result_cache_shared = ResultCacheShared,
 			    authorization = Authorization,
 			    node = Node,
 			    datasource = Datasource,
@@ -287,7 +292,8 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 				http_headers = HttpHeaders,
 				log_show_response = LogShowResponse,
 				log_show_payload = LogShowPayload,
-				restricted = Restricted
+				restricted = Restricted,
+				show_debug_response_headers = ShowDebugResponseHeader
 			},
 	Contract#service{metadata = get_metadata_json(Contract)}.
 
@@ -311,7 +317,7 @@ parse_ssl_path(FilenameCat, FilenameConfig, StaticFilePathDefault) ->
 
 -spec parse_datasource(map(), non_neg_integer(), #config{}) -> #service_datasource{} | undefined.
 parse_datasource(undefined, _, _) -> undefined;
-parse_datasource(M, Rowid, Conf) when erlang:is_map(M) -> ems_db:create_datasource_from_map(M, Rowid, Conf#config.ems_datasources);
+parse_datasource(M, Rowid, Conf) when erlang:is_map(M) -> ems_db:create_datasource_from_map(M, Rowid, Conf#config.ems_datasources, Conf#config.custom_variables);
 parse_datasource(DsName, _Rowid, Conf) -> 
 	case maps:get(DsName, Conf#config.ems_datasources, undefined) of
 		undefined -> erlang:error(einexistent_datasource);
@@ -374,6 +380,13 @@ parse_host_service(_Host, ModuleName, Node, Conf) ->
 -endif.
 
 
+get_p(ParamName, Map, DefaultValue) ->
+	Result = maps:get(ParamName, Map, DefaultValue),
+	case is_binary(Result) of
+		true -> ems_util:replace_config_and_custom_variables_binary(Result);
+		false -> Result
+	end.
+
 -spec new_from_map(map(), #config{}) -> {ok, #service{}} | {error, atom()}.
 new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 cat_disable_services = DisableServices,
@@ -381,6 +394,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 cat_disable_services_owner = DisableServicesOwner,
 								 cat_restricted_services_owner = RestrictedServicesOwner,
 								 ems_result_cache = ResultCacheDefault,
+								 ems_result_cache_shared = ResultCacheSharedDefault,
 								 ems_hostname = HostNameDefault,
 								 authorization = AuthorizationDefault,
 								 oauth2_with_check_constraint = Oauth2WithCheckConstraintDefault,
@@ -396,14 +410,32 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 http_max_content_length = HttpMaxContentLengthDefault,
 								 http_headers = HttpHeadersDefault,
 								 rest_default_querystring = RestDefaultQuerystring,
-								 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentialsDefault}) ->
+								 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentialsDefault,
+								 show_debug_response_headers = ShowDebugResponseHeadersDefault,
+								 log_show_response = LogShowResponseDefault,
+								 log_show_payload = LogShowPayloadDefault}) ->
 	try
-		Name = ems_util:parse_name_service(maps:get(<<"name">>, Map)),
-		Owner = maps:get(<<"owner">>, Map, <<>>),
-		Group = maps:get(<<"group">>, Map, <<>>),
-		Glyphicon = maps:get(<<"glyphicon">>, Map, <<>>),
+		put(parse_step, ctrl_path),
+		CtrlPath = get_p(<<"ctrl_path">>, Map, <<>>),
+		
+		put(parse_step, ctrl_file),
+		CtrlFile = get_p(<<"ctrl_file">>, Map, <<>>),
+
+		put(parse_step, name),
+		Name = ems_util:parse_name_service(get_p(<<"name">>, Map, <<>>)),
+		
+		put(parse_step, owner),
+		Owner = get_p(<<"owner">>, Map, <<>>),
+		
+		put(parse_step, group),
+		Group = get_p(<<"group">>, Map, <<>>),
+		
+		put(parse_step, glyphicon),
+		Glyphicon = get_p(<<"glyphicon">>, Map, <<>>),
+
 		% habilitar serviços
-		Enable0 = ems_util:parse_bool(maps:get(<<"enable">>, Map, true)),
+		put(parse_step, enable),
+		Enable0 = ems_util:parse_bool(get_p(<<"enable">>, Map, true)),
 		case lists:member(Owner, EnableServicesOwner) of
 			true -> Enable1 = true;
 			false -> Enable1 = Enable0
@@ -421,91 +453,199 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 			true -> Enable = false;
 			false -> Enable = Enable3
 		end,
-		Restricted0 = maps:get(<<"restricted">>, Map, undefined),
+
+		put(parse_step, restricted),
+		Restricted0 = get_p(<<"restricted">>, Map, undefined),
 		case Restricted0 of
 			undefined -> Restricted = lists:member(Owner, RestrictedServicesOwner);
 			_ -> Restricted = ems_util:parse_bool(Restricted0)
 		end,
-		UseRE = ems_util:parse_bool(maps:get(<<"use_re">>, Map, false)),
+
+		put(parse_step, use_re),
+		UseRE = ems_util:parse_bool(get_p(<<"use_re">>, Map, false)),
 		case UseRE of
-			true -> Url2 = maps:get(<<"url">>, Map);
-			false -> Url2 = ems_util:parse_url_service(maps:get(<<"url">>, Map))
+			true -> 
+				put(parse_step, url),
+				Url2 = get_p(<<"url">>, Map, <<>>);
+			false -> 
+				put(parse_step, url),
+				Url2 = ems_util:parse_url_service(get_p(<<"url">>, Map, <<>>))
 		end,
-		Type = ems_util:parse_type_service(maps:get(<<"type">>, Map, <<"GET">>)),
-		ServiceImpl = maps:get(<<"service">>, Map),
+
+		put(parse_step, type),
+		Type = ems_util:parse_type_service(get_p(<<"type">>, Map, <<"GET">>)),
+		
+		put(parse_step, service),
+		ServiceImpl = get_p(<<"service">>, Map, <<>>),
 		{ModuleName, ModuleNameCanonical, FunctionName} = ems_util:parse_service_service(ServiceImpl),
-		Comment = ?UTF8_STRING(maps:get(<<"comment">>, Map, <<>>)),
-		Version = maps:get(<<"version">>, Map, <<"1.0.0">>),
-		Async = ems_util:parse_bool(maps:get(<<"async">>, Map, false)),
+		
+		put(parse_step, comment),
+		case CtrlFile =:= <<>> of
+			true ->  Comment = ?UTF8_STRING(get_p(<<"comment">>, Map, <<>>));
+			false -> Comment = get_p(<<"comment">>, Map, <<>>)
+		end,
+		
+		put(parse_step, version),
+		Version = get_p(<<"version">>, Map, <<"1.0.0">>),
+		
+		put(parse_step, async),
+		Async = ems_util:parse_bool(get_p(<<"async">>, Map, false)),
+
+		put(parse_step, show_debug_response_headers),
+		ShowDebugResponseHeader = ems_util:parse_bool(get_p(<<"show_debug_response_headers">>, Map, ShowDebugResponseHeadersDefault)),
+
+		put(parse_step, make_rowid),
 		Rowid = ems_util:make_rowid(Url2),
-		Id = maps:get(<<"id">>, Map, Rowid), % catálogos internos vão usar rowid como chave primária
-		Lang = ems_util:parse_lang(maps:get(<<"lang">>, Map, <<>>)),
-		Ds = maps:get(<<"datasource">>, Map, undefined),
+
+		put(parse_step, id),
+		Id = get_p(<<"id">>, Map, Rowid), % catálogos internos vão usar rowid como chave primária
+
+		put(parse_step, lang),
+		Lang = ems_util:parse_lang(get_p(<<"lang">>, Map, <<>>)),
+		
+		put(parse_step, datasource),
+		Ds = get_p(<<"datasource">>, Map, undefined),
 		case Enable of
 			true ->	Datasource = parse_datasource(Ds, Rowid, Conf);
 			false -> Datasource = undefined
 		end,
+		
+		put(parse_step, result_cache),
 		case Type of
-			<<"GET">> -> ResultCache = ems_util:parse_result_cache(maps:get(<<"result_cache">>, Map, ResultCacheDefault));
+			<<"GET">> -> ResultCache = ems_util:parse_result_cache(get_p(<<"result_cache">>, Map, ResultCacheDefault));
 			_ -> ResultCache = 0
 		end,
-		Authorization = ems_util:parse_authorization_type(maps:get(<<"authorization">>, Map, AuthorizationDefault)),
-		OAuth2WithCheckConstraint = ems_util:parse_bool(maps:get(<<"oauth2_with_check_constraint">>, Map, Oauth2WithCheckConstraintDefault)),
-		OAuth2TokenEncrypt = ems_util:parse_bool(maps:get(<<"oauth2_token_encrypt">>, Map, false)),
-		OAuth2AllowClientCredentials = ems_util:parse_bool(maps:get(<<"oauth2_allow_client_credentials">>, Map, false)),
-		AuthAllowUserInativeCredentials = ems_util:parse_bool(maps:get(<<"auth_allow_user_inative_credentials">>, Map, AuthAllowUserInativeCredentialsDefault)),
-		AuthorizationPublicCheckCredential = ems_util:parse_bool(maps:get(<<"authorization_public_check_credential">>, Map, false)),
-		Debug = ems_util:parse_bool(maps:get(<<"debug">>, Map, false)),
-		SchemaIn = maps:get(<<"schema_in">>, Map, null),
-		SchemaOut = maps:get(<<"schema_out">>, Map, null),
-		PoolSize = ems_config:getConfig(<<"pool_size">>, Name, maps:get(<<"pool_size">>, Map, 1)),
-		PoolMax0 = ems_config:getConfig(<<"pool_max">>, Name, maps:get(<<"pool_max">>, Map, 1)),
+
+		put(parse_step, result_cache_shared),
+		ResultCacheShared = get_p(<<"result_cache_shared">>, Map, ResultCacheSharedDefault),
+		
+		put(parse_step, authorization),
+		Authorization = ems_util:parse_authorization_type(get_p(<<"authorization">>, Map, AuthorizationDefault)),
+		
+		put(parse_step, oauth2_with_check_constraint),
+		OAuth2WithCheckConstraint = ems_util:parse_bool(get_p(<<"oauth2_with_check_constraint">>, Map, Oauth2WithCheckConstraintDefault)),
+		
+		put(parse_step, oauth2_token_encrypt),
+		OAuth2TokenEncrypt = ems_util:parse_bool(get_p(<<"oauth2_token_encrypt">>, Map, false)),
+		
+		put(parse_step, oauth2_allow_client_credentials),
+		OAuth2AllowClientCredentials = ems_util:parse_bool(get_p(<<"oauth2_allow_client_credentials">>, Map, false)),
+		
+		put(parse_step, auth_allow_user_inative_credentials),
+		AuthAllowUserInativeCredentials = ems_util:parse_bool(get_p(<<"auth_allow_user_inative_credentials">>, Map, AuthAllowUserInativeCredentialsDefault)),
+		
+		put(parse_step, authorization_public_check_credential),
+		AuthorizationPublicCheckCredential = ems_util:parse_bool(get_p(<<"authorization_public_check_credential">>, Map, false)),
+		
+		put(parse_step, debug),
+		Debug = ems_util:parse_bool(get_p(<<"debug">>, Map, false)),
+		
+		put(parse_step, schema_in),
+		SchemaIn = get_p(<<"schema_in">>, Map, null),
+		
+		put(parse_step, schema_out),
+		SchemaOut = get_p(<<"schema_out">>, Map, null),
+		
+		put(parse_step, pool_size),
+		PoolSize = ems_config:getConfig(<<"pool_size">>, Name, get_p(<<"pool_size">>, Map, 1)),
+		
+		put(parse_step, pool_max),
+		PoolMax0 = ems_config:getConfig(<<"pool_max">>, Name, get_p(<<"pool_max">>, Map, 1)),
 		% Ajusta o pool_max para o valor de pool_size se for menor
 		case PoolMax0 < PoolSize of
 			true -> PoolMax = PoolSize;
 			false -> PoolMax = PoolMax0
 		end,
-		Timeout = ems_util:parse_range(maps:get(<<"timeout">>, Map, ?SERVICE_TIMEOUT), ?SERVICE_MIN_TIMEOUT, ?SERVICE_MAX_TIMEOUT, einvalid_timeout_service),
-		TimeoutAlertThreshold = ems_util:parse_range(maps:get(<<"timeout_alert_threshold">>, Map, 0), 0, Timeout, einvalid_timeout_alert_threshold),
-		Middleware = parse_middleware(maps:get(<<"middleware">>, Map, undefined)),
-		CacheControlValue = maps:get(<<"cache_control">>, Map, ?CACHE_CONTROL_NO_CACHE),
+		
+		put(parse_step, timeout),
+		Timeout = ems_util:parse_range(get_p(<<"timeout">>, Map, ?SERVICE_TIMEOUT), ?SERVICE_MIN_TIMEOUT, ?SERVICE_MAX_TIMEOUT, einvalid_timeout_service),
+		
+		put(parse_step, timeout_alert_threshold),
+		TimeoutAlertThreshold = ems_util:parse_range(get_p(<<"timeout_alert_threshold">>, Map, 0), 0, Timeout, einvalid_timeout_alert_threshold),
+		
+		put(parse_step, middleware),
+		Middleware = parse_middleware(get_p(<<"middleware">>, Map, undefined)),
+		
+		put(parse_step, cache_control),
+		CacheControlValue = get_p(<<"cache_control">>, Map, ?CACHE_CONTROL_NO_CACHE),
 		case CacheControlValue of
 			<<"no-cache">> -> 
 				CacheControl = ?CACHE_CONTROL_NO_CACHE;
 			_ -> CacheControl = CacheControlValue
 		end,
-		ExpiresMinute = ems_util:parse_range(maps:get(<<"expires_minute">>, Map, 0), ?SERVICE_MIN_EXPIRE_MINUTE, ?SERVICE_MAX_EXPIRE_MINUTE, einvalid_expires_minute),
-		Public = ems_util:parse_bool(maps:get(<<"public">>, Map, true)),
-		ContentType = maps:get(<<"content_type">>, Map, ?CONTENT_TYPE_JSON),
-		CtrlPath = maps:get(<<"ctrl_path">>, Map, <<>>),
-		CtrlFile = maps:get(<<"ctrl_file">>, Map, <<>>),
-		Path0 = ems_util:parse_file_name_path(maps:get(<<"path">>, Map, CtrlPath), StaticFilePathDefault, undefined),
+		
+		put(parse_step, expires_minute),
+		case maps:is_key(<<"expires_minute">>, Map) of
+			true -> ExpiresMinute = ems_util:parse_range(get_p(<<"expires_minute">>, Map, 0), ?SERVICE_MIN_EXPIRE_MINUTE, ?SERVICE_MAX_EXPIRE_MINUTE, einvalid_expires_minute);
+			false -> ExpiresMinute = ems_util:parse_range(get_p(<<"expires">>, Map, 0), ?SERVICE_MIN_EXPIRE_MINUTE, ?SERVICE_MAX_EXPIRE_MINUTE, einvalid_expires_minute)
+		end,
+		
+		put(parse_step, public),
+		Public = ems_util:parse_bool(get_p(<<"public">>, Map, true)),
+		
+		put(parse_step, content_type),
+		ContentType = case maps:is_key(<<"content_type">>, Map) of
+							true ->  get_p(<<"content_type">>, Map, ?CONTENT_TYPE_JSON);
+							false -> get_p(<<"content-type">>, Map, ?CONTENT_TYPE_JSON)
+					  end,
+		
+		put(parse_step, path),
+		Path0 = ems_util:parse_file_name_path(get_p(<<"path">>, Map, CtrlPath), StaticFilePathDefault, undefined),
 		% Vamos substituir todas as variáveis não encontradas pelo caminho base do catálogo
 		% Quando a pasta for assets, então o caminho base é sem o assets
 		case filename:basename(CtrlPath) =:= "assets" of
 			true -> Path = ems_util:replace_vars_with(Path0, string:slice(CtrlPath, 0, length(CtrlPath) - 7));
 			false -> Path = ems_util:replace_vars_with(Path0, CtrlPath)
 		end,
-		Filename = ems_util:parse_file_name_path(maps:get(<<"filename">>, Map, undefined), StaticFilePathDefault, undefined),
-		RedirectUrl = maps:get(<<"redirect_url">>, Map, undefined),
-		Protocol = maps:get(<<"protocol">>, Map, <<>>),
+		
+		put(parse_step, filename),
+		Filename = ems_util:parse_file_name_path(get_p(<<"filename">>, Map, undefined), StaticFilePathDefault, undefined),
+		
+		put(parse_step, redirect_url),
+		RedirectUrl = get_p(<<"redirect_url">>, Map, undefined),
+		
+		put(parse_step, protocol),
+		Protocol = get_p(<<"protocol">>, Map, <<>>),
+		
+		put(parse_step, tcp_listen_prefix_interface_names),
 		case maps:is_key(<<"tcp_listen_prefix_interface_names">>, Map) of
-			true -> TcpListenPrefixInterfaceNames = ems_util:binlist_to_list(maps:get(<<"tcp_listen_prefix_interface_names">>, Map));
+			true -> TcpListenPrefixInterfaceNames = ems_util:binlist_to_list(get_p(<<"tcp_listen_prefix_interface_names">>, Map, <<>>));
 			false -> TcpListenPrefixInterfaceNames = TcpListenPrefixInterfaceNamesDefault
 		end,
-		ListenAddress = maps:get(<<"tcp_listen_address">>, Map, TcpListenAddressDefault),
+		
+		put(parse_step, tcp_listen_address),
+		ListenAddress = get_p(<<"tcp_listen_address">>, Map, TcpListenAddressDefault),
+		
+		put(parse_step, parse_tcp_listen_address),
 		ListenAddress_t = ems_util:parse_tcp_listen_address(ListenAddress, TcpListenPrefixInterfaceNames),
-		AllowedAddress = ems_util:parse_allowed_address(maps:get(<<"tcp_allowed_address">>, Map, TcpAllowedAddressDefault)),
+		
+		put(parse_step, parse_allowed_address),
+		AllowedAddress = ems_util:parse_allowed_address(get_p(<<"tcp_allowed_address">>, Map, TcpAllowedAddressDefault)),
+		
+		put(parse_step, parse_allowed_address_t),
 		AllowedAddress_t = ems_util:parse_allowed_address_t(AllowedAddress),
-		MaxConnections = maps:get(<<"tcp_max_connections">>, Map, ?HTTP_MAX_CONNECTIONS),
-		Port = ems_util:parse_tcp_port(ems_config:getConfig(<<"tcp_port">>, Name, maps:get(<<"tcp_port">>, Map, undefined))),
-		Port = ems_util:parse_tcp_port(ems_config:getConfig(<<"tcp_port">>, Name, maps:get(<<"tcp_port">>, Map, undefined))),
-		HttpMaxContentLength = ems_util:parse_range(maps:get(<<"http_max_content_length">>, Map, HttpMaxContentLengthDefault), 0, ?HTTP_MAX_CONTENT_LENGTH_BY_SERVICE),
-		HttpHeaders0 = maps:get(<<"http_headers">>, Map, #{}),
+		
+		put(parse_step, tcp_max_connections),
+		MaxConnections = get_p(<<"tcp_max_connections">>, Map, ?HTTP_MAX_CONNECTIONS),
+		
+		put(parse_step, tcp_port),
+		Port = ems_util:parse_tcp_port(ems_config:getConfig(<<"tcp_port">>, Name, get_p(<<"tcp_port">>, Map, undefined))),
+		
+		put(parse_step, http_max_content_length),
+		HttpMaxContentLength = ems_util:parse_range(get_p(<<"http_max_content_length">>, Map, HttpMaxContentLengthDefault), 0, ?HTTP_MAX_CONTENT_LENGTH_BY_SERVICE),
+		
+		put(parse_step, http_headers),
+		HttpHeaders0 = get_p(<<"http_headers">>, Map, #{}),
 		HttpHeaders = maps:merge(HttpHeaders0, HttpHeadersDefault),
-		LogShowResponse = ems_util:parse_bool(maps:get(<<"log_show_response">>, Map, false)),
-		LogShowPayload = ems_util:parse_bool(maps:get(<<"log_show_payload">>, Map, false)),
-		Ssl = maps:get(<<"tcp_ssl">>, Map, undefined),
+		
+		put(parse_step, log_show_response),
+		LogShowResponse = ems_util:parse_bool(get_p(<<"log_show_response">>, Map, LogShowResponseDefault)),
+		
+		put(parse_step, log_show_payload),
+		LogShowPayload = ems_util:parse_bool(get_p(<<"log_show_payload">>, Map, LogShowPayloadDefault)),
+		
+		put(parse_step, tcp_ssl),
+		Ssl = get_p(<<"tcp_ssl">>, Map, undefined),
 		case Ssl of
 			undefined ->
 				IsSsl = false,
@@ -514,10 +654,12 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				SslKeyFile = undefined;
 			_ ->
 				IsSsl = true,
-				SslCaCertFile = parse_ssl_path(maps:get(<<"cacertfile">>, Ssl, SslCaCertFileDefault), SslCaCertFileDefault, StaticFilePathDefault),
-				SslCertFile = parse_ssl_path(maps:get(<<"certfile">>, Ssl, SslCertFileDefault), SslCertFileDefault, StaticFilePathDefault),
-				SslKeyFile = parse_ssl_path(maps:get(<<"keyfile">>, Ssl, SslKeyFileDefault), SslKeyFileDefault, StaticFilePathDefault)
+				SslCaCertFile = parse_ssl_path(get_p(<<"cacertfile">>, Ssl, SslCaCertFileDefault), SslCaCertFileDefault, StaticFilePathDefault),
+				SslCertFile = parse_ssl_path(get_p(<<"certfile">>, Ssl, SslCertFileDefault), SslCertFileDefault, StaticFilePathDefault),
+				SslKeyFile = parse_ssl_path(get_p(<<"keyfile">>, Ssl, SslKeyFileDefault), SslKeyFileDefault, StaticFilePathDefault)
 		end,
+		
+		put(parse_step, erlang),
 		case Lang of
 			<<"erlang">> -> 
 				Node = <<>>,
@@ -525,13 +667,23 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				HostName = HostNameDefault,
 				ems_util:compile_modulo_erlang(Path, ModuleNameCanonical);
 			_ ->	
-				Node = parse_node_service(maps:get(<<"node">>, Map, CatNodeSearchDefault)),
-				{Host, HostName} = parse_host_service(maps:get(<<"host">>, Map, CatHostSearchDefault), ModuleName, Node, Conf)
+				Node = parse_node_service(get_p(<<"node">>, Map, CatNodeSearchDefault)),
+				{Host, HostName} = parse_host_service(get_p(<<"host">>, Map, CatHostSearchDefault), ModuleName, Node, Conf)
 		end,
-		{Querystring, QtdQuerystringRequired} = ems_util:parse_querystring_def(maps:get(<<"querystring">>, Map, []), RestDefaultQuerystring),
-		CtrlModified = maps:get(<<"ctrl_modified">>, Map, undefined),
+		
+		put(parse_step, querystring),
+		{Querystring, QtdQuerystringRequired} = ems_util:parse_querystring_def(get_p(<<"querystring">>, Map, []), RestDefaultQuerystring),
+		
+		put(parse_step, ctrl_modified),
+		CtrlModified = get_p(<<"ctrl_modified">>, Map, undefined),
+		
+		put(parse_step, phash2),
 		CtrlHash = erlang:phash2(Map),
-		StartTimeout = maps:get(<<"start_timeout">>, Map, undefined),
+		
+		put(parse_step, start_timeout),
+		StartTimeout = ems_util:parse_range(get_p(<<"start_timeout">>, Map, ?START_TIMEOUT), ?START_TIMEOUT_MIN, ?START_TIMEOUT_MAX, einvalid_start_timeout),
+	
+		put(parse_step, metrics),
 		ServiceExecMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_exec"),
 		ServiceResultCacheHitMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_result_cache_hit"),
 		ServiceHostDeniedMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_host_denied"),
@@ -540,8 +692,10 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 		ServiceUnavailableMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_unavailable"),
 		ServiceTimeoutMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_timeout"),
 		ServiceResendMsg1 = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_resend_msg1"),
+		
 		case UseRE of
 			true -> 
+				put(parse_step, new_service_re),
 				Service = new_service_re(Rowid, Id, Name, Url2, 
 										   ServiceImpl,
 										   ModuleName, 
@@ -549,7 +703,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 										   FunctionName, Type, Enable, Comment, 
 										   Version, Owner, Group, Glyphicon, Async, 
 										   Querystring, QtdQuerystringRequired,
-										   Host, HostName, ResultCache,
+										   Host, HostName, ResultCache, ResultCacheShared,
 										   Authorization, Node, Lang,
 										   Datasource, Debug, SchemaIn, SchemaOut, 
 										   PoolSize, PoolMax, Map, Timeout, TimeoutAlertThreshold,
@@ -569,8 +723,9 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 										   AuthorizationPublicCheckCredential,
 										   HttpMaxContentLength, HttpHeaders, 
 										   LogShowResponse, LogShowPayload,
-										   Restricted);
+										   Restricted, ShowDebugResponseHeader);
 			false -> 
+				put(parse_step, new_service),
 				Service = new_service(Rowid, Id, Name, Url2, 
 										ServiceImpl,
 										ModuleName,
@@ -578,7 +733,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 										FunctionName, Type, Enable, Comment,
 										Version, Owner, Group, Glyphicon, Async, 
 										Querystring, QtdQuerystringRequired,
-										Host, HostName, ResultCache,
+										Host, HostName, ResultCache, ResultCacheShared,
 										Authorization, Node, Lang,
 										Datasource, Debug, SchemaIn, SchemaOut, 
 										PoolSize, PoolMax, Map, Timeout, TimeoutAlertThreshold,
@@ -599,13 +754,13 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 										AuthorizationPublicCheckCredential,
 										HttpMaxContentLength, HttpHeaders, 
 										LogShowResponse, LogShowPayload,
-										Restricted)
+										Restricted, ShowDebugResponseHeader)
 		end,
 		{ok, Service}
 	catch
 		_Exception:Reason -> 
 			ems_db:inc_counter(edata_loader_invalid_catalog),
-			ems_logger:warn("ems_catalog parse invalid service specification: ~p\n\t~p.\n", [Reason, Map]),
+			ems_logger:warn("ems_catalog parse invalid service specification on ~p. Reason: ~p\n\t~p.\n", [get(parse_step), Reason, Map]),
 			{error, Reason}
 	end.
 

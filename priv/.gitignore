@@ -6,3 +6,4 @@
 /logs
 *.gz
 tmp
+priv/jar/**

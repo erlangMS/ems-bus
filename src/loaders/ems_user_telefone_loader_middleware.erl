@@ -57,39 +57,6 @@ get_filename() ->
 	Conf = ems_config:getConfig(),
 	Conf#config.user_telefone_path_search.
 	
-
-
-update_telefone_tabela_users(Telefone = #user_telefone{type = Type}, SourceType, CodigoPessoa) ->
-	if 
-		Type == 1 orelse Type == 3 ->
-			UserTable = ems_user:get_table(SourceType),
-			case ems_user:find_by_codigo_pessoa(UserTable, CodigoPessoa) of
-				{ok, Users} -> 
-					update_telefone_tabela_users_(Users, Telefone, UserTable);
-				_ -> ok
-			end;
-		true -> ok
-	end.
-
--spec update_telefone_tabela_users_(list(#user{}), #user_telefone{}, atom()) -> ok.
-update_telefone_tabela_users_([], _, _) -> ok;
-update_telefone_tabela_users_([User|UserT], 
-							 Telefone, 
-							 UserTable) -> 
-	case Telefone#user_telefone.type of
-		1 -> %% celular
-			User2 = User#user{celular = Telefone#user_telefone.numero},
-			mnesia:dirty_write(UserTable, User2),
-			ems_db:delete(user_cache_lru, User2#user.id);
-		3 -> %% telefone residencial
-			User2 = User#user{telefone = Telefone#user_telefone.numero},
-			mnesia:dirty_write(UserTable, User2),
-			ems_db:delete(user_cache_lru, User2#user.id);
-		_ -> ok
-	end,
-	update_telefone_tabela_users_(UserT, Telefone, UserTable).
-		
-	
 -spec insert_or_update(map() | tuple(), tuple(), #config{}, atom(), insert | update) -> {ok, #service{}, atom(), insert | update} | {ok, skip} | {error, atom()}.
 insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 	try
@@ -99,10 +66,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 				case ems_user_telefone:find(Table, Id) of
 					{error, enoent} -> 
 						Record = NewRecord#user_telefone{ctrl_insert = CtrlDate},
-						update_telefone_tabela_users(Record, case SourceType of
-																db -> user_db;
-																fs -> user_fs
-															 end, CodigoPessoa),
 						{ok, Record, Table, insert};
 					{ok, CurrentRecord = #user_telefone{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
@@ -120,11 +83,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 ctrl_modified = NewRecord#user_telefone.ctrl_modified,
 												 ctrl_hash = NewRecord#user_telefone.ctrl_hash
 											},
-								update_telefone_tabela_users(Record, case SourceType of
-																			db -> user_db;
-																			fs -> user_fs
-																	 end, CodigoPessoa),
-
 								{ok, Record, Table, update};
 							false -> {ok, skip}
 						end

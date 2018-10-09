@@ -11,7 +11,7 @@
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : ["client_db", "client_fs"],
-			"fields" : ["id", "name", "active", "description", "group", "glyphicon"]
+			"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope", "group", "glyphicon"]
 		},
 		"schema_in" : "client",
 		"schema_out" : "client",
@@ -29,7 +29,7 @@
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : ["client_db", "client_fs"],
-			"fields" : ["id", "name", "active", "description", "group", "glyphicon"]
+			"fields" : ["id", "name", "redirect_uri", "description", "active", "scope", "group", "glyphicon"]
 		},
 		"schema_in" : "client",
 		"schema_out" : "client",
@@ -78,7 +78,7 @@
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : ["client_fs"],
-			"fields" : ["id", "name", "active", "description", "group", "glyphicon"]
+			"fields" : ["id", "name", "redirect_uri", "description", "active", "scope", "group", "glyphicon"]
 		},
 		"schema_in" : "client",
 		"schema_out" : "client",
@@ -96,7 +96,7 @@
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : ["client_fs"],
-			"fields" : ["id", "name", "active", "description", "group", "glyphicon"]
+			"fields" : ["id", "name", "redirect_uri", "description", "active", "scope", "group", "glyphicon"]
 		},
 		"schema_in" : "client",
 		"schema_out" : "client",

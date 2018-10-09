@@ -25,7 +25,15 @@
 #
 ########################################################################################################
 
-VERSION_SCRIPT="3.0.0"
+
+VERSION_SCRIPT="3.0.1"
+
+# Necessário para as bibliotecas c utilizadas
+export CFLAGS='-std=c11 -static'
+export CXXFLAGS='-std=c11 -static'
+echo "Usando CFLAGS=$CFLAGS"
+echo "Usando CXXFLAGS=$CXXFLAGS"
+
 
 if [ -z "$ERLANGMS_IN_DOCKER" ]; then
 	echo "Build erlangms tool ( Version: $VERSION_SCRIPT   Hostname: `hostname` )"
@@ -272,8 +280,9 @@ else
 		echo "Clearing the db folder before build..."
 		rm -Rf priv/db
 	fi	
-
+	
 	echo "Compiling the project erlangms..."
+
 	if [ "$SKIP_DEPS" = "false" ]; then
 		clean_deps
 		if [ "$SKIP_CLEAN" = "false" ]; then	

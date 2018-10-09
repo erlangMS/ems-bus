@@ -48,6 +48,11 @@
 	{
 		"catalog": "/emsbus/auth/ems_auth_login", 
 		"file": "ems_auth_login.json"
-	}	
+	},
 	
+	{
+		"catalog": "/emsbus/auth/ems_netadm_auth_user", 
+		"file": "ems_netadm_auth_user.json"
+	}	
+
 ]

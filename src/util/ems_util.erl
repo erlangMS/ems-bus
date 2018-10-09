@@ -11,6 +11,7 @@
 -include("include/ems_config.hrl").
 -include("include/ems_schema.hrl").
 
+
 -export([version/0,
 		 server_name/0,
 		 sleep/1,
@@ -25,6 +26,8 @@
 		 list_to_integer_def/2,
 		 binary_to_integer_def/2,
 		 binlist_to_atomlist/1,
+		 binlist_to_atomlist_with_trim/1,
+		 list_to_atomlist_with_trim/1,
 		 list_to_binlist/1,
 		 mes_extenso/1,
 		 binlist_to_list/1,
@@ -41,6 +44,10 @@
 		 save_from_file_req/1,
 		 node_is_live/1,
  		 node_binary/0,
+ 		 get_environment_variable/1,
+ 		 get_environment_variable/2,
+		 get_pid_from_port/1,
+ 		 get_free_tcp_port/0,
  		 get_host_list/0,
 		 get_node_name/0,
 		 get_params_from_url/1,
@@ -56,8 +63,10 @@
          get_client_request_by_id_and_secret/1,
          get_client_request_by_id/1,
          get_user_request_by_login_and_password/1,
+         get_user_request_by_login_and_password/2,
          get_user_request_by_login/1,
          get_param_or_variable/3,
+         get_java_home/0,
          date_add_minute/2,
          date_dec_minute/2,
          date_add_second/2,
@@ -96,6 +105,7 @@
 		 is_letter_lower/1,
 		 posix_error_description/1,
 		 ldap_attribute_map_to_user_field/1,
+		 parse_oauth2_scope/1,
 		 parse_ldap_attributes/1,
 		 parse_ldap_filter/1,
 		 parse_querystring/1,
@@ -127,7 +137,7 @@
 		 match_ip_address/2,
  		 allow_ip_address/2,
 		 mask_ipaddress_to_tuple/1,
-		 encode_request_cowboy/5,
+		 encode_request_cowboy/3,
 		 msg_campo_obrigatorio/2, msg_email_invalido/2, mensagens/1,
 		 msg_registro_ja_existe/1, msg_registro_ja_existe/2,
 		 hashsym_and_params/1,
@@ -140,6 +150,7 @@
 		 quote/1,
  		 remove_quoted_str/1,
 		 remove_ult_backslash_url/1,
+		 remove_ult_backslash_url_binary/1,
 		 name_case/1,
 		 modernize/1,
 		 mes_abreviado/1,
@@ -153,7 +164,14 @@
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 head_file/2,
+		 replace_all_vars_binary/2,
 		 replace_all_vars/2,
+		 replace_all_vars_and_custom_variables/2,
+		 replace_all_vars_and_custom_variables_binary/2,
+		 replace_custom_variables/1,
+		 replace_custom_variables_binary/1,
+		 replace_config_and_custom_variables_binary/1,
+		 replace_config_and_custom_variables/1,
 		 to_utf8/1,
 		 load_erlang_module/1,
 		 mime_type/1,
@@ -173,7 +191,10 @@
 		 invoque_service/3,
 		 url_mask/1,
 		 list_map_to_list_tuple/1,
-		 list_tuple_to_list_map/1
+		 list_tuple_to_list_map/1,
+		 format_rest_status/5,
+		 os_command/2,
+		 integer_to_list_def/2
 		]).
 
 -spec version() -> string().
@@ -614,6 +635,9 @@ remove_ult_backslash_url(Value) ->
 		_ -> Value
 	end.
 
+remove_ult_backslash_url_binary(Url) -> list_to_binary(remove_ult_backslash_url(binary_to_list(Url))).
+
+
 %% @doc Função name case
 name_case([H|T]) when H >= $a, H =< $z -> 
 	[H + ($A - $a) | T];
@@ -900,11 +924,11 @@ utf8_string_win(Text) ->
 		case check_encoding_bin(Text) of
 			utf8 -> normalize_field_utf8(Text);
 			latin1 -> normalize_field_utf8(Text);
-			Other -> Other
+			_ -> Text
 		end
 	catch
 		_Exception:Reason -> 
-			?DEBUG("utf8_string_linux convert ~p error: ~p\n", [Text, Reason]),
+			?DEBUG("utf8_string_win convert ~p error: ~p\n", [Text, Reason]),
 			Text
 	end.
 
@@ -920,7 +944,7 @@ utf8_string_linux(Text) ->
 		case check_encoding_bin(Text) of
 			utf8 -> normalize_field_utf8(Text);
 			latin1 -> normalize_field_utf8(Text);
-			Other -> Other
+			_ -> Text
 		end
 	catch
 		_Exception:Reason -> 
@@ -982,14 +1006,115 @@ replace_all(Subject, [{Key, Value}|VarTail]) ->
 	replace_all(NewSubject, VarTail).
 
 
--spec replace_all_vars(string(), list(tuple())) -> string().
-replace_all_vars(Subject, []) -> Subject;
-replace_all_vars(Subject, [{Key, Value}|VarTail]) -> 
-	NewSubject = replace(Subject, "{{ "++ binary_to_list(Key) ++ " }}", Value),
-	replace_all_vars(NewSubject, VarTail).
+-spec replace_all_vars_binary(string() | binary(), list(tuple())) -> binary().
+replace_all_vars_binary(<<>>, _) -> <<>>;
+replace_all_vars_binary(undefined, _) -> undefined;
+replace_all_vars_binary(Subject, Vargs) -> 
+	list_to_binary(replace_all_vars(Subject, Vargs)).
 
 
-replace_vars_with(Subject, Value) -> re:replace(Subject, "{{ .+ }}", Value, [global, {return, list}]).
+-spec replace_all_vars_and_custom_variables_binary(string() | binary(), list(tuple())) -> binary().
+replace_all_vars_and_custom_variables_binary(<<>>, _) -> <<>>;
+replace_all_vars_and_custom_variables_binary(undefined, _) -> undefined;
+replace_all_vars_and_custom_variables_binary(Subject, Vargs) -> 
+	list_to_binary(replace_all_vars_and_custom_variables(Subject, Vargs)).
+
+
+-spec replace_all_vars_and_custom_variables(string() | binary(), list(tuple())) -> string().
+replace_all_vars_and_custom_variables(Subject, Vargs) -> 
+	CustomVariables = ems_db:get_param(custom_variables),
+	Result = replace_all_vars(Subject, Vargs),
+	ems_util:replace_all_vars(Result, CustomVariables).
+
+
+-spec replace_custom_variables_binary(string() | binary()) -> binary().
+replace_custom_variables_binary(Str) -> 
+	CustomVariables = ems_db:get_param(custom_variables),
+	list_to_binary(ems_util:replace_all_vars(Str, CustomVariables)).
+
+
+-spec replace_custom_variables(string() | binary()) -> string().
+replace_custom_variables(Str) -> 
+	CustomVariables = ems_db:get_param(custom_variables),
+	ems_util:replace_all_vars(Str, CustomVariables).
+
+
+-spec replace_config_and_custom_variables_binary(string() | binary()) -> binary().
+replace_config_and_custom_variables_binary(Str) -> 
+	list_to_binary(replace_config_and_custom_variables(Str)).
+
+
+-spec replace_config_and_custom_variables(string() | binary()) -> string().
+replace_config_and_custom_variables(Str) -> 
+	Conf = ems_config:getConfig(),
+	Result = ems_util:replace_all_vars_and_custom_variables(Str, 
+		[{<<"HOSTNAME">>, binary_to_list(Conf#config.ems_hostname)},
+		 {<<"JAVA_HOME">>, Conf#config.java_home},
+		 {<<"JAVA_THREAD_POOL">>, Conf#config.java_thread_pool},
+		 {<<"JAVA_JAR_PATH">>, Conf#config.java_jar_path},
+		 {<<"REST_BASE_URL">>, binary_to_list(Conf#config.rest_base_url)},
+		 {<<"REST_ENVIRONMENT">>, Conf#config.rest_environment},
+		 {<<"REST_USER">>, Conf#config.rest_user},
+		 {<<"REST_PASSWD">>, Conf#config.rest_passwd},
+		 {<<"LDAP_URL">>, Conf#config.ldap_url},
+		 {<<"LDAP_ADMIN">>, Conf#config.ldap_admin},
+		 {<<"LDAP_PASSWD">>, Conf#config.ldap_password_admin},
+		 {<<"SMTP_FROM">>, Conf#config.smtp_from},
+		 {<<"SMTP_PASSWD">>, Conf#config.smtp_passwd},
+		 {<<"SMTP_PORT">>, Conf#config.smtp_port},
+		 {<<"SMTP_MAIL">>, Conf#config.smtp_mail},
+		 {<<"PRIV_PATH">>, ?PRIV_PATH}
+		]), 
+	Result.
+
+
+-spec replace_all_vars(string() | binary(), list(tuple())) -> string().
+replace_all_vars(<<>>, _) -> "";
+replace_all_vars(undefined, _) -> undefined;
+replace_all_vars(Subject, Vargs) -> 
+	SubjectStr = case is_binary(Subject) of
+					true -> binary_to_list(Subject);
+					false -> Subject
+				 end,
+	replace_all_vars_(SubjectStr, Vargs).
+
+-spec replace_all_vars_(string(), list(tuple())) -> string().
+replace_all_vars_(Subject, []) -> Subject;
+replace_all_vars_(Subject, [{Key, Value}|VarTail]) -> 
+	KeyStr = case is_binary(Key) of
+				true -> binary_to_list(Key);
+				false -> Key
+			 end,
+	ValueStr = case is_binary(Value) of
+					true -> binary_to_list(Value);
+					false -> 
+						case is_integer(Value) of
+							true -> integer_to_list(Value);
+							false -> Value
+						end
+			   end,
+	NewSubject = replace(Subject, "{{.?"++ string:uppercase(KeyStr) ++ ".?}}", ValueStr),
+	NewSubject2 = replace(NewSubject, "{{.?"++ string:lowercase(KeyStr) ++ ".?}}", ValueStr),
+	replace_all_vars_(NewSubject2, VarTail).
+
+
+replace_vars_with(Subject, Value) -> re:replace(Subject, "{{.+}}", Value, [global, {return, list}]).
+
+
+-spec parse_oauth2_scope(binary()) -> list(atom()).
+parse_oauth2_scope(<<>>) -> [user_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs];
+parse_oauth2_scope(undefined) -> [user_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs];
+parse_oauth2_scope(ScopeBin) ->
+	try
+		Result0 = list_to_atomlist_with_trim(string:tokens(binary_to_list(ScopeBin), ",")),
+		% Adiciona o user_fs no fim da lista pois é obrigatório
+		case lists:member(user_fs, Result0) of
+			true -> Result0;
+			false -> Result0 ++ [user_fs]
+		end
+	catch
+		_:_ -> throw({error, einvalid_oauth2_scope})
+	end.
 
 
 % Process the path "~" and "." wildcards and variable path. Return path
@@ -1004,8 +1129,8 @@ parse_file_name_path(Path, StaticFilePathList, RootPath) ->
 	case Ch =:= "/" orelse (is_letter(Ch) andalso Ch2 =:= ":")   of
 		true -> remove_ult_backslash_url(Path);  
 		false ->
-			case Ch == "~" of
-				true -> replace(Path, "~", get_home_dir());
+			case Ch == "\~" of
+				true -> replace(Path, "\~", get_home_dir());
 				_ -> 
 					case Ch == "." of
 						true -> 
@@ -1014,10 +1139,10 @@ parse_file_name_path(Path, StaticFilePathList, RootPath) ->
 								_ -> remove_ult_backslash_url(remove_ult_backslash_url(RootPath) ++ "/" ++ string:substr(Path, 3))
 							end;
 						false -> 
-							Path2 = replace_all_vars(Path, StaticFilePathList),
+							Path2 = replace_all_vars_and_custom_variables(Path, StaticFilePathList),
 							% after process variables, check ~ or . wildcards
-							case string:substr(Path2, 1, 1) == "~" of
-								true -> replace(Path2, "~", get_home_dir());
+							case string:substr(Path2, 1, 1) == "\~" of
+								true -> replace(Path2, "\~", get_home_dir());
 								_ -> 
 									case Ch == "." of
 										true -> 
@@ -1602,8 +1727,11 @@ invoque_service(Type, Url, QuerystringBin, QuerystringMap, ContentTypeIn) ->
 -spec url_mask(string() | binary()) -> binary().
 url_mask(Url) -> iolist_to_binary([<<"/erl.ms/">>, base64:encode(Url)]). 
 
--spec encode_request_cowboy(tuple(), pid(), map(), map(), boolean()) -> {ok, #request{}} | {error, atom()}.
-encode_request_cowboy(CowboyReq, WorkerSend, HttpHeaderDefault, HttpHeaderOptions, ShowDebugResponseHeaders) ->
+-spec encode_request_cowboy(tuple(), pid(), #encode_request_state{}) -> {ok, #request{}} | {error, atom()}.
+encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_default = HttpHeaderDefault,
+																   http_header_options = HttpHeaderOptions, 
+																   show_debug_response_headers = ShowDebugResponseHeaders,
+																   current_node = CurrentNode}) ->
 	try
 		Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
@@ -1743,22 +1871,30 @@ encode_request_cowboy(CowboyReq, WorkerSend, HttpHeaderDefault, HttpHeaderOption
 			payload = <<>>, 
 			payload_map = #{},
 			response_data = <<>>,
-			node_exec = ems_util:node_binary(),
+			node_exec = CurrentNode,
 			code = 200,
 			reason = ok,
 			reason_detail = undefined,
-			operation = webservice
+			operation = webservice,
+			status_text = <<>>
 		},	
 		case ems_catalog_lookup:lookup(Request) of
 			{Service = #service{name = ServiceName,
+								 service = ServiceService,	
 								 url = ServiceUrl,
 								 content_type = ContentTypeService,
-								 owner = ServiceOwner,
+								 owner = OwnerService,
+								 group = GroupService,
 								 version = ServiceVersion,
+								 path = PathService,
+								 cache_control = CacheControlService,
+								 use_re = UseReService,
 								 lang = LangService,
 								 timeout = TimeoutService,
 								 http_max_content_length = HttpMaxContentLengthService,
-								 authorization = ServiceAuthorization}, 
+								 authorization = AuthorizationService,
+								 expires = ExpiresService,
+								 result_cache_shared = ResultCacheSharedService}, 
 			 ParamsMap, 
 			 QuerystringMap} -> 
 				case cowboy_req:body_length(CowboyReq) of
@@ -1904,7 +2040,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, HttpHeaderDefault, HttpHeaderOption
 						QuerystringMap2 = QuerystringMap,
 						CowboyReq2 = CowboyReq
 				end,
-				ReqHash = erlang:phash2([Url, QuerystringMap2, ContentLength, ContentTypeIn2, ServiceAuthorization, IpBin, UserAgent, Payload]),
+				case ResultCacheSharedService of
+					true ->	ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, Payload]);
+					false -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, AuthorizationService, IpBin, UserAgent, Payload])
+				end,
 				Request2 = Request#request{
 					type = Type, % use original verb of request
 					querystring_map = QuerystringMap2,
@@ -1925,58 +2064,100 @@ encode_request_cowboy(CowboyReq, WorkerSend, HttpHeaderDefault, HttpHeaderOption
 												Expires = cowboy_clock:rfc1123(ExpireDate),
 												case ShowDebugResponseHeaders of
 													false ->
-														HttpHeaderOptions#{<<"expires">> => Expires};
+														HttpHeaderOptions#{<<"expires">> => Expires,
+																		   <<"cache-control">> => CacheControlService};
 													true ->
-														HttpHeaderOptions#{<<"ems-rowid">> => integer_to_binary(Rowid),
-																		   <<"ems-hash">> => integer_to_binary(ReqHash),
-																		   <<"ems-catalog">> => ServiceName,
-																		   <<"ems-owner">> => ServiceOwner,
-																		   <<"ems-version">> => ServiceVersion,
-																		   <<"ems-url">> => ServiceUrl,
-																		   <<"ems-timeout">> => integer_to_binary(TimeoutService),
-																		   <<"ems-lang">> => LangService,
-																		   <<"ems-authorization">> => atom_to_binary(ServiceAuthorization, utf8),
+														HttpHeaderOptions#{<<"X-ems-rowid">> => integer_to_binary(Rowid),
+																		   <<"X-ems-hash">> => integer_to_binary(ReqHash),
+																		   <<"X-ems-catalog">> => ServiceName,
+																		   <<"X-ems-service">> => ServiceService,
+																		   <<"X-ems-owner">> => OwnerService,
+																		   <<"X-ems-group">> => GroupService,
+																		   <<"X-ems-version">> => ServiceVersion,
+																		   <<"X-ems-url">> => ServiceUrl,
+																		   <<"X-ems-path">> => PathService,
+																		   <<"X-ems-use-re">> => ems_util:boolean_to_binary(UseReService),
+																		   <<"X-ems-cache-control">> => CacheControlService,
+																		   <<"X-ems-timeout">> => integer_to_binary(TimeoutService),
+																		   <<"X-ems-expires">> => integer_to_binary(ExpiresService),
+																		   <<"X-ems-lang">> => LangService,
+																		   <<"x-ems-authorization">> => atom_to_binary(AuthorizationService, utf8),
 																		   <<"expires">> => Expires}
 												end;
 											_ -> 
 												case ShowDebugResponseHeaders of
 													false ->
-														HttpHeaderDefault;
+														HttpHeaderDefault#{<<"cache_control">> => CacheControlService};
 													true ->
-														HttpHeaderDefault#{<<"ems-rowid">> => integer_to_binary(Rowid),
-																		   <<"ems-hash">> => integer_to_binary(ReqHash),
-																		   <<"ems-catalog">> => ServiceName,
-																		   <<"ems-owner">> => ServiceOwner,
-																		   <<"ems-version">> => ServiceVersion,
-																		   <<"ems-url">> => ServiceUrl,
-																		   <<"ems-timeout">> => integer_to_binary(TimeoutService),
-																		   <<"ems-lang">> => LangService,
-																		   <<"ems-authorization">> => atom_to_binary(ServiceAuthorization, utf8)}
+														HttpHeaderDefault#{<<"X-ems-rowid">> => integer_to_binary(Rowid),
+																		   <<"X-ems-hash">> => integer_to_binary(ReqHash),
+																		   <<"X-ems-catalog">> => ServiceName,
+																		   <<"X-ems-service">> => ServiceService,
+																		   <<"X-ems-owner">> => OwnerService,
+																		   <<"X-ems-group">> => GroupService,
+																		   <<"X-ems-version">> => ServiceVersion,
+																		   <<"X-ems-url">> => ServiceUrl,
+																		   <<"X-ems-path">> => PathService,
+																		   <<"X-ems-use-re">> => ems_util:boolean_to_binary(UseReService),
+																		   <<"X-ems-cache-control">> => CacheControlService,
+																		   <<"X-ems-timeout">> => integer_to_binary(TimeoutService),
+																		   <<"X-ems-expires">> => integer_to_binary(ExpiresService),
+																		   <<"X-ems-lang">> => LangService,
+																		   <<"X-ems-authorization">> => atom_to_binary(AuthorizationService, utf8),
+   																		   <<"cache-control">> => CacheControlService}
 												end
 									  end
 				},	
 				{ok, Request2, Service, CowboyReq2};
 			_ -> 
 				ReqHash = erlang:phash2([Url, QuerystringMap0, 0, ContentTypeIn]),
+				Latency = ems_util:get_milliseconds() - T1,
 				if 
 					Type =:= <<"OPTIONS">> orelse Type =:= <<"HEAD">> ->
-							Request2 = Request#request{req_hash = ReqHash,
-														code = 200, 
-													    reason = ok,
-													    type = Type,  % use original verb of request
-													    response_header = HttpHeaderOptions,
-													    response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
-													    latency = ems_util:get_milliseconds() - T1},
+							StatusText = ems_util:format_rest_status(200, enoent_service_contract, undefined, undefined, Latency),
+							case ShowDebugResponseHeaders of
+								true ->
+									Request2 = Request#request{req_hash = ReqHash,
+																code = 200, 
+																reason = enoent_service_contract,
+																type = Type,  % use original verb of request
+																response_header = HttpHeaderOptions#{<<"X-ems-status">> => StatusText},
+																response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
+																latency = Latency,
+																status_text = StatusText};
+								false ->
+									Request2 = Request#request{req_hash = ReqHash,
+																code = 200, 
+																reason = enoent_service_contract,
+																type = Type,  % use original verb of request
+																response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
+																latency = Latency,
+																status_text = StatusText}
+							end,
 							{ok, request, Request2, CowboyReq};
 					true ->
 						ems_db:inc_counter(ems_dispatcher_lookup_enoent),								
-						Request2 = Request#request{req_hash = ReqHash,
-													code = 404, 
-												    reason = enoent_service_contract,
-												    type = Type,  % use original verb of request
-												    response_header = HttpHeaderDefault,
-												    response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
-												    latency = ems_util:get_milliseconds() - T1},
+						StatusText = ems_util:format_rest_status(404, enoent_service_contract, undefined, undefined, Latency),
+						case ShowDebugResponseHeaders of
+							true ->
+								Request2 = Request#request{req_hash = ReqHash,
+															code = 404, 
+															reason = enoent_service_contract,
+															type = Type,  % use original verb of request
+															response_header = HttpHeaderDefault#{<<"X-ems-status">> => StatusText},
+															response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
+															latency = Latency,
+															status_text = StatusText};
+							false ->
+								Request2 = Request#request{req_hash = ReqHash,
+															code = 404, 
+															reason = enoent_service_contract,
+															type = Type,  % use original verb of request
+															response_header = HttpHeaderDefault,
+															response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
+															latency = Latency,
+															status_text = StatusText}
+						end,
 						{error, request, Request2, CowboyReq}
 				end			
 		end
@@ -2218,7 +2399,9 @@ parse_url_service(Url) ->
 	LenUrl = length(Url),
 	case LenUrl > 0 andalso LenUrl =< 360 andalso is_url_valido(Url) of
 		true -> list_to_binary(Url);
-		false -> erlang:error(einvalid_url_service)
+		false -> 
+			ems_logger:error("ems_util parse invalid url ~p.", [Url]),
+			erlang:error(einvalid_url_service)
 	end.
 
 -spec parse_lang(binary() | string() | non_neg_integer()) -> binary().
@@ -2343,7 +2526,11 @@ parse_tcp_listen_address_t([], _, Result) -> Result;
 parse_tcp_listen_address_t([H|T], TcpListenPrefixInterfaceNames, Result) when is_binary(H) ->
 	parse_tcp_listen_address_t([binary_to_list(H) | T], TcpListenPrefixInterfaceNames, Result);
 parse_tcp_listen_address_t([H|T], TcpListenPrefixInterfaceNames, Result) ->
-	case inet:parse_address(H) of
+	IP = case H of
+			 "*.*.*.*" -> "0.0.0.0";
+			 Value -> Value
+		  end,
+	case inet:parse_address(IP) of
 		{ok, {0, 0, 0, 0}} -> [{127,0,0,1}];
 		{ok, L2} -> 
 			case lists:member(L2, Result) of
@@ -2359,7 +2546,11 @@ parse_tcp_listen_address_t([], _, Result) -> Result;
 parse_tcp_listen_address_t([H|T], TcpListenPrefixInterfaceNames, Result) when is_binary(H) ->
 	parse_tcp_listen_address_t([binary_to_list(H) | T], TcpListenPrefixInterfaceNames, Result);
 parse_tcp_listen_address_t([H|T], TcpListenPrefixInterfaceNames, Result) ->
-	case inet:parse_address(H) of
+	IP = case H of
+			 "*.*.*.*" -> "0.0.0.0";
+			 Value -> Value
+		  end,
+	case inet:parse_address(IP) of
 		{ok, {0, 0, 0, 0}} ->
 			case ip_list(TcpListenPrefixInterfaceNames) of
 				{ok, IpList} -> IpList;
@@ -2461,24 +2652,37 @@ load_from_file_req(Request = #request{url = Url,
 									  if_none_match = IfNoneMatchReq,
 									  timestamp = Timestamp,
 									  response_header = ResponseHeader,
-									  service = #service{cache_control = CacheControl,
-														 expires = ExpiresMinute,
-														 path = Path}}) ->
-	Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2),
+									  service = #service{expires = ExpiresService,
+														 path = Path,
+														 filename = FilenameService,
+														 show_debug_response_headers = ShowDebugResponseHeaders}}) ->
+	case FilenameService == <<>> orelse FilenameService == undefined of
+		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
+		false -> Filename = FilenameService
+	end,
 	case file:read_file_info(Filename, [{time, universal}]) of
 		{ok,{file_info, FSize, _Type, _Access, _ATime, MTime, _CTime, _Mode,_,_,_,_,_,_}} -> 
 			?DEBUG("ems_static_file_service loading file ~p.", [Filename]),
 			MimeType = mime_type(filename:extension(Filename)),
 			ETag = integer_to_binary(erlang:phash2({FSize, MTime}, 16#ffffffff)),
 			LastModified = cowboy_clock:rfc1123(MTime),
-			ExpireDate = date_add_minute(Timestamp, ExpiresMinute + 120), % add +120min (2h) para ser horário GMT
+			ExpireDate = date_add_minute(Timestamp, ExpiresService + 180), 
 			Expires = cowboy_clock:rfc1123(ExpireDate),
-			ResponseHeader2 = ResponseHeader#{
-								<<"cache-control">> => CacheControl,
-								<<"etag">> => ETag,
-								<<"last-modified">> => LastModified,
-								<<"expires">> => Expires
-							},
+			case ShowDebugResponseHeaders of
+				true ->
+					ResponseHeader2 = ResponseHeader#{
+										<<"etag">> => ETag,
+										<<"last-modified">> => LastModified,
+										<<"expires">> => Expires,
+										<<"X-ems-filename">> => list_to_binary(Filename)
+									};
+				false ->
+					ResponseHeader2 = ResponseHeader#{
+										<<"etag">> => ETag,
+										<<"last-modified">> => LastModified,
+										<<"expires">> => Expires
+									}
+			end,
 			case ETag == IfNoneMatchReq orelse LastModified == IfModifiedSinceReq of
 				true -> {ok, Request#request{code = 304, 
 											 reason = enot_modified,
@@ -2500,6 +2704,7 @@ load_from_file_req(Request = #request{url = Url,
 											      response_header = ResponseHeader2}
 							};
 						{error, Reason} = Error -> 
+							?DEBUG("ems_static_file_service read_file ~p failed. Reason: ~p.", [Filename, Reason]),
 							{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 												     reason = Reason,
 												     content_type_out = ?CONTENT_TYPE_JSON,
@@ -2508,7 +2713,7 @@ load_from_file_req(Request = #request{url = Url,
 					end
 			end;
 		{error, Reason} = Error -> 
-			ems_logger:warn("ems_static_file_service file ~p does not exist.", [Filename]),
+			ems_logger:error("ems_static_file_service read_file_info ~p failed. Reason: ~p.", [Filename, Reason]),
 			{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 									 reason = Reason,	
 									 response_data = ems_schema:to_json(Error)}
@@ -2697,6 +2902,28 @@ print_str_map(_, [], _, _, Result) -> iolist_to_binary(lists:reverse(Result));
 print_str_map(Map, [Key|TKey], [Value|TValue], Sep, Result) ->
 	print_str_map(Map, TKey, TValue, <<", ">>, [[Sep, Key, <<"=\"">>, Value, <<"\"">>] | Result]).
 
+
+list_to_atomlist_with_trim([], Result) -> lists:reverse(Result);
+list_to_atomlist_with_trim([H|T], Result) ->
+	list_to_atomlist_with_trim(T, [list_to_atom(string:trim(H))|Result]).
+
+list_to_atomlist_with_trim([]) -> [];
+list_to_atomlist_with_trim(<<>>) -> [];
+list_to_atomlist_with_trim(undefined) -> [];
+list_to_atomlist_with_trim(L) ->
+	list_to_atomlist_with_trim(L, []).
+
+
+binlist_to_atomlist_with_trim([], Result) -> lists:reverse(Result);
+binlist_to_atomlist_with_trim([H|T], Result) ->
+	binlist_to_atomlist_with_trim(T, [list_to_atom(string:trim(binary_to_list(H)))|Result]).
+
+binlist_to_atomlist_with_trim([]) -> [];
+binlist_to_atomlist_with_trim(<<>>) -> [];
+binlist_to_atomlist_with_trim(undefined) -> [];
+binlist_to_atomlist_with_trim(L) ->
+	binlist_to_atomlist_with_trim(L, []).
+	
 
 -spec binlist_to_atomlist(list(binary()) | binary()) -> list(atom()) | atom().
 binlist_to_atomlist([])  -> [];
@@ -2914,15 +3141,28 @@ get_client_request_by_id(Request = #request{authorization = Authorization}) ->
 
 -spec get_user_request_by_login_and_password(#request{}) -> {ok, #user{}} | {error, 
 																			 access_denied, 
-																			 enoent, einvalid_password | einative_user | einvalid_authorization_header | eparse_authorization_header_exception}.
+																			 enoent, einvalid_password | einative_user | 
+																			 einvalid_authorization_header | 
+																			 eparse_authorization_header_exception}.
+get_user_request_by_login_and_password(Request) ->
+	get_user_request_by_login_and_password(Request, undefined).
+
+
+-spec get_user_request_by_login_and_password(#request{}, #client{}) -> {ok, #user{}} | 
+																			{error, 
+																			 access_denied, 
+																			 enoent, einvalid_password | einative_user | 
+																			 einvalid_authorization_header | 
+																			 eparse_authorization_header_exception}.
 get_user_request_by_login_and_password(Request = #request{authorization = Authorization, 
-														  service = #service{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}}) ->
+														  service = #service{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}},
+									   Client) ->
     try
 		Username = ems_util:get_querystring(<<"username">>, <<>>, Request),
 		case Username =/= <<>> of
 			true ->
 				Password = ems_util:get_querystring(<<"password">>, <<>>, Request),
-				case ems_user:find_by_login_and_password(Username, Password) of
+				case ems_user:find_by_login_and_password(Username, Password, Client) of
 					{ok, User = #user{active = Active}} -> 
 						case Active orelse AuthAllowUserInativeCredentials of
 							true -> {ok, User};
@@ -2936,7 +3176,7 @@ get_user_request_by_login_and_password(Request = #request{authorization = Author
 					true ->
 						case parse_basic_authorization_header(Authorization) of
 							{ok, Login, Password} ->
-								case ems_user:find_by_login_and_password(Login, Password) of
+								case ems_user:find_by_login_and_password(Login, Password, Client) of
 									{ok, User = #user{active = Active}} -> 
 										case Active orelse AuthAllowUserInativeCredentials of
 											true -> {ok, User};
@@ -3333,11 +3573,91 @@ binary_to_integer_def(B, Default) ->
 -spec get_param_or_variable(binary(), list(map()), any()) -> any().
 get_param_or_variable(ParamName, ParamsMap, DefaultValue) ->
 	Result1 = maps:get(ParamName, ParamsMap, DefaultValue),				
-	case os:getenv(ParamName) of % variável de ambiente em minúsculo, igual ao parâmetro
+	ParanNameStr = binary_to_list(ParamName),
+	case os:getenv(ParanNameStr) of % variável de ambiente em minúsculo, igual ao parâmetro
 		false -> 
-			case os:getenv(string:uppercase(binary_to_list(ParamName))) of % variável de ambiente em maiúsculo, padrão Linux
+			case os:getenv(string:uppercase(ParanNameStr)) of % variável de ambiente em maiúsculo, padrão Linux
 				false -> Result1;
 				Result2 -> list_to_binary(Result2)
 			end;
 		Result2 -> list_to_binary(Result2)
 	end.
+
+-spec get_environment_variable(binary() | string()) -> binary().
+get_environment_variable(ParamName) -> get_environment_variable(ParamName, <<>>).
+
+-spec get_environment_variable(binary() | string(), any()) -> binary().
+get_environment_variable(ParamNameBin, DefaultValue) when is_binary(ParamNameBin) ->
+	get_environment_variable(binary_to_list(ParamNameBin), DefaultValue);
+get_environment_variable(ParanNameStr, DefaultValue) ->
+	case os:getenv(ParanNameStr) of % variável de ambiente em minúsculo, igual ao parâmetro
+		false -> 
+			case os:getenv(string:uppercase(ParanNameStr)) of % variável de ambiente em maiúsculo, padrão Linux
+				false -> 
+					case is_binary(DefaultValue) of
+						true -> DefaultValue;
+						false -> list_to_binary(DefaultValue)
+					end;
+				Result2 -> list_to_binary(Result2)
+			end;
+		Result -> list_to_binary(Result)
+	end.
+
+
+format_rest_status(Code, Reason, ReasonDetail, ReasonException, Latency) ->
+   iolist_to_binary([
+		integer_to_binary(Code), 
+		<<" <<">>, case is_atom(Reason) of
+						true -> 
+						   case ReasonDetail =/= undefined andalso is_atom(ReasonDetail) of
+								true ->
+								   case ReasonException =/= undefined andalso is_atom(ReasonException) of
+										true -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8), <<", ">>, atom_to_binary(ReasonException, utf8)];
+										false -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8)]
+								   end;
+								false -> atom_to_binary(Reason, utf8)
+						   end;
+						false -> <<"error">>
+				  end, <<">> (">>, integer_to_binary(Latency), 
+		<<"ms)">>]).
+				  
+
+get_free_tcp_port() ->
+	{ok, Listen} = gen_tcp:listen(0, [{keepalive, false}, {exit_on_close, true}]),
+	Port = inet:port(Listen),
+	gen_tcp:close(Listen),
+	Port.
+
+
+-spec get_pid_from_port(non_neg_integer()) -> {ok, non_neg_integer()} | {error, enoent}.
+get_pid_from_port(Port) ->
+	try
+		case lists:reverse(os:cmd(io_lib:format("lsof -i:~p -t", [Port]))) of
+			"\n" ++ PidStr -> {ok, list_to_integer(lists:reverse(PidStr))};
+			_ -> {error, enoent}
+		end
+	catch
+		_:_ -> {error, enoent}
+	end.
+	
+	
+-spec os_command(string(), list()) -> {ok, any()} | {error, einvalid_command}.
+os_command(Cmd, Options) ->
+	try
+		Result = os:cmd(Cmd, Options),
+		{ok, Result}
+	catch
+		_:_ -> {error, einvaid_command}
+	end.
+
+-spec get_java_home() -> string().
+get_java_home() -> remove_ult_backslash_url(binary_to_list(ems_util:get_environment_variable(<<"JAVA_HOME">>))).
+
+-spec integer_to_list_def(string(), string()) -> string().
+integer_to_list_def(Value, Default) ->
+	try
+		integer_to_list(Value)
+	catch
+		_:_ ->	Default
+	end.
+	

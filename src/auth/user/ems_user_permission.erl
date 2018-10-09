@@ -131,13 +131,13 @@ find_by_hash2(Hash) ->
 		[Record] -> {ok, Record}
 	end.
 
-make_hash(Rowid, PesId) -> erlang:phash2([Rowid, PesId]).
+make_hash(Rowid, Id) -> erlang:phash2([Rowid, Id]).
 
 has_grant_permission(#service{oauth2_with_check_constraint = false}, _, _) -> true;
 has_grant_permission(#service{oauth2_with_check_constraint = true},
 					 #request{rowid = Rowid, type = Type}, 
-					 #user{id = Codigo}) ->
-	Hash = make_hash(Rowid, Codigo),
+					 #user{id = Id}) ->
+	Hash = make_hash(Rowid, Id),
 	case find_by_hash(Hash) of
 		{ok, #user_permission{grant_get = GrantGet, 
 							  grant_post = GrantPost, 

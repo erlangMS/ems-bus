@@ -7,10 +7,10 @@
 	"url": "/(?<name>.+)/barramento",
 	"use_re" : true,
 	"async": "false",
-	"result_cache" : 60000,
+	"result_cache" : 86400000,
 	"type": "GET",
 	"authorization" : "public",
-	"cache_control" : "max-age=86400, private",
-	"expires_minute" : 1440,
+	"cache_control" : "max-age=3600, private",
+	"expires_minute" : 60,
 	"lang" : "erlang"
 }

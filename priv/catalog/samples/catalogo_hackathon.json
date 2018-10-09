@@ -1,0 +1,640 @@
+[
+	{
+		"name": "/samples/hackathon/pessoa",
+		"comment": "Lista as pessoas",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/pessoa",
+		"type": "GET",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDPessoa.dbo.TB_Pessoa",
+			"primary_key" : "PesCodigoPessoa"
+		},
+		"lang" : "erlang",
+		"authorization" : "public",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+
+	{
+		"name": "/samples/hackathon/pessoa/:id",
+		"comment": "Lista um pessoa pelo seu id",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/pessoa/:id",
+		"type": "GET",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDPessoa.dbo.TB_Pessoa",
+			"primary_key" : "PesCodigoPessoa"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang",
+		"debug" : false
+	},
+
+	{
+		"name": "/samples/hackathon/cursos",
+		"comment": "Lista os cursos ofertados na UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/cursos",
+		"type": "GET",
+		"datasource" : {
+			"type" : "csvfile",
+			"driver" : "sqlite3",
+			"connection" : "cursos.csv",
+			"table_name" : "Tbl_Cursos"
+		},
+		"lang" : "erlang",
+		"authorization" : "public",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "cod_curso",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+	
+
+	{
+		"name": "/samples/hackathon/cursos/:id",
+		"comment": "Lista um curso ofertado na UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/cursos/:id",
+		"type": "GET",
+		"datasource" : {
+			"type" : "csvfile",
+			"driver" : "sqlite3",
+			"connection" : "cursos.csv",
+			"table_name" : "Tbl_Cursos",
+			"primary_key" : "reg"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang",
+		"debug" : false
+	},
+
+
+	{
+		"name": "/samples/hackathon/ofertas",
+		"comment": "Lista as ofertas de cursos na UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/ofertas",
+		"type": "GET",
+		"datasource" : {
+			"type" : "csvfile",
+			"driver" : "sqlite3",
+			"connection" : "BuscaListaDeOferta.csv",
+			"table_name" : "Tbl_Ofertas"
+		},
+		"lang" : "erlang",
+		"authorization" : "public",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "offset da pesquisa"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "limite do paginador"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+
+	{
+		"name": "/samples/hackathon/campus",
+		"comment": "Lista os campus da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/campus",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_Campus",
+			"primary_key" : "CamCodigo"
+		},
+		"lang" : "erlang",
+		"authorization" : "public",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+
+	{
+		"name": "/samples/hackathon/campus/:id",
+		"comment": "Lista um campus pelo id",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/campus/:id",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_Campus",
+			"primary_key" : "CamCodigo"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/samples/hackathon/local",
+		"comment": "Lista os locais da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/local",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_Local",
+			"primary_key" : "LocCodigo"
+		},
+		"lang" : "erlang",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]		
+	},
+
+	{
+		"name": "/samples/hackathon/local/:id",
+		"comment": "Lista um local pelo id",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/local/:id",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_Local",
+			"primary_key" : "LocCodigo"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/samples/hackathon/area_tematica",
+		"comment": "Lista as áreas temáticas da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/area_tematica",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_AreaTematica",
+			"primary_key" : "ATeCodigo"
+		},
+		"lang" : "erlang",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]		
+	},
+
+	{
+		"name": "/samples/hackathon/area_tematica/:id",
+		"comment": "Lista a área temática pelo id da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/area_tematica/:id",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_AreaTematica",
+			"primary_key" : "ATeCodigo"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/samples/hackathon/mencao",
+		"comment": "Lista as menções da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/mencao",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_Mencao",
+			"primary_key" : "MenCodigo"
+		},
+		"lang" : "erlang",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]		
+	},
+
+	{
+		"name": "/samples/hackathon/mencao/:id",
+		"comment": "Lista a menção pelo id",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/mencao/:id",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_Mencao",
+			"primary_key" : "MenCodigo"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/samples/hackathon/forma_ingresso",
+		"comment": "Lista as formas de ingresso da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/forma_ingresso",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_FormaIngresso",
+			"primary_key" : "FinCodigo"
+		},
+		"lang" : "erlang",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]		
+	},
+
+	{
+		"name": "/samples/hackathon/forma_ingresso/:id",
+		"comment": "Lista a forma de ingresso pelo id",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/forma_ingresso/:id",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_FormaIngresso",
+			"primary_key" : "FinCodigo"
+		},
+		"querystring": [
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/samples/hackathon/centro_custo",
+		"comment": "Lista os centros de custo da UnB",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/samples/hackathon/centro_custo",
+		"type": "GET",
+		"async": "false",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_OrgaoInterno",
+			"primary_key" : "OInCodigo"
+		},
+		"lang" : "erlang",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]		
+	},
+
+	{
+		"name": "/samples/hackathon/centro_custo/:id",
+		"comment": "Lista o centro de custo pelo id",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/samples/hackathon/centro_custo/:id",
+		"type": "GET",
+		"datasource" : {
+			"extends" : "ds_ems_user_loader",
+			"table_name" : "BDTabelaApoio.dbo.TB_OrgaoInterno",
+			"primary_key" : "OInCodigo"
+		},
+		"lang" : "erlang"
+	}
+]

@@ -89,7 +89,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 type = NewRecord#user_dados_funcionais.type,
 												 subtype = NewRecord#user_dados_funcionais.subtype,
 												 active = NewRecord#user_dados_funcionais.active,
-												 matricula = NewRecord#user_dados_funcionais.matricula,
+												 user_id = NewRecord#user_dados_funcionais.user_id,
 												 ctrl_path = NewRecord#user_dados_funcionais.ctrl_path,
 												 ctrl_file = NewRecord#user_dados_funcionais.ctrl_file,
 												 ctrl_update = CtrlDate,

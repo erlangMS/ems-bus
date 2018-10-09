@@ -1,21 +1,5 @@
 [
 	{
-		"name": "auth_redirect_url_login",
-		"comment": "Redirect url /login to /login/index.html",
-		"owner": "auth",
-		"version": "1.0.0",
-		"service" : "ems_redirect_url_service:execute",
-		"url": "/login",
-		"redirect_url" : "/login/index.html",
-		"path" : "{{ login_path }}",
-		"type": "GET",
-		"authorization" : "public",
-		"cache_control" : "max-age=31536000, private, no-cache, no-store, must-revalidate",
-		"expires_minute" : 0,
-		"lang" : "erlang"
-	},
-
-	{
 		"name": "/auth_login",
 		"comment": "Pagina de login ErlangMS",
 		"owner": "auth",
@@ -26,8 +10,11 @@
 		"path" : "{{ login_path }}",
 		"type": "GET",
 		"authorization" : "public",
-		"cache_control" : "max-age=31536000, private, no-cache, no-store, must-revalidate",
-		"expires_minute" : 0,
+		"cache_control" : "max-age=86400, public",
+		"expires_minute" : 1440,
+		"result_cache" : 86400000,
+		"log_show_response" : false,
+		"log_show_payload" : false,
 		"lang" : "erlang"
 	}
 ]

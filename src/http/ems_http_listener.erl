@@ -10,9 +10,9 @@
 
 -behavior(gen_server). 
 
--include("../include/ems_config.hrl").
--include("../include/ems_schema.hrl").
--include("../include/ems_http_messages.hrl").
+-include("include/ems_config.hrl").
+-include("include/ems_schema.hrl").
+-include("include/ems_http_messages.hrl").
 
 %% Server API
 -export([start/3, stop/0]).
@@ -21,12 +21,6 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/1, handle_info/2, terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
-
--record(state, {http_max_content_length,
-				http_header_default,
-				http_header_options,
-				show_debug_response_headers}).
-
 
 %%====================================================================
 %% Server API
@@ -48,7 +42,6 @@ init({IpAddress,
 	  _Service = #service{protocol = Protocol,
 						   tcp_port = Port,
 						   tcp_is_ssl = IsSsl,
-						   tcp_max_connections = MaxConnections,
 						   tcp_ssl_cacertfile = SslCaCertFile,
 						   tcp_ssl_certfile = SslCertFile,
 						   tcp_ssl_keyfile = SslKeyFile,
@@ -56,10 +49,11 @@ init({IpAddress,
 	  ListenerName}) ->
     Conf = ems_config:getConfig(),
     EmsResponseHeaders = Conf#config.show_debug_response_headers,
-    State = #state{http_max_content_length = HttpMaxContentLength,
-				    http_header_default = Conf#config.http_headers,
-				    http_header_options = Conf#config.http_headers_options,
-				    show_debug_response_headers = EmsResponseHeaders},
+    State = #encode_request_state{http_max_content_length = HttpMaxContentLength,
+									http_header_default = Conf#config.http_headers,
+									http_header_options = Conf#config.http_headers_options,
+									show_debug_response_headers = EmsResponseHeaders,
+									current_node = ems_util:node_binary()},
 	Dispatch = cowboy_router:compile([
 		{'_', [
 			{"/websocket", ems_websocket_handler, State},
@@ -68,26 +62,27 @@ init({IpAddress,
 	  ]),
 	ProtocolStr = binary_to_list(Protocol),
 	IpAddressStr = inet_parse:ntoa(IpAddress),
-	%io:format("aqui1  ~p\n", [binary_to_list(SslCaCertFile)]),
-	%io:format("aqui2  ~p\n", [binary_to_list(SslCertFile)]),
-	%io:format("aqui3  ~p\n", [binary_to_list(SslKeyFile)]),
 	case IsSsl of
 		true -> 
-			Ret = cowboy:start_tls(ListenerName, [  {ip, IpAddress},
-													{port, Port},
-													{max_connections, MaxConnections},
-													{cacertfile, binary_to_list(SslCaCertFile)},
-													{certfile, binary_to_list(SslCertFile)},
-													{keyfile, binary_to_list(SslKeyFile)},
-													{depth, 4},
-													{fail_if_no_peer_cert, false}
-													
-												  ], #{compress => true, 
-													   env => #{dispatch => Dispatch}});
+			Ret = cowboy:start_tls(ListenerName, #{socket_opts => [  {ip, IpAddress},
+																	 {port, Port},
+																	 {cacertfile, binary_to_list(SslCaCertFile)},
+																	 {certfile, binary_to_list(SslCertFile)},
+																	 {keyfile, binary_to_list(SslKeyFile)},
+																	 {verify, verify_none},
+																	 {crl_check, false},
+																	 {client_renegotiation, true},
+																	 {padding_check, false},
+																	 {fail_if_no_peer_cert, false},
+															 		 {next_protocols_advertised, [<<"http/1.1">>]},
+																	 {alpn_preferred_protocols, [<<"http/1.1">>]}
+																  ]
+												   },
+												 #{env => #{dispatch => Dispatch}});
 		false ->
-			Ret = cowboy:start_clear(ListenerName, [{ip, IpAddress}, 
-													{port, Port}, 
-													{max_connections, MaxConnections}], 
+			Ret = cowboy:start_clear(ListenerName, 
+										#{socket_opts => [{ip, IpAddress}, 
+										 				  {port, Port}]}, 
 										#{compress => true,
 										  env => #{dispatch => Dispatch}
 									})

@@ -26,8 +26,8 @@
 				update_checkpoint,
 				last_update,
 				last_update_param_name,
-				filename,
 				middleware,
+				filename_service,
 				source_type
 			}).
 
@@ -73,20 +73,20 @@ resume(Server) ->
  
 init(#service{name = Name, 
 			  middleware = Middleware, 
+			  filename = FilenameService,
 			  start_timeout = StartTimeout,
 			  properties = Props}) ->
 	LastUpdateParamName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_last_update_param_name">>]), utf8),
 	UpdateCheckpoint = maps:get(<<"update_checkpoint">>, Props, ?DATA_LOADER_UPDATE_CHECKPOINT),
-	Filename = do_get_filename(Middleware),
 	SourceType = binary_to_atom(maps:get(<<"source_type">>, Props, <<"fs">>), utf8),
 	erlang:send_after(60000 * 60, self(), check_sync_full),
 	State = #state{name = binary_to_list(Name),
 				   update_checkpoint = UpdateCheckpoint,
 				   last_update_param_name = LastUpdateParamName,
 				   last_update = undefined, % sempre recarregar os dados ao iniciar o processo
-				   filename = Filename,
 				   middleware = Middleware,
-				   source_type = SourceType},
+				   source_type = SourceType,
+				   filename_service = FilenameService},
 	{ok, State, StartTimeout}.
     
 handle_cast(shutdown, State) ->
@@ -208,9 +208,9 @@ do_check_load_or_update(State = #state{name = Name,
 -spec do_load(tuple(), #config{}, #state{}) -> ok | {error, atom()}.
 do_load(CtrlInsert, Conf, State = #state{name = Name,
 										 middleware = Middleware,
-										 filename = Filename,
 										 source_type = SourceType}) -> 
 	try
+		Filename = do_get_filename(State),
 		case ems_json_scan:scan(Filename, Conf) of
 			{ok, []} -> 
 				?DEBUG("~s did not load any record.", [Name]),
@@ -221,7 +221,6 @@ do_load(CtrlInsert, Conf, State = #state{name = Name,
 						do_reset_sequence(State),
 						{ok, InsertCount, _, ErrorCount, DisabledCount, SkipCount} = ems_data_pump:data_pump(Records, list_to_binary(CtrlInsert), Conf, Name, Middleware, insert, 0, 0, 0, 0, 0, SourceType, []),
 						ems_logger:info("~s sync ~p inserts, ~p disabled, ~p skips, ~p errors.", [Name, InsertCount, DisabledCount, SkipCount, ErrorCount]),
-						erlang:garbage_collect(self()),
 						ok;
 					Error ->
 						ems_logger:error("~s could not clear table before load data.", [Name]),
@@ -238,14 +237,11 @@ do_load(CtrlInsert, Conf, State = #state{name = Name,
 	end.
 
 -spec do_update(tuple(), tuple(), #config{}, #state{}) -> ok | {error, atom()}.
-do_update(LastUpdate, CtrlUpdate, Conf, #state{name = Name,
-											   middleware = Middleware,
-											   filename = Filename,
-											   source_type = SourceType}) -> 
+do_update(LastUpdate, CtrlUpdate, Conf, State = #state{name = Name,
+													   middleware = Middleware,
+													   source_type = SourceType}) -> 
 	try
-		%{{Year, Month, Day}, {Hour, Min, _}} = LastUpdate,
-		% Zera os segundos
-		%DateInitial = {{Year, Month, Day}, {Hour, Min, 0}},
+		Filename = do_get_filename(State),
 		case ems_json_scan:scan(Filename, Conf) of
 			{ok, []} -> 
 				?DEBUG("~s did not load any record.", [Name]),
@@ -259,7 +255,6 @@ do_update(LastUpdate, CtrlUpdate, Conf, #state{name = Name,
 						ems_logger:info("~s sync ~p inserts, ~p updates, ~p disabled, ~p skips, ~p errors since ~s.", [Name, InsertCount, UpdateCount, DisabledCount, SkipCount, ErrorCount, LastUpdateStr]);
 					false -> ok
 				end,
-				erlang:garbage_collect(self()),
 				ok;
 			{error, Reason} = Error -> 
 				ems_logger:error("~s update data error: ~p.", [Name, Reason]),
@@ -290,6 +285,11 @@ do_clear_table(#state{middleware = Middleware, source_type = SourceType}) ->
 do_reset_sequence(#state{middleware = Middleware, source_type = SourceType}) ->
 	apply(Middleware, reset_sequence, [SourceType]).
 	
--spec do_get_filename(atom()) -> string() | list(tuple()).
-do_get_filename(Middleware) -> apply(Middleware, get_filename, []).
+-spec do_get_filename(#state{}) -> string() | list(tuple()).
+do_get_filename(#state{filename_service = FilenameService, middleware = Middleware}) ->
+	% O nome do arquivo json pode ser obtido tanto do catálogo de serviço quanto do middleware (default)
+	case FilenameService of
+		<<>> -> apply(Middleware, get_filename, []);
+		_ -> FilenameService
+	end.
 	

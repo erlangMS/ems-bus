@@ -3,7 +3,19 @@
 		"id" : 1,
 		"name": "erlangms",
 		"login" : "erlangms",
-		"password": "fEqNCco3Yq9h5ZUglD3CZJT4lBs=",
+		"password": "UKPBlZSudxkVz+Lnc34YxVT/6/U=",
+		"passwd_crypto" : "SHA1",
+		"active": true,
+		"type" : 0,
+		"email" : "erlangms@gmail.com",
+		"type_email" : 1
+	},
+	
+	{
+		"id" : 2,
+		"name": "portal",
+		"login" : "portal",
+		"password": "UKPBlZSudxkVz+Lnc34YxVT/6/U=",
 		"passwd_crypto" : "SHA1",
 		"active": true,
 		"type" : 0,
@@ -12,15 +24,11 @@
 	},
 	
 	{
-		"id" : 2,
-		"name": "portal",
-		"login" : "portal",
-		"password": "fEqNCco3Yq9h5ZUglD3CZJT4lBs=",
-		"passwd_crypto" : "SHA1",
+		"id" : 3,
+		"name": "uid=unb,dc=unb,dc=br",
+		"login" : "objectclass",
 		"active": true,
-		"type" : 0,
-		"email" : "changeit@gmail.com",
-		"type_email" : 1
-	}	
+		"type" : 0
+	}
 
 ]

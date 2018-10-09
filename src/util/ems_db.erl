@@ -18,7 +18,7 @@
 		 sort/2, field_position/3]).
 -export([init_sequence/2, sequence/1, sequence/2, current_sequence/1]).
 -export([init_counter/2, counter/2, current_counter/1, inc_counter/1, dec_counter/1]).
--export([get_connection/1, release_connection/1, get_sqlite_connection_from_csv_file/1, create_datasource_from_map/3]).
+-export([get_connection/1, release_connection/1, get_sqlite_connection_from_csv_file/1, create_datasource_from_map/4, command/2]).
 -export([get_param/1, get_param/2, set_param/2, get_re_param/2]).
 
 -export([filter_with_sort/2]).
@@ -38,7 +38,7 @@ start() ->
 	
 -spec create_database(list()) -> ok.	
 create_database(Nodes) ->
-	ems_logger:format_info("ems_db initializing ErlangMS database, please wait."),
+	ems_logger:format_info("ems_db initializing ErlangMS database, please wait..."),
 
 	% Define a pasta de armazenamento dos databases
 	filelib:ensure_dir(?DATABASE_PATH),
@@ -492,7 +492,7 @@ create_sqlite_from_csv(#service_datasource{connection = Filename,
 																	  TableName, 
 																	  FilenamePath, 
 																	  Delimiter])),
-						ems_logger:info("ems_db execute OS command: ~p.", [Csv2SqliteCmd]),
+						ems_logger:info("ems_db execute \033[0;32mOS Command\033[0m: ~p.", [Csv2SqliteCmd]),
 						os:cmd(Csv2SqliteCmd),
 						mnesia:write(#ctrl_sqlite_table{file_name = Filename, last_modified = LastModified});
 					false -> 
@@ -1311,37 +1311,78 @@ parse_extends_datasource(Map, GlobalDatasources) ->
 			end
 	end.
 
--spec create_datasource_from_map(map(), non_neg_integer(), map()) -> #service_datasource{} | undefined.
-create_datasource_from_map(Map, Rowid, GlobalDatasources) ->
+-spec create_datasource_from_map(map(), non_neg_integer(), map(), list()) -> #service_datasource{} | undefined.
+create_datasource_from_map(Map, Rowid, GlobalDatasources, Variables) ->
 	try
+		put(parse_step, parse_extends_datasource),
 		M = parse_extends_datasource(Map, GlobalDatasources),
+
+		put(parse_step, type),
 		Type = parse_datasource_type(maps:get(<<"type">>, M, undefined)),
+
+		put(parse_step, driver),
 		Driver = parse_data_source_driver(Type, maps:get(<<"driver">>, M, undefined)),
-		Connection = parse_datasource_connection(Type, maps:get(<<"connection">>, M, undefined)),
+
+		put(parse_step, connection),
+		Connection0 = parse_datasource_connection(Type, maps:get(<<"connection">>, M, undefined)),
+		Connection = ems_util:replace_all_vars(Connection0, Variables),
+		
+		put(parse_step, table_name),
 		TableName = parse_datasource_table_name(Type, maps:get(<<"table_name">>, M, undefined)),
+		
+		put(parse_step, fields),
 		Fields = parse_datasource_fields(Type, maps:get(<<"fields">>, M, undefined)),
+		
+		put(parse_step, parse_datasource_remap_fields),
 		RemapFields = parse_datasource_remap_fields(maps:get(<<"remap_fields">>, M, undefined)),
+		
+		put(parse_step, parse_remap_fields_reverso),
 		RemapFieldsRev = parse_remap_fields_reverso(RemapFields),
+		
+		put(parse_step, primary_key),
 		PrimaryKey = parse_datasource_primary_key(Type, maps:get(<<"primary_key">>, M, undefined)),
+		
+		put(parse_step, foreign_key),
 		ForeignKey = parse_datasource_foreign_key(Type, maps:get(<<"foreign_key">>, M, undefined)),
+		
+		put(parse_step, foreign_table_name),
 		ForeignTableName = parse_datasource_foreign_table_name(Type, maps:get(<<"foreign_table_name">>, M, undefined)),
+		
+		put(parse_step, csv_delimiter),
 		CsvDelimiter = parse_datasource_csvdelimiter(Type, maps:get(<<"csv_delimiter">>, M, undefined)),
+		
+		put(parse_step, show_remap_fields),
 		ShowRemapFields = ems_util:parse_bool(maps:get(<<"show_remap_fields">>, M, true)),
+		
+		put(parse_step, sql),
 		Sql = parse_datasource_sql(Type, maps:get(<<"sql">>, M, undefined)),
+		
+		put(parse_step, timeout),
 		Timeout0 = ems_util:parse_range(maps:get(<<"timeout">>, M, ?MAX_TIME_ODBC_QUERY), 1, ?MAX_TIME_ODBC_QUERY),
-		case Timeout0 < 360000 of
-			true -> Timeout = 360000;
+		case Timeout0 < 960000 of
+			true -> Timeout = 960000;
 			false -> Timeout = Timeout0
 		end,
+		
+		put(parse_step, max_pool_size),
 		MaxPoolSize = ems_util:parse_range(maps:get(<<"max_pool_size">>, M, ?MAX_CONNECTION_BY_POOL), 1, ?MAX_CONNECTION_BY_POOL),
+		
+		put(parse_step, sql_check_valid_connection),
 		SqlCheckValidConnection = parse_datasource_sql_check_validation_connection(Type, maps:get(<<"sql_check_valid_connection">>, M, undefined)),
+		
+		put(parse_step, close_idle_connection_timeout),
 		CloseIdleConnectionTimeout = ems_util:parse_range(maps:get(<<"close_idle_connection_timeout">>, M, ?CLOSE_IDLE_CONNECTION_TIMEOUT), 1, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT),
+		
+		put(parse_step, check_valid_connection_timeout),
 		CheckValidConnectionTimeout = ems_util:parse_range(maps:get(<<"check_valid_connection_timeout">>, M, ?CHECK_VALID_CONNECTION_TIMEOUT), 1, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT),
+
+		put(parse_step, ctrlhash),
 		CtrlHash = erlang:phash2([Rowid, Type, Driver, Connection, TableName, Fields, 
 								  PrimaryKey, ForeignKey, ForeignTableName, CsvDelimiter, 
 								  Sql, Timeout, MaxPoolSize, 
 								  SqlCheckValidConnection, CloseIdleConnectionTimeout, 
 								  CheckValidConnectionTimeout, RemapFields, ShowRemapFields]),
+
 		case ems_db:find_first(service_datasource, [{ctrl_hash, "==", CtrlHash}]) of
 			  {error, enoent} ->										
 					Id = ems_db:inc_counter(service_datasource),
@@ -1353,6 +1394,8 @@ create_datasource_from_map(Map, Rowid, GlobalDatasources) ->
 					ConnectionReuseMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_reuse_count"])),
 					ConnectionUnavailableMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_unavailable_count"])),
 					ConnectionMaxPoolSizeExceededMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_max_pool_size_exceeded_count"])),
+					
+					put(parse_step, new_service_datasource),
 					NewDs = #service_datasource{id = Id,
 												rowid = Rowid,
 												type = Type,
@@ -1388,8 +1431,34 @@ create_datasource_from_map(Map, Rowid, GlobalDatasources) ->
 		 end										
 	catch
 		_:Reason-> 
-			ems_logger:format_error("ems_db parse invalid datasource ~p. Reason: ~p.\n", [Map, Reason]),
+			ems_logger:format_error("ems_db parse invalid datasource ~p on ~p. Reason: ~p.\n", [Map, get(parse_step), Reason]),
 			undefined
 	end.
 	
 
+command(Datasource, Sql) when is_integer(Datasource) ->
+	case ems_db:get(service_datasource, Datasource) of
+		{ok, Record} -> command(Record, Sql);
+		{error, enoent} -> ems_logger:format_error("ems_db test_datasource datasource not found.\n")	
+	end;
+command(Datasource, Sql) when is_tuple(Datasource) ->
+	try
+		case ems_odbc_pool:get_connection(Datasource) of
+			{ok, Datasource2} -> 
+				ems_logger:format_info("ems_db command connection passed.\n"),
+				case ems_odbc_pool:param_query(Datasource2, Sql, []) of
+					{_, _, Records} -> 
+						ems_odbc_pool:release_connection(Datasource2),
+						ems_logger:format_info("ems_db command data:\n"),
+						io:format("~p\n", [Records]);
+					Error1 -> 
+						ems_odbc_pool:release_connection(Datasource2),
+						ems_logger:format_error("ems_db command exception. Reason: ~p.\n", [Error1])
+				end;
+			Error2 -> 
+				ems_logger:format_error("ems_db command exception. Reason: ~p.\n", [Error2])
+		end
+	catch
+		_:Reason-> ems_logger:format_error("ems_db command exception. Reason: ~p.\n", [Reason])
+	end.
+		

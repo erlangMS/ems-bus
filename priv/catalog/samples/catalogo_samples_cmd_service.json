@@ -1,12 +1,12 @@
 [
 	{
-		"name": "/logger/cat/error",
+		"name": "/samples/logger/cat/error",
 		"comment": "Show log of jboss",
-		"owner": "emsbus",
+		"owner": "samples",
 		"version": "1.0.0",
 		"service" : "ems_cmd_service:execute",
-		"url": "/logger/cat/error",
-		"script" : [ "find /home/agilar/desenvolvimento/erlangms/ems-bus/priv/log -type f -mtime -1 -name '*.log' | xargs sed '/Payload/, /Response/ d' | sed '/INFO/, /Status/ d'" ],
+		"url": "/samples/logger/cat/error",
+		"script" : [ "find {{PRIV_PATH}}/log -type f -mtime -1 -name '*.log' | xargs sed '/Payload/, /Response/ d' | sed '/INFO/, /Status/ d'" ],
 		"content_type" : "plain/text",
 		"type": "GET",
 		"authorization": "basic",
@@ -14,13 +14,13 @@
 	},
 	
 	{
-		"name": "/emsbus/jboss/tail",
+		"name": "/samples/jboss/tail",
 		"comment": "Show log of jboss",
-		"owner": "emsbus",
+		"owner": "samples",
 		"version": "1.0.0",
 		"service" : "ems_cmd_service:execute",
-		"url": "/emsbus/jboss/tail",
-		"script" : [ "tail /home/agilar/desenvolvimento/servers/wildfly10/standalone/log/server.log" ],
+		"url": "/samples/jboss/tail",
+		"script" : [ "tail {{WILDFLY_PATH}}/standalone/log/server.log" ],
 		"content_type" : "plain/text",
 		"type": "GET",
 		"authorization": "basic",
@@ -29,22 +29,22 @@
 
 	
 	{
-		"name": "/emsbus/jboss/restart",
+		"name": "/samples/jboss/restart",
 		"comment": "Show log of jboss",
-		"owner": "emsbus",
+		"owner": "samples",
 		"version": "1.0.0",
 		"service" : "ems_cmd_service:execute",
-		"url": "/emsbus/jboss/restart",
-		"script" : [ "/home/agilar/desenvolvimento/erlangms/ems-bus/priv/scripts/restart_apache.sh && echo true || echo false" ],
+		"url": "/samples/jboss/restart",
+		"script" : [ "{{PRIV_PATH}}/home/agilar/desenvolvimento/erlangms/ems-bus/priv/scripts/restart_apache.sh && echo true || echo false" ],
 		"type": "GET",
 		"authorization": "basic",
 		"lang" : "erlang"
 	},
 
 	{
-		"name": "/emsbus/systemctl/status",
+		"name": "/samples/systemctl/status",
 		"comment": "Show log of jboss",
-		"owner": "emsbus",
+		"owner": "samples",
 		"version": "1.0.0",
 		"service" : "ems_cmd_service:execute",
 		"url": "/emsbus/systemctl/status",

@@ -12,7 +12,7 @@
 # Data       |  Quem           |  Mensagem  
 # -----------------------------------------------------------------------------------------------------
 # 28/06/2017  Everton Agilar     Initial release
-#
+# 11/08/2018  Everton Agilar     Suporte para compilar projetos no formato docker-compose
 #
 #
 #
@@ -22,7 +22,7 @@
 clear
 
 CURRENT_DIR=$(pwd)
-VERSION_SCRIPT="3.0.0"
+VERSION_SCRIPT="3.0.1"
 
 echo "Build ErlangMS images for apps with Docker and ErlangMS Technology ( Version $VERSION_SCRIPT  Date: $(date '+%d/%m/%Y %H:%M:%S') )"
 
@@ -129,7 +129,7 @@ ERLANGMS_DOCKER_GIT_URL="https://github.com/erlangMS/docker"
 # deixa em branço para pedir na execução do build
 MODE_BUILD=""
 BUILD_FROM_MASTER="false"
-
+SOURCE_PATH=""
 
 # Registry server daemon to catalog images
 REGISTRY_IP=""
@@ -282,12 +282,17 @@ prepare_project_to_build(){
 		echo "Preparing $APP_NAME to build in production mode, please wait..."
 	fi
 
+	echo "Entra na pasta \"$STAGE_AREA/docker/build\" onde será feito o clone do projeto"
+	cd $STAGE_AREA/docker/build
+
 	# Clone git project app if it does not emsbus
 	echo "Git clone $APP_URL_GIT $APP_NAME"
 	if ! git clone $APP_URL_GIT $APP_NAME 2> /dev/null ; then
 		die "Fatal: Could not access project repository $APP_URL_GIT, check your network connection or password!"
 	fi
 	 
+	
+	# Entra no projeto
 	cd $APP_NAME
 	
 	# Faz clone da última tag gerada do projeto se não foi informado o parâmetro --tag
@@ -305,6 +310,13 @@ prepare_project_to_build(){
 		fi
 	fi
 	
+	# Se existe um diretório frontend, move para lá pois é onde está o código fonte em projetos Kubernetes
+	if [ -d frontend ]; then
+		cd frontend
+	fi
+	SOURCE_PATH=`pwd`
+	echo "Source path: $SOURCE_PATH"
+	
 	# Get expose http and https ports from Dockerfile
 	if [ -z "$HTTP_PORT" ]; then
 		HTTP_PORT=$(grep ems_http_server.tcp_port emsbus.conf  | sed -r 's/[^0-9]//g')
@@ -314,31 +326,29 @@ prepare_project_to_build(){
 		HTTPS_PORT=$(grep ems_https_server.tcp_port emsbus.conf | sed -r 's/[^0-9]//g')
 		fi
 
-	[ -z "$HTTP_PORT" ] && die "HTTP port of project not informed, build canceled. Enter the parameter --http_port!"
+	[ -z "$HTTP_PORT" ]  && die "HTTP port of project not informed, build canceled. Enter the parameter --http_port!"
 	[ -z "$HTTPS_PORT" ] && die "HTTPS port of project not informed, build canceled. Enter the parameter --https_port!"
 
 	# Copia o arquivo emsbus.conf para a pasta conf do docker template
-	mkdir -p ../../conf/
-	cp emsbus.conf ../../conf/
-	cd ../../
+	mkdir -p $STAGE_AREA/docker/conf  #mkdir -p ../../conf/
+	cp emsbus.conf  $STAGE_AREA/docker/conf  #cp emsbus.conf ../../conf/
+
 	
 	# Atualiza o arquivo Dockerfile com as portas expostas
-	sed -i "s/{{ HTTP_PORT }}/$HTTP_PORT/"  Dockerfile
-	sed -i "s/{{ HTTPS_PORT }}/$HTTPS_PORT/"  Dockerfile
+	sed -i "s/{{ HTTP_PORT }}/$HTTP_PORT/"  	$STAGE_AREA/docker/Dockerfile
+	sed -i "s/{{ HTTPS_PORT }}/$HTTPS_PORT/"  	$STAGE_AREA/docker/Dockerfile
 	
 	if [ -z "$GIT_CHECKOUT_TAG" ]; then
-		sed -i "s/{{ APP_VERSION }}/1.0.0/"  Dockerfile
+		sed -i "s/{{ APP_VERSION }}/1.0.0/"  	$STAGE_AREA/docker/Dockerfile
 	else
-		sed -i "s/{{ APP_VERSION }}/$GIT_CHECKOUT_TAG/"  Dockerfile
+		sed -i "s/{{ APP_VERSION }}/$GIT_CHECKOUT_TAG/"  $STAGE_AREA/docker/Dockerfile
 	fi
 	
 	# Atualiza o arquivo docker-compose.yml
-	sed -i "s/{{ HTTP_PORT }}/$HTTP_PORT/g"  docker-compose.yml
-	sed -i "s/{{ HTTPS_PORT }}/$HTTPS_PORT/g"  docker-compose.yml
-	sed -i "s/{{ APP_NAME }}/$APP_NAME/g"  docker-compose.yml
-	sed -i "s/{{ APP_NAME }}/$APP_NAME/g"  docker-compose.yml
-	
-	cd build/$APP_NAME
+	sed -i "s/{{ HTTP_PORT }}/$HTTP_PORT/g"  	$STAGE_AREA/docker/docker-compose.yml
+	sed -i "s/{{ HTTPS_PORT }}/$HTTPS_PORT/g"  	$STAGE_AREA/docker/docker-compose.yml
+	sed -i "s/{{ APP_NAME }}/$APP_NAME/g"  		$STAGE_AREA/docker/docker-compose.yml
+	sed -i "s/{{ APP_NAME }}/$APP_NAME/g"  		$STAGE_AREA/docker/docker-compose.yml
 }
 
 # Build app (if necessary)
@@ -381,9 +391,17 @@ build_app(){
 			die "An error occurred in the npm run build command. Build canceled."
 		fi
 
-		echo "Copy sources files to ../../app/$APP_NAME..."
-		mv dist/ ../../app/$APP_NAME/
-		cd ../../
+		echo "Copy sources files to \"$STAGE_AREA/docker/app/$APP_NAME/\"..."
+		
+		if [ -d $SOURCE_PATH/dist/$APP_NAME/ ]; then
+			# Apps Angular 6
+			mv $SOURCE_PATH/dist/$APP_NAME/ $STAGE_AREA/docker/app/$APP_NAME/
+		else
+			# Apps Angular versão anterior ao 6
+			mv $SOURCE_PATH/dist/ $STAGE_AREA/docker/app/$APP_NAME/
+		fi   #mv dist/ ../../app/$APP_NAME/
+		
+		cd $STAGE_AREA/docker/build  	#cd ../../
 	else
 		#  ##################### BUILD STATIC FILE PROJECT ######################
 	
@@ -398,6 +416,10 @@ build_app(){
 # Build docker image
 build_image(){
 	echo "Start build docker image $APP_NAME, please wait (Root credentials necessary)..."
+
+	# Entra na pasta onde será feito o build da imagem
+	echo "Entrando na pasta "$STAGE_AREA/docker" para criar a imagem Docker..."
+	cd $STAGE_AREA/docker
 
 	# Format app version do docker
 	if [ "$BUILD_FROM_MASTER" = "true" ]; then
@@ -425,7 +447,7 @@ build_image(){
 	sudo docker rmi --force $(sudo docker images 2> /dev/null | grep "$APP_DOCKER_FILENAME" | tr -s ' ' '|' | cut -d'|' -f3) 2> /dev/null
 	sudo docker rmi --force $(sudo docker images 2> /dev/null | grep "$APP_DOCKER_LATEST" | tr -s ' ' '|' | cut -d'|' -f3) 2> /dev/null
 
-	# build docker image $APP_NAME:$APP_VERSION
+	echo "build docker with dockerfile $APP_DOCKER_FILENAME"
 	echo "sudo docker build . -t $APP_DOCKER_FILENAME"
 	sudo docker build --no-cache . -t $APP_DOCKER_FILENAME
 	
@@ -639,7 +661,7 @@ push_registry(){
 # O build não altera nenhum arquivo do projeto no git pois tudo é realizado na stage.
 make_stage_area(){
 	echo "Preparing state area for build temporary files, please wait..."
-	STAGE_AREA=/tmp/erlangms/docker/build_$$/
+	STAGE_AREA=/tmp/erlangms/docker/build_$$
 	mkdir -p $STAGE_AREA
 	cd $STAGE_AREA
 	echo "Stage area is $STAGE_AREA"

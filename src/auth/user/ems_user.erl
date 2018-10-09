@@ -18,7 +18,9 @@
 		 find_by_email/1, 
 		 find_by_cpf/1, 
 		 find_by_login_and_password/2,
-		 find_by_codigo_pessoa/1, find_by_codigo_pessoa/2,
+		 find_by_login_and_password/3,
+		 find_by_codigo_pessoa/1, 
+		 find_by_codigo_pessoa/2,
 		 find_by_filter/2,
 		 to_resource_owner/1,
 		 to_resource_owner/2,
@@ -86,12 +88,52 @@ find_by_codigo_pessoa(Table, Codigo) ->
 	end.
 
 
+find_index_by_login_and_password([], _LoginBin, _LoginSemBarraBin, _PasswordBin, _PassowrdBinCrypto, _PassowrdBinLowerCrypto, _PassowrdBinUpperCrypto, _PasswordStrLower, _PasswordStrUpper) ->
+	{error, access_denied, enoent};
+find_index_by_login_and_password([Table|T], LoginBin, LoginSemBarraBin, PasswordBin, PassowrdBinCrypto, PassowrdBinLowerCrypto, PassowrdBinUpperCrypto, PasswordStrLower, PasswordStrUpper) ->
+	case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
+		[User = #user{password = PasswordUser}|_] -> 
+			case PasswordUser =:= PassowrdBinCrypto 
+				 orelse PasswordUser =:= PasswordBin 
+				 orelse PasswordUser =:= PassowrdBinLowerCrypto 
+				 orelse PasswordUser =:= PasswordStrLower 
+				 orelse PasswordUser =:= PassowrdBinUpperCrypto 
+				 orelse PasswordUser =:= PasswordStrUpper of
+					true -> 
+						mnesia:dirty_write(Table, User),
+						{ok, User};
+					false -> 
+						find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, PasswordBin, PassowrdBinCrypto, PassowrdBinLowerCrypto, PassowrdBinUpperCrypto, PasswordStrLower, PasswordStrUpper)
+			end;
+		_ -> 
+			case mnesia:dirty_index_read(Table, LoginSemBarraBin, #user.login) of
+				[User = #user{password = PasswordUser}|_] -> 
+					case PasswordUser =:= PassowrdBinCrypto 
+						 orelse PasswordUser =:= PasswordBin 
+						 orelse PasswordUser =:= PassowrdBinLowerCrypto 
+						 orelse PasswordUser =:= PasswordStrLower 
+						 orelse PasswordUser =:= PassowrdBinUpperCrypto 
+						 orelse PasswordUser =:= PasswordStrUpper of
+							true -> 
+								mnesia:dirty_write(user_cache_lru, User),
+								{ok, User};
+							false -> 
+								find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, PasswordBin, PassowrdBinCrypto, PassowrdBinLowerCrypto, PassowrdBinUpperCrypto, PasswordStrLower, PasswordStrUpper)
+					end;
+				_ -> find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, PasswordBin, PassowrdBinCrypto, PassowrdBinLowerCrypto, PassowrdBinUpperCrypto, PasswordStrLower, PasswordStrUpper)
+			end
+	end.
+
 -spec find_by_login_and_password(binary() | list(), binary() | list()) -> {ok, #user{}} | {error, access_denied, enoent | einvalid_password}.	
-find_by_login_and_password(_, <<>>) -> {error, access_denied, epassword_empty};
-find_by_login_and_password(<<>>, _) -> {error, access_denied, elogin_empty};
-find_by_login_and_password(_, "") -> {error, access_denied, epassword_empty};
-find_by_login_and_password("", _) -> {error, access_denied, elogin_empty};
-find_by_login_and_password(Login, Password)  ->
+find_by_login_and_password(Login, Password) -> find_by_login_and_password(Login, Password, undefined). 
+
+
+-spec find_by_login_and_password(binary() | list(), binary() | list(), #client{}) -> {ok, #user{}} | {error, access_denied, enoent | einvalid_password}.	
+find_by_login_and_password(_, <<>>, _) -> {error, access_denied, epassword_empty};
+find_by_login_and_password(<<>>, _, _) -> {error, access_denied, elogin_empty};
+find_by_login_and_password(_, "", _) -> {error, access_denied, epassword_empty};
+find_by_login_and_password("", _, _) -> {error, access_denied, elogin_empty};
+find_by_login_and_password(Login, Password, Client)  ->
 	PasswordStr = case is_list(Password) of
 					 true -> Password;
 					 false -> binary_to_list(Password)
@@ -112,71 +154,14 @@ find_by_login_and_password(Login, Password)  ->
 			PassowrdBinCrypto = ems_util:criptografia_sha1(PasswordStr),
 			PassowrdBinLowerCrypto = ems_util:criptografia_sha1(PasswordStrLower),
 			PassowrdBinUpperCrypto = ems_util:criptografia_sha1(PasswordStrUpper),
-			IndexFind = fun(Table) ->
-				case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
-					[User = #user{password = PasswordUser}|_] -> 
-						case PasswordUser =:= PassowrdBinCrypto 
-							 orelse PasswordUser =:= PasswordBin 
-							 orelse PasswordUser =:= PassowrdBinLowerCrypto 
-							 orelse PasswordUser =:= PasswordStrLower 
-							 orelse PasswordUser =:= PassowrdBinUpperCrypto 
-							 orelse PasswordUser =:= PasswordStrUpper of
-								true -> {ok, User};
-								false -> {error, access_denied, einvalid_password}
-						end;
-					_ -> 
-						case mnesia:dirty_index_read(Table, LoginSemBarraBin, #user.login) of
-							[User = #user{password = PasswordUser}|_] -> 
-								case PasswordUser =:= PassowrdBinCrypto 
-									 orelse PasswordUser =:= PasswordBin 
-									 orelse PasswordUser =:= PassowrdBinLowerCrypto 
-									 orelse PasswordUser =:= PasswordStrLower 
-									 orelse PasswordUser =:= PassowrdBinUpperCrypto 
-									 orelse PasswordUser =:= PasswordStrUpper of
-										true -> {ok, User};
-										false -> {error, access_denied, einvalid_password}
-								end;
-							_ -> {error, access_denied, enoent}
-						end
-				end
+			case Client of
+				undefined -> LoadersFind = [user_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs];
+				_ -> LoadersFind = Client#client.scope
 			end,
-			case IndexFind(user_cache_lru) of
-				{error, _, _} -> 
-					case IndexFind(user_db) of
-						{error, _Reason1, ReasonDetail1} -> 
-							case IndexFind(user_aluno_ativo_db) of
-								{error, _Reason2, ReasonDetail2} -> 
-									case IndexFind(user_aluno_inativo_db) of
-										{error, _Reason3, ReasonDetail3} -> 
-											case IndexFind(user_fs) of
-												{error, _Reason4, ReasonDetail4} -> 
-													case ReasonDetail1 == einvalid_password orelse
-														 ReasonDetail2 == einvalid_password orelse
-														 ReasonDetail3 == einvalid_password orelse
-														 ReasonDetail4 == einvalid_password of
-															true -> {error, access_denied, einvalid_password};
-															false -> {error, access_denied, enoent}
-													end;
-												{ok, Record} ->
-													mnesia:dirty_write(user_cache_lru, Record),
-													{ok, Record}
-											end;
-										{ok, Record} -> 
-											mnesia:dirty_write(user_cache_lru, Record),
-											{ok, Record}
-									end;
-								{ok, Record} -> 
-									mnesia:dirty_write(user_cache_lru, Record),
-									{ok, Record}
-							end;
-						{ok, Record} -> 
-							mnesia:dirty_write(user_cache_lru, Record),
-							{ok, Record}
-					end;
-				{ok, Record} -> 
-					{ok, Record}
-			end;
-		false -> {error, access_denied, einvalid_password_size}
+			find_index_by_login_and_password(LoadersFind, 
+											 LoginBin, LoginSemBarraBin, PasswordBin, PassowrdBinCrypto, PassowrdBinLowerCrypto, PassowrdBinUpperCrypto, PasswordStrLower, PasswordStrUpper);
+		false -> 
+			{error, access_denied, einvalid_password_size}
 	end.
 
 	

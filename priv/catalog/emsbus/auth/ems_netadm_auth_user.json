@@ -1,19 +1,20 @@
 [
 	{
-		"name": "/auth/user/:id",
+		"name": "/netadm/auth/user/:id",
 		"comment": "Get user by id",
-		"owner": "auth",
+		"owner": "netadm",
 		"version": "1.0.0",
 		"service" : "ems_api_query_service:find_by_id",
-		"url": "/auth/user/:id",
+		"url": "/netadm/auth/user/:id",
 		"type": "GET",
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : ["user_db", "user_aluno_ativo_db", "user_aluno_inativo_db", "user_fs"],
-			"fields" : ["id", "codigo", "login", "name", "cpf", "email", "type", "subtype", "active", 
+			"fields" : ["id", "codigo", "login", "password", "name", "cpf", "email", "type", "subtype", "active", 
 						"endereco", "complemento_endereco", "bairro", "cidade", "uf", "cep", "rg", 
 						"data_nascimento", "sexo", "telefone", "celular", "ddd", "nome_pai", 
-						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "ctrl_insert", "ctrl_update"]
+						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "admin",
+						"ctrl_insert", "ctrl_update"]
 		},
 		"schema_in" : "user",
 		"schema_out" : "user",
@@ -29,20 +30,21 @@
 	},
 
 	{	
-		"name": "/auth/user",
+		"name": "/netadm/auth/user",
 		"comment": "List all users",
-		"owner": "auth",
+		"owner": "netadm",
 		"service" : "ems_api_query_service:find",
-		"url": "/auth/user",
+		"url": "/netadm/auth/user",
 		"type": "GET",
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : ["user_db", "user_aluno_ativo_db", "user_aluno_inativo_db", "user_fs"],
-			"fields" : ["id", "codigo", "login", "name", "cpf", "email", "type", "subtype", "active", 
+			"fields" : ["id", "codigo", "login", "password", "name", "cpf", "email", "type", "subtype", "active", 
 						"endereco", "complemento_endereco", "bairro", "cidade", "uf", "cep", "rg", 
 						"data_nascimento", "sexo", "telefone", "celular", "ddd", "nome_pai", 
-						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "ctrl_insert", "ctrl_update"]
+						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "admin",
+						"ctrl_insert", "ctrl_update"]
 		},
 		"schema_in" : "user",
 		"schema_out" : "user",
@@ -81,20 +83,21 @@
 	},
 	
 	{
-		"name": "/auth/user/lru/:id",
+		"name": "/netadm/auth/user/lru/:id",
 		"comment": "Get user by id",
-		"owner": "auth",
+		"owner": "netadm",
 		"version": "1.0.0",
 		"service" : "ems_api_query_service:find_by_id",
-		"url": "/auth/user/lru/:id",
+		"url": "/netadm/auth/user/lru/:id",
 		"type": "GET",
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : "user_cache_lru",
-			"fields" : ["id", "codigo", "login", "name", "cpf", "email", "type", "subtype", "active", 
+			"fields" : ["id", "codigo", "login", "password", "name", "cpf", "email", "type", "subtype", "active", 
 						"endereco", "complemento_endereco", "bairro", "cidade", "uf", "cep", "rg", 
 						"data_nascimento", "sexo", "telefone", "celular", "ddd", "nome_pai", 
-						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "ctrl_insert", "ctrl_update"]
+						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "admin",
+						"ctrl_insert", "ctrl_update"]
 		},
 		"schema_in" : "user",
 		"schema_out" : "user",
@@ -110,20 +113,21 @@
 	},
 
 	{	
-		"name": "/auth/user/lru",
+		"name": "/netadm/auth/user/lru",
 		"comment": "List all users",
-		"owner": "auth",
+		"owner": "netadm",
 		"service" : "ems_api_query_service:find",
-		"url": "/auth/user/lru",
+		"url": "/netadm/auth/user/lru",
 		"type": "GET",
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : "user_cache_lru",
-			"fields" : ["id", "codigo", "login", "name", "cpf", "email", "type", "subtype", "active", 
+			"fields" : ["id", "codigo", "login", "password", "name", "cpf", "email", "type", "subtype", "active", 
 						"endereco", "complemento_endereco", "bairro", "cidade", "uf", "cep", "rg", 
 						"data_nascimento", "sexo", "telefone", "celular", "ddd", "nome_pai", 
-						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "ctrl_insert", "ctrl_update"]
+						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "admin",
+						"ctrl_insert", "ctrl_update"]
 		},
 		"schema_in" : "user",
 		"schema_out" : "user",
@@ -162,20 +166,21 @@
 	},
 	
 	{
-		"name": "/auth/user/fs/:id",
+		"name": "/netadm/auth/user/fs/:id",
 		"comment": "Get user by id",
-		"owner": "auth",
+		"owner": "netadm",
 		"version": "1.0.0",
 		"service" : "ems_api_query_service:find_by_id",
-		"url": "/auth/user/fs/:id",
+		"url": "/netadm/auth/user/fs/:id",
 		"type": "GET",
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : "user_fs",
-			"fields" : ["id", "codigo", "login", "name", "cpf", "email", "type", "subtype", "active", 
+			"fields" : ["id", "codigo", "login", "password", "name", "cpf", "email", "type", "subtype", "active", 
 						"endereco", "complemento_endereco", "bairro", "cidade", "uf", "cep", "rg", 
 						"data_nascimento", "sexo", "telefone", "celular", "ddd", "nome_pai", 
-						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "ctrl_insert", "ctrl_update"]
+						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "admin",
+						"ctrl_insert", "ctrl_update"]
 		},
 		"schema_in" : "user",
 		"schema_out" : "user",
@@ -191,20 +196,21 @@
 	},
 
 	{	
-		"name": "/auth/user/fs",
+		"name": "/netadm/auth/user/fs",
 		"comment": "List all users",
-		"owner": "auth",
+		"owner": "netadm",
 		"service" : "ems_api_query_service:find",
-		"url": "/auth/user/fs",
+		"url": "/netadm/auth/user/fs",
 		"type": "GET",
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
 			"table_name" : "user_fs",
-			"fields" : ["id", "codigo", "login", "name", "cpf", "email", "type", "subtype", "active", 
+			"fields" : ["id", "codigo", "login", "password", "name", "cpf", "email", "type", "subtype", "active", 
 						"endereco", "complemento_endereco", "bairro", "cidade", "uf", "cep", "rg", 
 						"data_nascimento", "sexo", "telefone", "celular", "ddd", "nome_pai", 
-						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "ctrl_insert", "ctrl_update"]
+						"nome_mae", "nacionalidade", "remap_user_id", "dt_expire_password", "admin",
+						"ctrl_insert", "ctrl_update"]
 		},
 		"schema_in" : "user",
 		"schema_out" : "user",
@@ -243,11 +249,11 @@
 	},
 	
 	{	
-		"name": "/auth/user/:id/history",
+		"name": "/netadm/auth/user/:id/history",
 		"comment": "List history of user",
-		"owner": "auth",
+		"owner": "netadm",
 		"service" : "ems_api_query_service:find_by_owner",
-		"url": "/auth/user/:id/history",
+		"url": "/netadm/auth/user/:id/history",
 		"type": "GET",
 		"lang" : "erlang",
 		"datasource" : {
@@ -293,11 +299,11 @@
 	},
 	
 	{	
-		"name": "/auth/user/history",
+		"name": "/netadm/auth/user/history",
 		"comment": "List user history",
-		"owner": "auth",
+		"owner": "netadm",
 		"service" : "ems_api_query_service:find",
-		"url": "/auth/user/history",
+		"url": "/netadm/auth/user/history",
 		"type": "GET",
 		"lang" : "erlang",
 		"datasource" : {
@@ -339,6 +345,5 @@
 				}
 			]	
 	}
-		
 		
 ]

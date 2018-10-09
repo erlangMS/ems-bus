@@ -9,22 +9,22 @@
 	"lang" : "erlang",
 	"update_checkpoint" : 3600000,
 	"datasource" : "ds_ems_user_loader",
-	"start_timeout" : 8000,
+	"start_timeout" : 10000,
 	"middleware" : "ems_user_dados_funcionais_loader_middleware",
 	"group" : [],
 	"pool_size" : 1,
 	"pool_max" : 1,
 	"enable" : false,
 	"sql_load" : 
-				"select distinct 
-					   u.UsuId as id, 
-					   Isnull(ca.categocargo, 4) as Type, 
-					   0 as SubType,
-					   case 
-						 when c.dtdesliga < Getdate() then 0 
-						 else u.UsuSituacao 
-					   end as Active, 
-					   df.MatSipes as Matricula 
+				"select 
+					df.MatSipes as id,
+					u.UsuId as user_id, 
+					Isnull(ca.categocargo, 4) as type, 
+					0 as subtype,
+					case 
+						when c.dtdesliga < Getdate() then 0 
+						else u.UsuSituacao 
+					end as active  
 				from   bdacesso.dbo.tb_usuario u  
 					   join bdpessoa.dbo.tb_pessoa p 
 						 ON u.usupesidpessoa = p.pescodigopessoa 
@@ -36,29 +36,29 @@
 							  ON c.codcargo = ca.codcargo 
                 ",
 	"sql_update" : 
-				"select distinct 
-					   u.UsuId as id, 
-					   Isnull(ca.categocargo, 4) as Type, 
-					   0 as SubType, 
-					   case 
-						 when c.dtdesliga < Getdate() then 0 
-						 else u.UsuSituacao 
-					   end as Active, 
-					   df.MatSipes as Matricula 
+				"select 
+					df.MatSipes as id,
+					u.UsuId as user_id, 
+					Isnull(ca.categocargo, 4) as type, 
+					0 as subtype,
+					case 
+						when c.dtdesliga < Getdate() then 0 
+						else u.UsuSituacao 
+					end as active  
 				from   bdacesso.dbo.tb_usuario u  
-					   join bdpessoa.dbo.tb_pessoa p 
-						 ON u.usupesidpessoa = p.pescodigopessoa 
-					   left join sipes.dbo.dadosfuncionais df 
-							  ON p.pescodigopessoa = df.pescodigopessoa 
-					   left join sipes.dbo.contratos c 
-							  ON df.matsipes = c.matsipes 
-					   left join sipes.dbo.cargos ca 
-							  ON c.codcargo = ca.codcargo 
+					join bdpessoa.dbo.tb_pessoa p 
+						ON u.usupesidpessoa = p.pescodigopessoa 
+					left join sipes.dbo.dadosfuncionais df 
+							ON p.pescodigopessoa = df.pescodigopessoa 
+					left join sipes.dbo.contratos c 
+							ON df.matsipes = c.matsipes 
+					left join sipes.dbo.cargos ca 
+							ON c.codcargo = ca.codcargo 
 				where u.UsuDataAlteracao >= ? or p.PesDataAlteracao >= ? or 
 					  u.UsuDataCadastramento >= ? or p.PesDataCadastramento >= ?
                 ",
 
 			
-	"fields" : ["id", "type", "subtype", "active", "matricula"]
+	"fields" : ["id", "user_id", "type", "subtype", "active"]
 				
 }

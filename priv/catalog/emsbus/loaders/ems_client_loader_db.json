@@ -8,9 +8,9 @@
 	"async": true,
 	"type": "KERNEL",
 	"lang" : "erlang",
-	"update_checkpoint" : 30000,
+	"update_checkpoint" : 120000,
 	"datasource" : "ds_ems_user_loader",
-	"start_timeout" : 1000,
+	"start_timeout" : 3000,
 	"middleware" : "ems_client_loader_middleware",
 	"pool_size" : 1,
 	"pool_max" : 1,
@@ -18,20 +18,27 @@
 	"sql_load" :
 			"select s.SisId as Id,
 			   rtrim(s.SisSistema) as Name,
-			   rtrim(s.SisOrgao) as Secret,
+			   coalesce(s.SisAuthSecret, 'CPD') as Secret,
 			   rtrim(s.SisUrl) as RedirectUri,
 			   rtrim(s.SisDescricao) as Description,
-			   s.SisSituacao as Active 
+			   s.SisSituacao as Active,
+			   rtrim(s.SisAuthScope),
+			   s.SisAuthSecret,
+			   s.SisGroup,
+			   s.SisGlyphIcon 
 			from BDAcesso.dbo.TB_Sistemas s
 			",
 	"sql_update" :
 			"select s.SisId as Id,
 			   rtrim(s.SisSistema) as Name,
-			   rtrim(s.SisOrgao) as Secret,
+			   coalesce(s.SisAuthSecret, 'CPD') as Secret,
 			   rtrim(s.SisUrl) as RedirectUri,
 			   rtrim(s.SisDescricao) as Description,
-			   s.SisSituacao as Active 
+			   s.SisSituacao as Active,
+			   s.SisAuthScope,
+			   s.SisGroup,
+			   s.SisGlyphIcon 
 			from BDAcesso.dbo.TB_Sistemas s 
 			",
-	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active"]
+	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope", "group", "glyphicon"]
 }

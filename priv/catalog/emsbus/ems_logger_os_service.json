@@ -8,9 +8,8 @@
 		"url": "/logger/os/syslog/head",
 		"filename" : "/var/log/syslog",
 		"async": "false",
-		"result_cache" : 5000,
+		"result_cache" : 0,
 		"type": "GET",
-		"authorization": "basic",
 		"lang" : "erlang"
 	},
 	
@@ -23,9 +22,8 @@
 		"url": "/logger/os/syslog/tail",
 		"filename" : "/var/log/syslog",
 		"async": "false",
-		"result_cache" : 5000,
+		"result_cache" : 0,
 		"type": "GET",
-		"authorization": "basic",
 		"lang" : "erlang"
 	},
 	
@@ -38,9 +36,8 @@
 		"url": "/logger/os/syslog",
 		"filename" : "/var/log/syslog",
 		"async": "false",
-		"result_cache" : 5000,
+		"result_cache" : 0,
 		"type": "GET",
-		"authorization": "basic",
 		"lang" : "erlang"
 	}			
 ]

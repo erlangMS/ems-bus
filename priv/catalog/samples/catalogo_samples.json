@@ -21,12 +21,17 @@
 	
 	{
 		"catalog": "/samples/upload_file", 
-		"file": "upload_file.json"
+		"file": "catalogo_upload_file.json"
 	},
 	
 	{
-		"catalog": "/samples/ems_cmd_service", 
-		"file": "ems_cmd_service.json"
+		"catalog": "/samples/catalogo_samples_cmd_service", 
+		"file": "catalogo_samples_cmd_service.json"
+	},
+	
+	{
+		"catalog": "/samples/catalogo_hackathon", 
+		"file": "catalogo_hackathon.json"
 	}	
 	
 ]

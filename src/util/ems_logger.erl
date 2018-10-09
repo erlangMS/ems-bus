@@ -136,7 +136,7 @@ sync() ->
 	gen_server:call(?SERVER, sync_log_buffer). 		
 
 log_request(Request = #request{content_length = ContentLength}) -> 
-	case ContentLength > ?LOG_SHOW_PAYLOAD_MAX_LENGTH_LOG_REQUEST of
+	case ContentLength > ?LOG_SHOW_PAYLOAD_MAX_LENGTH of
 		true -> gen_server:cast(?SERVER, {log_request, Request#request{payload = <<>>, content_length = 0}});
 		false -> gen_server:cast(?SERVER, {log_request, Request})
 	end.
@@ -226,30 +226,58 @@ checkpoint() ->
 format_info(Message) when is_list(Message) ->	
 	format_info(list_to_binary(Message));
 format_info(Message) ->	
-	io:format(iolist_to_binary([<<"INFO ">>, ems_util:timestamp_binary(), <<"  ">>, Message, <<"\n">>])).
+	Message2 = iolist_to_binary([<<"\033[01;33mINFO  \033[0m">>,   <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, Message, <<"\n">>]),
+	io:format(Message2).
 
 format_info(Message, Params) ->	
 	Message2 = io_lib:format(Message, Params),
-	io:format(iolist_to_binary([<<"INFO ">>, ems_util:timestamp_binary(), <<"  ">>, Message2, <<"\n">>])).
+	Message3 = iolist_to_binary([<<"\033[01;33mINFO  \033[0m">>,   <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, Message2, <<"\n">>]),
+	io:format(Message3).
 
+format_warn(Message) when is_list(Message) ->	
+	format_warn(list_to_binary(Message));
+format_warn(Message) ->	
+	Message2 = iolist_to_binary([<<"\033[01;33mWARN  \033[0m">>,  <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, <<"\033[00;33m">>, Message, <<"\033[0m\n">>]),
+	io:format(Message2).
 
-format_warn(Message) ->	io:format("\033[0;33m~s\033[0m", [Message]).
-format_warn(Message, Params) ->	io:format("\033[0;33m~s\033[0m", [io_lib:format(Message, Params)]).
+format_warn(Message, Params) ->	
+	Message2 = io_lib:format(Message, Params),
+	Message3 = iolist_to_binary([<<"\033[01;33mWARN  \033[0m">>,  <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, <<"\033[00;33m">>, Message2, <<"\033[0m\n">>]),
+	io:format(Message3).
 
-format_error(Message) -> io:format("\033[0;31m~s\033[0m", [Message]).
-format_error(Message, Params) -> io:format("\033[0;31m~s\033[0m", [io_lib:format(Message, Params)]).
+format_error(Message) when is_list(Message) ->	
+	format_error(list_to_binary(Message));
+format_error(Message) ->	
+	Message2 = iolist_to_binary([<<"\033[01;33mERROR  \033[0m">>,  <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, <<"\033[00;31m">>, Message, <<"\033[0m\n">>]),
+	io:format(Message2).
 
-format_debug(Message) -> io:format("\033[0;34m~s\033[0m", [Message]).
-format_debug(Message, Params) -> io:format("\033[1;34m~s\033[0m", [io_lib:format(Message, Params)]).
+format_error(Message, Params) ->	
+	Message2 = io_lib:format(Message, Params),
+	Message3 = iolist_to_binary([<<"\033[01;33mERROR  \033[0m">>,  <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, <<"\033[00;31m">>, Message2, <<"\033[0m\n">>]),
+	io:format(Message3).
+
+format_debug(Message) when is_list(Message) ->	
+	format_debug(list_to_binary(Message));
+format_debug(Message) ->	
+	Message2 = iolist_to_binary([<<"\033[01;33mDEBUG  \033[0m">>,  <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, <<"\033[00;36m">>, Message, <<"\033[0m\n">>]),
+	io:format(Message2).
+
+format_debug(Message, Params) ->	
+	Message2 = io_lib:format(Message, Params),
+	Message3 = iolist_to_binary([<<"\033[01;33mDEBUG  \033[0m">>,  <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, <<"\033[00;36m">>, Message2, <<"\033[0m\n">>]),
+	io:format(Message3).
 
 format_alert(Message) when is_list(Message) ->	
 	format_alert(list_to_binary(Message));
-format_alert(Message) ->
-	io:format(iolist_to_binary([<<"\033[0;46mINFO ">>, ems_util:timestamp_binary(), <<"  ">>, Message, <<"\033[0m\n">>])).
+format_alert(Message) ->	
+	Message2 = iolist_to_binary([<<"\033[01;33mINFO  \033[0m">>,   <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, Message, <<"\n">>]),
+	io:format(Message2).
 
-format_alert(Message, Params) ->
+format_alert(Message, Params) ->	
 	Message2 = io_lib:format(Message, Params),
-	io:format(iolist_to_binary([<<"\033[0;46mINFO ">>, ems_util:timestamp_binary(), <<"  ">>, Message2, <<"\033[0m\n">>])).
+	Message3 = iolist_to_binary([<<"\033[01;33mINFO  \033[0m">>,   <<"\033[01;32m">>, ems_util:timestamp_binary(), <<"\033[0m  ">>, Message2, <<"\n">>]),
+	io:format(Message3).
+
 
 
 
@@ -393,7 +421,7 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 	close_filename_device(CurrentIODevice, CurrentLogFilename),
 	case open_filename_device() of
 		{ok, LogFilename, IODevice2} ->
-			ems_logger:info("ems_logger open ~p.", [LogFilename]),
+			ems_logger:info("ems_logger open \033[01;34m~p\033[0m.", [LogFilename]),
 			State2 = State#state{log_file_name = LogFilename, 
 								 log_file_handle = IODevice2};
 		{error, Reason} ->
@@ -450,7 +478,7 @@ log_file_tail(#state{log_file_name = LogFilename}, N) ->
 
 close_filename_device(undefined, _) -> ok;
 close_filename_device(IODevice, LogFilename) -> 
-	?DEBUG("ems_logger close log file ~p.", [LogFilename]),
+	?DEBUG("ems_logger close log file \033[01;34m~p\033[0m.", [LogFilename]),
 	file:close(IODevice).
 
 set_timeout_for_sync_log_buffer(#state{flag_checkpoint_sync_log_buffer = false, log_file_checkpoint=Timeout}) ->    
@@ -475,16 +503,16 @@ write_msg(Tipo, Msg, State = #state{log_level = Level, log_ult_msg = UltMsg})  -
 			case Tipo of
 				info  -> 
 					ems_db:inc_counter(ems_logger_write_info),
-					Msg1 = iolist_to_binary([<<"INFO ">>, ems_clock:local_time_str(), <<"  ">>, Msg, <<"\n">>]);
+					Msg1 = iolist_to_binary([<<"\033[01;33mINFO  \033[0m">>,   <<"\033[01;32m">>, ems_clock:local_time_str(), <<"\033[0m  ">>, Msg, <<"\n">>]);
 				error -> 
 					ems_db:inc_counter(ems_logger_write_error),
-					Msg1 = iolist_to_binary([<<"\033[0;31mERROR ">>, ems_clock:local_time_str(), <<"  ">>, Msg, <<"\033[0m\n">>]);
+					Msg1 = iolist_to_binary([<<"\033[01;33mERROR \033[0m">>, <<"\033[01;32m">>, ems_clock:local_time_str(), <<"\033[0m  ">>, <<"\033[0;31m">>, Msg, <<"\033[0m\n">>]);
 				warn  -> 
 					ems_db:inc_counter(ems_logger_write_warn),
-					Msg1 = iolist_to_binary([<<"\033[0;33mWARN ">>, ems_clock:local_time_str(), <<"  ">>, Msg, <<"\033[0m\n">>]);
+					Msg1 = iolist_to_binary([<<"\033[01;33mWARN  \033[0m">>,  <<"\033[01;32m">>, ems_clock:local_time_str(), <<"\033[0m  ">>, <<"\033[00;33m">>, Msg, <<"\033[0m\n">>]);
 				debug -> 
 					ems_db:inc_counter(ems_logger_write_debug),
-					Msg1 = iolist_to_binary([<<"\033[1;34mDEBUG ">>, ems_clock:local_time_str(), <<"  ">>, Msg, <<"\033[0m\n">>])
+					Msg1 = iolist_to_binary([<<"\033[01;33mDEBUG \033[0m">>, <<"\033[01;32m">>, ems_clock:local_time_str(), <<"\033[0m  ">>, <<"\033[0;36m">>, Msg, <<"\033[0m\n">>])
 			end,
 			case (Level == error andalso Tipo /= error) andalso (Tipo /= debug) of
 				true ->
@@ -594,6 +622,7 @@ do_log_request(Request = #request{rid = RID,
 								  uri = Uri,
 								  url = Url,
 								  url_masked = UrlMasked,
+								  host = Host,
 								  version = Version,
 								  content_type_in = ContentTypeIn,
 								  content_type_out = ContentTypeOut,
@@ -606,9 +635,6 @@ do_log_request(Request = #request{rid = RID,
 								  querystring_map = Query,
 								  code = Code,
 								  reason = Reason,
-								  reason_detail = ReasonDetail,
-								  reason_exception = ReasonException,
-								  latency = Latency,
 								  result_cache = ResultCache,
 								  result_cache_rid = ResultCacheRid,
 								  response_data = ResponseData,
@@ -625,9 +651,11 @@ do_log_request(Request = #request{rid = RID,
 								  client = Client,
 								  user = User,
 								  scope = Scope,
+								  response_header = ResponseHeader,
 								  oauth2_grant_type = GrantType,
 								  oauth2_access_token = AccessToken,
-								  oauth2_refresh_token = RefreshToken
+								  oauth2_refresh_token = RefreshToken,
+								  status_text = StatusText
 			  }, 
 			  State = #state{log_show_response = ShowResponse, 
 							 log_show_response_max_length = ShowResponseMaxLength, 
@@ -656,26 +684,26 @@ do_log_request(Request = #request{rid = RID,
 				end,
 				TextData = 
 					[
-					   Type, <<" ">>,
+					   <<"\033[01;34m">>, Type, <<"\033[0m ">>,
 					   Uri, <<" ">>,
 					   atom_to_binary(Version, utf8), <<" ">>,
-					   <<" {\n\tRID: ">>,  integer_to_binary(RID),
-					   <<"  (ReqHash: ">>, integer_to_binary(ReqHash), <<")">>, 
+					   <<" {\n\t\033[0;32mRID\033[0m: ">>, integer_to_binary(RID), 
+					   <<"  (\033[0;32mReqHash\033[0m: ">>, integer_to_binary(ReqHash), <<")">>, 
 					   case UrlMasked of
-							true -> [<<"\n\tUrl: ">>, Url];
+							true -> [<<"\n\t\033[0;32mUrl\033[0m: ">>, Url];
 							false -> <<>>
 					   end,
-					   <<"\n\tAccept: ">>, Accept,
-					   <<"\n\tContent-Type in: ">>, ContentTypeIn, 
-						<<"\n\tContent-Type out: ">>, ContentTypeOut,
-						<<"\n\tPeer: ">>, IpBin, <<"  Referer: ">>, case Referer of
-																		undefined -> <<>>;
-																		_ -> Referer
-																	end,
-						<<"\n\tUser-Agent: ">>, ems_util:user_agent_atom_to_binary(UserAgent), <<"  Version: ">>, UserAgentVersion,	
-						<<"\n\tService: ">>, ServiceService,
-						<<"\n\tParams: ">>, list_to_binary(io_lib:format("~p", [Params])), 
-						<<"\n\tQuery: ">>, list_to_binary(io_lib:format("~p", [Query])), 
+					   <<"\n\t\033[0;32mAccept\033[0m: ">>, Accept,
+					   <<"\n\t\033[0;32mContent-Type in\033[0m: ">>, ContentTypeIn, <<"   \033[0;32mout\033[0m: ">>, ContentTypeOut,
+						<<"\n\t\033[0;32mHost\033[0m: ">>, Host, <<"  \033[0;32mPeer\033[0m: ">>, IpBin, 
+							<<"  \033[0;32mReferer\033[0m: ">>, case Referer of
+													undefined -> <<>>;
+													_ -> Referer
+												end,
+						<<"\n\t\033[0;32mUser-Agent\033[0m: ">>, ems_util:user_agent_atom_to_binary(UserAgent), <<"  \033[0;32mVersion\033[0m: ">>, UserAgentVersion,	
+						<<"\n\t\033[0;32mService\033[0m: ">>, ServiceService,
+						<<"\n\t\033[0;32mParams\033[0m: ">>, list_to_binary(io_lib:format("~p", [Params])), 
+						<<"\n\t\033[0;32mQuery\033[0m: ">>, list_to_binary(io_lib:format("~p", [Query])), 
 						case (ShowPayload orelse 
 							   Reason =/= ok orelse 
 							   ShowPayloadService orelse 
@@ -688,13 +716,13 @@ do_log_request(Request = #request{rid = RID,
 														true -> Payload;
 														false -> iolist_to_binary(io_lib:format("~p",[Payload]))
 										  		    end,
-									     [<<"\n\tPayload: ">>, integer_to_list(ContentLength), 
-									      <<" bytes  Content: \033[1;34m">>, Payload2, <<"\033[0m">>,
+									     [<<"\n\t\033[0;32mPayload\033[0m: ">>, integer_to_list(ContentLength), 
+									      <<" bytes  \033[0;32mContent\033[0m: \033[1;34m">>, Payload2, <<"\033[0m">>,
 											 case Reason =/= ok of
 												true -> <<"\033[0;31m">>;
 												false -> <<>>
 											 end]; 
-									false -> [<<"\n\tPayload: ">>, integer_to_list(ContentLength), <<" bytes  Content: large content">>]
+									false -> [<<"\n\t\033[0;32mPayload\033[0m: ">>, integer_to_list(ContentLength), <<" bytes  \033[0;32mContent\033[0m: large content">>]
 								end;
 							false -> <<>>
 						end,
@@ -712,13 +740,13 @@ do_log_request(Request = #request{rid = RID,
 							     case ContentLengthResponse > 0 of
 									true ->
 										case ContentLengthResponse =< ShowResponseMaxLength of
-											true -> [<<"\n\tResponse: ">>, integer_to_list(ContentLengthResponse), 
-													 <<" bytes  Content: \033[1;34m">>, ResponseData2, <<"\033[0m">>,
+											true -> [<<"\n\t\033[0;32mResponse\033[0m: ">>, integer_to_list(ContentLengthResponse), 
+													 <<" bytes  \033[0;32mContent\033[0m: \033[1;34m">>, ResponseData2, <<"\033[0m">>,
 													 case Reason =/= ok of
 														true -> <<"\033[0;31m">>;
 														false -> <<>>
 													 end]; 
-											false -> [<<"\n\tResponse: ">>, integer_to_list(ContentLengthResponse), <<" bytes  Content: Large content">>]
+											false -> [<<"\n\t\033[0;32mResponse\033[0m: ">>, integer_to_list(ContentLengthResponse), <<" bytes  \033[0;32mContent\033[0m: Large content">>]
 										end;
 									false -> <<>>
 								end;
@@ -734,94 +762,90 @@ do_log_request(Request = #request{rid = RID,
 							   case ResultCacheMin > 0 of
 									true -> 
 									   case ResultCache of 
-											true ->  [<<"\n\tResult-Cache: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheMin), <<"min)  <<RID: ">>, integer_to_binary(ResultCacheRid), <<">>">>];
-											false -> [<<"\n\tResult-Cache: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheMin), <<"min)">>] 
+											true ->  [<<"\n\t\033[0;32mResult-Cache\033[0m: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheMin), <<"min)  \033[0;33m<<RID: ">>, integer_to_binary(ResultCacheRid), <<">>\033[0m">>];
+											false -> [<<"\n\t\033[0;32mResult-Cache\033[0m: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheMin), <<"min)">>] 
 										end;
 									false ->
 									   case ResultCacheSec > 0 of
 											true -> 
 											   case ResultCache of 
-													true ->  [<<"\n\tResult-Cache: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheSec), <<"sec)  <<RID: ">>, integer_to_binary(ResultCacheRid), <<">>">>];
-													false -> [<<"\n\tResult-Cache: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheSec), <<"sec)">>] 
+													true ->  [<<"\n\t\033[0;32mResult-Cache\033[0m: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheSec), <<"sec)  \033[0;33m<<RID: ">>, integer_to_binary(ResultCacheRid), <<">>\033[0m">>];
+													false -> [<<"\n\t\033[0;32mResult-Cache\033[0m: ">>, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheSec), <<"sec)">>] 
 												end;
 											false ->
 											   case ResultCache of 
-													true ->  [<<"\n\tResult-Cache: ">>, integer_to_list(ResultCacheService), <<"ms <<RID: ">>, integer_to_binary(ResultCacheRid), <<">>">>];
-													false -> [<<"\n\tResult-Cache: ">>, integer_to_list(ResultCacheService), <<"ms">>]
+													true ->  [<<"\n\t\033[0;32mResult-Cache\033[0m: ">>, integer_to_list(ResultCacheService), <<"ms \033[0;33m<<RID: ">>, integer_to_binary(ResultCacheRid), <<">>\033[0m">>];
+													false -> [<<"\n\t\033[0;32mResult-Cache\033[0m: ">>, integer_to_list(ResultCacheService), <<"ms">>]
 												end
 										end
 								end;
 							false -> <<>>
 						end,
-					    <<"\n\tCache-Control In: ">>, CacheControl,
-						<<"  ETag: ">>, case Etag of
+					    <<"\n\t\033[0;32mCache-Control In\033[0m: ">>, CacheControl,
+						<<"  \033[0;32mETag\033[0m: ">>, case Etag of
 											undefined -> <<>>;
 											_ -> Etag
 										end,
-						<<"\n\tIf-Modified-Since: ">>, case IfModifiedSince of
+						<<"\n\t\033[0;32mIf-Modified-Since\033[0m: ">>, case IfModifiedSince of
 															undefined -> <<>>;
 															_ -> IfModifiedSince
 												   end,
-					   <<"  If-None-Match: ">>, case IfNoneMatch of
+					   <<"  \033[0;32mIf-None-Match\033[0m: ">>, case IfNoneMatch of
 													undefined -> <<>>;
 													_ -> IfNoneMatch
 										   end,
-					   <<"\n\tAuthorization mode: ">>, case AuthorizationService of
-															basic -> <<"basic, oauth2">>;
+					   <<"\n\t\033[0;32mAuthorization type\033[0m: ">>, case AuthorizationService of
+															basic -> 
+																case Authorization of
+																	<<>> -> <<"basic, oauth2">>;
+																	_ -> <<"oauth2">>
+																end;
 															oauth2 -> <<"oauth2">>;
 															_ -> <<"public">>
 													   end,
-					   <<"\n\tAuthorization header: <<">>, case Authorization of
-															undefined -> <<>>;
-															_ -> Authorization
-														 end, <<">>">>,
+					   case Authorization of
+							<<>> -> <<>>;
+							_ -> [<<" <<">>, Authorization, <<">>">>]
+					   end,
 					   case GrantType of
 									undefined -> <<>>;
-									_ -> [<<"\n\tOAuth2 grant type: ">>, GrantType]
+									_ -> [<<"\n\t\033[0;32mOAuth2\033[0m  \033[0;32mgrant-type\033[0m: ">>, GrantType]
 					   end,
 					   case AccessToken of
 							undefined -> <<>>;
-							_ ->  [<<"\n\tOAuth2 access token: ">>, AccessToken]
+							_ ->  [<<"  \033[0;32mtoken\033[0m: ">>, AccessToken]
 					   end,
 					   case RefreshToken of
 							undefined -> <<>>;
-							_ ->  [<<"\n\tOAuth2 refresh token: ">>, RefreshToken]
+							_ ->  [<<"  \033[0;32mrefresh token\033[0m: ">>, RefreshToken]
 					   end,
 					   case Scope of
 							undefined -> <<>>;
-							_ -> [<<"\n\tOAuth2 scope: ">>, Scope]
+							_ -> [<<"  \033[0;32mscope\033[0m: ">>, Scope]
 					   end,
-					  <<"\n\tClient: ">>, case Client of
+					  <<"\n\t\033[0;32mClient\033[0m: ">>, case Client of
 											public -> <<"public">>;
 											undefined -> <<>>;
 											_ -> [integer_to_binary(Client#client.id), <<" ">>, Client#client.name]
 									   end,
-					   <<"\n\tUser: ">>, case User of
+					   <<"   \033[0;32mUser\033[0m: ">>, case User of
 											public -> <<"public">>;
 											undefined -> <<>>;
 											_ ->  [integer_to_binary(User#user.id), <<" ">>,  User#user.login]
 										 end,
-					   <<"\n\tNode: ">>, case Node of
+					   <<"\n\t\033[0;32mNode\033[0m: ">>, case Node of
 											undefined -> <<>>;
 											_ -> Node
 										 end,
-					   <<"\n\tFilename: ">>, case Filename of
-												undefined -> <<>>;
-												_ -> Filename
-											 end,
-					   <<"\n\tStatus: ">>, integer_to_binary(Code), 
-					   <<" <<">>, case is_atom(Reason) of
-										true -> 
-										   case ReasonDetail =/= undefined andalso is_atom(ReasonDetail) of
-												true ->
-												   case ReasonException =/= undefined andalso is_atom(ReasonException) of
-														true -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8), <<", ">>, atom_to_binary(ReasonException, utf8)];
-														false -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8)]
-												   end;
-												false -> atom_to_binary(Reason, utf8)
-										   end;
-										false -> <<"error">>
-								  end, <<">> (">>, integer_to_binary(Latency), <<"ms)\n}">>],
+					   case Filename of
+							undefined -> <<>>;
+							_ -> [<<"\n\t\033[0;32mFilename\033[0m: ">>, Filename]
+						end,
+						case Code of
+							302 ->  [<<"\n\t\033[0;32mRedirect-to\033[0m: ">>, maps:get(<<"location">>, ResponseHeader, <<>>)];
+							_ -> <<>>
+						end,
+					   <<"\n\t\033[0;32mStatus\033[0m: ">>, StatusText, <<"\n}">>],
 					   
 				TextBin = iolist_to_binary(TextData),
 				NewState = case Code >= 400 of
@@ -835,7 +859,7 @@ do_log_request(Request = #request{rid = RID,
 		end
 	catch 
 		_:ExceptionReason -> 
-			io:format("ems_logger do_log_request format invalid message. Reason: ~p.\n", [ExceptionReason]),
+			format_error("ems_logger do_log_request format invalid message. Reason: ~p.\nRequest: \033[1;31m~p\033[0m\n.", [ExceptionReason, Request]),
 			State#state{log_ult_reqhash = ReqHash}
 	end.
 	

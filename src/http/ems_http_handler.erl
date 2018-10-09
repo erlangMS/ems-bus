@@ -13,16 +13,9 @@
 
 -export([init/2]).
 
--record(state, {http_max_content_length,
-				http_header_default,
-				http_header_options,
-				show_debug_response_headers}).
-
-
-init(CowboyReq, State = #state{http_header_default = HttpHeaderDefault,
-							    http_header_options = HttpHeaderOptions, 
-							    show_debug_response_headers = ShowDebugResponseHeaders}) ->
-	case ems_util:encode_request_cowboy(CowboyReq, self(), HttpHeaderDefault, HttpHeaderOptions, ShowDebugResponseHeaders) of
+init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDefault,
+											  show_debug_response_headers = ShowDebugResponseHeaders}) ->
+	case ems_util:encode_request_cowboy(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
 			case ems_dispatcher:dispatch_request(Request, Service, ShowDebugResponseHeaders) of
 				{ok, request, Request2 = #request{code = Code,
@@ -36,21 +29,22 @@ init(CowboyReq, State = #state{http_header_default = HttpHeaderDefault,
 												CowboyReq2),
 					ems_logger:log_request(Request2);
 				{error, request, Request2 = #request{code = Code,
-													  response_header = ResponseHeader,
-													  response_data = ResponseData}} ->
+													 response_header = ResponseHeader,
+													 response_data = ResponseData}} ->
 					Response = cowboy_req:reply(Code, 
-												ResponseHeader,
+												ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
 												ResponseData, 
 												CowboyReq2),
 					ems_logger:log_request(Request2);
 				{error, Reason} = Error ->
 					Request2 = Request#request{code = 400, 
-											    content_type_out = ?CONTENT_TYPE_JSON,
-											    reason = Reason, 
-											    response_data = ems_schema:to_json(Error), 
-											    latency = ems_util:get_milliseconds() - T1},
+											   content_type_out = ?CONTENT_TYPE_JSON,
+											   reason = Reason, 
+											   response_data = ems_schema:to_json(Error), 
+											   latency = ems_util:get_milliseconds() - T1},
+					ResponseHeader = Request2#request.response_header,
 					Response = cowboy_req:reply(Request2#request.code, 
-												Request2#request.response_header, 
+												ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}, 
 												Request2#request.response_data, CowboyReq2),
 					ems_logger:log_request(Request2)
 			end;
@@ -58,7 +52,7 @@ init(CowboyReq, State = #state{http_header_default = HttpHeaderDefault,
 									     response_header = ResponseHeader,
 									     response_data = ResponseData}, CowboyReq2} ->
 			Response = cowboy_req:reply(Code, 
-										ResponseHeader, 
+										ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}, 
 										ResponseData, 
 										CowboyReq2),
 			ems_logger:log_request(Request);
@@ -69,7 +63,7 @@ init(CowboyReq, State = #state{http_header_default = HttpHeaderDefault,
 			{Ip, _} = cowboy_req:peer(CowboyReq),
 			Ip2 = inet_parse:ntoa(Ip),
 			ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, Reason]),
-			Response = cowboy_req:reply(400, HttpHeaderDefault, ?EINVALID_HTTP_REQUEST, CowboyReq)
+			Response = cowboy_req:reply(400, HttpHeaderDefault#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}, ?EINVALID_HTTP_REQUEST, CowboyReq)
 	end,
 	{ok, Response, State}.
 

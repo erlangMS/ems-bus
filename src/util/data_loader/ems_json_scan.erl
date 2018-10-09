@@ -43,7 +43,7 @@ scan_files([{_NodeName, JsonFilename}|Rest], Result, Conf, FilterKey, FilterValu
 			Result2 = scan_file(Filename, Result, RootPath, Conf, FilterKey, FilterValue),
 			scan_files(Rest, Result2, Conf, FilterKey, FilterValue);
 		{error, Filename} ->
-			ems_logger:warn("ems_json_scan scan invalid file ~p.", [Filename])
+			ems_logger:warn("ems_json_scan scan invalid file \033[01;34m~p\033[0m.", [Filename])
 	end.
 		
 		
@@ -58,14 +58,14 @@ scan_file(JsonFilename, Result, RootPath, Conf, FilterKey, FilterValue) ->
 				{ok, FileMap} -> 
 					scan_file_entry([FileMap], CurrentDir, Filename, Result, RootPath, Conf, FilterKey, FilterValue);
 				{error, enoent} ->
-					ems_logger:warn("ems_json_scan file ~p does not exist.", [Filename]),
+					ems_logger:warn("ems_json_scan scan inexistent file \033[01;34m~p\033[0m.", [Filename]),
 					Result;
 				_ -> 
-					ems_logger:warn("ems_json_scan scan invalid file ~p.", [Filename]),
+					ems_logger:warn("ems_json_scan scan invalid file \033[01;34m~p\033[0m.", [Filename]),
 					Result
 			end;
 		{error, Filename} ->
-			ems_logger:warn("ems_json_scan scan invalid file ~p.", [Filename])
+			ems_logger:warn("ems_json_scan scan invalid file \033[01;34m~p\033[0m.", [Filename])
 	end.
 	
 -spec scan_file_entry(list(), string(), string(), list(), binary(), #config{}, binary(), any()) -> list().
@@ -75,11 +75,11 @@ scan_file_entry([Map|MapTail], CurrentDir, CurrentFilenameMap, Result, RootPath,
 		true -> 
 			case parse_filename_path(maps:get(<<"file">>, Map), CurrentDir, Conf) of
 				{ok, FilenameMap} ->
-					?DEBUG("ems_json_scan scan ~p.", [FilenameMap]),
+					?DEBUG("ems_json_scan scan \033[01;34m~p\033[0m.", [FilenameMap]),
 					Result2 = scan_file(FilenameMap, Result, RootPath, Conf, FilterKey, FilterValue),
 					scan_file_entry(MapTail, CurrentDir, CurrentFilenameMap, Result2, RootPath, Conf, FilterKey, FilterValue);			
 				{error, FilenameMap} ->
-					ems_logger:warn("ems_json_scan scan invalid file ~p.", [FilenameMap]),
+					ems_logger:warn("ems_json_scan scan invalid file \033[01;34m~p\033[0m.", [FilenameMap]),
 					?DEBUG("~p: ~p.", [FilenameMap, Map]),
 					scan_file_entry(MapTail, CurrentDir, CurrentFilenameMap, Result, RootPath, Conf, FilterKey, FilterValue)
 			end;

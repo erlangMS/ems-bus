@@ -8,11 +8,10 @@
 
 
 execute(Request = #request{type = Type, 
-						   protocol_bin = Protocol, 
-						   port = Port, 
-						   host = Host, 
+						   timestamp = Timestamp,
 						   user_agent = UserAgent, 
 						   user_agent_version = UserAgentVersion,
+						   response_header = ResponseHeader,
 						   service  = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
 		case Type of
@@ -126,18 +125,19 @@ execute(Request = #request{type = Type,
 			{redirect, Client = #client{id = ClientId, redirect_uri = RedirectUri}} ->
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
-					LocationPath = iolist_to_binary([Protocol, <<"://"/utf8>>, Host, <<":"/utf8>>, integer_to_binary(Port), 
-													 <<"/dados/login/index.html?response_type=code&client_id=">>, ClientIdBin, 
-													 <<"&redirect_uri=">>, RedirectUri]),
+					Config = ems_config:getConfig(),
+					LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]),
+					ExpireDate = ems_util:date_add_minute(Timestamp, 1440 + 180), % add +120min (2h) para ser horário GMT
+					Expires = cowboy_clock:rfc1123(ExpireDate),
 					Request2 = Request#request{code = 302, 
 											   reason = ok,
 											   operation = oauth2_client_redirect,
 											   oauth2_grant_type = GrantType,
 											   client = Client,
-											   response_header = #{
-																		<<"location">> => LocationPath
-																	}
-												},
+											   response_header = ResponseHeader#{<<"location">> => LocationPath,
+																				 <<"cache-control">> => ?CACHE_CONTROL_1_DAYS,
+ 																				 <<"expires">> => Expires}
+											},
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
@@ -169,11 +169,11 @@ execute(Request = #request{type = Type,
 
 %% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
-code_request(Request) ->
+code_request(Request = #request{response_header = ResponseHeader}) ->
     try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->
-				case ems_util:get_user_request_by_login_and_password(Request) of
+				case ems_util:get_user_request_by_login_and_password(Request, Client) of
 					{ok, User} ->
 						RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 						Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),
@@ -188,7 +188,7 @@ code_request(Request) ->
 														   user = User,
 														   client = Client,
 														   response_data = <<"{}">>,
-														   response_header = #{<<"location">> => LocationPath}},
+														   response_header = ResponseHeader#{<<"location">> => LocationPath}},
 								%ems_user:add_history(User, Client, Request2#request.service, Request2),
 								{ok, Request2};
 							{error, Reason, ReasonDetail} ->
@@ -264,7 +264,7 @@ client_credentials_grant(Request, Client) ->
 -spec password_grant(#request{}, #client{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
 password_grant(Request, Client) -> 
 	try
-		case ems_util:get_user_request_by_login_and_password(Request) of
+		case ems_util:get_user_request_by_login_and_password(Request, Client) of
 			{ok, User} ->
 				Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
 				case Client == undefined of

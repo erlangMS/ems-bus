@@ -72,7 +72,8 @@ if [ "$PROFILE" = "local" ]; then
 	current_dir=$(dirname $0)
 	cd $current_dir
 	deps=$(ls -d deps/*/ebin)
-
+	odbcinst -i -s -f ~/.odbc.ini
+	
 	if [ "$OBSERVER" = "true" ]; then
 		echo "Start with observer daemon..."
 		erl -pa $current_dir/ebin $deps \

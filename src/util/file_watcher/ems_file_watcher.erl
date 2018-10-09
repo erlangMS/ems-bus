@@ -10,6 +10,7 @@
 
 %-define(inotity_monitor, true).
 
+% Atenção: a dependência do inotify está desabilitado no rebar.config
 -ifdef(inotity_monitor).
 -include("ems_file_watcher_inotify").
 -else.

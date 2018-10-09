@@ -1,21 +1,20 @@
 {application, ems_bus,
  [
   {description, "ErlangMS"},
-  {vsn, "2.0.0"},
+  {vsn, "2.0.4"},
   {registered, []},
   {applications, [
 					kernel,
 					stdlib,
+					odbc,
 					asn1,
 					crypto,
 					public_key,    
 					ssl,    
 					inets,
-					xmerl,
 					syntax_tools,
 					compiler,
 					parse_trans,
-					odbc,
 					ranch,
 					cowlib,
 					cowboy,
@@ -25,8 +24,7 @@
 					jesse,
 					poolboy,
 					mochiweb,
-					oauth2,
-					ibrowse
+					oauth2
                  ]},
   {mod, { ems_bus_app, []}},
   {env, [

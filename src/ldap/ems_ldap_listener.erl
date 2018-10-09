@@ -67,7 +67,6 @@ stop() ->
 init({IpAddress, 
 	  #service{protocol = Protocol,
 			   tcp_port = Port, 
-			   tcp_max_connections = MaxConnections,
 			   tcp_allowed_address_t = AllowedAddress,
 			   auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials,
 			   properties = Props}, 
@@ -126,9 +125,9 @@ init({IpAddress,
 				   request_capabilities_metric_name = RequestCapabilitiesMetricName,
 				   auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials
 			   },
-	Ret = ranch:start_listener(ListenerName, 100, ranch_tcp, [{ip, IpAddress},
-															  {port, Port}, 
-															  {max_connections, MaxConnections}], 
+	Ret = ranch:start_listener(ListenerName, ranch_tcp, #{socket_opts => [{ip, IpAddress}, 
+																	      {port, Port}]}, 
+	
 							   ems_ldap_handler, [State]),
 	case Ret of
 		{ok, _PidCowboy} -> 

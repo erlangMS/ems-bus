@@ -11,9 +11,8 @@
 			"type" : "mnesia",
 			"table_name" : ["user_dados_funcionais_db", "user_dados_funcionais_fs"],
 			"foreign_table_name" : ["user_db", "user_fs"],
-			"foreign_key" : "id",
-			"primary_key" : "id",
-			"fields" : ["id", "type", "subtype", "active", "matricula"]
+			"foreign_key" : "user_id",
+			"fields" : ["id", "type", "subtype", "active", "user_id"]
 		},
 		"schema_in" : "user_dados_funcionais",
 		"schema_out" : "user_dados_funcionais",

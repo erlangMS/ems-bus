@@ -6,6 +6,12 @@
 %% @copyright ErlangMS Team
 %%********************************************************************
 
+-record(encode_request_state, {http_max_content_length,
+							   http_header_default,
+							   http_header_options,
+							   show_debug_response_headers,
+							   current_node}).
+
 -record(sequence, {key :: atom(), 
 				   index :: non_neg_integer()}).
 
@@ -214,11 +220,11 @@
 
 		
 -record(user_dados_funcionais, {
-			   id :: non_neg_integer(), 					%%  1 - id
+			   id :: non_neg_integer(), 					%%  1 - matricula
 			   type :: non_neg_integer(),					%%  2 - type     interno  1 = tecnico  2 = docente  3 = discente
 			   subtype :: non_neg_integer(),				%%  3 - subtype  se aluno,  1 = extensao 2 = graduacao 3 = aperfeicoamento 4 = especializacao 5 = mestrado 6 = doutorado 7 = pos-doutorado 8 = residencia 9 = aluno especial - graduacao 10 = aluno especial - pos-graduacao 11 = estagio em pos-graduacao
 			   active :: boolean(),							%%  4 - active
-			   matricula :: non_neg_integer(),				%%  5 - matricula
+			   user_id :: non_neg_integer(),				%%  5 - id do usuário
 			   ctrl_path :: string(),						%% 14 - ctrl_path
 			   ctrl_file :: string(),						%% 15 - ctrl_file
 			   ctrl_insert :: binary(),						%% 16 - ctrl_insert				-> Data que foi inserido no banco mnesia
@@ -228,12 +234,12 @@
 		}).
 		
 -define(USER_DADOS_FUNCIONAIS_SCHEMA_DESCRIPTOR, {
-			   atom_type,									%%  0 - nome da tabela	
+			   atom_type,									%%  1 - matricula
 			   non_neg_integer_type, 						%%  1 - id   
 			   non_neg_integer_type,						%%  2 - type
 			   non_neg_integer_type,						%%  3 - subtype
 			   boolean_type,								%%  4 - active
-			   non_neg_integer_type,						%%  5 - matricula
+			   non_neg_integer_type,						%%  5 - id do usuário
 			   string_type,									%%  6 - ctrl_path
 			   string_type,									%%  7 - ctrl_file
 			   binary_type,									%%  8 - ctrl_insert
@@ -633,7 +639,9 @@
 					http_headers :: map(),									%% 83 - http_headers
 					restricted :: boolean(),								%% 84 - restricted								-> Serviço restrito aos admins
 					glyphicon :: binary(),									%% 85 - glyphicon								-> classe css do glyphicon
-					metadata :: binary()									%% 86 - metadata 								-> Representação em json do que será enviado para o web service /catalog
+					metadata :: binary(),									%% 86 - metadata 								-> Representação em json do que será enviado para o web service /catalog
+					show_debug_response_headers :: boolean(),				%% 87 - show_debug_response_headers				-> Add debug headers in HTTP response headers
+					result_cache_shared :: boolean()						%% 88 - result_cache_shared						-> true if resulta cache is shared between requests
 				}).
 
 
@@ -724,7 +732,9 @@
 			   undefined, 									%% 83 - http_headers
 			   boolean_type,								%% 84 - restricted
 			   binary_type,									%% 85 - glyphicon
-			   binary_type									%% 86 - metadata
+			   binary_type,									%% 86 - metadata
+			   boolean_type,								%% 87 - show_debug_response_headers
+			   boolean_type									%% 88 - result_cache_shared
 		}).
 
 
@@ -785,7 +795,8 @@
 					  scope :: binary(),						%% 54 - scope
 					  oauth2_grant_type :: binary(),			%% 55 - oauth2_grant_type
 					  oauth2_access_token :: binary(),			%% 56 - oauth2_access_token
-					  oauth2_refresh_token :: binary()			%% 57 - oauth2_refresh_token
+					  oauth2_refresh_token :: binary(),			%% 57 - oauth2_refresh_token
+					  status_text :: binary()					%% 58 - status_text				Status exibido no log 
 				  }).
 
 

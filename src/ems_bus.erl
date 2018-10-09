@@ -20,6 +20,7 @@
 start(_) -> start().
 
 start() -> 
+    application:start(rfc3339),
     application:start(asn1),
     application:start(crypto),
 	application:start(public_key),    
@@ -40,11 +41,11 @@ start() ->
 	application:start(jesse),
 	application:start(mochiweb),
     application:start(oauth2),
-    application:start(ibrowse),
 	application:start(ems_bus).
     
 stop() -> 
 	application:stop(ems_bus),
+	application:stop(rfc3339),
 	application:stop(public_key),    
 	application:stop(asn1),
 	application:stop(json_rec),
@@ -64,5 +65,4 @@ stop() ->
     application:stop(ssl),
     application:stop(inets),
     application:stop(crypto),
-    application:stop(oauth2),
-    application:start(ibrowse).
+    application:stop(oauth2).
