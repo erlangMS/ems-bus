@@ -110,6 +110,7 @@ find_by_name(Name) ->
 new_from_map(Map, _Conf) ->
 	try
 		{ok, #user_perfil{id = maps:get(<<"id">>, Map, undefined),
+						  perfil_id = maps:get(<<"perfil_id">>, Map, undefined),
 						  user_id = maps:get(<<"user_id">>, Map, undefined),
 						  client_id = maps:get(<<"client_id">>, Map, undefined),
 						  name = ?UTF8_STRING(maps:get(<<"name">>, Map, <<>>)),

@@ -415,7 +415,8 @@
 		}).
 
 
--record(user_perfil, {id :: non_neg_integer(), 				%%  1 - id				
+-record(user_perfil, {id :: non_neg_integer(), 				%%  1 - id
+						perfil_id :: non_neg_integer(), %% 1 - perfil_id				
 					  user_id :: non_neg_integer(),			%%  2 - user_id			
 					  client_id :: non_neg_integer(),		%%  3 - client_id		
 					  name :: binary(), 					%%  4 - name
@@ -429,7 +430,8 @@
           
 -define(USER_PERFIL_SCHEMA_DESCRIPTOR, {
 			   atom_type,									%%  0 - nome da tabela	
-			   non_neg_integer_type, 						%%  1 - id   
+			   non_neg_integer_type, 						%%  1 - id  
+				 non_neg_integer_type,            %%  1 - perfil_id
 			   non_neg_integer_type,						%%  2 - user_id
 			   non_neg_integer_type,						%%  3 - client_id
 			   binary_type,									%%  4 - name
