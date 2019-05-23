@@ -1,5 +1,20 @@
 [
 	{
+		"name": "/samples/glassfish/log/tail",
+		"comment": "Show log of jboss",
+		"owner": "samples",
+		"version": "1.0.0",
+		"service" : "ems_cmd_service:execute",
+		"url": "/samples/glassfish/log/tail",
+		"script" : [ "tail -300 {{GF_LOG}}" ],
+		"content_type" : "text/plain",
+		"type": "GET",
+		"authorization": "public",
+		"result_cache" : 0,
+		"lang" : "erlang"
+	},
+
+	{
 		"name": "/samples/logger/cat/error",
 		"comment": "Show log of jboss",
 		"owner": "samples",
@@ -14,12 +29,12 @@
 	},
 	
 	{
-		"name": "/samples/jboss/tail",
+		"name": "/samples/jboss/log/tail",
 		"comment": "Show log of jboss",
 		"owner": "samples",
 		"version": "1.0.0",
 		"service" : "ems_cmd_service:execute",
-		"url": "/samples/jboss/tail",
+		"url": "/samples/jboss/log/tail",
 		"script" : [ "tail {{WILDFLY_PATH}}/standalone/log/server.log" ],
 		"content_type" : "text/plain",
 		"type": "GET",

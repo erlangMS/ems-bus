@@ -1253,6 +1253,7 @@ parse_datasource_type(<<"mnesia">>) -> mnesia;
 parse_datasource_type(<<"sqlserver">>) -> sqlserver;
 parse_datasource_type(<<"postgresql">>) -> postgresql;
 parse_datasource_type(<<"csvfile">>) -> csvfile;
+parse_datasource_type(<<"db2">>) -> db2;
 parse_datasource_type(_) -> erlang:error(einvalid_datasource_type_property).
 
 -spec parse_data_source_driver(atom(), binary()) -> atom().
@@ -1550,8 +1551,6 @@ select_count(Datasource, Sql) when is_tuple(Datasource) ->
 
 
 is_database_in_restricted_mode(Reason) when is_list(Reason) ->
-	io:format("Reason is ~p\n", [Reason]),
 	string:str(Reason, "security context") > 0;
-is_database_in_restricted_mode(X) -> 
-	io:format("x is ~p\n", [X]),
+is_database_in_restricted_mode(_) -> 
 	false.
