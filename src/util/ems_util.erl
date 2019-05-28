@@ -3901,12 +3901,19 @@ criptografia_ufsm_senha_web(Password) ->
 	Key2 = criptografia_ufsm_senha_web_keygen(Password, Key, Len, 0, [22, 36, 27, 14, 41, 1, 45, 17, 38]),
 	criptografia_ufsm(Password, Key2).
 	
-criptografia_ufsm_senha_web_keygen(_, Key, _, 9, _) -> Key;
-criptografia_ufsm_senha_web_keygen(_, Key, _, _, []) -> Key;
+criptografia_ufsm_senha_web_keygen(_, Key, _, 9, _) -> 
+	%io:format("aqui3\n"),
+	Key;
+
+criptografia_ufsm_senha_web_keygen(_, Key, _, _, []) -> 
+	%io:format("aqui2\n"),
+	Key;
 criptografia_ufsm_senha_web_keygen(Password, Key, Len, Idx, [PosChangeKey|PosChangeKeyT]) when Len >= (Idx+1) ->
+	%io:format("aqui0: Len >= (Idx+1)    ~p >= (~p)\n", [Len, Idx+1]),
 	Key2 = setnth(PosChangeKey+1, Key, lists:nth(Idx+1, Password)),
 	criptografia_ufsm_senha_web_keygen(Password, Key2, Len, Idx+1, PosChangeKeyT);
 criptografia_ufsm_senha_web_keygen(_Password, Key, _Len, _Idx, _) ->	
+	%io:format("aqui1\n"),
 	Key.
 
 
@@ -3915,14 +3922,13 @@ setnth(I, [E|Rest], New) -> [E|setnth(I-1, Rest, New)].
 	
 
 criptografia_ufsm_senha_web_test() ->
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("k")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("ab")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("960101")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("teste001")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("casa")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("unb960101$$$")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("isso eh uma senha !!!")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("teste")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("00167743023")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("xxx")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("@hashtag1")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("samuraY71")]),
@@ -3931,12 +3937,22 @@ criptografia_ufsm_senha_web_test() ->
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("VALEaPeNaVeRDEnovo%")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web(")(*&$#@!superpassWD")]),
 	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("@evertonagilar123456@")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("123456789")]).
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("123456789")]),
 	
 	
-	
-	
-	
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("0")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("00")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("000")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("000")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("00000")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("000000")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("|||")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("ze")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@0")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("áéíoúsalomãoK")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("maria@555")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("XTUDO")]),
+	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("12635599855133654899854669885112226654986542226548987965652265468")]).
 	
 	
 
@@ -3969,8 +3985,8 @@ criptografia_ufsm_string(L, _LenPasswordSemPad) ->
 	Len = length(L),
 	%io:format("(Len div 3) =/= 0 ->  (~p div 3) =/= 0\n", [Len]),
 	if 
-		(Len div 3) =/= 0 ->
-			%io:format("inclui \n"),
+		(Len rem 3) =/= 0 ->
+			%io:format("inclui digit\n"),
 			criptografia_ufsm_string_loop(L ++ [0], 0, 0, 0, Len+1, true, 0, []);
 		true ->
 			criptografia_ufsm_string_loop(L, 0, 0, 0, Len, false, 0, [])
