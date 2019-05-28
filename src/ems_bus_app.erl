@@ -79,6 +79,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mdisable_services_owner\033[0m: \033[01;34m~p\033[0m.", [Conf#config.cat_disable_services_owner]),
 			ems_logger:info("  \033[0;32menable_services\033[0m: \033[01;34m~p\033[0m.", [Conf#config.cat_enable_services]),
 			ems_logger:info("  \033[0;32mcatalog_path\033[0m: \033[01;34m~p\033[0m.", [Conf#config.cat_path_search]),
+			ems_logger:info("  \033[0;32mdatasources\033[0m: \033[01;34m~p\033[0m.", [Conf#config.ems_datasources]),
 			ems_logger:info("  \033[0;32msufixo_email_institucional\033[0m: \033[01;34m~p\033[0m.", [Conf#config.sufixo_email_institucional]),
 			ems_logger:info("  \033[0;32mstatic_file_path\033[0m: \033[01;34m~p\033[0m.", [Conf#config.static_file_path]),
 			ems_logger:info("  \033[0;32mstatic_file_path_probing\033[0m: \033[01;34m~p\033[0m.", [Conf#config.static_file_path_probing]),

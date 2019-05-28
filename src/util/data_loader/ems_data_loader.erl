@@ -611,7 +611,12 @@ do_load_data_pump(CtrlInsert,
 						Params = [{sql_integer, [Offset]},
 								  {sql_integer, [Offset+SqlLoadPacketLength-1]}
 								 ],
-						SqlLoad2 = io_lib:format("select ~s from ( select ~s, row_number() over (order by id) AS _RowNumber from ( ~s ) _t_sql ) _t where _t._RowNumber between ? and ?", [SqlFields, SqlFields, SqlLoad])
+						SqlLoad2 = io_lib:format("select ~s from ( select ~s, row_number() over (order by id) AS _RowNumber from ( ~s ) _t_sql ) _t where _t._RowNumber between ? and ?", [SqlFields, SqlFields, SqlLoad]);
+					db2 ->
+						Params = [{sql_integer, [Offset]},
+								  {sql_integer, [Offset+SqlLoadPacketLength-1]}
+								 ],
+						SqlLoad2 = io_lib:format("select ~s from ( select ~s, row_number() over (order by id) AS RowNumber from ( ~s ) t_sql ) t where t.RowNumber between ? and ?", ["*", "*", SqlLoad])
 				end
 		end,
 		SqlLoad3 = re:replace(SqlLoad2, "\\s+", " ", [global,{return,list}]),

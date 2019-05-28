@@ -169,6 +169,7 @@
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 criptografia_md5/1,
+		 criptografia_ufsm/1,
 		 head_file/2,
 		 replace_all_vars_binary/2,
 		 replace_all_vars/2,
@@ -3882,6 +3883,82 @@ criptografia_md5(null) -> <<>>;
 criptografia_md5(Password) when is_binary(Password) -> 
 	criptografia_md5(binary_to_list(Password));
 criptografia_md5(Password) -> binary_to_hex(crypto:hash(md5, Password)).
+
+
+criptografia_ufsm_ascci_codes(Pos) ->
+	lists:nth(Pos+1, ["+", "-", 
+					"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", 
+					"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]).
+
+% Return a encrypted password in binary format        
+criptografia_ufsm(<<>>) -> <<>>;
+criptografia_ufsm("") -> <<>>;	
+criptografia_ufsm(undefined) -> <<>>;
+criptografia_ufsm(null) -> <<>>;
+criptografia_ufsm(Password) when is_list(Password) -> 
+	criptografia_ufsm(list_to_binary(Password));
+criptografia_ufsm(Password) -> 
+	Key = "teste001",
+	IV = <<0:128>>,
+	Pad=[8, 8, 8, 8, 8, 8, 8, 8],
+	Result1 = iolist_to_binary([ crypto:crypto_one_time(blowfish_ecb, Key, IV,  Password, true), crypto:crypto_one_time(blowfish_ecb, Key, IV,  Pad, true) ]),
+	Result2 = binary_to_list(Result1),  % <<191,67,236,41,94,29,132,209,20,37,118,130,18,145,236,155>>
+	criptografia_ufsm_string(Result2).               
+		
+criptografia_ufsm_string(L) ->
+	Len = length(L),
+	if 
+		(Len div 3) =/= 0 ->
+			criptografia_ufsm_string_loop(L ++ [0], 0, 0, 0, Len, true, []);
+		true ->
+			criptografia_ufsm_string_loop(L, 0, 0, 0, Len, false, [])
+	end.
+	
+	
+criptografia_ufsm_string_loop([], _Counter, _LastCounter, _Last, _Len, _Flush, Result) -> 
+	io:format("fim ~p\n", [Result]),
+	lists:flatten(lists:reverse(Result));
+
+criptografia_ufsm_string_loop([Code|T], 0, _LastCounter, _Last, Len, Flush, Result) -> 	
+	CodeShift = Code bsr 2,
+	CodeAscii = criptografia_ufsm_ascci_codes(CodeShift),
+	Last2 = Code,
+	Counter = 1,
+	io:format("em 0 ->  ~p\n", [CodeAscii]),
+	criptografia_ufsm_string_loop(T, Counter, 0, Last2, Len, Flush, [CodeAscii | Result]);
+	
+criptografia_ufsm_string_loop([Code|T], 1, _LastCounter, Last, Len, Flush, Result) -> 	
+	LastBand = Last band 3,		% 3 = 0x03
+	LastShift = LastBand bsl 4,
+	CodeBand = Code band 240,  	% 240 = 0xF0
+	CodeShift = CodeBand bsr 4,
+	CodeAscii = criptografia_ufsm_ascci_codes(LastShift bor CodeShift),
+	Last2 = Code,
+	Counter = 2,
+	io:format("em 1 ->  ~p\n", [CodeAscii]),
+	criptografia_ufsm_string_loop(T, Counter, 1, Last2, Len, Flush, [CodeAscii | Result]);
+		
+criptografia_ufsm_string_loop([Code|T], 2, _LastCounter, Last, Len, Flush, Result) -> 	
+	LastBand = Last band 15,		% 15 = 0x0F
+	LastShift = LastBand bsl 2,
+	CodeBand = Code band 192,  		% 192 = 0xC0
+	CodeShift = CodeBand bsr 6,
+	CodeAscii = criptografia_ufsm_ascci_codes(LastShift bor CodeShift),
+	Last2 = 0,
+	Counter = 0,
+	io:format("em 2 ->  ~p\n", [CodeAscii]),
+	if (
+		Flush andalso i == Len - 1) ->
+			Result2 = [CodeAscii | Result];
+		true -> 
+			DigitBand = Code band 63,		% 63 =  0x3F
+			DigitCodeAscii = criptografia_ufsm_ascci_codes(DigitBand),
+			Result1 = [CodeAscii | Result],
+			io:format("em 2  digit ->  ~p\n", [DigitCodeAscii]),
+			Result2 = [DigitCodeAscii | Result1]
+	end,
+	criptografia_ufsm_string_loop(T, Counter, 2, Last2, Len, Flush, Result2).
 
 
 -spec flush_messages() -> ok.

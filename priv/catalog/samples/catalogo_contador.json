@@ -2,10 +2,10 @@
 	"name" : "/samples/contador",
 	"comment": "Contador",
 	"owner": "samples",
-	"version": "1",
+	"version": "1.0.0",
 	"service" : "br.erlangms.samples.service.ContadorService:contador",
 	"url": "/samples/contador",
 	"type": "GET",
-	"APIkey":"true",
+	"enable" : false,
 	"lang" : "java"
 }

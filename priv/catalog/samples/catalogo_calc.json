@@ -2,11 +2,11 @@
 	"name" : "/samples/calc",
 	"comment": "Calculadora",
 	"owner": "samples",
-	"version": "1",
+	"version": "1.0.0",
 	"service" : "br.erlangms.samples.service.CalculadoraService:soma",
 	"url": "/samples/calc",
 	"type": "GET",
-	"APIkey":"true",
+	"enable" : false,
 	"querystring": [
 		{
 			"name": "valor1",

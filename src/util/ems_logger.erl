@@ -733,9 +733,7 @@ do_log_request(Request = #request{rid = RID,
 								  oauth2_refresh_token = RefreshToken,
 								  status_text = StatusText
 			  }, 
-			  State = #state{log_show_response = ShowResponse, 
-							 log_show_response_max_length = ShowResponseMaxLength, 
-							 log_show_payload = ShowPayload, 
+			  State = #state{log_show_response_max_length = ShowResponseMaxLength, 
 							 log_show_payload_max_length = ShowPayloadMaxLength, 
 							 log_ult_reqhash = UltReqHash,
 							 log_show_response_url_list = ShowResponseUrlList,					
@@ -779,8 +777,7 @@ do_log_request(Request = #request{rid = RID,
 						?TAB_GREEN_COLOR, <<"Service">>, ?WHITE_PARAM_COLOR, ServiceService,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
-						case (ShowPayload orelse 
-							   Reason =/= ok orelse 
+						case (Reason =/= ok orelse 
 							   ShowPayloadService orelse 
 							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList))
 							  ) andalso ContentLength > 0 of
@@ -801,8 +798,7 @@ do_log_request(Request = #request{rid = RID,
 								end;
 							false -> <<>>
 						end,
-						case (ShowResponse orelse
-							   Reason =/= ok orelse 
+						case (Reason =/= ok orelse 
 							   ShowResponseService orelse
 							   (ShowResponseUrlList =/= [] andalso lists:member(Url, ShowResponseUrlList))
 							  ) of

@@ -8,7 +8,7 @@
 		"url": "/samples/produto",
 		"async": "false",
 		"type": "GET",
-		"APIkey": "false",
+		"enable" : false,
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
@@ -59,7 +59,7 @@
 		"url": "/samples/produto/:id",
 		"async": "false",
 		"type": "GET",
-		"APIkey": "false",
+		"enable" : false,
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
@@ -80,7 +80,7 @@
 		"url": "/samples/produto",
 		"async": "false",
 		"type": "POST",
-		"APIkey": "false",
+		"enable" : false,
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
@@ -100,7 +100,7 @@
 		"url": "/samples/produto/:id",
 		"async": "false",
 		"type": "PUT",
-		"APIkey": "false",
+		"enable" : false,
 		"lang" : "erlang",
 		"datasource" : {
 			"type" : "mnesia",
