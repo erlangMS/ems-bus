@@ -26,7 +26,7 @@
 							 from dbsm.DOC_PESSOAS dp 
 							 where dp.ID_TDOC_PESSOA = 1 and dp.ID_PESSOA = p.id_pessoa) as cpf, 
 							 u.SENHA as password, 
-							 'SHA1' as passwd_crypto,  
+							 'BLOWFISH' as passwd_crypto,  
 							 null as endereco, 
 							 null as complemento_endereco, 
 							 null as bairro, 
@@ -66,7 +66,7 @@
 							 from dbsm.DOC_PESSOAS dp 
 							 where dp.ID_TDOC_PESSOA = 1 and dp.ID_PESSOA = p.id_pessoa) as cpf, 
 							 u.SENHA as password, 
-							 'SHA1' as passwd_crypto,  
+							 'BLOWFISH' as passwd_crypto,  
 							 null as endereco, 
 							 null as complemento_endereco, 
 							 null as bairro, 

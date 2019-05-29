@@ -169,10 +169,11 @@
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 criptografia_md5/1,
-		 criptografia_ufsm/2,
-		 criptografia_ufsm_senha_web/1,
-		 criptografia_ufsm_senha_web_keygen/5,
-		 criptografia_ufsm_senha_web_test/0,
+		 criptografia_blowfish/2,
+		 criptografia_blowfish_senha_web/1,
+		 criptografia_blowfish_senha_usuario/1,
+		 criptografia_blowfish_senha_web_keygen/5,
+		 criptografia_blowfish_senha_web_test/0,
 		 head_file/2,
 		 replace_all_vars_binary/2,
 		 replace_all_vars/2,
@@ -3888,31 +3889,39 @@ criptografia_md5(Password) when is_binary(Password) ->
 criptografia_md5(Password) -> binary_to_hex(crypto:hash(md5, Password)).
 
 
-criptografia_ufsm_ascci_codes(Pos) ->
+criptografia_blowfish_ascci_codes(Pos) ->
 	lists:nth(Pos+1, ["+", "-", 
 					"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
 					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", 
 					"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]).
 
 
-criptografia_ufsm_senha_web(Password) ->
+criptografia_blowfish_senha_web(Password) ->
 	Len = length(Password),
 	Key = "A03LKD-Luã,eytg,zm)jd[KdQkmznvAe-Qeofj;maNJOFmnc+kjfaçl",
-	Key2 = criptografia_ufsm_senha_web_keygen(Password, Key, Len, 0, [22, 36, 27, 14, 41, 1, 45, 17, 38]),
-	criptografia_ufsm(Password, Key2).
+	Key2 = criptografia_blowfish_senha_web_keygen(Password, Key, Len, 0, [22, 36, 27, 14, 41, 1, 45, 17, 38]),
+	criptografia_blowfish(Password, Key2).
+
+
+criptografia_blowfish_senha_usuario(Password) ->
+	Len = length(Password),
+	Key = "iRvn#-dmPbZqj_93jcLgJLL@dn)rZYe4Dnz-03Dvm1Wpo)-a0NphaNx",
+	Key2 = criptografia_blowfish_senha_web_keygen(Password, Key, Len, 0, [20, 34, 46, 12, 4, 32, 20, 11, 25]),
+	criptografia_blowfish(Password, Key2).
+
 	
-criptografia_ufsm_senha_web_keygen(_, Key, _, 9, _) -> 
+criptografia_blowfish_senha_web_keygen(_, Key, _, 9, _) -> 
 	%io:format("aqui3\n"),
 	Key;
 
-criptografia_ufsm_senha_web_keygen(_, Key, _, _, []) -> 
+criptografia_blowfish_senha_web_keygen(_, Key, _, _, []) -> 
 	%io:format("aqui2\n"),
 	Key;
-criptografia_ufsm_senha_web_keygen(Password, Key, Len, Idx, [PosChangeKey|PosChangeKeyT]) when Len >= (Idx+1) ->
+criptografia_blowfish_senha_web_keygen(Password, Key, Len, Idx, [PosChangeKey|PosChangeKeyT]) when Len >= (Idx+1) ->
 	%io:format("aqui0: Len >= (Idx+1)    ~p >= (~p)\n", [Len, Idx+1]),
 	Key2 = setnth(PosChangeKey+1, Key, lists:nth(Idx+1, Password)),
-	criptografia_ufsm_senha_web_keygen(Password, Key2, Len, Idx+1, PosChangeKeyT);
-criptografia_ufsm_senha_web_keygen(_Password, Key, _Len, _Idx, _) ->	
+	criptografia_blowfish_senha_web_keygen(Password, Key2, Len, Idx+1, PosChangeKeyT);
+criptografia_blowfish_senha_web_keygen(_Password, Key, _Len, _Idx, _) ->	
 	%io:format("aqui1\n"),
 	Key.
 
@@ -3921,49 +3930,49 @@ setnth(1, [_|Rest], New) -> [New|Rest];
 setnth(I, [E|Rest], New) -> [E|setnth(I-1, Rest, New)].
 	
 
-criptografia_ufsm_senha_web_test() ->
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("k")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("ab")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("960101")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("teste001")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("casa")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("isso eh uma senha !!!")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("teste")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("xxx")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("@hashtag1")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("samuraY71")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("chico10")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("RAMBO3")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("VALEaPeNaVeRDEnovo%")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web(")(*&$#@!superpassWD")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("@evertonagilar123456@")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("123456789")]),
+criptografia_blowfish_senha_web_test() ->
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("k")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("ab")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("960101")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("teste001")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("casa")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("isso eh uma senha !!!")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("teste")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("xxx")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("@hashtag1")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("samuraY71")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("chico10")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("RAMBO3")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("VALEaPeNaVeRDEnovo%")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web(")(*&$#@!superpassWD")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("@evertonagilar123456@")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("123456789")]),
 	
 	
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("0")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("00")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("000")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("000")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("00000")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("000000")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("|||")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("ze")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@0")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("áéíoúsalomãoK")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("maria@555")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("XTUDO")]),
-	io:format("~p\n", [ems_util:criptografia_ufsm_senha_web("12635599855133654899854669885112226654986542226548987965652265468")]).
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("0")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("00")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("000")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("000")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("00000")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("000000")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("|||")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("ze")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@0")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("áéíoúsalomãoK")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("maria@555")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("XTUDO")]),
+	io:format("~p\n", [ems_util:criptografia_blowfish_senha_web("12635599855133654899854669885112226654986542226548987965652265468")]).
 	
 	
 
 % Return a encrypted password in binary format        
-criptografia_ufsm(<<>>, _) -> <<>>;
-criptografia_ufsm("", _) -> <<>>;	
-criptografia_ufsm(undefined, _) -> <<>>;
-criptografia_ufsm(null, _) -> <<>>;
-criptografia_ufsm(Password, Key) when is_binary(Password) -> 
-	criptografia_ufsm(binary_to_list(Password), Key);
-criptografia_ufsm(Password, Key) -> 
+criptografia_blowfish(<<>>, _) -> <<>>;
+criptografia_blowfish("", _) -> <<>>;	
+criptografia_blowfish(undefined, _) -> <<>>;
+criptografia_blowfish(null, _) -> <<>>;
+criptografia_blowfish(Password, Key) when is_binary(Password) -> 
+	criptografia_blowfish(binary_to_list(Password), Key);
+criptografia_blowfish(Password, Key) -> 
 	IV = [0,0,0,0,0,0,0,0],  %IV = <<0:128>>,
 	BlockSize = 8,
 	Len = length(Password),
@@ -3979,46 +3988,46 @@ criptografia_ufsm(Password, Key) ->
 	%Result1 = iolist_to_binary([ crypto:crypto_one_time(blowfish_cfb64, Key, IV,  Password, true), crypto:crypto_one_time(blowfish_cfb64, Key, IV,  Pad, true) ]),
 	%Result1 = iolist_to_binary(crypto:crypto_one_time(blowfish_ecb, Key, Pad,  Password, true)),
 	Result2 = binary_to_list(Result1),  % <<191,67,236,41,94,29,132,209,20,37,118,130,18,145,236,155>>
-	criptografia_ufsm_string(Result2, length(Password)).               
+	criptografia_blowfish_string(Result2, length(Password)).               
 		
-criptografia_ufsm_string(L, _LenPasswordSemPad) ->
+criptografia_blowfish_string(L, _LenPasswordSemPad) ->
 	Len = length(L),
 	%io:format("(Len div 3) =/= 0 ->  (~p div 3) =/= 0\n", [Len]),
 	if 
 		(Len rem 3) =/= 0 ->
 			%io:format("inclui digit\n"),
-			criptografia_ufsm_string_loop(L ++ [0], 0, 0, 0, Len+1, true, 0, []);
+			list_to_binary(criptografia_blowfish_string_loop(L ++ [0], 0, 0, 0, Len+1, true, 0, []));
 		true ->
-			criptografia_ufsm_string_loop(L, 0, 0, 0, Len, false, 0, [])
+			list_to_binary(criptografia_blowfish_string_loop(L, 0, 0, 0, Len, false, 0, []))
 	end.
 	
 	
-criptografia_ufsm_string_loop([], _Counter, _LastCounter, _Last, _Len, _Flush, _I, Result) -> 
+criptografia_blowfish_string_loop([], _Counter, _LastCounter, _Last, _Len, _Flush, _I, Result) -> 
 	lists:flatten(lists:reverse(Result));
 
-criptografia_ufsm_string_loop([Code|T], 0, _LastCounter, _Last, Len, Flush, I, Result) -> 	
+criptografia_blowfish_string_loop([Code|T], 0, _LastCounter, _Last, Len, Flush, I, Result) -> 	
 	CodeShift = Code bsr 2,
-	CodeAscii = criptografia_ufsm_ascci_codes(CodeShift),
+	CodeAscii = criptografia_blowfish_ascci_codes(CodeShift),
 	Last2 = Code,
 	Counter = 1,
-	criptografia_ufsm_string_loop(T, Counter, 0, Last2, Len, Flush, I+1, [CodeAscii | Result]);
+	criptografia_blowfish_string_loop(T, Counter, 0, Last2, Len, Flush, I+1, [CodeAscii | Result]);
 	
-criptografia_ufsm_string_loop([Code|T], 1, _LastCounter, Last, Len, Flush, I, Result) -> 	
+criptografia_blowfish_string_loop([Code|T], 1, _LastCounter, Last, Len, Flush, I, Result) -> 	
 	LastBand = Last band 3,		% 3 = 0x03
 	LastShift = LastBand bsl 4,
 	CodeBand = Code band 240,  	% 240 = 0xF0
 	CodeShift = CodeBand bsr 4,
-	CodeAscii = criptografia_ufsm_ascci_codes(LastShift bor CodeShift),
+	CodeAscii = criptografia_blowfish_ascci_codes(LastShift bor CodeShift),
 	Last2 = Code,
 	Counter = 2,
-	criptografia_ufsm_string_loop(T, Counter, 1, Last2, Len, Flush, I+1, [CodeAscii | Result]);
+	criptografia_blowfish_string_loop(T, Counter, 1, Last2, Len, Flush, I+1, [CodeAscii | Result]);
 		
-criptografia_ufsm_string_loop([Code|T], 2, _LastCounter, Last, Len, Flush, I, Result) -> 	
+criptografia_blowfish_string_loop([Code|T], 2, _LastCounter, Last, Len, Flush, I, Result) -> 	
 	LastBand = Last band 15,		% 15 = 0x0F
 	LastShift = LastBand bsl 2,
 	CodeBand = Code band 192,  		% 192 = 0xC0
 	CodeShift = CodeBand bsr 6,
-	CodeAscii = criptografia_ufsm_ascci_codes(LastShift bor CodeShift),
+	CodeAscii = criptografia_blowfish_ascci_codes(LastShift bor CodeShift),
 	Last2 = 0,
 	Counter = 0,
 		%io:format("Flush andalso I == Len - 1)  : flush is ~p    ~p == ~p - 1\n", [Flush, I, Len]),
@@ -4030,11 +4039,11 @@ criptografia_ufsm_string_loop([Code|T], 2, _LastCounter, Last, Len, Flush, I, Re
 		true -> 
 			%io:format("aqui2\n"),
 			DigitBand = Code band 63,		% 63 =  0x3F
-			DigitCodeAscii = criptografia_ufsm_ascci_codes(DigitBand),
+			DigitCodeAscii = criptografia_blowfish_ascci_codes(DigitBand),
 			Result1 = [CodeAscii | Result],
 			Result2 = [DigitCodeAscii | Result1]
 	end,
-	criptografia_ufsm_string_loop(T, Counter, 2, Last2, Len, Flush, I+1, Result2).
+	criptografia_blowfish_string_loop(T, Counter, 2, Last2, Len, Flush, I+1, Result2).
 
 
 -spec flush_messages() -> ok.

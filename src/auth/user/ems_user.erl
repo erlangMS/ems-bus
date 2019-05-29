@@ -94,7 +94,7 @@ find_by_codigo_pessoa(Table, Codigo) ->
 	end.
 
 
-find_index_by_login_and_password([], _, _, _, _, _, _, _, _, _, _, _, _) ->
+find_index_by_login_and_password([], _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) ->
 	ems_data_loader:sync(ems_user_loader_db),
 	{error, access_denied, enoent};
 find_index_by_login_and_password([Table|T], LoginBin, 
@@ -106,6 +106,9 @@ find_index_by_login_and_password([Table|T], LoginBin,
 											PasswordBinCryptoMD5, 
 											PasswordBinLowerCryptoMD5, 
 											PasswordBinUpperCryptoMD5, 
+											PasswordBinCryptoBLOWFISH, 
+											PasswordBinLowerCryptoBLOWFISH, 
+											PasswordBinUpperCryptoBLOWFISH, 
 											PasswordStrLower, 
 											PasswordStrUpper, 
 											Client) ->
@@ -115,8 +118,12 @@ find_index_by_login_and_password([Table|T], LoginBin,
 				 orelse PasswordUser =:= PasswordBin 
 				 orelse PasswordUser =:= PasswordBinLowerCryptoSHA1 
 				 orelse PasswordUser =:= PasswordBinUpperCryptoSHA1 
+				 orelse PasswordUser =:= PasswordBinCryptoMD5 
 				 orelse PasswordUser =:= PasswordBinLowerCryptoMD5 
 				 orelse PasswordUser =:= PasswordBinUpperCryptoMD5 
+				 orelse PasswordUser =:= PasswordBinCryptoBLOWFISH 
+				 orelse PasswordUser =:= PasswordBinLowerCryptoBLOWFISH 
+				 orelse PasswordUser =:= PasswordBinUpperCryptoBLOWFISH 
 				 orelse PasswordUser =:= PasswordStrLower 
 				 orelse PasswordUser =:= PasswordStrUpper of
 					true -> 
@@ -144,7 +151,12 @@ find_index_by_login_and_password([Table|T], LoginBin,
 						end,	
 						{ok, User2};
 					false -> 
-						find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, PasswordBin, PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, PasswordStrLower, PasswordStrUpper, Client)
+						find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
+															PasswordBin, 
+															PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
+															PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
+															PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
+															PasswordStrLower, PasswordStrUpper, Client)
 			end;
 		_ -> 
 			case mnesia:dirty_index_read(Table, LoginSemBarraBin, #user.login) of
@@ -153,8 +165,12 @@ find_index_by_login_and_password([Table|T], LoginBin,
 						 orelse PasswordUser =:= PasswordBin 
 						 orelse PasswordUser =:= PasswordBinLowerCryptoSHA1 
 						 orelse PasswordUser =:= PasswordBinUpperCryptoSHA1 
+						 orelse PasswordUser =:= PasswordBinCryptoMD5 
 						 orelse PasswordUser =:= PasswordBinLowerCryptoMD5
 						 orelse PasswordUser =:= PasswordBinUpperCryptoMD5 
+						 orelse PasswordUser =:= PasswordBinCryptoBLOWFISH 
+						 orelse PasswordUser =:= PasswordBinLowerCryptoBLOWFISH 
+						 orelse PasswordUser =:= PasswordBinUpperCryptoBLOWFISH 
 						 orelse PasswordUser =:= PasswordStrLower 
 						 orelse PasswordUser =:= PasswordStrUpper of
 							true -> 
@@ -182,9 +198,19 @@ find_index_by_login_and_password([Table|T], LoginBin,
 								end,	
 								{ok, User2};
 							false -> 
-								find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, PasswordBin, PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, PasswordStrLower, PasswordStrUpper, Client)
+								find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
+																	PasswordBin, 
+																	PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
+																	PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
+																	PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
+																	PasswordStrLower, PasswordStrUpper, Client)
 					end;
-				_ -> find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, PasswordBin, PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, PasswordStrLower, PasswordStrUpper, Client)
+				_ -> find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
+														 PasswordBin, 
+														 PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
+														 PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
+														 PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
+														 PasswordStrLower, PasswordStrUpper, Client)
 			end
 	end.
 
@@ -203,7 +229,7 @@ find_by_login_and_password(Login, Password, Client)  ->
 					 false -> binary_to_list(Password)
 				  end,
 	PasswordSize = length(PasswordStr),
-	case PasswordSize >= 4 andalso PasswordSize =< 100 of
+	case PasswordSize >= 4 andalso PasswordSize =< 256 of
 		true ->
 			LoginStr = case is_list(Login) of
 							true -> string:to_lower(Login);
@@ -226,6 +252,10 @@ find_by_login_and_password(Login, Password, Client)  ->
 			PasswordBinLowerCryptoMD5 = ems_util:criptografia_md5(PasswordStrLower),
 			PasswordBinUpperCryptoMD5 = ems_util:criptografia_md5(PasswordStrUpper),
 
+			PasswordBinCryptoBLOWFISH = ems_util:criptografia_blowfish_senha_usuario(PasswordStr),
+			PasswordBinLowerCryptoBLOWFISH = ems_util:criptografia_blowfish_senha_usuario(PasswordStrLower),
+			PasswordBinUpperCryptoBLOWFISH = ems_util:criptografia_blowfish_senha_usuario(PasswordStrUpper),
+
 			case Client of
 				undefined -> LoadersFind = ?CLIENT_DEFAULT_SCOPE;
 				_ -> LoadersFind = Client#client.scope
@@ -240,6 +270,9 @@ find_by_login_and_password(Login, Password, Client)  ->
 											 PasswordBinCryptoMD5, 
 											 PasswordBinLowerCryptoMD5, 
 											 PasswordBinUpperCryptoMD5, 
+											 PasswordBinCryptoBLOWFISH, 
+											 PasswordBinLowerCryptoBLOWFISH, 
+											 PasswordBinUpperCryptoBLOWFISH, 
 											 PasswordStrLower, 
 											 PasswordStrUpper,
 											 Client);
@@ -638,6 +671,9 @@ new_from_map(Map, Conf) ->
 						<<"MD5">> -> 
 							PasswdCrypto = PasswdCrypto0,
 							Password2 =	?UTF8_STRING(Password);
+						<<"BLOWFISH">> -> 
+							PasswdCrypto = PasswdCrypto0,
+							Password2 = ?UTF8_STRING(Password);
 						_ -> 
 							PasswdCrypto = <<"SHA1">>,
 							Password2 = ems_util:criptografia_sha1(string:to_lower(binary_to_list(?UTF8_STRING(Password))))
@@ -828,7 +864,7 @@ new_from_map(Map, Conf) ->
 	catch
 		_Exception:Reason -> 
 			ems_db:inc_counter(edata_loader_invalid_user),
-			ems_logger:warn("ems_user parse invalid user specification on field ~p: ~p\n\t~p.\n", [get(parse_step), Reason, Map]),
+			ems_logger:warn("ems_user parse invalid user specification on field ~p. Reason: ~p\n\t~p.\n", [get(parse_step), Reason, Map]),
 			{error, Reason}
 	end.
 
