@@ -31,6 +31,7 @@
 		 binlist_to_atomlist_with_trim/1,
 		 list_to_atomlist_with_trim/1,
 		 list_to_binlist/1,
+		 atomlist_to_binlist/1,
 		 mes_extenso/1,
 		 binlist_to_list/1,
 		 join_binlist/2,
@@ -71,6 +72,8 @@
          get_param_or_variable/3,
          get_java_home/0,
          get_www_path/0,
+         get_auth_default_scope/0,
+         get_auth_password_check_between_scopes/0,
          date_add_minute/2,
          date_dec_minute/2,
          date_add_second/2,
@@ -298,6 +301,12 @@ get_priv_dir() ->
 
 get_www_path() ->
 	ems_db:get_param(www_path, filename:join(get_priv_dir_default(), "www")).
+	
+get_auth_default_scope() ->	
+	ems_db:get_param(auth_default_scopes, ?AUTH_DEFAULT_SCOPE).
+	
+get_auth_password_check_between_scopes() ->	
+	ems_db:get_param(auth_password_check_between_scopes, true).
 	
 
 -spec get_working_dir() -> string().
@@ -3114,9 +3123,22 @@ binlist_to_atomlist(Value) when is_list(Value) ->
 binlist_to_atomlist(Value)  ->
 	binary_to_atom(Value, utf8).
 
-binlist_to_atomlist_([], Result) -> Result;
+binlist_to_atomlist_([], Result) -> lists:reverse(Result);
 binlist_to_atomlist_([H|T], Result) ->
 	binlist_to_atomlist_(T, [binary_to_atom(H, utf8)|Result]).
+	
+	
+atomlist_to_binlist([])  -> [];
+atomlist_to_binlist(undefined)  -> [];
+atomlist_to_binlist(<<>>)  -> [];
+atomlist_to_binlist(Value) when is_list(Value) ->
+	atomlist_to_binlist_(Value, []).
+
+atomlist_to_binlist_([], Result) -> lists:reverse(Result);
+atomlist_to_binlist_([H|T], Result) ->
+	atomlist_to_binlist_(T, [atom_to_binary(H, utf8)|Result]).
+	
+	
 
 -spec json_field_strip_and_escape(string() | binary()) -> iolist().
 json_field_strip_and_escape([]) ->	<<"null"/utf8>>;

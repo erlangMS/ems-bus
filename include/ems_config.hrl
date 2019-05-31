@@ -271,9 +271,9 @@
 -define(RESULT_CACHE_MAX_SIZE_ENTRY, 524288). % 512KB
 -define(RESULT_CACHE_SHARED, true). 
 
--define(CLIENT_DEFAULT_SCOPE, [user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs]).
--define(CLIENT_DEFAULT_SCOPE_BIN, [<<"user_db">>, <<"user2_db">>, <<"user_aluno_ativo_db">>, <<"user_aluno_inativo_db">>, <<"user_fs">>]).
+-define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user2_db">>, <<"user_aluno_ativo_db">>, <<"user_aluno_inativo_db">>, <<"user_fs">>]).
 
+-define(CLIENT_DEFAULT_SCOPE, ems_util:get_auth_default_scope()).
 
 
 % Código de cores
@@ -420,7 +420,8 @@
 				 ldap_base_search :: string(),
  				 custom_variables :: list(binary()),						%% Lista de variáveis genéricas
  				 priv_path :: string(),
- 				 www_path :: string()
-
+ 				 www_path :: string(),
+ 				 auth_default_scopes :: list(atom()),
+ 				 auth_password_check_between_scopes :: boolean()
 		 }). 	
 

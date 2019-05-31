@@ -97,7 +97,7 @@ find_by_codigo_pessoa(Table, Codigo) ->
 find_index_by_login_and_password([], _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) ->
 	ems_data_loader:sync(ems_user_loader_db),
 	{error, access_denied, enoent};
-find_index_by_login_and_password([Table|T], LoginBin, 
+find_index_by_login_and_password([Table|T] = Tables, LoginBin, 
 											LoginSemBarraBin, 
 											PasswordBin, 
 											PasswordBinCryptoSHA1, 
@@ -113,7 +113,7 @@ find_index_by_login_and_password([Table|T], LoginBin,
 											PasswordStrUpper, 
 											Client) ->
 	case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
-		[User = #user{password = PasswordUser, ctrl_last_login_scope = CtrlLoginScope}|_] -> 
+		[User = #user{password = PasswordUser, cpf = Cpf, ctrl_last_login_scope = CtrlLoginScope}|_] -> 
 			case PasswordUser =:= PasswordBinCryptoSHA1 
 				 orelse PasswordUser =:= PasswordBin 
 				 orelse PasswordUser =:= PasswordBinLowerCryptoSHA1 
@@ -151,67 +151,71 @@ find_index_by_login_and_password([Table|T], LoginBin,
 						end,	
 						{ok, User2};
 					false -> 
-						find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
-															PasswordBin, 
-															PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-															PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-															PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-															PasswordStrLower, PasswordStrUpper, Client)
+						% Eh tabela user_aluno_ativo_db e encontrou o login mas não bateu a senha, vamos tentar buscar a 
+						% senha na tabela user_db (se a tabela user_db também está no scope)
+						case Table == user_aluno_ativo_db andalso lists:member(user_db, Tables) == true andalso ems_db:get_param(get_auth_password_check_between_scopes) of
+							true -> 
+								case mnesia:dirty_index_read(user_db, LoginBin, #user.login) of
+									[#user{password = PasswordUserEmOutraTabela, cpf = CpfUserEmOutraTabela}|_] -> 
+										case CpfUserEmOutraTabela =:= Cpf andalso 
+											(
+												PasswordUserEmOutraTabela =:= PasswordBinCryptoSHA1 
+											 	 orelse PasswordUserEmOutraTabela =:= PasswordBin 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinLowerCryptoSHA1 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinUpperCryptoSHA1 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinCryptoMD5 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinLowerCryptoMD5 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinUpperCryptoMD5 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinCryptoBLOWFISH 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinLowerCryptoBLOWFISH 
+												 orelse PasswordUserEmOutraTabela =:= PasswordBinUpperCryptoBLOWFISH 
+												 orelse PasswordUserEmOutraTabela =:= PasswordStrLower 
+												 orelse PasswordUserEmOutraTabela =:= PasswordStrUpper
+											 ) of
+												true -> 
+													ClientName = case Client of
+																	undefined -> undefined;
+																	_ -> Client#client.name
+																 end,
+													case Table of
+														user_cache_lru ->
+															User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
+																			  ctrl_login_count = User#user.ctrl_login_count + 1,
+																			  ctrl_last_login_client = ClientName},
+															mnesia:dirty_write(user_cache_lru, User2),
+															case CtrlLoginScope of
+																undefined -> ok; % não deveria se está no cache lru
+																_ -> mnesia:dirty_write(CtrlLoginScope, User2)
+															end;
+														_ -> 
+															User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
+																			  ctrl_login_count = User#user.ctrl_login_count + 1,
+																			  ctrl_last_login_scope = Table,
+																			  ctrl_last_login_client = ClientName},
+															mnesia:dirty_write(user_cache_lru, User2),
+															mnesia:dirty_write(Table, User2)
+													end,	
+													{ok, User2};
+												false -> 
+													find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
+																						PasswordBin, 
+																						PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
+																						PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
+																						PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
+																						PasswordStrLower, PasswordStrUpper, Client)
+											end
+										end;
+							false ->					
+								find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
+												PasswordBin, 
+												PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
+												PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
+												PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
+												PasswordStrLower, PasswordStrUpper, Client)
+						end
 			end;
 		_ -> 
-			case mnesia:dirty_index_read(Table, LoginSemBarraBin, #user.login) of
-				[User = #user{password = PasswordUser, ctrl_last_login_scope = CtrlLoginScope}|_] -> 
-					case PasswordUser =:= PasswordBinCryptoSHA1 
-						 orelse PasswordUser =:= PasswordBin 
-						 orelse PasswordUser =:= PasswordBinLowerCryptoSHA1 
-						 orelse PasswordUser =:= PasswordBinUpperCryptoSHA1 
-						 orelse PasswordUser =:= PasswordBinCryptoMD5 
-						 orelse PasswordUser =:= PasswordBinLowerCryptoMD5
-						 orelse PasswordUser =:= PasswordBinUpperCryptoMD5 
-						 orelse PasswordUser =:= PasswordBinCryptoBLOWFISH 
-						 orelse PasswordUser =:= PasswordBinLowerCryptoBLOWFISH 
-						 orelse PasswordUser =:= PasswordBinUpperCryptoBLOWFISH 
-						 orelse PasswordUser =:= PasswordStrLower 
-						 orelse PasswordUser =:= PasswordStrUpper of
-							true -> 
-								ClientName = case Client of
-												undefined -> undefined;
-												_ -> Client#client.name
-											 end,
-								case Table of
-									user_cache_lru ->
-										User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
-														  ctrl_login_count = User#user.ctrl_login_count + 1,
-														  ctrl_last_login_client = ClientName},
-										mnesia:dirty_write(user_cache_lru, User2),
-										case CtrlLoginScope of
-											undefined -> ok; % não deveria se está no cache lru
-											_ -> mnesia:dirty_write(CtrlLoginScope, User2)
-										end;
-									_ -> 
-										User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
-														  ctrl_login_count = User#user.ctrl_login_count + 1,
-														  ctrl_last_login_scope = Table,
-														  ctrl_last_login_client = ClientName},
-										mnesia:dirty_write(user_cache_lru, User2),
-										mnesia:dirty_write(Table, User2)
-								end,	
-								{ok, User2};
-							false -> 
-								find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
-																	PasswordBin, 
-																	PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-																	PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-																	PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-																	PasswordStrLower, PasswordStrUpper, Client)
-					end;
-				_ -> find_index_by_login_and_password(T, LoginBin, LoginSemBarraBin, 
-														 PasswordBin, 
-														 PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-														 PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-														 PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-														 PasswordStrLower, PasswordStrUpper, Client)
-			end
+			{error, access_denied, enoent}
 	end.
 
 -spec find_by_login_and_password(binary() | list(), binary() | list()) -> {ok, #user{}} | {error, access_denied, enoent | einvalid_password}.	
@@ -257,7 +261,7 @@ find_by_login_and_password(Login, Password, Client)  ->
 			PasswordBinUpperCryptoBLOWFISH = ems_util:criptografia_blowfish_senha_usuario(PasswordStrUpper),
 
 			case Client of
-				undefined -> LoadersFind = ?CLIENT_DEFAULT_SCOPE;
+				undefined -> LoadersFind = ems_util:get_auth_default_scope();
 				_ -> LoadersFind = Client#client.scope
 			end,
 			find_index_by_login_and_password(LoadersFind, 
@@ -507,14 +511,14 @@ to_resource_owner(User, ClientId) ->
 		true -> 
 			case User#user.cpf of
 				<<>> ->
-					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [id, name]),
+					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
-					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
+					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission);
 				_ ->
-					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [id, name]),
+					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
-					{ok, ListaPermission} = ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
+					{ok, ListaPermission} = ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission)
 			end,
 			iolist_to_binary([<<"{"/utf8>>,
@@ -532,16 +536,16 @@ to_resource_owner(User, ClientId) ->
 								<<"\"lista_permission\":"/utf8>>, ListaPermissionJson, 
 							<<"}"/utf8>>]);
 		false ->
-			ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, name]) of
+			ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [perfil_id, name]) of
 									{ok, ListaPerfil} -> 
 										case User#user.cpf of
 											<<>> ->
-												case ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [id, name]) of
+												case ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]) of
 													{ok, ListaPerfil2} -> ListaPerfil ++ ListaPerfil2;
 													_ -> ListaPerfil
 												end;
 											_ ->
-												case ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [id, name]) of
+												case ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]) of
 													{ok, ListaPerfil2} -> ListaPerfil ++ ListaPerfil2;
 													_ -> ListaPerfil
 												end
@@ -549,28 +553,28 @@ to_resource_owner(User, ClientId) ->
 									_ -> 
 										case User#user.cpf of
 											<<>> ->
-												case ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [id, name]) of
+												case ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]) of
 													{ok, ListaPerfil2} -> ListaPerfil2;
 													_ -> []
 												end;
 											_ ->
-												case ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [id, name]) of
+												case ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]) of
 													{ok, ListaPerfil2} -> ListaPerfil2;
 													_ -> []
 												end
 										end
 								end,
 			ListaPerfilJson = ems_schema:to_json(ListaPerfilFinal),
-			ListaPermissionFinal = case ems_user_permission:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+			ListaPermissionFinal = case ems_user_permission:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 										{ok, ListaPermission} ->
 											case User#user.cpf of
 												<<>> ->
-													case ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id ,name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPermission2} -> ListaPermission ++ ListaPermission2;
 														_ -> ListaPermission
 													end;
 												_ ->
-													case ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPermission2} -> ListaPermission ++ ListaPermission2;
 														_ -> ListaPermission
 													end
@@ -578,12 +582,12 @@ to_resource_owner(User, ClientId) ->
 										_ -> 
 											case User#user.cpf of
 												<<>> ->
-													case ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPermission2} -> ListaPermission2;
 														_ -> []
 													end;
 												_ ->
-													case ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPermission2} -> ListaPermission2;
 														_ -> []
 													end

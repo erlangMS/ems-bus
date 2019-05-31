@@ -348,6 +348,14 @@ parse_config(Json, Filename) ->
 		WWWPath = ems_util:parse_file_name_path(WWWPath0, [], undefined),
 		ems_db:set_param(www_path, WWWPath),
 		
+		put(parse_step, auth_default_scopes),
+		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scopes">>, Json, ?AUTH_DEFAULT_SCOPE)),
+		ems_db:set_param(auth_default_scopes, AuthDefaultScopesAtom),
+
+		put(parse_step, auth_password_check_between_scopes),
+		AuthPasswordCheckBetweenScopes = ems_util:parse_bool(maps:get(<<"auth_password_check_between_scopes">>, Json, true)),
+		ems_db:set_param(auth_password_check_between_scopes, AuthPasswordCheckBetweenScopes),
+
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),
 		CustomVariables = parse_variables(maps:get(<<"custom_variables">>, Json, #{})),
@@ -565,7 +573,7 @@ parse_config(Json, Filename) ->
 		JavaServiceUserNotifyRequiredFields = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_required_fields">>, Json, [<<"name">>, <<"login">>, <<"email">>, <<"cpf">>, <<"nome_mae">>])),
 
 		put(parse_step, java_service_user_notify_source_types),
-		JavaServiceUserNotifySourcesTypes = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_source_types">>, Json, ?CLIENT_DEFAULT_SCOPE_BIN)),
+		JavaServiceUserNotifySourcesTypes = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_source_types">>, Json, ems_util:atomlist_to_binlist(?CLIENT_DEFAULT_SCOPE))),
 
 		put(parse_step, log_show_user_notify_activity),
 		LogShowUserNotifyActivity = ems_util:parse_bool(get_p(<<"log_show_user_notify_activity">>, Json, true)),
@@ -735,7 +743,9 @@ parse_config(Json, Filename) ->
 				 ldap_base_search = LdapBaseSearch,
 				 custom_variables = CustomVariables,
 				 www_path = WWWPath,
-				 priv_path = PrivPath
+				 priv_path = PrivPath,
+				 auth_default_scopes = AuthDefaultScopesAtom,
+				 auth_password_check_between_scopes = AuthPasswordCheckBetweenScopes
 			},
 
 		put(parse_step, datasources),
