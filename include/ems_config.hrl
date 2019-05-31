@@ -25,6 +25,8 @@
 -define(SERVER_NAME, ems_util:server_name()).
 
 
+-define(PRIV_PATH_DEFAULT, ems_util:get_priv_dir_default()).
+
 % Caminho do diretório privado
 -define(PRIV_PATH, ems_util:get_priv_dir()).
 
@@ -35,6 +37,9 @@
 -define(TEMP_PATH, filename:join(?PRIV_PATH, "tmp")).
 
 % Caminho do catálogo de serviços
+-define(CONF_PATH_DEFAULT, filename:join(?PRIV_PATH_DEFAULT, "conf")).
+
+% Caminho do catálogo de serviços
 -define(CONF_PATH, filename:join(?PRIV_PATH, "conf")).
 
 % Caminho da pasta para o arquivo server.log
@@ -42,7 +47,6 @@
 
 % Caminho da pasta para arquivar o server.log
 -define(LOG_FILE_ARCHIVE_PATH, filename:join([?PRIV_PATH, "archive", "log"])).
-
 
 % Caminho do favicon
 -define(FAVICON_PATH, filename:join(?PRIV_PATH, "favicon.ico")).
@@ -54,7 +58,7 @@
 -define(CATALOGO_ESB_PATH, filename:join(?CATALOGO_PATH, "catalog.json")).
 
 % Caminho da pasta de databases
--define(DATABASE_PATH, filename:join(?PRIV_PATH, "db")).
+-define(DATABASE_PATH, ems_db:get_param(database_path)).
 
 % Caminho da pasta de databases
 -define(JAVA_JAR_PATH, filename:join(?PRIV_PATH, "jar")).
@@ -62,10 +66,13 @@
 -define(JAVA_SERVICE_SCAN, "br.unb").
 
 % Caminho do arquivo de configuração padrão (Pode ser incluído também na pasta ~/.erlangms do usuário)
+-define(CONF_FILE_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "emsbus.conf")).
+
+% Caminho do arquivo de configuração padrão (Pode ser incluído também na pasta ~/.erlangms do usuário)
 -define(CONF_FILE_PATH, filename:join(?CONF_PATH, "emsbus.conf")).
 
-% Caminho inicial para os arquivos estáticos
--define(STATIC_FILE_PATH, filename:join(?PRIV_PATH, "www")).
+% Caminho inicial para a pasta www
+-define(WWW_PATH, ems_util:get_www_path()).
 
 % Sonda a lista static_file_path para localizar contratos de serviços
 -define(STATIC_FILE_PATH_PROBING, false).
@@ -411,7 +418,9 @@
 				 ldap_password_admin :: string(),
 				 ldap_password_admin_crypto :: string(),
 				 ldap_base_search :: string(),
- 				 custom_variables :: list(binary())						%% Lista de variáveis genéricas
+ 				 custom_variables :: list(binary()),						%% Lista de variáveis genéricas
+ 				 priv_path :: string(),
+ 				 www_path :: string()
 
 		 }). 	
 

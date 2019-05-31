@@ -134,7 +134,7 @@ get_config_data() ->
 								{ok, [[ConfigFileCommandLine]]} -> ConfigFileCommandLine;
 								_ -> "emsbus.conf"
 							end,
-		Filename = select_config_file(ConfigFile, ?CONF_FILE_PATH),
+		Filename = select_config_file(ConfigFile, ?CONF_FILE_PATH_DEFAULT),
 		case file:read_file(Filename) of 
 			{ok, Arq} -> {ok, Arq, Filename};
 			_ -> {error, enofile_config}
@@ -235,19 +235,25 @@ parse_cat_path_search(CatPathSearch, StaticFilePath, StaticFilePathProbing) ->
 		false ->
 			CatPathSearch2 = CatPathSearch
 	end,
-	% Processar as entradas da lista. Pode ser um .zip
+
+	% Processar as entradas da lista. Pode ser um arquivo .zip
 	CatPathSearch3 = parse_cat_path_search_(CatPathSearch2, []),
-	% Adiciona o catálogo do barramento
-	[{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch3].
+
+	% Adiciona o catálogo do barramento se necessário
+	case lists:keymember(<<"ems-bus">>, 1, CatPathSearch3) orelse 
+		 lists:keymember(<<"emsbus">>, 1, CatPathSearch3) of
+			true -> CatPathSearch3;
+			false -> [{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch3]
+	end.
 
 
 -spec parse_static_file_path(map()) -> list().
 parse_static_file_path(StaticFilePathMap) ->
 	StaticFilePathList = maps:to_list(StaticFilePathMap),
-	StaticFilePathList2 = [{<<"login_path">>, list_to_binary(filename:join(?STATIC_FILE_PATH, "login"))} | StaticFilePathList],
+	StaticFilePathList2 = [{<<"login_path">>, list_to_binary(filename:join(?WWW_PATH, "login"))} | StaticFilePathList],
 	StaticFilePathList3 = case lists:member(<<"www_path">>, StaticFilePathList2) of
 						     true -> StaticFilePathList2;
-							 false -> [{<<"www_path">>, list_to_binary(?STATIC_FILE_PATH)} | StaticFilePathList2]
+							 false -> [{<<"www_path">>, list_to_binary(?WWW_PATH)} | StaticFilePathList2]
 						  end,
 	[{K, ems_util:remove_ult_backslash_url(binary_to_list(V))} || {K, V} <- StaticFilePathList3].
 	
@@ -292,21 +298,10 @@ parse_http_headers_([{Key, _} = Item|T], ShowDebugResponseHeaders, Hostname, Res
 			erlang:error(einvalid_http_response_header)
 	end.
 	
-parse_jar_path(<<>>) -> <<>>;
-parse_jar_path(undefined) -> <<>>;
-parse_jar_path(Path) ->
-	Path2 = ems_util:replace_all_vars_and_custom_variables(Path, [{<<"PRIV_PATH">>, ?PRIV_PATH}]),
-	case Path2 =:= <<>> of
-		true -> <<>>;
-		false ->
-			case filelib:is_dir(Path2) of
-				true -> 
-					Path2;
-				false -> 
-					ems_logger:format_warn("ems_config detect inexistent java_jar_path \033[01;34m\"~s\"\033[0m.", [Path2]),
-					Path2
-			end
-	end.
+parse_jar_path("") -> "";
+parse_jar_path(<<>>) -> "";
+parse_jar_path(undefined) -> "";
+parse_jar_path(Path) ->	ems_util:replace_all_vars_and_custom_variables(Path, [{<<"PRIV_PATH">>, ?PRIV_PATH}]).
 
 parse_java_home(<<>>) -> ems_util:get_java_home();
 parse_java_home(undefined) -> ems_util:get_java_home();
@@ -341,6 +336,17 @@ get_p(ParamName, Map, DefaultValue) ->
 parse_config(Json, Filename) ->
 	try
 		{ok, InetHostname} = inet:gethostname(),
+		
+		put(parse_step, priv_path),
+		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
+		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
+		
+		ems_db:start(PrivPath),  %% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
+		
+		put(parse_step, www_path),
+		WWWPath0 = binary_to_list(maps:get(<<"www_path">>, Json, filename:join(PrivPath, "www"))),		
+		WWWPath = ems_util:parse_file_name_path(WWWPath0, [], undefined),
+		ems_db:set_param(www_path, WWWPath),
 		
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),
@@ -596,13 +602,50 @@ parse_config(Json, Filename) ->
 								_ -> ems_util:criptografia_sha1(LdapPasswordAdmin0)
 							end,
 
-		put(parse_step, config_0),
+		put(parse_step, client_path_search),
+		ClientPathSearch = select_config_file(<<"clients.json">>, get_p(<<"client_path_search">>, Json, ?CLIENT_PATH)),
+
+		put(parse_step, user_path_search),
+		UserPathSearch = select_config_file(<<"users.json">>, get_p(<<"user_path_search">>, Json, ?USER_PATH)),
+
+		put(parse_step, dados_funcionais_path_search),
+		DadosFuncionaisPathSearch = select_config_file(<<"user_dados_funcionais.json">>, get_p(<<"user_dados_funcionais_path">>, Json, ?USER_DADOS_FUNCIONAIS_PATH)),
+
+		put(parse_step, user_perfil_path_search),
+		UserPerfilPathSearch = select_config_file(<<"user_perfil.json">>, get_p(<<"user_perfil_path_search">>, Json, ?USER_PERFIL_PATH)),
+
+		put(parse_step, user_permission_path_search),
+		UserPermissionPathSearch = select_config_file(<<"user_permission.json">>, get_p(<<"user_permission_path_search">>, Json, ?USER_PERMISSION_PATH)),
+
+		put(parse_step, user_endereco_path_search),
+		UserEnderecoPathSearch = select_config_file(<<"user_endereco.json">>, get_p(<<"user_endereco_path_search">>, Json, ?USER_ENDERECO_PATH)),
+
+		put(parse_step, user_telefone_path_search),
+		UserTelefonePathSearch = select_config_file(<<"user_telefone.json">>, get_p(<<"user_telefone_path_search">>, Json, ?USER_TELEFONE_PATH)),
+
+		put(parse_step, user_email_path_search),
+		UserEmailPathSearch = select_config_file(<<"user_email.json">>, get_p(<<"user_email_path_search">>, Json, ?USER_EMAIL_PATH)),
+
+		put(parse_step, ssl_cacertfile),
+		SslCaCertfile = get_p(<<"ssl_cacertfile">>, Json, undefined),
+
+		put(parse_step, ssl_certfile),
+		SslCertfile = get_p(<<"ssl_certfile">>, Json, undefined),
+
+		put(parse_step, ssl_keyfile),
+		SslKeyfile = get_p(<<"ssl_keyfile">>, Json, undefined),
+
+		put(parse_step, host_search),
+		HostSearch = get_p(<<"host_search">>, Json, <<>>),	
 		
-		
+		put(parse_step, node_search),
+		NodeSearch = get_p(<<"node_search">>, Json, <<>>),		
+
+		put(parse_step, new_config),
 		Conf0 = #config{ 
 				 cat_host_alias = HostAlias,
-				 cat_host_search = get_p(<<"host_search">>, Json, <<>>),							
-				 cat_node_search = get_p(<<"node_search">>, Json, <<>>),
+				 cat_host_search = HostSearch, 
+				 cat_node_search = NodeSearch,
 				 cat_path_search = CatPathSearch,
 				 static_file_path = StaticFilePath,
 				 static_file_path_map = StaticFilePathMap,
@@ -644,17 +687,17 @@ parse_config(Json, Filename) ->
 				 rest_base_url_defined = RestBaseUrlDefined,
 				 config_file = Filename,
 				 params = Json,
-				 client_path_search = select_config_file(<<"clients.json">>, get_p(<<"client_path_search">>, Json, ?CLIENT_PATH)),
-				 user_path_search = select_config_file(<<"users.json">>, get_p(<<"user_path_search">>, Json, ?USER_PATH)),
-				 user_dados_funcionais_path_search = select_config_file(<<"user_dados_funcionais.json">>, get_p(<<"user_dados_funcionais_path">>, Json, ?USER_DADOS_FUNCIONAIS_PATH)),
-				 user_perfil_path_search = select_config_file(<<"user_perfil.json">>, get_p(<<"user_perfil_path_search">>, Json, ?USER_PERFIL_PATH)),
-				 user_permission_path_search = select_config_file(<<"user_permission.json">>, get_p(<<"user_permission_path_search">>, Json, ?USER_PERMISSION_PATH)),
-				 user_endereco_path_search = select_config_file(<<"user_endereco.json">>, get_p(<<"user_endereco_path_search">>, Json, ?USER_ENDERECO_PATH)),
-				 user_telefone_path_search = select_config_file(<<"user_telefone.json">>, get_p(<<"user_telefone_path_search">>, Json, ?USER_TELEFONE_PATH)),
-				 user_email_path_search	= select_config_file(<<"user_email.json">>, get_p(<<"user_email_path_search">>, Json, ?USER_EMAIL_PATH)),
-				 ssl_cacertfile = get_p(<<"ssl_cacertfile">>, Json, undefined),
-				 ssl_certfile = get_p(<<"ssl_certfile">>, Json, undefined),
-				 ssl_keyfile = get_p(<<"ssl_keyfile">>, Json, undefined),
+				 client_path_search = ClientPathSearch,
+				 user_path_search = UserPathSearch,
+				 user_dados_funcionais_path_search = DadosFuncionaisPathSearch,
+				 user_perfil_path_search = UserPerfilPathSearch,
+				 user_permission_path_search = UserPermissionPathSearch,
+				 user_endereco_path_search = UserEnderecoPathSearch, 
+				 user_telefone_path_search = UserTelefonePathSearch, 
+				 user_email_path_search	= UserEmailPathSearch, 
+				 ssl_cacertfile = SslCaCertfile, 
+				 ssl_certfile = SslCertfile, 
+				 ssl_keyfile = SslKeyfile, 
 				 sufixo_email_institucional = SufixoEmailInstitucional,
 				 log_show_response = LogShowResponse,
 				 log_show_payload = LogShowPayload,
@@ -690,7 +733,9 @@ parse_config(Json, Filename) ->
 				 ldap_password_admin = LdapPasswordAdmin,
 				 ldap_password_admin_crypto = <<"SHA1">>,
 				 ldap_base_search = LdapBaseSearch,
-				 custom_variables = CustomVariables
+				 custom_variables = CustomVariables,
+				 www_path = WWWPath,
+				 priv_path = PrivPath
 			},
 
 		put(parse_step, datasources),
@@ -738,7 +783,7 @@ select_config_file(ConfigFile, ConfigFileDefault) ->
 							ConfigFileDefault2;
 						_ -> 
 							?DEBUG("ems_config checking if global file configuration ~p exist: No", [ConfigFileDefault2]),
-							erlang:error({error, enofile_config})
+							undefined
 					end
 			end
 	end.

@@ -55,6 +55,7 @@
 		 get_params_from_url/1,
 		 get_rowid_and_params_from_url/2,
 		 get_priv_dir/0,
+		 get_priv_dir_default/0,
 		 get_working_dir/0,
 		 get_home_dir/0,
  		 get_milliseconds/0,
@@ -69,6 +70,7 @@
          get_user_request_by_login/1,
          get_param_or_variable/3,
          get_java_home/0,
+         get_www_path/0,
          date_add_minute/2,
          date_dec_minute/2,
          date_add_second/2,
@@ -285,10 +287,18 @@ make_rowid_id([H|T]) when H == 47 -> T;
 make_rowid_id([_|T]) -> make_rowid_id(T).
 
 
--spec get_priv_dir() -> string().
-get_priv_dir() ->
+-spec get_priv_dir_default() -> string().
+get_priv_dir_default() ->
 	{ok, Path} = file:get_cwd(),
 	Path ++ "/priv".
+
+-spec get_priv_dir() -> string().
+get_priv_dir() ->
+	ems_db:get_param(priv_path, get_priv_dir_default()).
+
+get_www_path() ->
+	ems_db:get_param(www_path, filename:join(get_priv_dir_default(), "www")).
+	
 
 -spec get_working_dir() -> string().
 get_working_dir() ->
@@ -3911,18 +3921,14 @@ criptografia_blowfish_senha_usuario(Password) ->
 
 	
 criptografia_blowfish_senha_web_keygen(_, Key, _, 9, _) -> 
-	%io:format("aqui3\n"),
 	Key;
 
 criptografia_blowfish_senha_web_keygen(_, Key, _, _, []) -> 
-	%io:format("aqui2\n"),
 	Key;
 criptografia_blowfish_senha_web_keygen(Password, Key, Len, Idx, [PosChangeKey|PosChangeKeyT]) when Len >= (Idx+1) ->
-	%io:format("aqui0: Len >= (Idx+1)    ~p >= (~p)\n", [Len, Idx+1]),
 	Key2 = setnth(PosChangeKey+1, Key, lists:nth(Idx+1, Password)),
 	criptografia_blowfish_senha_web_keygen(Password, Key2, Len, Idx+1, PosChangeKeyT);
 criptografia_blowfish_senha_web_keygen(_Password, Key, _Len, _Idx, _) ->	
-	%io:format("aqui1\n"),
 	Key.
 
 
@@ -3978,24 +3984,14 @@ criptografia_blowfish(Password, Key) ->
 	Len = length(Password),
 	PadLen = BlockSize - (Len rem BlockSize),
 	Pad = lists:duplicate(PadLen, PadLen),  %Pad=[8, 8, 8, 8, 8, 8, 8, 8],
-	
-	%io:format("pad is ~p\n", [Pad]),
-	%io:format("primeira parte: ~p\n", [crypto:crypto_one_time(blowfish_ecb, Key, IV,  Password, true)]),
-	%io:format("segunda parte: ~p\n", [crypto:crypto_one_time(blowfish_ecb, Key, IV,  Pad, true)]),
-	
 	Result1 = iolist_to_binary([ crypto:crypto_one_time(blowfish_ecb, Key, IV,  Password ++ Pad, true)]),
-	%Result1 = iolist_to_binary([ crypto:crypto_one_time(blowfish_ecb, Key, IV,  Password, true), crypto:crypto_one_time(blowfish_ecb, Key, IV,  Pad, true) ]),
-	%Result1 = iolist_to_binary([ crypto:crypto_one_time(blowfish_cfb64, Key, IV,  Password, true), crypto:crypto_one_time(blowfish_cfb64, Key, IV,  Pad, true) ]),
-	%Result1 = iolist_to_binary(crypto:crypto_one_time(blowfish_ecb, Key, Pad,  Password, true)),
 	Result2 = binary_to_list(Result1),  % <<191,67,236,41,94,29,132,209,20,37,118,130,18,145,236,155>>
 	criptografia_blowfish_string(Result2, length(Password)).               
 		
 criptografia_blowfish_string(L, _LenPasswordSemPad) ->
 	Len = length(L),
-	%io:format("(Len div 3) =/= 0 ->  (~p div 3) =/= 0\n", [Len]),
 	if 
 		(Len rem 3) =/= 0 ->
-			%io:format("inclui digit\n"),
 			list_to_binary(criptografia_blowfish_string_loop(L ++ [0], 0, 0, 0, Len+1, true, 0, []));
 		true ->
 			list_to_binary(criptografia_blowfish_string_loop(L, 0, 0, 0, Len, false, 0, []))
@@ -4030,14 +4026,10 @@ criptografia_blowfish_string_loop([Code|T], 2, _LastCounter, Last, Len, Flush, I
 	CodeAscii = criptografia_blowfish_ascci_codes(LastShift bor CodeShift),
 	Last2 = 0,
 	Counter = 0,
-		%io:format("Flush andalso I == Len - 1)  : flush is ~p    ~p == ~p - 1\n", [Flush, I, Len]),
-
 	if (
 		Flush andalso I == Len - 1) ->
-			%io:format("aqui1\n"),
 			Result2 = [CodeAscii | Result];
 		true -> 
-			%io:format("aqui2\n"),
 			DigitBand = Code band 63,		% 63 =  0x3F
 			DigitCodeAscii = criptografia_blowfish_ascci_codes(DigitBand),
 			Result1 = [CodeAscii | Result],

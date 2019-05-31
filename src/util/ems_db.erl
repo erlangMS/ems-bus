@@ -8,7 +8,7 @@
 
 -module(ems_db).
 
--export([start/0]).
+-export([start/1]).
 -export([get/2, exist/2, all/1, 
 		 insert/1, insert/2, update/1, delete/2, delete/1, 
 		 match/2, 
@@ -33,17 +33,15 @@
 
 %% *********** Database schema creation ************
 
-start() ->
-	create_database([node()]),
-	ems_cache:new(ems_db_parsed_query_cache).
-	
--spec create_database(list()) -> ok.	
-create_database(Nodes) ->
+start(PrivPath) ->
 	ems_logger:format_info("ems_db initializing ErlangMS database, please wait..."),
+	Nodes = [node()],
+
+	DatabasePath = filename:join(PrivPath, "db"),
 
 	% Define a pasta de armazenamento dos databases
-	filelib:ensure_dir(?DATABASE_PATH),
-	application:set_env(mnesia, dir, ?DATABASE_PATH),
+	filelib:ensure_dir(DatabasePath),
+	application:set_env(mnesia, dir, DatabasePath),
 	
 	mnesia:create_schema(Nodes),
 	mnesia:start(),
@@ -349,6 +347,11 @@ create_database(Nodes) ->
 							auth_oauth2_access_code_table,
 							auth_oauth2_refresh_token_table
 							], 120000),
+							
+	set_param(priv_path, PrivPath),
+	set_param(database_path, DatabasePath),
+	ems_cache:new(ems_db_parsed_query_cache),
+							
 	ok.
 
 
