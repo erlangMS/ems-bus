@@ -349,12 +349,12 @@ parse_config(Json, Filename) ->
 		ems_db:set_param(www_path, WWWPath),
 		
 		put(parse_step, auth_default_scopes),
-		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scopes">>, Json, ?AUTH_DEFAULT_SCOPE)),
+		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
 		ems_db:set_param(auth_default_scopes, AuthDefaultScopesAtom),
 
 		put(parse_step, auth_password_check_between_scopes),
-		AuthPasswordCheckBetweenScopes = ems_util:parse_bool(maps:get(<<"auth_password_check_between_scopes">>, Json, true)),
-		ems_db:set_param(auth_password_check_between_scopes, AuthPasswordCheckBetweenScopes),
+		AuthPasswordCheckBetweenScope = ems_util:parse_bool(maps:get(<<"auth_password_check_between_scope">>, Json, true)),
+		ems_db:set_param(auth_password_check_between_scopes, AuthPasswordCheckBetweenScope),
 
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),
@@ -744,8 +744,8 @@ parse_config(Json, Filename) ->
 				 custom_variables = CustomVariables,
 				 www_path = WWWPath,
 				 priv_path = PrivPath,
-				 auth_default_scopes = AuthDefaultScopesAtom,
-				 auth_password_check_between_scopes = AuthPasswordCheckBetweenScopes
+				 auth_default_scope = AuthDefaultScopesAtom,
+				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope
 			},
 
 		put(parse_step, datasources),

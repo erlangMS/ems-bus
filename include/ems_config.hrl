@@ -421,7 +421,7 @@
  				 custom_variables :: list(binary()),						%% Lista de variáveis genéricas
  				 priv_path :: string(),
  				 www_path :: string(),
- 				 auth_default_scopes :: list(atom()),
- 				 auth_password_check_between_scopes :: boolean()
+ 				 auth_default_scope :: list(atom()),
+ 				 auth_password_check_between_scope :: boolean()
 		 }). 	
 

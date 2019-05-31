@@ -303,10 +303,10 @@ get_www_path() ->
 	ems_db:get_param(www_path, filename:join(get_priv_dir_default(), "www")).
 	
 get_auth_default_scope() ->	
-	ems_db:get_param(auth_default_scopes, ?AUTH_DEFAULT_SCOPE).
+	ems_db:get_param(auth_default_scope, ?AUTH_DEFAULT_SCOPE).
 	
 get_auth_password_check_between_scopes() ->	
-	ems_db:get_param(auth_password_check_between_scopes, true).
+	ems_db:get_param(auth_password_check_between_scope, true).
 	
 
 -spec get_working_dir() -> string().
