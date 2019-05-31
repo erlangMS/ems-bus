@@ -350,11 +350,11 @@ parse_config(Json, Filename) ->
 		
 		put(parse_step, auth_default_scopes),
 		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
-		ems_db:set_param(auth_default_scopes, AuthDefaultScopesAtom),
+		ems_db:set_param(auth_default_scope, AuthDefaultScopesAtom),
 
 		put(parse_step, auth_password_check_between_scopes),
 		AuthPasswordCheckBetweenScope = ems_util:parse_bool(maps:get(<<"auth_password_check_between_scope">>, Json, true)),
-		ems_db:set_param(auth_password_check_between_scopes, AuthPasswordCheckBetweenScope),
+		ems_db:set_param(auth_password_check_between_scope, AuthPasswordCheckBetweenScope),
 
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),

@@ -73,7 +73,7 @@
          get_java_home/0,
          get_www_path/0,
          get_auth_default_scope/0,
-         get_auth_password_check_between_scopes/0,
+         get_auth_password_check_between_scope/0,
          date_add_minute/2,
          date_dec_minute/2,
          date_add_second/2,
@@ -305,7 +305,7 @@ get_www_path() ->
 get_auth_default_scope() ->	
 	ems_db:get_param(auth_default_scope, ?AUTH_DEFAULT_SCOPE).
 	
-get_auth_password_check_between_scopes() ->	
+get_auth_password_check_between_scope() ->	
 	ems_db:get_param(auth_password_check_between_scope, true).
 	
 
