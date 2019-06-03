@@ -422,6 +422,7 @@
  				 priv_path :: string(),
  				 www_path :: string(),
  				 auth_default_scope :: list(atom()),
- 				 auth_password_check_between_scope :: boolean()
+ 				 auth_password_check_between_scope :: boolean(),
+ 				 crypto_blowfish_module_path :: string()
 		 }). 	
 

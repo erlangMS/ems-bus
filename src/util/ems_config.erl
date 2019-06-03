@@ -341,7 +341,24 @@ parse_config(Json, Filename) ->
 		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
 		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
 		
-		ems_db:start(PrivPath),  %% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
+		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
+		ems_db:start(PrivPath),  
+		
+		% Instala o módulo de criptografia blowfish se necessário
+		BlowfishCryptoModPath = ems_util:parse_file_name_path(binary_to_list(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>))),		
+		case BlowfishCryptoModPath =/= "" of
+			true ->
+				BlowfishCryptoModFileName = filename:basename(BlowfishCryptoModPath),
+				BlowfishCryptoModuleEBin = filename:join(filename:join(ems_util:get_working_dir(), "ebin"), BlowfishCryptoModFileName),
+				case file:copy(BlowfishCryptoModPath, BlowfishCryptoModuleEBin) of
+					{ok, _BytesCopied} ->
+						ems_logger:format_info("ems_config initialize the blowfish encryption module.");
+					{error, ReasonBlowfish} ->
+						ems_logger:warn_info("ems_config failed to initialize blowfish encryption module. Reason ~p.", [ReasonBlowfish])
+				end;
+			false -> ok
+		end,
+
 		
 		put(parse_step, www_path),
 		WWWPath0 = binary_to_list(maps:get(<<"www_path">>, Json, filename:join(PrivPath, "www"))),		
@@ -745,7 +762,8 @@ parse_config(Json, Filename) ->
 				 www_path = WWWPath,
 				 priv_path = PrivPath,
 				 auth_default_scope = AuthDefaultScopesAtom,
-				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope
+				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
+				 crypto_blowfish_module_path = BlowfishCryptoModPath
 			},
 
 		put(parse_step, datasources),

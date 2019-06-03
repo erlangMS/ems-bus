@@ -48,6 +48,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mauth_allow_user_inative_credentials\033[0m: \033[01;34m~p\033[0m.", [Conf#config.auth_allow_user_inative_credentials]),
 			ems_logger:info("  \033[0;32mauth_default_scope\033[0m: \033[01;34m~p\033[0m.", [Conf#config.auth_default_scope]),
 			ems_logger:info("  \033[0;32mauth_password_check_between_scope\033[0m: \033[01;34m~p\033[0m.", [Conf#config.auth_password_check_between_scope]),
+			ems_logger:info("  \033[0;32mcrypto_blowfish_module_path\033[0m: \033[01;34m~p\033[0m.", [Conf#config.crypto_blowfish_module_path]),
 			ems_logger:info("  \033[0;32mrestricted_services_owner\033[0m: \033[01;34m~p\033[0m.", [Conf#config.cat_restricted_services_owner]),
 			ems_logger:info("  \033[0;32mrestricted_services_admin\033[0m: \033[01;34m~p\033[0m.", [Conf#config.cat_restricted_services_admin]),
 			ems_logger:info("  \033[0;32moauth2_refresh_token\033[0m: \033[01;34m~p\033[0m.", [Conf#config.oauth2_refresh_token]),

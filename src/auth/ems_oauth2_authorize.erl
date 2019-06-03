@@ -96,9 +96,9 @@ execute(Request = #request{type = Type,
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
 					
-					% Persiste os tokens somente quando um user e cliente foi informado
+					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
-						true -> persist_token_sgbd(Service, User, Client, AccessToken, Scope);
+						true -> persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
 										
@@ -391,18 +391,19 @@ issue_code({ok, {_, Auth}}) ->
 	end;
 issue_code(_) -> {error, access_denied, eparse_issue_code_exception}.
 
-persist_token_sgbd(#service{properties = Props}, #user{ id = IdUsuario, codigo = IdPessoa }, #client{name = ClientName}, AccessToken, _Scope) ->
+persist_token_sgbd(#service{properties = Props}, #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, #client{name = ClientNameBin}, AccessToken, _Scope, UserAgentAtom, UserAgentVersionBin) ->
 	SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
-	case SqlPersist =/= "" of
+	case SqlPersist =/= "" andalso CtrlSourceType =/= user_fs of
 		true ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 			{ok, Ds2} = ems_odbc_pool:get_connection(Ds),
 			Token = binary_to_list(AccessToken),
-			ParamsSql = [{{sql_varchar, 32}, [binary_to_list(ClientName)]},		% Client name
+			ParamsSql = [{{sql_varchar, 32}, [binary_to_list(ClientNameBin)]},	% Client name
 						  {sql_integer, [IdPessoa]},
 						  {sql_integer, [IdUsuario]},
-						  {{sql_varchar, 32}, [Token]},		% Token
-						  {{sql_varchar, 32}, [Token]}],	% Device Info 
+						  {{sql_varchar, 32}, [Token]},							% Token
+						  {{sql_varchar, 32}, [Token]},							% Device ID 
+						  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
 			ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql);
 		false -> ok
 	end,

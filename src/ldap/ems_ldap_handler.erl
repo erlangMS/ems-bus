@@ -516,8 +516,8 @@ handle_bind_request(Name,
 						  Ip, Port, TimestampBin, _MessageID) ->
 	NameSize = byte_size(Name),
 	PasswordSize = byte_size(Password),
-	case (Name =:= <<>>) orelse (NameSize < 4) orelse (NameSize > 100) orelse 
-		 (Password =:= <<>>) orelse (PasswordSize < 4) orelse (PasswordSize > 100) of
+	case (Name =:= <<>>) orelse (NameSize < 2) orelse (NameSize > 100) orelse 
+		 (Password =:= <<>>) orelse (PasswordSize < 1) orelse (PasswordSize > 256) of
 		true ->
 			ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~p.", [Name, Ip]),
 			ems_user:add_history(#user{login = Name},  
@@ -543,10 +543,10 @@ handle_bind_request(Name,
 							BindResponse = make_bind_response(success, Name);
 						_ ->
 						  case do_authenticate_admin_with_list_users(AdminLogin, Password, State, Ip, Port, TimestampBin) of
-							  {ok, IsAdmin} -> 
+							  {ok, #user{admin = IsAdmin, ctrl_source_type = Table}} -> 
 								 BindReqHash = erlang:phash2([Ip, Port]),
 								 put(BindReqHash, {IsAdmin, AdminLogin}),
-								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~p success from ~p.", [atom_to_list(UidOrCn), Name, Ip]),
+								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~p on table ~p success from ~p.", [atom_to_list(UidOrCn), Name, Table, Ip]),
 								 BindResponse = make_bind_response(success, Name);
 							  _-> 
 								 ems_logger:error("ems_ldap_handler handle_bind_request bind_~s ~p invalid credential from ~p.", [atom_to_list(UidOrCn), Name, Ip]),
@@ -777,7 +777,7 @@ do_find_by_filter(Filter,
 % Autentica o admin a partir da base de usuários de users com flag admin = true	
 do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, Ip, Port, TimestampBin) ->
 	case ems_user:find_by_login_and_password(UserLogin, UserPassword, #client{name = <<"ldap">>, scope = ?CLIENT_DEFAULT_SCOPE}) of
-		{ok, User = #user{active = Active, admin = Admin}} -> 
+		{ok, User = #user{active = Active}} -> 
 			case Active orelse AuthAllowUserInativeCredentials of
 				true -> 
 					ems_user:add_history(User, 
@@ -789,7 +789,7 @@ do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow
 												  host = Ip,
 												  protocol = ldap,
 												  port = Port}),
-					{ok, Admin};
+					{ok, User};
 				false -> 
 					ems_user:add_history(User, 
 										 #service{}, 

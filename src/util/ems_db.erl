@@ -34,7 +34,7 @@
 %% *********** Database schema creation ************
 
 start(PrivPath) ->
-	ems_logger:format_info("ems_db initializing ErlangMS database, please wait..."),
+	ems_logger:format_info("ems_db initialize ErlangMS database storage."),
 	Nodes = [node()],
 
 	DatabasePath = filename:join(PrivPath, "db"),

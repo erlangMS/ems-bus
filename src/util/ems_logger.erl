@@ -474,6 +474,7 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 				% Como o arquivo não existe, apenas cria novo arquivo de log
 				State2 = create_new_logfile(State)
 		end,
+		ems_util:flush_messages(),
 		erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
 		State2
 	catch
