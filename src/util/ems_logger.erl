@@ -543,16 +543,12 @@ write_msg(Tipo, Msg, State = #state{log_level = Level,
 		true ->
 			case Tipo of
 				info  -> 
-					ems_db:inc_counter(ems_logger_write_info),
 					Msg1 = iolist_to_binary([?INFO_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, Msg, <<"\n">>]);
 				error -> 
-					ems_db:inc_counter(ems_logger_write_error),
 					Msg1 = iolist_to_binary([?ERROR_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Msg, ?WHITE_BRK_COLOR]);
 				warn  -> 
-					ems_db:inc_counter(ems_logger_write_warn),
 					Msg1 = iolist_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Msg, ?WHITE_BRK_COLOR]);
 				debug -> 
-					ems_db:inc_counter(ems_logger_write_debug),
 					Msg1 = iolist_to_binary([?DEBUG_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Msg, ?WHITE_BRK_COLOR])
 			end,
 			case (Level == error andalso Tipo /= error) andalso (Tipo /= debug) of
@@ -622,7 +618,6 @@ write_msg(Tipo, Msg, Params, State) ->
 	
 sync_log_buffer_screen(State = #state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined}) -> State;
 sync_log_buffer_screen(State) ->
-	ems_db:inc_counter(ems_logger_sync_log_buffer_screen),
 	MsgList = lists:reverse(State#state.log_log_buffer_screen),
 	sync_log_buffer_screen_(MsgList),
 	State#state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined}.
@@ -668,7 +663,6 @@ sync_log_buffer(State = #state{log_buffer = Buffer,
 		Msg = lists:reverse(Buffer),
 		case file:write(State2#state.log_file_handle, Msg) of
 			ok -> 
-				ems_db:inc_counter(ems_logger_sync_log_buffer),
 				ok;
 			{error, enospc} -> 
 				ems_db:inc_counter(ems_logger_sync_log_buffer_enospc),
@@ -929,7 +923,6 @@ do_log_request(Request = #request{rid = RID,
 							end,
 				NewState;
 			false -> 
-				ems_db:inc_counter(ems_logger_write_dup),
 				State
 		end
 	catch 
