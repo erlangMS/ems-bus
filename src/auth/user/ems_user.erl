@@ -287,9 +287,16 @@ find_by_login_and_password(Login, Password, Client)  ->
 			PasswordBinLowerCryptoMD5 = ems_util:criptografia_md5(PasswordStrLower),
 			PasswordBinUpperCryptoMD5 = ems_util:criptografia_md5(PasswordStrUpper),
 
-			PasswordBinCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStr),
-			PasswordBinLowerCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStrLower),
-			PasswordBinUpperCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStrUpper),
+			case ems_db:get_param(use_blowfish_crypto) of
+				true ->
+					PasswordBinCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStr),
+					PasswordBinLowerCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStrLower),
+					PasswordBinUpperCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStrUpper);
+				false ->
+					PasswordBinCryptoBLOWFISH = undefined,
+					PasswordBinLowerCryptoBLOWFISH = undefined,
+					PasswordBinUpperCryptoBLOWFISH = undefined
+			end,
 
 			case Client of
 				undefined -> 

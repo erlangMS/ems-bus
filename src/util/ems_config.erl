@@ -346,19 +346,23 @@ parse_config(Json, Filename) ->
 		
 		% Instala o módulo de criptografia blowfish se necessário
 		BlowfishCryptoModPath = ems_util:parse_file_name_path(binary_to_list(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>))),		
-		case BlowfishCryptoModPath =/= "" of
+		UseBlowfish = BlowfishCryptoModPath =/= "",
+		case UseBlowfish of
 			true ->
 				BlowfishCryptoModFileName = filename:basename(BlowfishCryptoModPath),
 				BlowfishCryptoModuleEBin = filename:join(filename:join(ems_util:get_working_dir(), "ebin"), BlowfishCryptoModFileName),
 				case file:copy(BlowfishCryptoModPath, BlowfishCryptoModuleEBin) of
 					{ok, _BytesCopied} ->
+						ems_db:set_param(use_blowfish_crypto, true),
 						ems_logger:format_info("ems_config initialize the blowfish encryption module.");
 					{error, ReasonBlowfish} ->
+						ems_db:set_param(use_blowfish_crypto, false),
 						ems_logger:warn_info("ems_config failed to initialize blowfish encryption module. Reason ~p.", [ReasonBlowfish])
 				end;
-			false -> ok
+			false -> 
+				ems_db:set_param(use_blowfish_crypto, false),
+				ok
 		end,
-
 		
 		put(parse_step, www_path),
 		WWWPath0 = binary_to_list(maps:get(<<"www_path">>, Json, filename:join(PrivPath, "www"))),		

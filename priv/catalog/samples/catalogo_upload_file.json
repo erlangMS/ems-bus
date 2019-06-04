@@ -6,7 +6,6 @@
 	"service" : "ems_upload_file_service:execute",
 	"url": "/samples/upload",
 	"type": "POST",
-	"enable" : false,
 	"lang" : "erlang",
 	"http_max_content_length" : 104857600
 }

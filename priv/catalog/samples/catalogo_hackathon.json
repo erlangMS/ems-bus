@@ -14,7 +14,6 @@
 		},
 		"lang" : "erlang",
 		"authorization" : "public",
-		"enable" : false,
 		"querystring": [
 				{
 					"name": "filter",
@@ -57,7 +56,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/pessoa/:id",
 		"type": "GET",
-		"enable" : false,
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
 			"table_name" : "BDPessoa.dbo.TB_Pessoa",
@@ -83,7 +81,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/cursos",
 		"type": "GET",
-		"enable" : false,
 		"datasource" : {
 			"type" : "csvfile",
 			"driver" : "sqlite3",
@@ -135,7 +132,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/cursos/:id",
 		"type": "GET",
-		"enable" : false,
 		"datasource" : {
 			"type" : "csvfile",
 			"driver" : "sqlite3",
@@ -164,7 +160,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/ofertas",
 		"type": "GET",
-		"enable" : false,
 		"datasource" : {
 			"type" : "csvfile",
 			"driver" : "sqlite3",
@@ -215,7 +210,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/campus",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -266,7 +260,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/campus/:id",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -292,7 +285,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/local",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -342,7 +334,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/local/:id",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -368,7 +359,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/area_tematica",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -418,7 +408,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/area_tematica/:id",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -444,7 +433,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/mencao",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -494,7 +482,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/mencao/:id",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -520,7 +507,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/forma_ingresso",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -570,7 +556,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/forma_ingresso/:id",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -596,7 +581,6 @@
 		"service" : "ems_api_query_service:find",
 		"url": "/samples/hackathon/centro_custo",
 		"type": "GET",
-		"enable" : false,
 		"async": "false",
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
@@ -646,7 +630,6 @@
 		"service" : "ems_api_query_service:find_by_id",
 		"url": "/samples/hackathon/centro_custo/:id",
 		"type": "GET",
-		"enable" : false,
 		"datasource" : {
 			"extends" : "ds_ems_user_loader",
 			"table_name" : "BDTabelaApoio.dbo.TB_OrgaoInterno",

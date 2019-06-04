@@ -1,20 +1,5 @@
 [
 	{
-		"name": "/samples/glassfish/log/tail",
-		"comment": "Show log of jboss",
-		"owner": "samples",
-		"version": "1.0.0",
-		"service" : "ems_cmd_service:execute",
-		"url": "/samples/glassfish/log/tail",
-		"script" : [ "tail -300 {{GF_LOG}}" ],
-		"content_type" : "text/plain",
-		"type": "GET",
-		"enable" : true,
-		"result_cache" : 0,
-		"lang" : "erlang"
-	},
-
-	{
 		"name": "/samples/logger/cat/error",
 		"comment": "Show log of jboss",
 		"owner": "samples",
@@ -24,21 +9,21 @@
 		"script" : [ "find {{PRIV_PATH}}/log -type f -mtime -1 -name '*.log' | xargs sed '/Payload/, /Response/ d' | sed '/INFO/, /Status/ d'" ],
 		"content_type" : "text/plain",
 		"type": "GET",
-		"enable" : false,
+		"authorization": "basic",
 		"lang" : "erlang"
 	},
 	
 	{
-		"name": "/samples/jboss/log/tail",
+		"name": "/samples/jboss/tail",
 		"comment": "Show log of jboss",
 		"owner": "samples",
 		"version": "1.0.0",
 		"service" : "ems_cmd_service:execute",
-		"url": "/samples/jboss/log/tail",
+		"url": "/samples/jboss/tail",
 		"script" : [ "tail {{WILDFLY_PATH}}/standalone/log/server.log" ],
 		"content_type" : "text/plain",
 		"type": "GET",
-		"enable" : false,
+		"authorization": "basic",
 		"lang" : "erlang"
 	},
 
@@ -52,7 +37,7 @@
 		"url": "/samples/jboss/restart",
 		"script" : [ "{{PRIV_PATH}}/home/agilar/desenvolvimento/erlangms/ems-bus/priv/scripts/restart_apache.sh && echo true || echo false" ],
 		"type": "GET",
-		"enable" : false,
+		"authorization": "basic",
 		"lang" : "erlang"
 	},
 
@@ -66,7 +51,7 @@
 		"script" : [ "systemctl" ],
 		"content_type" : "text/plain",
 		"type": "GET",
-		"enable" : false,
+		"authorization": "basic",
 		"lang" : "erlang"
 	}
 ]

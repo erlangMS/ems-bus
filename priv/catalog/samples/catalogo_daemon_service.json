@@ -47,7 +47,6 @@
 		"hotdeploy" : true,
 		"type": "KERNEL",
 		"enable" : false,
-		"enable" : false,
 		"timeout" : 15000,
 		"start_timeout" : 10000,
 		"lang" : "erlang",
@@ -63,7 +62,6 @@
 		"service" : "ems_daemon_service:restart_daemon",
 		"url": "/samples/unb_servicos/restart",
 		"type": "POST",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -76,7 +74,6 @@
 		"service" : "ems_daemon_service:start_daemon",
 		"url": "/samples/unb_servicos/start",
 		"type": "POST",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -89,7 +86,6 @@
 		"service" : "ems_daemon_service:stop_daemon",
 		"url": "/samples/unb_servicos/stop",
 		"type": "POST",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -102,7 +98,6 @@
 		"service" : "ems_daemon_service:kill_daemon",
 		"url": "/samples/unb_servicos/kill",
 		"type": "POST",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -115,7 +110,6 @@
 		"service" : "ems_daemon_service:watchdog_daemon",
 		"url": "/samples/unb_servicos/watchdog",
 		"type": "POST",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -131,7 +125,6 @@
 		"content_type":"text/plain",
 		"result_cache" : 0,
 		"type": "GET",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -147,7 +140,6 @@
 		"async": "false",
 		"result_cache" : 0,
 		"type": "GET",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -163,7 +155,6 @@
 		"async": "false",
 		"result_cache" : 0,
 		"type": "GET",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -179,7 +170,6 @@
 		"async": "false",
 		"result_cache" : 0,
 		"type": "GET",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	},
@@ -195,7 +185,6 @@
 		"content_type" : "text/plain",
 		"result_cache" : 0,
 		"type": "GET",
-		"enable" : false,
 		"lang" : "erlang",
 		"restricted" : true
 	}
