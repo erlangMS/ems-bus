@@ -345,9 +345,11 @@ make_result_entry_item(#user{id = UsuId,
 							 type = UsuType, 
 							 subtype = UsuSubType,
 							 type_email = UsuTypeEmail, 
+							 ctrl_source_type = CtrlSourceType,
 							 ctrl_insert = UsuCtrlInsert, 
 							 ctrl_update = UsuCtrlUpdate,
 							 ctrl_last_login = UsuCtrlLastLogin,
+							 ctrl_last_login_scope = UsuCtrlLastLoginScope,
 							 ctrl_login_count = UsuCtrlLoginCount,
 							 active = Active,
 							 endereco = Endereco,
@@ -381,6 +383,8 @@ make_result_entry_item(#user{id = UsuId,
 	UsuCtrlUpdate2 = format_user_field(UsuCtrlUpdate),
 	UsuCtrlLastLogin2 = format_user_field(UsuCtrlLastLogin),
 	UsuCtrlLoginCount2 = format_user_field(UsuCtrlLoginCount),
+	UsuCtrlLastLoginScope2 = format_user_field(UsuCtrlLastLoginScope),
+	CtrlSourceType2 = format_user_field(CtrlSourceType),
 	Active2 = format_user_field(Active),
 	Endereco2 = format_user_field(Endereco),
 	ComplementoEndereco2 = format_user_field(ComplementoEndereco),
@@ -463,9 +467,11 @@ make_result_entry_item(#user{id = UsuId,
 					#'PartialAttribute'{type = <<"type">>, vals = [UsuType2]},
 					#'PartialAttribute'{type = <<"subtype">>, vals = [UsuSubType2]},
 					#'PartialAttribute'{type = <<"type_email">>, vals = [UsuTypeEmail2]},
+					#'PartialAttribute'{type = <<"ctrl_source_type">>, vals = [CtrlSourceType2]},
 					#'PartialAttribute'{type = <<"ctrl_insert">>, vals = [UsuCtrlInsert2]},
 					#'PartialAttribute'{type = <<"ctrl_update">>, vals = [UsuCtrlUpdate2]},
 					#'PartialAttribute'{type = <<"ctrl_last_login">>, vals = [UsuCtrlLastLogin2]},
+					#'PartialAttribute'{type = <<"ctrl_last_login_scope">>, vals = [UsuCtrlLastLoginScope2]},
 					#'PartialAttribute'{type = <<"ctrl_login_count">>, vals = [UsuCtrlLoginCount2]},
 					#'PartialAttribute'{type = <<"supportedCapabilities">>, vals = [<<"yes">>]},
 					#'PartialAttribute'{type = <<"supportedControl">>, vals = [<<"no">>]},
@@ -776,7 +782,7 @@ do_find_by_filter(Filter,
 
 % Autentica o admin a partir da base de usuários de users com flag admin = true	
 do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, Ip, Port, TimestampBin) ->
-	case ems_user:find_by_login_and_password(UserLogin, UserPassword, #client{name = <<"ldap">>, scope = ?CLIENT_DEFAULT_SCOPE}) of
+	case ems_user:find_by_login_and_password(UserLogin, UserPassword, #client{id = 0, name = <<"ldap">>, scope = ?CLIENT_DEFAULT_SCOPE}) of
 		{ok, User = #user{active = Active}} -> 
 			case Active orelse AuthAllowUserInativeCredentials of
 				true -> 
@@ -869,7 +875,8 @@ format_user_field([]) -> <<"">>;
 format_user_field(Value) when is_integer(Value) -> integer_to_binary(Value);
 format_user_field(Value) when is_boolean(Value) -> ems_util:boolean_to_binary(Value);
 format_user_field(Value) when is_list(Value) -> list_to_binary(Value);
-format_user_field(Value) when is_binary(Value) -> Value.
+format_user_field(Value) when is_binary(Value) -> Value;
+format_user_field(Value) when is_atom(Value) -> atom_to_binary(Value, utf8).
 	
 
 -spec get_bind_user(binary(), non_neg_integer(), binary()) -> boolean().
