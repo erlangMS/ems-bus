@@ -1154,6 +1154,7 @@ parse_file_name_path(Path) ->
 -spec parse_file_name_path(string() | binary(), list(tuple()) | undefined, binary() | undefined) -> string().
 parse_file_name_path(undefined, _, _) -> <<>>;
 parse_file_name_path(<<>>, _, _) -> <<>>;
+parse_file_name_path("", _, _) -> <<>>;
 parse_file_name_path(Path, StaticFilePathList, RootPath) when is_binary(Path) ->
 	parse_file_name_path(binary_to_list(Path), StaticFilePathList, RootPath);
 parse_file_name_path(Path, StaticFilePathList, RootPath) ->

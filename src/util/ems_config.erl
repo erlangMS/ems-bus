@@ -250,12 +250,19 @@ parse_cat_path_search(CatPathSearch, StaticFilePath, StaticFilePathProbing) ->
 -spec parse_static_file_path(map()) -> list().
 parse_static_file_path(StaticFilePathMap) ->
 	StaticFilePathList = maps:to_list(StaticFilePathMap),
-	StaticFilePathList2 = [{<<"login_path">>, list_to_binary(filename:join(?WWW_PATH, "login"))} | StaticFilePathList],
-	StaticFilePathList3 = case lists:member(<<"www_path">>, StaticFilePathList2) of
-						     true -> StaticFilePathList2;
-							 false -> [{<<"www_path">>, list_to_binary(?WWW_PATH)} | StaticFilePathList2]
+	StaticFilePathList2 = case lists:keymember(<<"www_path">>, 1, StaticFilePathList) of
+						     true -> 
+								{_, WWWPathBin} = lists:keyfind(<<"www_path">>, 1, StaticFilePathList),
+								WWWPathStr = binary_to_list(WWWPathBin),
+								StaticFilePathList;
+							 false -> 
+								WWWPathStr = filename:join(ems_db:get_param(priv_path), "www"),
+								WWWPathBin = list_to_binary(WWWPathStr),
+								[{<<"www_path">>, WWWPathBin} | StaticFilePathList]
 						  end,
-	[{K, ems_util:remove_ult_backslash_url(binary_to_list(V))} || {K, V} <- StaticFilePathList3].
+	ems_db:set_param(www_path, WWWPathStr),
+	StaticFilePathList3 = [{<<"login_path">>, list_to_binary(filename:join(WWWPathStr, "login"))} | StaticFilePathList2],
+	[{K, ems_util:parse_file_name_path(V)} || {K, V} <- StaticFilePathList3].
 	
 
 parse_datasources_([], _, _, Result) -> maps:from_list(Result);
@@ -345,8 +352,9 @@ parse_config(Json, Filename) ->
 		ems_db:start(PrivPath),  
 		
 		% Instala o módulo de criptografia blowfish se necessário
+		put(parse_step, blowfish),
 		BlowfishCryptoModPath = ems_util:parse_file_name_path(binary_to_list(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>))),		
-		UseBlowfish = BlowfishCryptoModPath =/= "",
+		UseBlowfish = BlowfishCryptoModPath =/= <<>>,
 		case UseBlowfish of
 			true ->
 				BlowfishCryptoModFileName = filename:basename(BlowfishCryptoModPath),
@@ -364,11 +372,13 @@ parse_config(Json, Filename) ->
 				ok
 		end,
 		
-		put(parse_step, www_path),
-		WWWPath0 = binary_to_list(maps:get(<<"www_path">>, Json, filename:join(PrivPath, "www"))),		
-		WWWPath = ems_util:parse_file_name_path(WWWPath0, [], undefined),
-		ems_db:set_param(www_path, WWWPath),
-		
+		put(parse_step, static_file_path_probing),
+		StaticFilePathProbing = ems_util:parse_bool(get_p(<<"static_file_path_probing">>, Json, ?STATIC_FILE_PATH_PROBING)),
+
+		put(parse_step, static_file_path),
+		StaticFilePath = parse_static_file_path(get_p(<<"static_file_path">>, Json, #{})),
+		StaticFilePathMap = maps:from_list(StaticFilePath),
+
 		put(parse_step, auth_default_scopes),
 		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
 		ems_db:set_param(auth_default_scope, AuthDefaultScopesAtom),
@@ -423,13 +433,6 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, rest_default_querystring),
 		{Querystring, _QtdQuerystringRequired} = ems_util:parse_querystring_def(get_p(<<"rest_default_querystring">>, Json, []), []),
-
-		put(parse_step, static_file_path_probing),
-		StaticFilePathProbing = ems_util:parse_bool(get_p(<<"static_file_path_probing">>, Json, ?STATIC_FILE_PATH_PROBING)),
-
-		put(parse_step, static_file_path),
-		StaticFilePath = parse_static_file_path(get_p(<<"static_file_path">>, Json, #{})),
-		StaticFilePathMap = maps:from_list(StaticFilePath),
 
 		put(parse_step, catalog_path),
 		CatPathSearch = parse_cat_path_search(maps:to_list(get_p(<<"catalog_path">>, Json, #{})), StaticFilePath, StaticFilePathProbing),
@@ -669,6 +672,8 @@ parse_config(Json, Filename) ->
 		
 		put(parse_step, node_search),
 		NodeSearch = get_p(<<"node_search">>, Json, <<>>),		
+
+		WWWPath = ems_db:get_param(www_path),
 
 		put(parse_step, new_config),
 		Conf0 = #config{ 
