@@ -347,13 +347,14 @@ parse_config(Json, Filename) ->
 		put(parse_step, priv_path),
 		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
 		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
+		ems_logger:format_info("ems_config initialize priv_path \033[01;34m\"~s\"\033[0m.", [PrivPath]),
 		
 		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
 		ems_db:start(PrivPath),  
 		
 		% Instala o módulo de criptografia blowfish se necessário
 		put(parse_step, blowfish),
-		BlowfishCryptoModPath = ems_util:parse_file_name_path(binary_to_list(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>))),		
+		BlowfishCryptoModPath = ems_util:parse_file_name_path(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>)),		
 		UseBlowfish = BlowfishCryptoModPath =/= <<>>,
 		case UseBlowfish of
 			true ->

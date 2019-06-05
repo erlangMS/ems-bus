@@ -2845,7 +2845,7 @@ load_from_file_req(Request = #request{url = Url,
 														 path = Path,
 														 filename = FilenameService,
 														 show_debug_response_headers = ShowDebugResponseHeaders}}) ->
-	case FilenameService == <<>> orelse FilenameService == undefined of
+	case FilenameService == undefined  orelse FilenameService == <<>> of
 		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
 		false -> Filename = FilenameService
 	end,

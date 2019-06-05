@@ -39,6 +39,12 @@ scan_files([], Result, _, _, _) -> Result;
 scan_files([{_NodeName, JsonFilename}|Rest], Result, Conf, FilterKey, FilterValue) ->
 	RootPath = filename:dirname(JsonFilename),
 	case parse_filename_path(JsonFilename, RootPath, Conf) of
+		{ok, <<>>} ->
+			scan_files(Rest, Result, Conf, FilterKey, FilterValue);
+		{ok, ""} ->
+			scan_files(Rest, Result, Conf, FilterKey, FilterValue);
+		{ok, undefined} ->
+			scan_files(Rest, Result, Conf, FilterKey, FilterValue);
 		{ok, Filename} ->
 			Result2 = scan_file(Filename, Result, RootPath, Conf, FilterKey, FilterValue),
 			scan_files(Rest, Result2, Conf, FilterKey, FilterValue);
@@ -50,6 +56,12 @@ scan_files([{_NodeName, JsonFilename}|Rest], Result, Conf, FilterKey, FilterValu
 -spec scan_file(string() | binary(), list(map()), binary(), #config{}, binary(), any()) -> list(map()) | {error, atom()}.
 scan_file(JsonFilename, Result, RootPath, Conf, FilterKey, FilterValue) ->
 	case parse_filename_path(JsonFilename, RootPath, Conf) of
+		{ok, <<>>} -> 
+			Result;
+		{ok, ""} -> 
+			Result;
+		{ok, undefined} -> 
+			Result;
 		{ok, Filename} ->
 			CurrentDir = filename:dirname(Filename),
 			case ems_util:read_file_as_map(Filename) of
@@ -74,6 +86,12 @@ scan_file_entry([Map|MapTail], CurrentDir, CurrentFilenameMap, Result, RootPath,
 	case maps:is_key(<<"file">>, Map) of
 		true -> 
 			case parse_filename_path(maps:get(<<"file">>, Map), CurrentDir, Conf) of
+				{ok, <<>>} ->
+					scan_file_entry(MapTail, CurrentDir, CurrentFilenameMap, Result, RootPath, Conf, FilterKey, FilterValue);			
+				{ok, ""} ->
+					scan_file_entry(MapTail, CurrentDir, CurrentFilenameMap, Result, RootPath, Conf, FilterKey, FilterValue);			
+				{ok, undefined} ->
+					scan_file_entry(MapTail, CurrentDir, CurrentFilenameMap, Result, RootPath, Conf, FilterKey, FilterValue);			
 				{ok, FilenameMap} ->
 					?DEBUG("ems_json_scan scan \033[01;34m~p\033[0m.", [FilenameMap]),
 					Result2 = scan_file(FilenameMap, Result, RootPath, Conf, FilterKey, FilterValue),
@@ -97,5 +115,6 @@ scan_file_entry([Map|MapTail], CurrentDir, CurrentFilenameMap, Result, RootPath,
 
 -spec parse_filename_path(string() | binary(), binary(), #config{}) -> {ok, string()} | {error, string()}.
 parse_filename_path(JsonFilename, RootPath, #config{static_file_path = StaticFilePath}) -> 
-	{ok, ems_util:parse_file_name_path(JsonFilename, StaticFilePath, RootPath)}.
+	JsonFilename2 = ems_util:parse_file_name_path(JsonFilename, StaticFilePath, RootPath),
+	{ok, JsonFilename2}.
 	

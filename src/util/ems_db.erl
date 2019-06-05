@@ -34,7 +34,6 @@
 %% *********** Database schema creation ************
 
 start(PrivPath) ->
-	ems_logger:format_info("ems_db initialize ErlangMS database storage."),
 	Nodes = [node()],
 
 	DatabasePath = filename:join(PrivPath, "db"),
@@ -42,6 +41,8 @@ start(PrivPath) ->
 	% Define a pasta de armazenamento dos databases
 	filelib:ensure_dir(DatabasePath),
 	application:set_env(mnesia, dir, DatabasePath),
+
+	ems_logger:format_info("ems_db initialize database storage \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
 	
 	mnesia:create_schema(Nodes),
 	mnesia:start(),

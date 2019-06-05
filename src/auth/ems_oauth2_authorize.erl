@@ -396,15 +396,20 @@ persist_token_sgbd(#service{properties = Props}, #user{ id = IdUsuario, codigo =
 	case SqlPersist =/= "" andalso CtrlSourceType =/= user_fs of
 		true ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-			{ok, Ds2} = ems_odbc_pool:get_connection(Ds),
-			Token = binary_to_list(AccessToken),
-			ParamsSql = [{{sql_varchar, 32}, [binary_to_list(ClientNameBin)]},	% Client name
-						  {sql_integer, [IdPessoa]},
-						  {sql_integer, [IdUsuario]},
-						  {{sql_varchar, 32}, [Token]},							% Token
-						  {{sql_varchar, 32}, [Token]},							% Device ID 
-						  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
-			ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql);
+			case ems_odbc_pool:get_connection(Ds) of
+				{ok, Ds2} ->
+					Token = binary_to_list(AccessToken),
+					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(ClientNameBin)]},	% Client name
+								  {sql_integer, [IdPessoa]},
+								  {sql_integer, [IdUsuario]},
+								  {{sql_varchar, 32}, [Token]},							% Token
+								  {{sql_varchar, 32}, [Token]},							% Device ID 
+								  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
+					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+					ems_odbc_pool:release_connection(Ds2);
+				{error, Reason} ->
+					ems_logger:error("ems_oauth2_authorize persist_token_sgbd failed. Reason: ~p.", [Reason])
+			end;
 		false -> ok
 	end,
 	ok.

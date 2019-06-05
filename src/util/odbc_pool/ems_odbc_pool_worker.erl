@@ -231,7 +231,7 @@ handle_info(Msg, State) ->
 
 terminate(Reason, State) ->
     do_disconnect(State),
-	?DEBUG("ems_odbc_pool_worker terminate. Reason: ~p.", [Reason]),   
+	?DEBUG("ems_odbc_pool_worker terminate ~p.", [Reason]),   
     ok.
  
 code_change(_OldVsn, State, _Extra) ->
@@ -311,7 +311,7 @@ do_param_query(Sql, Params, #state{datasource = Datasource = #service_datasource
 				end;
 			{selected, Fields1, Result1} -> 
 				{ok, {selected, [?UTF8_STRING(F) || F <- Fields1], Result1}, Datasource};
-			Other -> Other
+			{updated, _RowCount} = Result -> {ok, Result, Datasource}
 		end
 	catch
 		_:timeout -> 
