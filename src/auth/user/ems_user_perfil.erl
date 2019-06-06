@@ -109,21 +109,49 @@ find_by_name(Name) ->
 -spec new_from_map(map(), #config{}) -> {ok, #user_perfil{}} | {error, atom()}.
 new_from_map(Map, _Conf) ->
 	try
-		{ok, #user_perfil{id = maps:get(<<"id">>, Map, undefined),
-						  perfil_id = maps:get(<<"perfil_id">>, Map, undefined),
-						  user_id = maps:get(<<"user_id">>, Map, undefined),
-						  client_id = maps:get(<<"client_id">>, Map, undefined),
-						  name = ?UTF8_STRING(maps:get(<<"name">>, Map, <<>>)),
-						  ctrl_path = maps:get(<<"ctrl_path">>, Map, <<>>),
-						  ctrl_file = maps:get(<<"ctrl_file">>, Map, <<>>),
-						  ctrl_modified = maps:get(<<"ctrl_modified">>, Map, undefined),
-						  ctrl_hash = erlang:phash2(Map)
+	
+		put(parse_step, id),
+		Id = ems_util:parse_to_integer(maps:get(<<"id">>, Map)),
+	
+		put(parse_step, perfil_id),
+		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map, Id)),
+	
+		put(parse_step, user_id),
+		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map)),
+	
+		put(parse_step, client_id),
+		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, undefined)),
+	
+		put(parse_step, name),
+		Name = ?UTF8_STRING(maps:get(<<"name">>, Map)),
+	
+		put(parse_step, ctrl_path),
+		CtrlPath = maps:get(<<"ctrl_path">>, Map, <<>>),
+
+		put(parse_step, ctrl_file),
+		CtrlFile = maps:get(<<"ctrl_file">>, Map, <<>>),
+
+		put(parse_step, ctrl_modified),
+		CtrlModified = maps:get(<<"ctrl_modified">>, Map, undefined),
+
+		put(parse_step, ctrl_hash),
+		CtrlHash = erlang:phash2(Map),
+	
+		{ok, #user_perfil{id = Id,
+						  perfil_id = PerfilId,
+						  user_id = UserId,
+						  client_id = ClientId,
+						  name = Name,
+						  ctrl_path = CtrlPath,
+						  ctrl_file = CtrlFile,
+						  ctrl_modified = CtrlModified,
+						  ctrl_hash = CtrlHash
 			}
 		}
 	catch
 		_Exception:Reason -> 
 			ems_db:inc_counter(edata_loader_invalid_user_perfil),
-			ems_logger:warn("ems_user parse invalid user_perfil specification: ~p\n\t~p.\n", [Reason, Map]),
+			ems_logger:warn("ems_user parse invalid user_perfil specification on field ~p: ~p\n\t~p.\n", [get(parse_step), Reason, Map]),
 			{error, Reason}
 	end.
 

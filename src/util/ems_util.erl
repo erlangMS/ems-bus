@@ -145,6 +145,7 @@
 		 parse_range/4,
 		 parse_email/1,
 		 parse_ldap_name/1,
+		 parse_to_integer/1,
 		 match_ip_address/2,
  		 allow_ip_address/2,
 		 mask_ipaddress_to_tuple/1,
@@ -3977,3 +3978,11 @@ binary_to_list_def(Value, Default) ->
 	catch
 		_:_ -> Default
 	end.
+
+-spec parse_to_integer(any()) -> integer().
+parse_to_integer(undefined) -> undefined;
+parse_to_integer(V) when is_binary(V) -> binary_to_integer(V);
+parse_to_integer(V) when is_list(V) -> list_to_integer(V);
+parse_to_integer(V) when is_integer(V) -> V;
+parse_to_integer(_) -> erlang:error(einvalid_integer).
+

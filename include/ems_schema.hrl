@@ -416,22 +416,22 @@
 
 
 -record(user_perfil, {id :: non_neg_integer(), 				%%  1 - id
-						perfil_id :: non_neg_integer(), %% 1 - perfil_id				
-					  user_id :: non_neg_integer(),			%%  2 - user_id			
-					  client_id :: non_neg_integer(),		%%  3 - client_id		
-					  name :: binary(), 					%%  4 - name
-					  ctrl_path :: string(),				%%  5 - ctrl_path
-					  ctrl_file :: string(),				%%  6 - ctrl_file
-					  ctrl_insert :: binary(),				%%  7 - ctrl_insert				-> Data que foi inserido no banco mnesia
-					  ctrl_update :: binary(), 				%%  8 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-					  ctrl_modified :: binary(),			%%  9 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-					  ctrl_hash :: non_neg_integer()		%% 10 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+					  perfil_id :: non_neg_integer(), 		%%  2 - perfil_id				
+					  user_id :: non_neg_integer(),			%%  3 - user_id			
+					  client_id :: non_neg_integer(),		%%  4 - client_id		
+					  name :: binary(), 					%%  5 - name
+					  ctrl_path :: string(),				%%  6 - ctrl_path
+					  ctrl_file :: string(),				%%  7 - ctrl_file
+					  ctrl_insert :: binary(),				%%  8 - ctrl_insert				-> Data que foi inserido no banco mnesia
+					  ctrl_update :: binary(), 				%%  9 - ctrl_update				-> Data que foi atualiado no banco mnesia			
+					  ctrl_modified :: binary(),			%% 10 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+					  ctrl_hash :: non_neg_integer()		%% 11 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
 		}).
           
 -define(USER_PERFIL_SCHEMA_DESCRIPTOR, {
 			   atom_type,									%%  0 - nome da tabela	
 			   non_neg_integer_type, 						%%  1 - id  
-				 non_neg_integer_type,            %%  1 - perfil_id
+			   non_neg_integer_type,           				%%  1 - perfil_id
 			   non_neg_integer_type,						%%  2 - user_id
 			   non_neg_integer_type,						%%  3 - client_id
 			   binary_type,									%%  4 - name

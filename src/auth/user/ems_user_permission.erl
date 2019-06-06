@@ -110,31 +110,79 @@ find_by_name(Name) ->
 -spec new_from_map(map(), #config{}) -> {ok, #user_permission{}} | {error, atom()}.
 new_from_map(Map, _Conf) ->
 	try
-		{ok, #user_permission{id = binary_to_integer(maps:get(<<"id">>, Map)),
-							  user_id = maps:get(<<"user_id">>, Map),
-							  client_id = maps:get(<<"client_id">>, Map),
-							  perfil_id = maps:get(<<"perfil_id">>, Map),
-							  url = ?UTF8_STRING(maps:get(<<"url">>, Map)),
-							  name = ?UTF8_STRING(maps:get(<<"name">>, Map)),
-							  grant_get = ems_util:parse_bool(maps:get(<<"grant_get">>, Map, true)),
-							  grant_post = ems_util:parse_bool(maps:get(<<"grant_post">>, Map, false)),
-							  grant_put = ems_util:parse_bool(maps:get(<<"grant_put">>, Map, false)),
-							  grant_delete = ems_util:parse_bool(maps:get(<<"grant_delete">>, Map, false)),
-							  position = case maps:get(<<"position">>, Map, 0) of
-											undefined -> 0;
-											PositionValue -> PositionValue
-										 end,
-							  ctrl_path = maps:get(<<"ctrl_path">>, Map, <<>>),
-							  ctrl_file = maps:get(<<"ctrl_file">>, Map, <<>>),
-							  ctrl_modified = maps:get(<<"ctrl_modified">>, Map, undefined),
-							  ctrl_hash = erlang:phash2(Map),
-							  glyphicon = maps:get(<<"glyphicon">>, Map, undefined)
+		put(parse_step, id),
+		Id = ems_util:parse_to_integer(maps:get(<<"id">>, Map)),
+	
+		put(parse_step, user_id),
+		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map)),
+	
+		put(parse_step, client_id),
+		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, undefined)),
+	
+		put(parse_step, perfil_id),
+		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map)),
+	
+		put(parse_step, url),
+		Url = ?UTF8_STRING(maps:get(<<"url">>, Map)),
+	
+		put(parse_step, name),
+		Name = ?UTF8_STRING(maps:get(<<"name">>, Map)),
+	
+		put(parse_step, grant_get),
+		GrantGet = ems_util:parse_bool(maps:get(<<"grant_get">>, Map, true)),
+	
+		put(parse_step, grant_post),
+		GrantPost = ems_util:parse_bool(maps:get(<<"grant_post">>, Map, false)),
+
+		put(parse_step, grant_put),
+		GrantPut = ems_util:parse_bool(maps:get(<<"grant_put">>, Map, false)),
+		
+		put(parse_step, grant_delete),
+		GrantDelete = ems_util:parse_bool(maps:get(<<"grant_delete">>, Map, false)),
+
+		put(parse_step, position),
+		Position = case ems_util:parse_to_integer(maps:get(<<"position">>, Map, 0)) of
+						undefined -> 0;
+						PositionValue -> PositionValue
+					end,
+
+		put(parse_step, ctrl_path),
+		CtrlPath = maps:get(<<"ctrl_path">>, Map, <<>>),
+
+		put(parse_step, ctrl_file),
+		CtrlFile = maps:get(<<"ctrl_file">>, Map, <<>>),
+
+		put(parse_step, ctrl_modified),
+		CtrlModified = maps:get(<<"ctrl_modified">>, Map, undefined),
+
+		put(parse_step, glyphicon),
+		Glyphicon = maps:get(<<"glyphicon">>, Map, undefined),
+
+		put(parse_step, ctrl_hash),
+		CtrlHash = erlang:phash2(Map),
+
+		{ok, #user_permission{id = Id,
+							  user_id = UserId,
+							  client_id = ClientId, 
+							  perfil_id = PerfilId, 
+							  url = Url, 
+							  name = Name, 
+							  grant_get = GrantGet,
+							  grant_post = GrantPost,
+							  grant_put = GrantPut,
+							  grant_delete = GrantDelete,
+							  position = Position,
+							  ctrl_path = CtrlPath,
+							  ctrl_file = CtrlFile, 
+							  ctrl_modified = CtrlModified, 
+							  ctrl_hash = CtrlHash,
+							  glyphicon = Glyphicon
 			}
 		}
 	catch
 		_Exception:Reason -> 
 			ems_db:inc_counter(edata_loader_invalid_user_permission),
-			ems_logger:warn("ems_user parse invalid user_permission specification: ~p\n\t~p.\n", [Reason, Map]),
+			ems_logger:warn("ems_user parse invalid user_permission on field ~p specification: ~p\n\t~p.\n", [get(parse_step), Reason, Map]),
 			{error, Reason}
 	end.
 
