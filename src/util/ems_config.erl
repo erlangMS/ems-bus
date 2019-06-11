@@ -354,9 +354,9 @@ parse_config(Json, Filename) ->
 		ems_db:start(PrivPath),  
 		
 		% Instala o módulo de criptografia blowfish se necessário
-		put(parse_step, blowfish),
+		put(parse_step, blowfish_crypto_modpath),
 		BlowfishCryptoModPath = ems_util:parse_file_name_path(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>)),		
-		
+
 		put(parse_step, use_blowfish),
 		UseBlowfish = BlowfishCryptoModPath =/= <<>>,
 		case UseBlowfish of
@@ -368,13 +368,15 @@ parse_config(Json, Filename) ->
 				BlowfishCryptoModuleEBin = filename:join(filename:join(ems_util:get_working_dir(), "ebin"), BlowfishCryptoModFileName),
 				
 				put(parse_step, blowfish_crypto_copy),
+				
 				case file:copy(BlowfishCryptoModPath, BlowfishCryptoModuleEBin) of
 					{ok, _BytesCopied} ->
 						ems_db:set_param(use_blowfish_crypto, true),
 						ems_logger:format_info("ems_config initialize the blowfish encryption module.");
 					{error, ReasonBlowfish} ->
 						ems_db:set_param(use_blowfish_crypto, false),
-						ems_logger:warn_info("ems_config failed to initialize blowfish encryption module. Reason ~p.", [ReasonBlowfish])
+						ems_logger:format_error("ems_config failed to initialize blowfish encryption module ~p. Reason ~p.", [BlowfishCryptoModPath, ReasonBlowfish]),
+						erlang:error(einvalid_crypto_blowfish_module_path)
 				end;
 			false -> 
 				ems_db:set_param(use_blowfish_crypto, false),
@@ -794,8 +796,8 @@ parse_config(Json, Filename) ->
 		{ok, Conf1}
 	catch
 		_:Reason -> 
-			ems_logger:format_error("ems_config cannot parse ~p in configuration file ~p. Reason: ~p.", [get(parse_step), Filename, Reason]),
-			ems_logger:format_error(Json),
+			ems_logger:format_error("ems_config cannot parse ~p in configuration file \033[01;34m~p\033[0m. Reason: ~p.", [get(parse_step), Filename, Reason]),
+			io:format("Configuration file content: ~p\n", [Json]),
 			erlang:error(einvalid_configuration)
 	end.
 
