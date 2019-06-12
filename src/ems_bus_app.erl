@@ -93,7 +93,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mssl_keyfile\033[0m: \033[01;34m~p\033[0m.", [Conf#config.ssl_keyfile]),
 			Ret;
 		{error, Reason} ->
-			ems_logger:format_error("Error processing configuration file. Reason: ~p. Terminate...\n", [Reason]),
+			ems_logger:format_error("Loading failed. Reason: ~p.\n", [Reason]),
 			erlang:halt(),
 			{error, finish}
 	end.

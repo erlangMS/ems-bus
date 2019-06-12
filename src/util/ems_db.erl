@@ -8,7 +8,7 @@
 
 -module(ems_db).
 
--export([start/1]).
+-export([start/2]).
 -export([get/2, exist/2, all/1, 
 		 insert/1, insert/2, update/1, delete/2, delete/1, 
 		 match/2, 
@@ -33,13 +33,10 @@
 
 %% *********** Database schema creation ************
 
-start(PrivPath) ->
+start(PrivPath, DatabasePath) ->
 	Nodes = [node()],
 
-	DatabasePath = filename:join(PrivPath, "db"),
-
 	% Define a pasta de armazenamento dos databases
-	filelib:ensure_dir(DatabasePath),
 	application:set_env(mnesia, dir, DatabasePath),
 
 	ems_logger:format_info("ems_db initialize database storage \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
@@ -348,6 +345,7 @@ start(PrivPath) ->
 							auth_oauth2_access_code_table,
 							auth_oauth2_refresh_token_table
 							], 120000),
+	ems_logger:format_info("ems_db database storage initialized."),
 							
 	set_param(priv_path, PrivPath),
 	set_param(database_path, DatabasePath),

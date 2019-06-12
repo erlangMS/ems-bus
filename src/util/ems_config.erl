@@ -347,11 +347,29 @@ parse_config(Json, Filename) ->
 		put(parse_step, priv_path),
 		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
 		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
-		ems_logger:format_info("ems_config initialize priv_path \033[01;34m\"~s\"\033[0m.", [PrivPath]),
 		
+		case filelib:is_dir(PrivPath) of
+			true -> ems_logger:format_info("ems_config using priv_path \033[01;34m\"~s\"\033[0m.", [PrivPath]);
+			false ->
+				ems_logger:format_error("ems_config cannot found priv_path \033[01;34m\"~s\"\033[0m.", [PrivPath]),
+				erlang:error(ecannot_found_priv_path)
+		end,
+		
+		put(parse_step, database_path),
+		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, filename:join(PrivPath, "db"))),
+		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
+		filelib:ensure_dir(DatabasePath),
+
+		case filelib:is_dir(DatabasePath) andalso ems_util:path_writable(DatabasePath) of
+			true -> ems_logger:format_info("ems_config using database_path \033[01;34m\"~s\"\033[0m.", [DatabasePath]);
+			false ->
+				ems_logger:format_error("ems_config cannot initialize read-only database path \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
+				erlang:error(ecannot_use_read_only_database_path)
+		end,
+
 		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
 		put(parse_step, start_db),
-		ems_db:start(PrivPath),  
+		ems_db:start(PrivPath, DatabasePath),  
 		
 		% Instala o módulo de criptografia blowfish se necessário
 		put(parse_step, blowfish_crypto_modpath),
@@ -797,8 +815,8 @@ parse_config(Json, Filename) ->
 	catch
 		_:Reason -> 
 			ems_logger:format_error("ems_config cannot parse ~p in configuration file \033[01;34m~p\033[0m. Reason: ~p.", [get(parse_step), Filename, Reason]),
-			io:format("Configuration file content: ~p\n", [Json]),
-			erlang:error(einvalid_configuration)
+			io:format("\033[0;32mConfiguration file content dump:\033[01;34m~p\033[0m\n", [Json]),
+			erlang:error(Reason)
 	end.
 
 -spec select_config_file(binary() | string(), binary() | string()) -> {ok, string()} | {error, enofile_config}.

@@ -214,7 +214,9 @@
 		 str_trim/1,
 		 binary_to_hex/1,
 		 str_contains/2,
-		 oauth2_authenticate_rest_server/3
+		 oauth2_authenticate_rest_server/3,
+		 path_writable/1,
+		 file_writable/1
 		]).
 
 -spec version() -> string().
@@ -3987,3 +3989,28 @@ parse_to_integer(V) when is_list(V) -> list_to_integer(V);
 parse_to_integer(V) when is_integer(V) -> V;
 parse_to_integer(_) -> erlang:error(einvalid_integer).
 
+-spec file_writable(string() | binary()) -> boolean().
+file_writable(Filename) when is_binary(Filename) ->
+	file_writable(binary_to_list(Filename));
+file_writable(Filename) ->
+	case file:read_file_info(Filename) of
+		{ok,{file_info,_,regular,read_write,
+               _,
+               _,
+               _,
+               _,_,_,_,_,_,_}} -> true;
+         _ -> false
+     end.
+
+-spec path_writable(string() | binary()) -> boolean().
+path_writable(Pathname) when is_binary(Pathname) ->
+	path_writable(binary_to_list(Pathname));
+path_writable(Pathname) ->
+	case file:read_file_info(Pathname) of
+		{ok,{file_info,_,directory,read_write,
+               _,
+               _,
+               _,
+               _,_,_,_,_,_,_}} -> true;
+         _ -> false
+     end.
