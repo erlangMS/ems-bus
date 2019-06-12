@@ -1906,6 +1906,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																   show_debug_response_headers = ShowDebugResponseHeaders,
 																   current_node = CurrentNode}) ->
 	try
+		ems_logger:debug("CowboyReq ~p.", [CowboyReq]),
 		Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
 		case Url of
