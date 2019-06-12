@@ -447,7 +447,7 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 				ArchiveLogFilename = lists:flatten(io_lib:format("~s/~p/~s/~s_~s_~2..0w~2..0w~4..0w_~2..0w~2..0w.log", [LogFileArchivePath, Ano, MesAbrev, "server", MesAbrev, Dia, Mes, Ano, Hora, Min])),
 
 				% Renomear o arquivo atual para arquivar com outro nome
-				case filelib:ensure_dir(ArchiveLogFilename) of
+				case file:make_dir(ArchiveLogFilename) of
 					ok ->
 						case file:copy(CurrentLogFilename, ArchiveLogFilename) of
 							{ok, _BytesCopied} ->
@@ -464,9 +464,9 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 								ems_db:inc_counter(ems_logger_archive_log_error),
 								ems_logger:error("ems_logger archive log file failed on rename file \033[01;34m~p\033[0m to \033[01;34m~p\033[0m. Reason: ~p.", [CurrentLogFilename, ArchiveLogFilename, Reason2])
 						end;
-					_ -> 
+					{error, ReasonMakeDir} -> 
 						ems_db:inc_counter(ems_logger_create_archive_path_failed),
-						ems_logger:error("ems_logger archive log file failed on create archive path \033[01;34m~p\033[0m.", [LogFileArchivePath])
+						ems_logger:error("ems_logger archive log file failed on create archive path \033[01;34m~p\033[0m. Reason: ~p.", [LogFileArchivePath, ReasonMakeDir])
 				end,
 				% Mesmo que possa ocorrer arquivo ao arquivar, precisamos criar o novo arquivo de log
 				State2 = create_new_logfile(State);
@@ -491,7 +491,7 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
    
 create_new_logfile(State = #state{log_file_path = LogFilePath}) -> 
 	LogFilename = filename:join([LogFilePath, "server.log"]),
-	case filelib:ensure_dir(LogFilename) of
+	case filelib:ensure_dir(LogFilePath) of
 		ok ->
 			case file:open(LogFilename, [append]) of
 				{ok, IODevice} -> 

@@ -43,10 +43,10 @@
 -define(CONF_PATH, filename:join(?PRIV_PATH, "conf")).
 
 % Caminho da pasta para o arquivo server.log
--define(LOG_FILE_PATH, filename:join(?PRIV_PATH, "log")).
+-define(LOG_FILE_PATH, ems_util:get_log_file_path()).
 
 % Caminho da pasta para arquivar o server.log
--define(LOG_FILE_ARCHIVE_PATH, filename:join([?PRIV_PATH, "archive", "log"])).
+-define(LOG_FILE_ARCHIVE_PATH, ems_util:get_log_file_archive_path()).
 
 % Caminho do favicon
 -define(FAVICON_PATH, filename:join(?PRIV_PATH, "favicon.ico")).
@@ -420,6 +420,8 @@
 				 ldap_base_search :: string(),
  				 custom_variables :: list(binary()),						%% Lista de variáveis genéricas
  				 priv_path :: string(),
+ 				 database_path :: string(),
+ 				 log_path :: string(),
  				 www_path :: string(),
  				 auth_default_scope :: list(atom()),
  				 auth_password_check_between_scope :: boolean(),
