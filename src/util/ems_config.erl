@@ -358,7 +358,7 @@ parse_config(Json, Filename) ->
 		put(parse_step, database_path),
 		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
 		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
-		filelib:ensure_dir(DatabasePath),
+		file:make_dir(DatabasePath),
 
 		case filelib:is_dir(DatabasePath) andalso ems_util:path_writable(DatabasePath) of
 			true -> ems_logger:format_info("ems_config using database_path \033[01;34m\"~s\"\033[0m.", [DatabasePath]);
