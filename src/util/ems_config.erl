@@ -356,7 +356,7 @@ parse_config(Json, Filename) ->
 		end,
 		
 		put(parse_step, database_path),
-		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, filename:join(PrivPath, "db"))),
+		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
 		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
 		filelib:ensure_dir(DatabasePath),
 
