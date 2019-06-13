@@ -206,9 +206,13 @@
 
 % Mensagens de saída json comuns
 -define(CONTENT_TYPE_JSON, <<"application/json; charset=utf-8"/utf8>>).
--define(CACHE_CONTROL_NO_CACHE, <<"max-age=31536000, private, no-cache, no-store, must-revalidate"/utf8>>).
+
+
+-define(CACHE_CONTROL_1_MIN, <<"max-age=60, public"/utf8>>).
 -define(CACHE_CONTROL_1_DAYS, <<"max-age=86400, public"/utf8>>).
 -define(CACHE_CONTROL_30_DAYS, <<"max-age=2592000, private"/utf8>>).
+-define(CACHE_CONTROL_NO_CACHE, <<"max-age=31536000, private, no-cache, no-store, must-revalidate"/utf8>>).
+
 -define(OK_JSON, <<"{\"ok\": true}"/utf8>>).
 -define(ENOENT_JSON, <<"{\"error\": \"enoent\"}"/utf8>>).
 -define(ENOENT_SERVICE_CONTRACT_JSON, <<"{\"error\": \"enoent_service_contract\"}"/utf8>>).
@@ -323,7 +327,8 @@
 
 
 %  Definição para o arquivo de configuração
--record(config, {cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
+-record(config, {instance_type :: atom(),							%% Tipo de instância: production, development, test
+				 cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
 				 cat_host_search,									%% Lista de hosts para pesquisar os serviços
 				 cat_node_search,									%% Lista de nodes para pesquisar os serviços
 				 cat_path_search :: list(tuple()),					%% Lista de tuplas com caminhos alternativos para catálogos

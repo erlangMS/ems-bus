@@ -220,7 +220,8 @@
 		 path_writable/1,
 		 file_writable/1,
 		 ensure_dir_writable/1,
-		 file_exists/1
+		 file_exists/1,
+		 is_production_server/0
 		]).
 
 -spec version() -> string().
@@ -2864,7 +2865,7 @@ load_from_file_req(Request = #request{url = Url,
 		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
 		false -> Filename = FilenameService
 	end,
-	ems_logger:info("ems_static_file_service reading file ~p to url ~p.", [Filename, Url]),
+	ems_logger:info("ems_static_file_service reading file \033[01;34m~p\033[0m to url \033[01;34m~p\033[0m.", [Filename, Url]),
 	case file:read_file_info(Filename, [{time, universal}]) of
 		{ok,{file_info, FSize, _Type, _Access, _ATime, MTime, _CTime, _Mode,_,_,_,_,_,_}} -> 
 			MimeType = mime_type(filename:extension(Filename)),
@@ -4044,3 +4045,5 @@ file_exists("") -> false;
 file_exists(Filename) ->
 	file:read_file_info(Filename) =/= {error,enoent}.
 
+-spec is_production_server() -> boolean().
+is_production_server() -> ems_db:get_poram(instance_type) == production.

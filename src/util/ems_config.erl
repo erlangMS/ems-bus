@@ -344,6 +344,10 @@ parse_config(Json, Filename) ->
 	try
 		{ok, InetHostname} = inet:gethostname(),
 		
+		put(parse_step, instance_type),
+		InstanceType =  binary_to_atom(maps:get(<<"instance_type">>, Json, <<"production">>), utf8),
+
+		
 		put(parse_step, priv_path),
 		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
 		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
@@ -401,6 +405,7 @@ parse_config(Json, Filename) ->
 		
 		ems_db:set_param(log_file_path, LogFilePath),
 		ems_db:set_param(log_file_archive_path, LogFileArchivePath),
+		ems_db:set_param(instance_type, InstanceType),
 		
 		% Instala o módulo de criptografia blowfish se necessário
 		put(parse_step, blowfish_crypto_modpath),
@@ -828,7 +833,8 @@ parse_config(Json, Filename) ->
 				 priv_path = PrivPath,
 				 auth_default_scope = AuthDefaultScopesAtom,
 				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
-				 crypto_blowfish_module_path = BlowfishCryptoModPath
+				 crypto_blowfish_module_path = BlowfishCryptoModPath,
+				 instance_type = InstanceType
 			},
 
 		put(parse_step, datasources),

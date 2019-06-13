@@ -29,6 +29,7 @@ start(_StartType, StartArgs) ->
 									public -> <<"public">>
 								end,
 			ems_logger:info("Parameters:"),
+			ems_logger:info("  \033[0;32minstance_type\033[0m: \033[01;34m~p\033[0m.", [Conf#config.instance_type]),
 			ems_logger:info("  \033[0;32mconfig_file\033[0m: \033[01;34m~p\033[0m.", [Conf#config.config_file]),
 			ems_logger:info("  \033[0;32mpriv_path\033[0m: \033[01;34m~p\033[0m.", [Conf#config.priv_path]),
 			ems_logger:info("  \033[0;32mdatabase_path\033[0m: \033[01;34m~p\033[0m.", [Conf#config.database_path]),

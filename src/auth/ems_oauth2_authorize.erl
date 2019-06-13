@@ -129,23 +129,35 @@ execute(Request = #request{type = Type,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},
 					{ok, Request2};		
-			{redirect, Client = #client{id = ClientId, redirect_uri = RedirectUri}} ->
-					ems_logger:info("ems_oauth2_authorize redirect to ~p.", [RedirectUri]),
+			{redirect, Client = #client{id = ClientId, name = Name, redirect_uri = RedirectUri}} ->
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
 					LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]),
-					ExpireDate = ems_util:date_add_minute(Timestamp, 1440 + 180), % add +120min (2h) para ser horário GMT
-					Expires = cowboy_clock:rfc1123(ExpireDate),
-					Request2 = Request#request{code = 302, 
-											   reason = ok,
-											   operation = oauth2_client_redirect,
-											   oauth2_grant_type = GrantType,
-											   client = Client,
-											   response_header = ResponseHeader#{<<"location">> => LocationPath,
-																				 <<"cache-control">> => ?CACHE_CONTROL_1_DAYS,
- 																				 <<"expires">> => Expires}
-											},
+					case ems_util:is_production_server() of
+						true ->
+							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
+							Expires = cowboy_clock:rfc1123(ExpireDate),
+							ems_logger:info("ems_oauth2_authorize redirect client ~p ~p to ~p.", [ClientId, Name, LocationPath]),
+							Request2 = Request#request{code = 302, 
+													   reason = ok,
+													   operation = oauth2_client_redirect,
+													   oauth2_grant_type = GrantType,
+													   client = Client,
+													   response_header = ResponseHeader#{<<"location">> => LocationPath,
+																						 <<"cache-control">> => ?CACHE_CONTROL_1_MIN,
+																						 <<"expires">> => Expires}
+													};
+						false ->
+							Request2 = Request#request{code = 302, 
+													   reason = ok,
+													   operation = oauth2_client_redirect,
+													   oauth2_grant_type = GrantType,
+													   client = Client,
+													   response_header = ResponseHeader#{<<"location">> => LocationPath,
+																						 <<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}
+														}
+					end,
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
