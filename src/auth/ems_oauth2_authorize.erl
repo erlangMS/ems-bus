@@ -130,6 +130,7 @@ execute(Request = #request{type = Type,
 											    content_type_out = ?CONTENT_TYPE_JSON},
 					{ok, Request2};		
 			{redirect, Client = #client{id = ClientId, redirect_uri = RedirectUri}} ->
+					ems_logger:info("ems_oauth2_authorize redirect to ~p.", [RedirectUri]),
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),

@@ -2864,9 +2864,9 @@ load_from_file_req(Request = #request{url = Url,
 		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
 		false -> Filename = FilenameService
 	end,
+	ems_logger:info("ems_static_file_service reading file ~p to url ~p.", [Filename, Url]),
 	case file:read_file_info(Filename, [{time, universal}]) of
 		{ok,{file_info, FSize, _Type, _Access, _ATime, MTime, _CTime, _Mode,_,_,_,_,_,_}} -> 
-			?DEBUG("ems_static_file_service loading file ~p.", [Filename]),
 			MimeType = mime_type(filename:extension(Filename)),
 			ETag = integer_to_binary(erlang:phash2({FSize, MTime}, 16#ffffffff)),
 			LastModified = cowboy_clock:rfc1123(MTime),
@@ -2908,7 +2908,7 @@ load_from_file_req(Request = #request{url = Url,
 											      response_header = ResponseHeader2}
 							};
 						{error, Reason} = Error -> 
-							?DEBUG("ems_static_file_service read_file ~p failed. Reason: ~p.", [Filename, Reason]),
+							ems_logger:error("ems_static_file_service read file ~p failed to url ~p. Reason: ~p.", [Filename, Url, Reason]),
 							{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 												     reason = Reason,
 												     content_type_out = ?CONTENT_TYPE_JSON,
@@ -2917,7 +2917,7 @@ load_from_file_req(Request = #request{url = Url,
 					end
 			end;
 		{error, Reason} = Error -> 
-			ems_logger:error("ems_static_file_service read_file_info ~p failed. Reason: ~p.", [Filename, Reason]),
+			ems_logger:error("ems_static_file_service read file ~p failed to url ~p. Reason: ~p.", [Filename, Url, Reason]),
 			{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 									 reason = Reason,	
 									 response_data = ems_schema:to_json(Error)}
