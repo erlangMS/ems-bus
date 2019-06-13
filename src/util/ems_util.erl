@@ -218,7 +218,9 @@
 		 str_contains/2,
 		 oauth2_authenticate_rest_server/3,
 		 path_writable/1,
-		 file_writable/1
+		 file_writable/1,
+		 ensure_dir_writable/1,
+		 file_exists/1
 		]).
 
 -spec version() -> string().
@@ -4023,4 +4025,22 @@ path_writable(Pathname) ->
                _,_,_,_,_,_,_}} -> true;
          _ -> false
      end.
+
+-spec ensure_dir_writable(string()) -> ok  | {error, atom()}.
+ensure_dir_writable(Path) ->
+	case file:make_dir(Path) of
+		ok -> ok;
+		{error, eexist} -> ok;
+		_ -> filelib:ensure_dir(Path)
+	end,
+	case path_writable(Path) of
+		true -> ok;
+		false -> {error, denied}
+	end.
+
+-spec file_exists(string()) -> boolean().
+file_exists(undefined) -> false;
+file_exists("") -> false;
+file_exists(Filename) ->
+	file:read_file_info(Filename) =/= {error,enoent}.
 

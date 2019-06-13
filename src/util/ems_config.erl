@@ -361,7 +361,7 @@ parse_config(Json, Filename) ->
 		file:make_dir(DatabasePath),
 
 		put(parse_step, database_path_check),
-		case filelib:is_dir(DatabasePath) andalso ems_util:path_writable(DatabasePath) of
+		case filelib:is_dir(DatabasePath) andalso ems_util:ensure_dir_writable(DatabasePath) == ok of
 			true -> ems_logger:format_info("ems_config using database_path \033[01;34m\"~s\"\033[0m.", [DatabasePath]);
 			false ->
 				ems_logger:format_error("ems_config cannot initialize read-only database path \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
@@ -374,7 +374,7 @@ parse_config(Json, Filename) ->
 		file:make_dir(LogFilePath),
 		
 		put(parse_step, log_file_path_check),
-		case filelib:is_dir(LogFilePath) andalso ems_util:path_writable(LogFilePath) of
+		case filelib:is_dir(LogFilePath) andalso ems_util:ensure_dir_writable(LogFilePath) == ok of
 			true -> ems_logger:format_info("ems_config using log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]);
 			false ->
 				ems_logger:format_error("ems_config cannot initialize read-only log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]),
@@ -388,7 +388,7 @@ parse_config(Json, Filename) ->
 		file:make_dir(LogFileArchivePath),
 		
 		put(parse_step, log_file_archive_path_check),
-		case filelib:is_dir(LogFileArchivePath) andalso ems_util:path_writable(LogFileArchivePath) of
+		case filelib:is_dir(LogFileArchivePath) andalso ems_util:ensure_dir_writable(LogFileArchivePath) == ok of
 			true -> ems_logger:format_info("ems_config using log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]);
 			false ->
 				ems_logger:format_error("ems_config cannot initialize read-only log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]),
@@ -842,7 +842,7 @@ parse_config(Json, Filename) ->
 	catch
 		_:Reason -> 
 			ems_logger:format_error("ems_config cannot parse ~p in configuration file \033[01;34m~p\033[0m. Reason: ~p.", [get(parse_step), Filename, Reason]),
-			io:format("\033[0;32mConfiguration file content dump:\033[01;34m~p\033[0m\n", [Json]),
+			io:format("\033[06;31m~p\033[0m\n", [Json]),
 			erlang:error(Reason)
 	end.
 
