@@ -525,7 +525,7 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, rest_login_url),
 		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, <<>>) of
-			<<>> ->	RestLoginUrl = iolist_to_binary([RestBaseUrl, <<"/login/index.html"/utf8>>]);
+			<<>> ->	RestLoginUrl = undefined;
 			RestLoginUrlValue -> RestLoginUrl = ems_util:remove_ult_backslash_url_binary(RestLoginUrlValue)
 		end,
  		put(parse_step, rest_url_mask),

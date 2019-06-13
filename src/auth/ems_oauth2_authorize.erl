@@ -12,6 +12,7 @@ execute(Request = #request{type = Type,
 						   user_agent = UserAgent, 
 						   user_agent_version = UserAgentVersion,
 						   response_header = ResponseHeader,
+						   host = Host,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
 		case Type of
@@ -133,12 +134,15 @@ execute(Request = #request{type = Type,
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
-					LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]),
+					case Config#config.rest_login_url of
+						undefined -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]);
+						LoginUrlValue -> LocationPath = iolist_to_binary([LoginUrlValue, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri])
+					end,
+					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case ems_util:is_production_server() of
 						true ->
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
-							ems_logger:info("ems_oauth2_authorize redirect client ~p ~p to ~p.", [ClientId, Name, LocationPath]),
 							Request2 = Request#request{code = 302, 
 													   reason = ok,
 													   operation = oauth2_client_redirect,

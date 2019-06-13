@@ -1979,7 +1979,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 		Type = cowboy_req:method(CowboyReq),
 		{Ip, _} = cowboy_req:peer(CowboyReq),
 		IpBin = list_to_binary(inet_parse:ntoa(Ip)),
-		Host = cowboy_req:host(CowboyReq),
+		case cowboy_req:header(<<"host">>, CowboyReq) of
+			undefined -> Host = cowboy_req:host(CowboyReq);
+			HostValue -> Host = HostValue
+		end,
 		Version = cowboy_req:version(CowboyReq),
 		case cowboy_req:header(<<"content-type">>, CowboyReq) of
 			undefined -> ContentTypeIn = <<>>;
@@ -4046,4 +4049,4 @@ file_exists(Filename) ->
 	file:read_file_info(Filename) =/= {error,enoent}.
 
 -spec is_production_server() -> boolean().
-is_production_server() -> ems_db:get_poram(instance_type) == production.
+is_production_server() -> ems_db:get_param(instance_type) == production.
