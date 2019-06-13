@@ -15,6 +15,7 @@
 -export([all/0, 
 		 find_by_id/1,		 
 		 find_by_user_and_client/3,
+		 find_by_user_and_client_com_permissao/3,
 		 find_by_cpf_and_client/3,
 		 find_by_user/2,
 		 find_by_name/1, 
@@ -52,8 +53,10 @@ find_by_cpf_and_client(Cpf, ClientId, Fields) ->
 	case ems_client:find_by_id(ClientId) of
 		{ok, Client} ->
 			case ems_db:find(Client#client.scope, [id, remap_user_id], [{cpf, "==", Cpf}]) of
-				{ok, ListIdsUserByCpfMap} -> find_by_cpf_and_client_(ListIdsUserByCpfMap, ClientId, Fields, []);
-				_ -> {ok, []}
+				{ok, ListIdsUserByCpfMap} -> 
+					find_by_cpf_and_client_(ListIdsUserByCpfMap, ClientId, Fields, []);
+				_ -> 
+					{ok, []}
 			end;
 		{error, enoent} -> {ok, []}
 	end.
@@ -84,9 +87,42 @@ find_by_cpf_and_client_([UserByCpfMap|T], ClientId, Fields, Result) ->
 find_by_user_and_client(undefined, _, _) -> {ok, []};
 find_by_user_and_client(UserId, ClientId, Fields) -> 
 	case ems_db:find([user_perfil_db, user_perfil_fs], Fields, [{user_id, "==", UserId}, {client_id, "==", ClientId}]) of
-		{ok, Records} -> {ok, Records};
+		{ok, Records} -> 
+			{ok, Records};
 		_ -> {ok, []}
 	end.
+
+
+-spec find_by_user_and_client_com_permissao(non_neg_integer(), non_neg_integer(), list()) -> list(map()).
+find_by_user_and_client_com_permissao(undefined, _, _) -> {ok, []};
+find_by_user_and_client_com_permissao(UserId, ClientId, Fields) -> 
+	case find_by_user_and_client(UserId, ClientId, Fields) of
+		{ok, ListaPerfil} ->
+			find_by_user_and_client_com_permissao_(ListaPerfil, UserId, ClientId, []);
+		_ -> {ok, []}	
+	end.
+
+find_by_user_and_client_com_permissao_([], _, _, Result) ->
+
+	{ok, Result};
+find_by_user_and_client_com_permissao_([H|T], UserId, ClientId, Result) -> 
+	PerfilId = maps:get(<<"perfil_id">>, H, <<>>),
+	case ems_db:find([user_permission_db, user_permission_fs], [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon], [{ client_id, "==", ClientId}, { perfil_id, "==", PerfilId}, {user_id, "==", UserId} ]) of
+		{ok, ListaPermissao} ->
+			PerfilPermissao = add_permission_in_perfil(H,ListaPermissao),
+			Item = #{perfil => PerfilPermissao},
+			Result2 =  [Item | Result],
+			find_by_user_and_client_com_permissao_(T, UserId, ClientId, Result2);
+		_ ->
+			find_by_user_and_client_com_permissao_(T, UserId, ClientId, Result)
+	end.
+	
+add_permission_in_perfil(Perfil, ListaPermissao) ->
+	 maps:put(<<"permissoes">>,ListaPermissao, Perfil).
+	 
+
+
+	
 
 
 -spec find_by_name(binary() | string()) -> {ok, #user_perfil{}} | {error, enoent}.
