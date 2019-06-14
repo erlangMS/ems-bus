@@ -363,6 +363,7 @@
 				 rest_base_url :: binary(),
 				 rest_auth_url :: binary(),
 				 rest_login_url :: binary(),						%% Url da tela de login
+				 rest_use_host_in_redirect :: boolean(),			%% Ao gerar a url de redirect, usa o host para a o dominio 
 				 rest_url_mask :: boolean(),
 				 rest_default_querystring :: map(),					%% querystring default
 				 rest_environment :: binary(),

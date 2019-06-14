@@ -525,11 +525,14 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, rest_login_url),
 		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, <<>>) of
-			<<>> ->	RestLoginUrl = undefined;
+			<<>> ->	RestLoginUrl = RestLoginUrl = iolist_to_binary([RestBaseUrl, <<"/login/index.html"/utf8>>]);
 			RestLoginUrlValue -> RestLoginUrl = ems_util:remove_ult_backslash_url_binary(RestLoginUrlValue)
 		end,
  		put(parse_step, rest_url_mask),
 		RestUrlMask = ems_util:parse_bool(get_p(<<"rest_url_mask">>, Json, false)),
+
+		put(parse_step, debug),
+		RestUseHostInRedirect = ems_util:parse_bool(get_p(<<"rest_use_host_in_redirect">>, Json, false)),
 
 		put(parse_step, rest_user),
 		RestUser = binary_to_list(get_p(<<"rest_user">>, Json, <<"erlangms">>)),
@@ -598,7 +601,12 @@ parse_config(Json, Filename) ->
 		RestEnvironment = ems_util:get_param_or_variable(<<"rest_environment">>, Json, HostnameBin),
 		
 		put(parse_step, sufixo_email_institucional),
-		SufixoEmailInstitucional = binary_to_list(get_p(<<"sufixo_email_institucional">>, Json, ?SUFIXO_EMAIL_INSTITUCIONAL)),
+		SufixoEmailInstitucional0 = binary_to_list(get_p(<<"sufixo_email_institucional">>, Json, ?SUFIXO_EMAIL_INSTITUCIONAL)),
+		case string:trim(SufixoEmailInstitucional0) of
+			"" -> SufixoEmailInstitucional = ?SUFIXO_EMAIL_INSTITUCIONAL;
+			SufixoEmailInstitucionalValue -> SufixoEmailInstitucional = string:to_lower(SufixoEmailInstitucionalValue)
+		end,
+		ems_db:set_param(sufixo_email_institucional, SufixoEmailInstitucional),
 		
 		put(parse_step, disable_services),
 		DisableServices = get_p(<<"disable_services">>, Json, []),
@@ -779,6 +787,7 @@ parse_config(Json, Filename) ->
 				 rest_user = RestUser,
 				 rest_passwd = RestPasswd,
 				 rest_base_url_defined = RestBaseUrlDefined,
+				 rest_use_host_in_redirect = RestUseHostInRedirect,
 				 config_file = Filename,
 				 params = Json,
 				 client_path_search = ClientPathSearch,

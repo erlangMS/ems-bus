@@ -32,6 +32,7 @@
 		 list_to_atomlist_with_trim/1,
 		 list_to_binlist/1,
 		 atomlist_to_binlist/1,
+		 atomlist_to_list/1,
 		 mes_extenso/1,
 		 binlist_to_list/1,
 		 join_binlist/2,
@@ -3152,13 +3153,22 @@ binlist_to_atomlist_([H|T], Result) ->
 atomlist_to_binlist([])  -> [];
 atomlist_to_binlist(undefined)  -> [];
 atomlist_to_binlist(<<>>)  -> [];
-atomlist_to_binlist(Value) when is_list(Value) ->
+atomlist_to_binlist(Value) ->
 	atomlist_to_binlist_(Value, []).
 
 atomlist_to_binlist_([], Result) -> lists:reverse(Result);
 atomlist_to_binlist_([H|T], Result) ->
 	atomlist_to_binlist_(T, [atom_to_binary(H, utf8)|Result]).
 	
+atomlist_to_list([])  -> [];
+atomlist_to_list(undefined)  -> [];
+atomlist_to_list(<<>>)  -> [];
+atomlist_to_list(Value) ->
+	atomlist_to_list_(Value, []).
+
+atomlist_to_list_([], Result) -> lists:reverse(Result);
+atomlist_to_list_([H|T], Result) ->
+	atomlist_to_list_(T, [atom_to_list(H)|Result]).
 	
 
 -spec json_field_strip_and_escape(string() | binary()) -> iolist().
