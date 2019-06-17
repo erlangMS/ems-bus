@@ -327,18 +327,17 @@ find_by_login_and_password(Login, Password, Client)  ->
 											 Client2,
 											 AuthPasswordCheckBetweenScope) of
 				{ok, #user{ctrl_source_type = CtrlSourceType} = User} ->
-					ems_logger:info("ems_user find_by_login_and_password success (Login: ~p CtrlSourceType: ~w Client: ~p ~s).", [Login, CtrlSourceType, Client2#client.id, binary_to_list(Client2#client.name)]),
+					ems_logger:info("ems_user find_by_login_and_password success (Login: ~s CtrlSourceType: ~w Client: ~p ~s).", [LoginStr, CtrlSourceType, Client2#client.id, binary_to_list(Client2#client.name)]),
 					{ok, User};					
 				Error ->
 					% Se o login apresenta o sufixo de e-mail, remove e pesquisa novamente
 					SufixoEmailInstitucional = ems_db:get_param(sufixo_email_institucional),
-					io:format("SufixoEmailInstitucional is ~p  tem ~p\n", [SufixoEmailInstitucional, lists:suffix(SufixoEmailInstitucional, LoginStr)]),
-					case lists:suffix(SufixoEmailInstitucional, LoginStr) of
+					case SufixoEmailInstitucional =/= "" andalso lists:suffix(SufixoEmailInstitucional, LoginStr) of
 						 true ->
 							LoginStrSemSufixo = string:substr(LoginStr, 1, length(LoginStr)-length(SufixoEmailInstitucional)),
 							find_by_login_and_password(LoginStrSemSufixo, Password, Client2);
 						 false -> 
-							ems_logger:warn("ems_user find_by_login_and_password failed (Login: ~p AuthScopes: ~w Client: ~p ~s).", [Login, TablesScope, Client2#client.id, binary_to_list(Client2#client.name)]),
+							ems_logger:warn("ems_user find_by_login_and_password failed (Login: ~s AuthScopes: ~w Client: ~p ~s).", [LoginStr, TablesScope, Client2#client.id, binary_to_list(Client2#client.name)]),
 							Error
 					end
 			end;

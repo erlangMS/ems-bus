@@ -201,10 +201,8 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 					{ok, User} ->
 						RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 						Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),
-						Authz = oauth2:authorize_code_request(User, Client, RedirectUri, Scope, []),
-						case issue_code(Authz) of
-							{ok, Response} ->
-								Code = element(2, lists:nth(1, Response)),
+						case get_code_by_user_and_client(User, Client, Scope) of
+							{ok, Code} ->
 								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code]),
 								Request2 = Request#request{code = 200, 
 														   reason = ok,
@@ -215,10 +213,10 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 														   response_header = ResponseHeader#{<<"location">> => LocationPath}},
 								%ems_user:add_history(User, Client, Request2#request.service, Request2),
 								{ok, Request2};
-							{error, Reason, ReasonDetail} ->
+							{error, Reason} ->
 								Request2 = Request#request{code = 401, 
 														   reason = Reason,
-														   reason_detail = ReasonDetail,
+														   reason_detail = get_code_by_user_and_client_failed,
 														   operation = oauth2_authenticate,
 														   user = User,
 														   client = Client,
@@ -403,24 +401,36 @@ issue_token_and_refresh(_, _) ->
 
 issue_code({ok, {_, Auth}}) ->
 	case oauth2:issue_code(Auth, []) of
-		{ok, {_, Response}} ->	{ok, oauth2_response:to_proplist(Response)};
+		{ok, {_, Response}} ->	
+			{ok, oauth2_response:to_proplist(Response)};
 		_ -> {error, access_denied, einvalid_issue_code}
 	end;
 issue_code(_) -> {error, access_denied, eparse_issue_code_exception}.
 
-persist_token_sgbd(#service{properties = Props}, #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, #client{name = ClientNameBin}, AccessToken, _Scope, UserAgentAtom, UserAgentVersionBin) ->
+-spec get_code_by_user_and_client(#user{}, #client{}, binary()) -> {ok, binary()} | {error, enoent}.
+get_code_by_user_and_client(User, Client = #client{redirect_uri = RedirectUri}, Scope) ->
+	Authz = oauth2:authorize_code_request(User, Client, RedirectUri, Scope, []),
+	case issue_code(Authz) of
+		{ok, ResponseCode} -> {ok, element(2, lists:nth(1, ResponseCode))};
+		_ -> {ok, enoent}
+	end.
+
+
+persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, Client = #client{name = ClientNameBin}, AccessToken, Scope, UserAgentAtom, UserAgentVersionBin) ->
 	SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
 	case SqlPersist =/= "" andalso CtrlSourceType =/= user_fs of
 		true ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 			case ems_odbc_pool:get_connection(Ds) of
 				{ok, Ds2} ->
-					Token = binary_to_list(AccessToken),
+					AccessToken2 = binary_to_list(AccessToken),
+					{ok, CodeBin} = get_code_by_user_and_client(User, Client, Scope),
+					Code = binary_to_list(CodeBin),
 					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(ClientNameBin)]},	% Client name
 								  {sql_integer, [IdPessoa]},
 								  {sql_integer, [IdUsuario]},
-								  {{sql_varchar, 32}, [Token]},							% Token
-								  {{sql_varchar, 32}, [Token]},							% Device ID 
+								  {{sql_varchar, 32}, [AccessToken2]},					% Token
+								  {{sql_varchar, 32}, [Code]},							% Device ID (Code) 
 								  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
 					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 					ems_odbc_pool:release_connection(Ds2);
