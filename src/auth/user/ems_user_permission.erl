@@ -203,14 +203,14 @@ all(Table) -> ems_db:all(Table).
 
 
 find_by_hash(Hash) ->
-	case mnesia:dirty_index_read(user_permission, Hash, #user_permission.hash) of
+	case mnesia:dirty_index_read([user_permission_db, user_permission_fs], Hash, #user_permission.hash) of
 		[] -> {error, enoent};
 		[Record] -> {ok, Record}
 	end.
 
 
 find_by_hash2(Hash) ->
-	case mnesia:dirty_index_read(user_permission, Hash, #user_permission.hash2) of
+	case mnesia:dirty_index_read([user_permission_db, user_permission_fs], Hash, #user_permission.hash2) of
 		[] -> {error, enoent};
 		[Record] -> {ok, Record}
 	end.
