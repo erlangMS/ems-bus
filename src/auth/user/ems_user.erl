@@ -597,6 +597,7 @@ to_resource_owner(User, ClientId) ->
 								<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 							<<"}"/utf8>>]);
 		false ->
+			io:format("Entrou no false >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> n~n"),
 			ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [perfil_id, name]) of
 									{ok, ListaPerfil} -> 
 										case User#user.cpf of
@@ -625,6 +626,7 @@ to_resource_owner(User, ClientId) ->
 												end
 										end
 								end,
+			io:format("Entrou no else no final>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			ListaPerfilJson = ems_schema:to_json(ListaPerfilFinal),
 			ListaPermissionFinal = case ems_user_permission:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 										{ok, ListaPermission} ->
@@ -655,6 +657,37 @@ to_resource_owner(User, ClientId) ->
 											end
 									end,
 			ListaPermissionJson = ems_schema:to_json(ListaPermissionFinal),
+
+			ListaPerfilPermissionFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+										{ok, ListaPerfilPermission} ->
+											case User#user.cpf of
+												<<>> ->
+													case ems_user_perfil:find_by_user_and_client_com_permissao(User#user.id, ClientId, [perfil_id, name]) of
+														{ok, ListaPerfilPermission2} -> ListaPerfilPermission ++ ListaPerfilPermission2;
+														_ -> ListaPerfilPermission
+													end;
+												_ ->
+													case ems_user_perfil:find_by_cpf_and_client_com_permissao(User#user.cpf, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+														{ok, ListaPerfilPermission2} -> ListaPerfilPermission ++ ListaPerfilPermission2;
+														_ -> ListaPerfilPermission
+													end
+											end;
+										_ -> 
+											case User#user.cpf of
+												<<>> ->
+													case ems_user_perfil:find_by_user_and_client_com_permissao(User#user.id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
+														_ -> []
+													end;
+												_ ->
+													case ems_user_perfil:find_by_cpf_and_client_com_permissao(User#user.cpf, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
+														_ -> []
+													end
+											end
+									end,
+			ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPermissionFinal),
+			io:format("ListaPerfilPermissionJson >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[ListaPerfilPermissionJson]),
 			iolist_to_binary([<<"{"/utf8>>,
 								<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
 								<<"\"remap_user_id\":"/utf8>>, integer_to_binary(User#user.remap_user_id), <<","/utf8>>,
@@ -667,7 +700,8 @@ to_resource_owner(User, ClientId) ->
 								<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
 								<<"\"lista_perfil\":"/utf8>>, ListaPerfilJson, <<","/utf8>>,
-								<<"\"lista_permission\":"/utf8>>, ListaPermissionJson, 
+								<<"\"lista_permission\":"/utf8>>, ListaPermissionJson, <<","/utf8>>,
+								<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 							<<"}"/utf8>>])
 	end.
 
@@ -690,6 +724,7 @@ to_resource_owner(User) ->
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
 								<<"\"lista_perfil\":{},"/utf8>>, 
 								<<"\"lista_permission\":{}"/utf8>>, 
+								<<"\"lista_perfil_permission\":{}"/utf8>>,
 							<<"}"/utf8>>]);
 		false ->
 			iolist_to_binary([<<"{"/utf8>>,
@@ -705,6 +740,7 @@ to_resource_owner(User) ->
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
 								<<"\"lista_perfil\":{},"/utf8>>, 
 								<<"\"lista_permission\":{}"/utf8>>, 
+								<<"\"lista_perfil_permission\":{}"/utf8>>,
 							<<"}"/utf8>>])
 	end.
 

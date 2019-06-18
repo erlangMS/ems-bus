@@ -16,6 +16,7 @@
 		 find_by_id/1,		 
 		 find_by_user_and_client/3,
 		 find_by_user_and_client_com_permissao/3,
+		 find_by_cpf_and_client_com_permissao/3,
 		 find_by_cpf_and_client/3,
 		 find_by_user/2,
 		 find_by_name/1, 
@@ -103,7 +104,6 @@ find_by_user_and_client_com_permissao(UserId, ClientId, Fields) ->
 	end.
 
 find_by_user_and_client_com_permissao_([], _, _, Result) ->
-
 	{ok, Result};
 find_by_user_and_client_com_permissao_([H|T], UserId, ClientId, Result) -> 
 	PerfilId = maps:get(<<"perfil_id">>, H, <<>>),
@@ -122,6 +122,44 @@ add_permission_in_perfil(Perfil, ListaPermissao) ->
 	 
 
 
+find_by_cpf_and_client_com_permissao(<<>>, _, _) -> {ok, []};
+find_by_cpf_and_client_com_permissao(undefined, _, _) -> {ok, []};
+find_by_cpf_and_client_com_permissao(Cpf, ClientId, Fields) -> 
+	io:format("Entrou aqui >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+	case ems_client:find_by_id(ClientId) of
+		{ok, Client} ->
+			case ems_db:find(Client#client.scope, [id, remap_user_id], [{cpf, "==", Cpf}]) of
+				{ok, ListIdsUserByCpfMap} -> 
+					find_by_cpf_and_client_com_permissao_(ListIdsUserByCpfMap, ClientId, Fields, []);
+				_ -> 
+					{ok, []}
+			end;
+		{error, enoent} -> {ok, []}
+	end.
+
+find_by_cpf_and_client_com_permissao_([], _, _, Result) -> {ok, Result};
+find_by_cpf_and_client_com_permissao_([UserByCpfMap|T], ClientId, Fields, Result) ->
+	UserId = maps:get(<<"id">>, UserByCpfMap),
+	RemapUserId = maps:get(<<"remap_user_id">>, UserByCpfMap),
+	case find_by_user_and_client_com_permissao(UserId, ClientId, Fields) of
+		{ok, Records} -> 
+			io:format("Records >>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Records]),
+
+			Result2 = Result ++ Records;
+		_ -> Result2 = Result
+	end,
+	case RemapUserId  of
+		null -> Result3 = Result2;
+		undefined -> Result3 = Result2;
+		_ ->
+			case find_by_user_and_client_com_permissao(RemapUserId, ClientId, Fields) of
+				{ok, Records2} -> 
+					io:format("Records2 >>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Records2]),
+					Result3 = Result2 ++ Records2;
+				_ -> Result3 = Result2
+			end
+	end,
+	find_by_cpf_and_client_com_permissao_(T, ClientId, Fields, Result3).
 	
 
 
