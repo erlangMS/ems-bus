@@ -143,8 +143,6 @@ find_by_cpf_and_client_com_permissao_([UserByCpfMap|T], ClientId, Fields, Result
 	RemapUserId = maps:get(<<"remap_user_id">>, UserByCpfMap),
 	case find_by_user_and_client_com_permissao(UserId, ClientId, Fields) of
 		{ok, Records} -> 
-			io:format("Records >>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Records]),
-
 			Result2 = Result ++ Records;
 		_ -> Result2 = Result
 	end,
@@ -154,7 +152,6 @@ find_by_cpf_and_client_com_permissao_([UserByCpfMap|T], ClientId, Fields, Result
 		_ ->
 			case find_by_user_and_client_com_permissao(RemapUserId, ClientId, Fields) of
 				{ok, Records2} -> 
-					io:format("Records2 >>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Records2]),
 					Result3 = Result2 ++ Records2;
 				_ -> Result3 = Result2
 			end
