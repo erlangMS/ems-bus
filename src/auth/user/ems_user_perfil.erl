@@ -18,6 +18,7 @@
 		 find_by_user_and_client_com_permissao/3,
 		 find_by_cpf_and_client_com_permissao/3,
 		 find_by_cpf_and_client_com_perfil_permission/3,
+		 find_by_id_and_client_com_perfil_permission/3,
 		 find_by_cpf_and_client/3,
 		 find_by_user/2,
 		 find_by_name/1, 
@@ -134,6 +135,21 @@ find_by_cpf_and_client_com_perfil_permission_([UserByCpfMap|T], ClientId, Fields
 			end
 	end,
 	find_by_cpf_and_client_com_perfil_permission_(T, ClientId, Fields, Result3).
+
+
+
+find_by_id_and_client_com_perfil_permission(UserId, ClientId, Fields) ->
+	case find_by_user_and_client_com_permissao(UserId, ClientId, Fields) of
+		{ok, Records} -> 
+			{ok, Type} = ems_db:find([user_db, user_fs], [type], [{id, "==", UserId}]),
+			TypeId = maps:get(<<"type">>,lists:last(Type)),
+			TupleTypes = [interno, tecnico, docente, discente, terceiros], 
+			Value = lists:nth(TypeId+1, TupleTypes),
+			ListTypePerfilPermisson = #{ Value => Records},
+			{ok , ListTypePerfilPermisson};
+		_ -> {ok,[]}
+	end.
+
 
 
 -spec find_by_user_and_client_com_permissao(non_neg_integer(), non_neg_integer(), list()) -> list(map()).
