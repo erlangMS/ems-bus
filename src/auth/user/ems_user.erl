@@ -570,15 +570,18 @@ to_resource_owner(User, ClientId) ->
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),
-					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_user_and_client_com_permissao(User#user.id, ClientId, [perfil_id, name]),
+					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User#user.id, ClientId, [perfil_id, name]),
+					io:format("Case 1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
 				_ ->
 					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					{ok, ListaPermission} = ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),
-					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_user_and_client_com_permissao(User#user.id, ClientId, [perfil_id, name]),
-					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission)
+					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User#user.cpf, ClientId, [perfil_id, name]),
+					io:format("Case 2 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
+					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission),
+					io:format("Fuyncional >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n")
 			end,
 			iolist_to_binary([<<"{"/utf8>>,
 								<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,

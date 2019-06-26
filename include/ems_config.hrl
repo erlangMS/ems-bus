@@ -326,6 +326,7 @@
 -endif.
 
 
+
 %  Definição para o arquivo de configuração
 -record(config, {instance_type :: atom(),							%% Tipo de instância: production, development, test
 				 cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
