@@ -418,6 +418,11 @@ get_code_by_user_and_client(User, Client = #client{redirect_uri = RedirectUri}, 
 
 persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, Client = #client{name = ClientNameBin}, AccessToken, Scope, UserAgentAtom, UserAgentVersionBin) ->
 	SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
+	SqlFixClientName = maps:get(<<"sql_fix_client_name">>, Props, <<>>),
+	case SqlFixClientName of
+		<<>> -> ClientName = binary_to_list(ClientNameBin);
+		_ -> ClientName = binary_to_list(SqlFixClientName)
+	end,
 	case SqlPersist =/= "" andalso CtrlSourceType =/= user_fs of
 		true ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
@@ -426,7 +431,7 @@ persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, c
 					AccessToken2 = binary_to_list(AccessToken),
 					{ok, CodeBin} = get_code_by_user_and_client(User, Client, Scope),
 					Code = binary_to_list(CodeBin),
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(ClientNameBin)]},	% Client name
+					ParamsSql = [{{sql_varchar, 32}, [ClientName]},	% Client name
 								  {sql_integer, [IdPessoa]},
 								  {sql_integer, [IdUsuario]},
 								  {{sql_varchar, 32}, [AccessToken2]},					% Token
