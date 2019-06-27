@@ -246,7 +246,7 @@ resolve_access_code_sgbd(AccessCode) ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 			case ems_odbc_pool:get_connection(Ds) of
 				{ok, Ds2} ->
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]}],
+					ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessCode)]}],
 					case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 						{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 							Context1 = base64:decode(list_to_binary(Context)),
@@ -289,7 +289,7 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 			case ems_odbc_pool:get_connection(Ds) of
 				{ok, Ds2} ->
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]}],
+					ParamsSql = [{{sql_varchar, 60}, [binary_to_list(RefreshToken)]}],
 					case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 						{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 							Context1 = base64:decode(list_to_binary(Context)),
@@ -333,7 +333,7 @@ resolve_access_token_sgbd(AccessToken) ->
 			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 			case ems_odbc_pool:get_connection(Ds) of
 				{ok, Ds2} ->
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]}],
+					ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
 					case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 						{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 							Context1 = base64:decode(list_to_binary(Context)),
