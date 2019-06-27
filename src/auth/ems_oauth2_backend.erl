@@ -252,7 +252,9 @@ resolve_access_code_sgbd(AccessCode) ->
 							Context1 = base64:decode(list_to_binary(Context)),
 							Context2 = binary_to_term(Context1),
 							ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
-							Result = {ok, #auth_oauth2_access_code{id = AccessCode, context = Context2}};
+							AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context2},
+							mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
+							Result = {ok, AuthOAuth2AccessCode};
 						_ ->
 							Result = {error, invalid_code} 
 					end,
@@ -293,7 +295,9 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 							Context1 = base64:decode(list_to_binary(Context)),
 							Context2 = binary_to_term(Context1),
 							ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
-							Result = {ok, #auth_oauth2_refresh_token{id = RefreshToken, context = Context2}};
+							AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
+							mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
+							Result = {ok, AuthOauth2RefreshToken};
 						_ ->
 							Result = {error, invalid_code} 
 					end,
@@ -335,7 +339,9 @@ resolve_access_token_sgbd(AccessToken) ->
 							Context1 = base64:decode(list_to_binary(Context)),
 							Context2 = binary_to_term(Context1),
 							ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
-							Result = {ok, #auth_oauth2_access_token{id = AccessToken, context = Context2}};
+							AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
+							mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
+							Result = {ok, AuthOauth2AccessToken};
 						_ ->
 							Result = {error, invalid_code} 
 					end,
