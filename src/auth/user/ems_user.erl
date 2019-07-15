@@ -757,10 +757,18 @@ new_from_map(Map, Conf) ->
 		Name = ?UTF8_STRING(maps:get(<<"name">>, Map, Login)),
 		
 		put(parse_step, password),
-		Password = maps:get(<<"password">>, Map, <<>>),
+		Password =  case maps:get(<<"password">>, Map, <<>>) of
+						undefined -> <<>>;
+						null -> null;
+						PasswordValue -> PasswordValue
+					end,
 
 		put(parse_step, passwd_crypto),
-		PasswdCrypto0 = list_to_binary(string:to_upper(binary_to_list(maps:get(<<"passwd_crypto">>, Map, <<>>)))),
+		PasswdCrypto0 =  case maps:get(<<"passwd_crypto">>, Map, <<>>) of
+			undefined -> <<>>;
+			null -> <<>>;
+			PasswdCryptoValue -> list_to_binary(string:to_upper(binary_to_list(PasswdCryptoValue)))
+		end,
 		case PasswdCrypto0 of
 						<<"SHA1">> -> 
 							PasswdCrypto = PasswdCrypto0,
@@ -777,7 +785,12 @@ new_from_map(Map, Conf) ->
 					end,
 
 		put(parse_step, cpf),
-		Cpf0 = binary_to_list(?UTF8_STRING(maps:get(<<"cpf">>, Map, <<>>))),
+		Cpf0 = case maps:get(<<"cpf">>, Map, <<>>) of
+					undefined -> "";
+					null -> "";
+					CepValue -> binary_to_list(?UTF8_STRING(CepValue))
+				end,
+
 		% O Cpf pode não ter zeros na frente, deve colocar zeros se necessário e validar
 		CpfLen = string:len(Cpf0),
 		case CpfLen =:= 0 orelse ((CpfLen =:= 11 andalso ems_util:is_cpf_valid(Cpf0)) orelse
