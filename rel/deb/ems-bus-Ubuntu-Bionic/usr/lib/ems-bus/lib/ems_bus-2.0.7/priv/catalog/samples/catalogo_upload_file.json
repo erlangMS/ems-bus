@@ -1,0 +1,11 @@
+{
+	"name": "/samples/upload",
+	"comment": "Faz upload de arquivo e salva em disco no servidor",
+	"owner": "samples",
+	"version": "1.0.0",
+	"service" : "ems_upload_file_service:execute",
+	"url": "/samples/upload",
+	"type": "POST",
+	"lang" : "erlang",
+	"http_max_content_length" : 104857600
+}

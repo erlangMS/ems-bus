@@ -1,0 +1,25 @@
+[
+	{
+		"name" : "/samples/hello_world",
+		"comment": "Hello World em Erlang",
+		"owner": "samples",
+		"version": "1",
+		"service" : "helloworld_service:execute",
+		"url": "/samples/hello_world",
+		"type": "GET",
+		"authorization" : "public",
+		"lang" : "erlang"
+	},
+
+	{
+		"name" : "/samples/hello_world_java",
+		"comment": "Hello World em Java",
+		"owner": "samples",
+		"version": "1",
+		"service" : "br.erlangms.samples.service.HelloWorldService:helloWorld",
+		"url": "/samples/hello_world_java",
+		"type": "GET",
+		"authorization" : "public",
+		"lang" : "java"
+	}
+]

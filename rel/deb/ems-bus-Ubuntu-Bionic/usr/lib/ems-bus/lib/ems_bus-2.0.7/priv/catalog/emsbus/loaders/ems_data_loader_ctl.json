@@ -1,0 +1,14 @@
+{
+    "name": "ems_data_loader_ctl",
+	"comment": "Catalog for ems_data_loader_ctl",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_data_loader_ctl:start",
+	"url": "/emsbus/ems_data_loader_ctl",
+	"async": "false",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : true
+}

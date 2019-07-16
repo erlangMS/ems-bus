@@ -1,0 +1,18 @@
+{
+    "name": "ems_client_loader_fs",
+	"comment": "Catalog for ems_client_loader_fs",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_json_loader:start",
+	"url": "/emsbus/ems_client_loader_fs",
+	"async": "false",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"last_update_param_name" : "ems_client_loader_fs_lastupdate",
+	"update_checkpoint" : 2628000000,
+	"start_timeout" : 2000,
+	"middleware" : "ems_client_loader_middleware",
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : true
+}

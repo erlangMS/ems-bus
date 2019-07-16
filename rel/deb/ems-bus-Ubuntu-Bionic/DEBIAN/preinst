@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+#
+# we can be called with the following arguments (6.5 of Debian policy):
+#  install:          (our version): install our version
+#  upgrade:          (our version): upgrade to our version
+#  abort-upgrade:    (old version): upgrade to a new version failed
+
+# defaults
+[ -r /etc/default/ems-bus ] && . /etc/default/ems-bus
+
+if [ "$1" = "install" -o "$1" = "upgrade" ]; then
+
+  . /usr/share/debconf/confmodule
+  db_version 2.0
+  db_capb backup
+  
+  # Para o serviço pre instalado
+  systemctl stop ems-bus.service 2>/dev/null || true	
+  
+  sleep 1
+  sync
+  sync
+  sync
+
+  # database backup
+  mv /usr/lib/ems-bus/priv/db /usr/lib/ems-bus/priv/db_`date '+%d%m%Y_%H%M%S'`  > /dev/null 2>&1 || true
+
+
+fi
+
+
+

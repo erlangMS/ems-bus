@@ -1,0 +1,16 @@
+{
+	"name": "ems_barramento_service",
+	"comment": "Informações do barramento utilizado por front-ends.",
+	"owner": "emsbus",
+	"version": "1.0.0",
+	"service" : "ems_barramento_service:execute",
+	"url": "/(?<name>.+)/barramento",
+	"use_re" : true,
+	"async": "false",
+	"type": "GET",
+	"authorization" : "public",
+	"cache_control" : "max-age=120, private",
+	"result_cache" : 86400000,
+	"expires_minute" : 1,
+	"lang" : "erlang"
+}

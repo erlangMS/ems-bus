@@ -1,0 +1,88 @@
+[
+
+	{
+		"catalog": "/emsbus/ems_clock", 
+		"file": "ems_clock.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_cache", 
+		"file": "ems_cache.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_logger", 
+		"file": "ems_logger.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_odbc_pool", 
+		"file": "ems_odbc_pool.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_file_watcher", 
+		"file": "ems_file_watcher.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_user_notify_service", 
+		"file": "ems_user_notify_service.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders", 
+		"file": "loaders/ems_loaders.json"
+	},
+
+	{
+		"catalog": "/emsbus/catalogs/ems_main_catalogs", 
+		"file": "catalogs/ems_main_catalogs.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_info_service", 
+		"file": "ems_info_service.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_favicon_service", 
+		"file": "ems_favicon_service.json"
+	},
+
+	{
+		"catalog": "/emsbus/auth", 
+		"file": "auth/ems_auth.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_netadm_service", 
+		"file": "ems_netadm_service.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_logger_os_service", 
+		"file": "ems_logger_os_service.json"
+	},
+	
+	{
+		"catalog": "/emsbus/ems_stat_collector", 
+		"file": "ems_stat_collector.json"
+	},
+	
+	{
+		"catalog": "/emsbus/tcp_servers", 
+		"file": "tcp_servers/ems_tcp_servers.json"
+	},
+
+	{
+		"catalog": "/emsbus/ems_barramento_service", 
+		"file": "ems_barramento_service.json"
+	},
+	
+	{
+		"catalog": "/emsbus/ems_correios_service", 
+		"file": "ems_correios_service.json"
+	}	
+	
+]

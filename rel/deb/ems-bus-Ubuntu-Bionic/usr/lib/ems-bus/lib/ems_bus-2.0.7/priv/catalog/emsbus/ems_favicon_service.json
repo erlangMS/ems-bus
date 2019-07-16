@@ -1,0 +1,17 @@
+{
+    "name": "/favicon.ico",
+	"comment": "favicon.ico",
+	"owner": "emsbus",
+	"version": "1.0.0",
+	"service" : "ems_static_file_service:execute",
+	"url": "/favicon.ico",
+	"path" : "{{ www_path }}/favicon.ico",
+	"async": "false",
+	"type": "GET",
+	"result_cache" : 5184000,
+	"authorization" : "public",
+	"cache_control" : "max-age=86400, private",
+	"expires_minute" : 1440,
+	"lang" : "erlang"
+}
+

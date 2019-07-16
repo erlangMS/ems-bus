@@ -1,0 +1,13 @@
+{
+    "name": "ems_file_watcher",
+	"comment": "Catalog for file watcher server",
+	"owner": "emsbus",
+	"version": "1.0.0",
+	"service" : "ems_file_watcher:start",
+	"url": "/emsbus/ems_file_watcher",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : true
+}

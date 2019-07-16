@@ -1,0 +1,13 @@
+{
+	"name": "ems_user_notify_service",
+	"comment": "Catalog for ems_user_notify_service",
+	"owner": "emsbus",
+	"version": "1.0.0",
+	"service" : "ems_user_notify_service:start",
+	"url": "/emsbus/ems_user_notify_service",
+	"type": "KERNEL",
+	"debug" : false,
+	"lang" : "erlang",
+	"pool_size" : 1,
+	"pool_max" : 1
+}

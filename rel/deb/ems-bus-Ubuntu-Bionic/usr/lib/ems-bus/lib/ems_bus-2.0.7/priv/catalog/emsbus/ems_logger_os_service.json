@@ -1,0 +1,46 @@
+[
+	{
+		"name": "/logger/os/syslog/head",
+		"comment": "Show syslog head.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_logger_os_service:log_file_head",
+		"url": "/logger/os/syslog/head",
+		"filename" : "/var/log/syslog",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/os/syslog/tail",
+		"comment": "Show syslog tail.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_logger_os_service:log_file_tail",
+		"url": "/logger/os/syslog/tail",
+		"filename" : "/var/log/syslog",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/os/syslog",
+		"comment": "Show syslog filename.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_logger_os_service:log_file_name",
+		"url": "/logger/os/syslog",
+		"filename" : "/var/log/syslog",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	}			
+]

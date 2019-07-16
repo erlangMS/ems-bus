@@ -1,0 +1,11 @@
+[
+	{
+		"id" : 1,
+		"name": "erlangms@unb.br",
+		"description": "erlangms@unb.br",
+		"secret": "CPD",
+		"redirect_uri" : "/portal/index.html",
+		"active": true,
+		"scope": ""
+	}	
+]

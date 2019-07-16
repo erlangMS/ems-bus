@@ -1,0 +1,135 @@
+[
+	{	
+		"name": "/auth/user/perfil/:id",
+		"comment": "List perfil by id",
+		"owner": "auth",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/auth/user/perfil/:id",
+		"type": "GET",
+		"lang" : "erlang",
+		"result_cache" : 0,
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["user_perfil_db", "user_perfil_fs"],
+			"fields" : ["id", "user_id", "client_id", "name"]
+		},
+		"schema_in" : "user_perfil",
+		"schema_out" : "user_perfil",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				}
+			]	
+	},
+
+	{	
+		"name": "/auth/user/perfil",
+		"comment": "List all user perfils",
+		"owner": "auth",
+		"service" : "ems_api_query_service:find",
+		"url": "/auth/user/perfil",
+		"type": "GET",
+		"lang" : "erlang",
+		"result_cache" : 0,
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["user_perfil_db", "user_perfil_fs"],
+			"fields" : ["id", "user_id", "client_id", "name"]
+		},
+		"schema_in" : "user_perfil",
+		"schema_out" : "user_perfil",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+
+	{	
+		"name": "/auth/user/:id/perfil",
+		"comment": "List all user perfils",
+		"owner": "auth",
+		"service" : "ems_api_query_service:find_by_owner",
+		"url": "/auth/user/:id/perfil",
+		"type": "GET",
+		"lang" : "erlang",
+		"result_cache" : 0,
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["user_perfil_db", "user_perfil_fs"],
+			"foreign_table_name" : ["user_db", "user_fs"],
+			"foreign_key" : "user_id",
+			"fields" : ["id", "user_id", "client_id", "name"]
+		},
+		"schema_in" : "user_perfil",
+		"schema_out" : "user_perfil",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	}
+]

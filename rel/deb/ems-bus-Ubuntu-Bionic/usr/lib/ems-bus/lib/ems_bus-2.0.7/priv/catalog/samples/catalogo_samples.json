@@ -1,0 +1,42 @@
+[
+	{
+		"catalog": "/samples/catalogo_produto", 
+		"file": "catalogo_produto.json"
+	},
+	
+	{
+		"catalog": "/samples/catalogo_hello_world", 
+		"file": "catalogo_hello_world.json"
+	},
+
+	{
+		"catalog": "/samples/catalogo_calc", 
+		"file": "catalogo_calc.json"
+	},
+
+	{
+		"catalog": "/samples/catalogo_contador", 
+		"file": "catalogo_contador.json"
+	},
+	
+	{
+		"catalog": "/samples/upload_file", 
+		"file": "catalogo_upload_file.json"
+	},
+	
+	{
+		"catalog": "/samples/catalogo_samples_cmd_service", 
+		"file": "catalogo_samples_cmd_service.json"
+	},
+	
+	{
+		"catalog": "/samples/catalogo_hackathon", 
+		"file": "catalogo_hackathon.json"
+	},
+	
+	{
+		"catalog": "/samples/catalogo_daemon_service", 
+		"file": "catalogo_daemon_service.json"
+	}	
+	
+]

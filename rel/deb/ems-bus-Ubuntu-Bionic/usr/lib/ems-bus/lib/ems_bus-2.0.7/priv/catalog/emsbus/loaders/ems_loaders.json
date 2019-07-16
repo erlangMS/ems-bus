@@ -1,0 +1,111 @@
+[
+	{
+		"catalog": "/emsbus/loaders/ems_data_loader_ctl", 
+		"file": "ems_data_loader_ctl.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_catalog_loader_fs", 
+		"file": "ems_catalog_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_loader_fs", 
+		"file": "ems_user_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_client_loader_fs", 
+		"file": "ems_client_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_perfil_loader_fs", 
+		"file": "ems_user_perfil_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_dados_funcionais_loader_fs", 
+		"file": "ems_user_dados_funcionais_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_email_loader_fs", 
+		"file": "ems_user_email_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_permission_loader_fs", 
+		"file": "ems_user_permission_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_endereco_loader_fs", 
+		"file": "ems_user_endereco_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_telefone_loader_fs", 
+		"file": "ems_user_telefone_loader_fs.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_client_loader_db", 
+		"file": "ems_client_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_loader_db", 
+		"file": "ems_user_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user2_loader_db", 
+		"file": "ems_user2_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_catalog_loader_db", 
+		"file": "ems_catalog_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_perfil_loader_db", 
+		"file": "ems_user_perfil_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_permission_loader_db", 
+		"file": "ems_user_permission_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_dados_funcionais_loader_db", 
+		"file": "ems_user_dados_funcionais_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_email_loader_db", 
+		"file": "ems_user_email_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_endereco_loader_db", 
+		"file": "ems_user_endereco_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_telefone_loader_db", 
+		"file": "ems_user_telefone_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user_aluno_ativo_loader_db", 
+		"file": "ems_user_aluno_ativo_loader_db.json"
+	},
+	
+	{
+		"catalog": "/emsbus/loaders/ems_user_aluno_inativo_loader_db", 
+		"file": "ems_user_aluno_inativo_loader_db.json"
+	}
+]

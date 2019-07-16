@@ -1,0 +1,20 @@
+[Unit]
+Description=ERLANGMS ESB
+Wants=ems-bus.epmd.service
+After=network.target network-online.target ems-bus.epmd.service
+
+[Service]
+Type=simple
+StandardOutput=journal
+StandardError=journal
+User=erlangms
+Group=erlangms
+WorkingDirectory=/usr/lib/ems-bus
+Restart=always
+RestartSec=3
+ExecStart=/usr/lib/ems-bus/bin/ems-bus foreground
+LimitNOFILE=500000
+LimitNPROC=500000
+
+[Install]
+WantedBy=multi-user.target
