@@ -566,18 +566,18 @@ to_resource_owner(User, ClientId) ->
 		true -> 
 			case User#user.cpf of
 				<<>> ->
-					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
+					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),
-					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User#user.id, ClientId, [perfil_id, name]),
+					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
 					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
 				_ ->
 					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					{ok, ListaPermission} = ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),
-					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User#user.cpf, ClientId, [perfil_id, name]),
+					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
 					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission)
 			end,
 			iolist_to_binary([<<"{"/utf8>>,
@@ -659,12 +659,12 @@ to_resource_owner(User, ClientId) ->
 										{ok, ListaPerfilPermission} ->
 											case User#user.cpf of
 												<<>> ->
-													case ems_user_perfil:find_by_user_and_client_com_permissao(User#user.id, ClientId, [perfil_id, name]) of
+													case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) of
 														{ok, ListaPerfilPermission2} -> ListaPerfilPermission ++ ListaPerfilPermission2;
 														_ -> ListaPerfilPermission
 													end;
 												_ ->
-													case ems_user_perfil:find_by_cpf_and_client_com_permissao(User#user.cpf, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPerfilPermission2} -> ListaPerfilPermission ++ ListaPerfilPermission2;
 														_ -> ListaPerfilPermission
 													end
@@ -672,12 +672,12 @@ to_resource_owner(User, ClientId) ->
 										_ -> 
 											case User#user.cpf of
 												<<>> ->
-													case ems_user_perfil:find_by_user_and_client_com_permissao(User#user.id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
 														_ -> []
 													end;
 												_ ->
-													case ems_user_perfil:find_by_cpf_and_client_com_permissao(User#user.cpf, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+													case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
 														_ -> []
 													end

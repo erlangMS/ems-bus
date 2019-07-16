@@ -98,53 +98,49 @@ find_by_user_and_client(UserId, ClientId, Fields) ->
 
 find_by_cpf_and_client_com_perfil_permission(<<>>, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
-find_by_cpf_and_client_com_perfil_permission(Cpf, ClientId, Fields) -> 
+find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) -> 
 	case ems_client:find_by_id(ClientId) of
 		{ok, Client} ->
-			case ems_db:find(Client#client.scope, [id, remap_user_id], [{cpf, "==", Cpf}]) of
+			case ems_db:find(Client#client.scope, [id, remap_user_id], [{cpf, "==", User#user.cpf}]) of
 				{ok, ListIdsUserByCpfMap} -> 
-					find_by_cpf_and_client_com_perfil_permission_(ListIdsUserByCpfMap, ClientId, Fields, []);
+					find_by_cpf_and_client_com_perfil_permission_(User, ListIdsUserByCpfMap, ClientId, Fields, []);
 				_ -> 
 					{ok, []}
 			end;
 		{error, enoent} -> {ok, []}
 	end.
 
-find_by_cpf_and_client_com_perfil_permission_([], _, _, Result) -> {ok, Result};
-find_by_cpf_and_client_com_perfil_permission_([UserByCpfMap|T], ClientId, Fields, Result) ->
-	UserId = maps:get(<<"id">>, UserByCpfMap),
-	RemapUserId = maps:get(<<"remap_user_id">>, UserByCpfMap),
+find_by_cpf_and_client_com_perfil_permission_(_,[], _, _, Result) -> {ok, Result};
+find_by_cpf_and_client_com_perfil_permission_(User, [UserByCpfMap|T], ClientId, Fields, Result) ->
+	case User#user.remap_user_id of 
+		null -> UserId = User#user.id;
+		undefined -> UserId = User#user.id;
+		_ -> UserId = User#user.remap_user_id
+	end,
 	case find_by_user_and_client_com_permissao(UserId, ClientId, Fields) of
 		{ok, Records} -> 
-			{ok, Type} = ems_db:find([user_db, user_fs], [type], [{id, "==", UserId}]),
-			TypeId = maps:get(<<"type">>,lists:last(Type)),
 			TupleTypes = [interno, tecnico, docente, discente, terceiros],  
-			Value = lists:nth(TypeId+1, TupleTypes),
+			Value = lists:nth(User#user.type + 1, TupleTypes),
 			ListTypePerfilPermisson = #{ Value => Records},
 			Result2 = lists:append(Result, [ListTypePerfilPermisson]);
 		_ -> Result2 = Result
 	end,
-	case RemapUserId  of
-		null -> Result3 = Result2;
-		undefined -> Result3 = Result2;
-		_ ->
-			case ems_db:find([user_perfil_db, user_perfil_fs], Fields, [{user_id, "==", RemapUserId}]) of
-				{ok, Records2} -> 
-					Result3 = Result2 ++ Records2;
-				_ -> Result3 = Result2
-			end
+
+	find_by_cpf_and_client_com_perfil_permission_(User,T, ClientId, Fields, Result2).
+
+
+
+find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
+	case User#user.remap_user_id of 
+		null -> UserId = User#user.id;
+		undefined -> UserId = User#user.id;
+		_ -> UserId = User#user.remap_user_id
 	end,
-	find_by_cpf_and_client_com_perfil_permission_(T, ClientId, Fields, Result3).
 
-
-
-find_by_id_and_client_com_perfil_permission(UserId, ClientId, Fields) ->
 	case find_by_user_and_client_com_permissao(UserId, ClientId, Fields) of
 		{ok, Records} -> 
-			{ok, Type} = ems_db:find([user_db, user_fs], [type], [{id, "==", UserId}]),
-			TypeId = maps:get(<<"type">>,lists:last(Type)),
 			TupleTypes = [interno, tecnico, docente, discente, terceiros], 
-			Value = lists:nth(TypeId+1, TupleTypes),
+			Value = lists:nth(User#user.type + 1, TupleTypes),
 			ListTypePerfilPermisson = #{ Value => Records},
 			{ok , ListTypePerfilPermisson};
 		_ -> {ok,[]}
