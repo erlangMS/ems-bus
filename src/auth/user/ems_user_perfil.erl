@@ -111,7 +111,7 @@ find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) ->
 	end.
 
 find_by_cpf_and_client_com_perfil_permission_(_,[], _, _, Result) -> {ok, Result};
-find_by_cpf_and_client_com_perfil_permission_(User, [UserByCpfMap|T], ClientId, Fields, Result) ->
+find_by_cpf_and_client_com_perfil_permission_(User, [_|T], ClientId, Fields, Result) ->
 	case User#user.remap_user_id of 
 		null -> UserId = User#user.id;
 		undefined -> UserId = User#user.id;
