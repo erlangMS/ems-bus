@@ -79,6 +79,7 @@ execute(Request = #request{type = Type,
 				 ], 
 				 Client
 			 } ->
+					io:format("aqui0\n"),
 					% When it is authorization_code, we will record metrics for singlesignon
 					case User =/= undefined of
 						true -> 
@@ -87,6 +88,7 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
+					io:format("aqui1\n"),
 					case Client =/= undefined of
 						true ->
 							ClientJson = ems_client:to_json(Client),
@@ -96,13 +98,13 @@ execute(Request = #request{type = Type,
 							ResourceOwner = ems_user:to_resource_owner(User),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
-					
+					io:format("aqu2\n"),
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
-										
+							io:format("aqui3\n"),			
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, AccessToken, <<"\","/utf8>>,
@@ -129,6 +131,7 @@ execute(Request = #request{type = Type,
 											    client = Client,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},
+					io:format("aqui4\n"),
 					{ok, Request2};		
 			{redirect, Client = #client{id = ClientId, name = Name, redirect_uri = RedirectUri}} ->
 					ClientIdBin = integer_to_binary(ClientId),
