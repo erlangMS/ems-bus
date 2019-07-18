@@ -31,7 +31,7 @@ is_empty(user2_db) -> mnesia:table_info(user2_db, size) == 0.
 
 -spec size_table(atom()) -> non_neg_integer().
 size_table(user_db) -> mnesia:table_info(user_db, size);
-size_table(user_aluno_ativo_db) -> mnesia:table_info(user_aluno_ativo_, size);
+size_table(user_aluno_ativo_db) -> mnesia:table_info(user__, size);
 size_table(user_aluno_inativo_db) -> mnesia:table_info(user_aluno_inativo_db, size);
 size_table(user_fs) -> mnesia:table_info(user_fs, size);
 size_table(user2_db) -> mnesia:table_info(user2_db, size).

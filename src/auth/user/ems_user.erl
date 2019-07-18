@@ -573,6 +573,7 @@ to_resource_owner(User, ClientId) ->
 					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
 					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
 				_ ->
+					io:format("Aqui 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					{ok, ListaPermission} = ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
