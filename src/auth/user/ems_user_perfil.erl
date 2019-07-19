@@ -99,57 +99,67 @@ find_by_user_and_client(UserId, ClientId, Fields) ->
 find_by_cpf_and_client_com_perfil_permission(<<>>, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) -> 
-	case ems_client:find_by_id(ClientId) of
+	Value = case ems_client:find_by_id(ClientId) of
 		{ok, Client} ->
-			case ems_db:find(Client#client.scope, [id, remap_user_id], [{cpf, "==", User#user.cpf}]) of
+			 {ok, UserCpfList} = ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
+			 UserCpf = ems_util:hd_or_empty(UserCpfList),
+			 {ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
+			case ems_db:find(Client#client.scope, [id, remap_user_id, type], [{id, "==", User#user.id}]) of
 				{ok, ListIdsUserByCpfMap} -> 
-					 find_by_cpf_and_client_com_perfil_permission_(User, ListIdsUserByCpfMap, ClientId, Fields, []);
+					find_by_cpf_and_client_com_perfil_permission_(UserCpfById, ListIdsUserByCpfMap, ClientId, Fields, []);
 				_ -> 
 					{ok, []}
 			end;
 		{error, enoent} -> {ok, []}
-	end.
+	end,
+	{ok, Value}.
 
-find_by_cpf_and_client_com_perfil_permission_(_,[], _, _, Result) -> {ok, Result};
+find_by_cpf_and_client_com_perfil_permission_(_,[], _, _, Result) -> 
+	{ok, Result};
 find_by_cpf_and_client_com_perfil_permission_(User, [_|T], ClientId, Fields, Result) ->
 	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
 		{ok, Records} -> 
 			TupleTypes = [interno, tecnico, docente, discente, terceiros],  
 			Value = lists:nth(User#user.type + 1, TupleTypes),
-			ListTypePerfilPermisson = #{ Value => Records},
-			Result2 = lists:append(Result, [ListTypePerfilPermisson]);
-		_ -> Result2 = Result
+			case Value of 
+				discente ->
+					{ok, Result2} = find_by_client_com_perfil_permission_aluno(User, ClientId, Fields);
+				_ ->
+					ListTypePerfilPermisson = #{ Value => Records},
+					Result3 = lists:append(Result, [ListTypePerfilPermisson]),
+					{ok, ValueAluno} = find_by_client_com_perfil_permission_aluno(User, ClientId, Fields),
+					Result2 = lists:append(Result3, [ValueAluno])
+			end;
+		_ ->
+			Result2 = lists:appnd(Result, find_by_client_com_perfil_permission_aluno(User, ClientId, Fields))
 	end,
-	io:format("Chegou até este pondo 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
-		{ok, []} -> 
-			{ok, []};
-		{ok, UserAluno} -> 
-				io:format("Entrou neste ponto 2 >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[UserAluno]),
-				io:format("Method >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[find_by_user_and_client_com_permissao(UserAluno#user.remap_user_id, ClientId, Fields)]),
-				case find_by_user_and_client_com_permissao(UserAluno#user.remap_user_id, ClientId, Fields) of
-					{ok, []} -> 
-							io:format("Entrou neste record >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-							{ok, []};
-					{ok, RecordsAluno} -> 
-						io:format("RecordsAluno >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[RecordsAluno]),
-						TupleTypesAluno = [interno, tecnico, docente, discente, terceiros], 
-						ValueAluno = lists:nth(UserAluno#user.type + 1, TupleTypesAluno),
-						ListTypePerfilPermissonAluno = #{ ValueAluno => RecordsAluno},
-						{ok , ListTypePerfilPermissonAluno};
-					_ -> 
-						io:format("Entrou neste record 222 >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-						{ok,[]}
-				end;
-		_ -> {ok, []}
-	end,
-
 	find_by_cpf_and_client_com_perfil_permission_(User,T, ClientId, Fields, Result2).
 
 
+find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
+	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of 
+		{ok,[]} -> 
+			{ok,[]};
+		{ok, UserAlunoList} -> 			
+				UserAluno = ems_util:hd_or_empty(UserAlunoList),
+				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db],maps:get(<<"id">>, UserAluno)),
+				case find_by_user_and_client_com_permissao(UserAlunoById#user.remap_user_id, ClientId, Fields) of
+					{ok,[]} -> 
+						{ok,[]};
+					{ok, RecordsAluno} -> 			
+						TupleTypesAluno = [interno, tecnico, docente, discente, terceiros], 
+						ValueAluno = lists:nth(UserAlunoById#user.type + 1, TupleTypesAluno),
+						ListTypePerfilPermissonAluno = #{ ValueAluno => RecordsAluno},
+						{ok , ListTypePerfilPermissonAluno};
+					_ -> 
+						{ok,[]}
+				end;
+		_ -> {ok, []}
+	end.
+
 
 find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
-	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
+	case find_by_user_and_client_com_permissao(User, ClientId, Fields) of
 		{ok, Records} -> 
 			TupleTypes = [interno, tecnico, docente, discente, terceiros], 
 			Value = lists:nth(User#user.type + 1, TupleTypes),
@@ -181,17 +191,16 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 find_by_user_and_client_com_permissao(undefined, _, _) -> {ok, []};
 find_by_user_and_client_com_permissao(UserId, ClientId, Fields) -> 
 	case find_by_user_and_client(UserId, ClientId, Fields) of
+		{ok,[]} ->
+			{ok,[]};
 		{ok, ListaPerfil} ->
-			io:format("ListaPerfil >>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[ListaPerfil]),
 			find_by_user_and_client_com_permissao_(ListaPerfil, UserId, ClientId, []);
-		_ -> {ok, []}	
+		_ -> {ok,[]}	
 	end.
 
 find_by_user_and_client_com_permissao_([], _, _, Result) ->
-	io:format("H >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	{ok, Result};
 find_by_user_and_client_com_permissao_([H|T], UserId, ClientId, Result) -> 
-	io:format("H >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[H]),
 	PerfilId = maps:get(<<"perfil_id">>, H, <<>>),
 	case ems_db:find([user_permission_db, user_permission_fs], [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon], [{ client_id, "==", ClientId}, { perfil_id, "==", PerfilId}, {user_id, "==", UserId} ]) of
 		{ok, ListaPermissao} ->
@@ -200,12 +209,10 @@ find_by_user_and_client_com_permissao_([H|T], UserId, ClientId, Result) ->
 			Result2 =  [Item | Result],
 			find_by_user_and_client_com_permissao_(T, UserId, ClientId, Result2);
 		_ ->
-			io:format("H >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[H]),
 			find_by_user_and_client_com_permissao_(T, UserId, ClientId, Result)
 	end.
 	
 add_permission_in_perfil(Perfil, ListaPermissao) ->
-	 io:format("Entrou neste record 333 >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	 maps:put(<<"permissoes">>,ListaPermissao, Perfil).
 	 
 
