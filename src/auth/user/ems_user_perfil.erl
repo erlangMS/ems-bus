@@ -100,23 +100,17 @@ find_by_cpf_and_client_com_perfil_permission(<<>>, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) -> 
 	Value = case ems_client:find_by_id(ClientId) of
-		{ok, Client} ->
+		{ok, _Client} ->
 			 {ok, UserCpfList} = ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
 			 UserCpf = ems_util:hd_or_empty(UserCpfList),
 			 {ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
-			case ems_db:find(Client#client.scope, [id, remap_user_id, type], [{id, "==", User#user.id}]) of
-				{ok, ListIdsUserByCpfMap} -> 
-					find_by_cpf_and_client_com_perfil_permission_(UserCpfById, ListIdsUserByCpfMap, ClientId, Fields, []);
-				_ -> 
-					{ok, []}
-			end;
+			 find_by_cpf_and_client_com_perfil_permission_(UserCpfById, ClientId, Fields, []);
 		{error, enoent} -> {ok, []}
 	end,
 	{ok, Value}.
 
-find_by_cpf_and_client_com_perfil_permission_(_,[], _, _, Result) -> 
-	{ok, Result};
-find_by_cpf_and_client_com_perfil_permission_(User, [_|T], ClientId, Fields, Result) ->
+
+find_by_cpf_and_client_com_perfil_permission_(User, ClientId, Fields, Result) ->
 	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
 		{ok, Records} -> 
 			TupleTypes = [interno, tecnico, docente, discente, terceiros],  
@@ -133,7 +127,7 @@ find_by_cpf_and_client_com_perfil_permission_(User, [_|T], ClientId, Fields, Res
 		_ ->
 			Result2 = lists:appnd(Result, find_by_client_com_perfil_permission_aluno(User, ClientId, Fields))
 	end,
-	find_by_cpf_and_client_com_perfil_permission_(User,T, ClientId, Fields, Result2).
+	{ok, Result2}.
 
 
 find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
