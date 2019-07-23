@@ -104,13 +104,13 @@ find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) ->
 			 {ok, UserCpfList} = ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
 			 UserCpf = ems_util:hd_or_empty(UserCpfList),
 			 {ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
-			 find_by_cpf_and_client_com_perfil_permission_(UserCpfById, ClientId, Fields, []);
+			 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, []);
 		{error, enoent} -> {ok, []}
 	end,
 	{ok, Value}.
 
 
-find_by_cpf_and_client_com_perfil_permission_(User, ClientId, Fields, Result) ->
+find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(User, ClientId, Fields, Result) ->
 	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
 		{ok, Records} -> 
 			TupleTypes = [interno, tecnico, docente, discente, terceiros],  
@@ -122,7 +122,13 @@ find_by_cpf_and_client_com_perfil_permission_(User, ClientId, Fields, Result) ->
 					ListTypePerfilPermisson = #{ Value => Records},
 					Result3 = lists:append(Result, [ListTypePerfilPermisson]),
 					{ok, ValueAluno} = find_by_client_com_perfil_permission_aluno(User, ClientId, Fields),
-					Result2 = lists:append(Result3, [ValueAluno])
+					io:format("ValueAluno >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[ValueAluno]),
+					case ValueAluno of 
+						[] ->
+							Result2 = Result3;
+						_ ->
+							Result2 = lists:append(Result3, [ValueAluno])
+					end
 			end;
 		_ ->
 			Result2 = lists:appnd(Result, find_by_client_com_perfil_permission_aluno(User, ClientId, Fields))
