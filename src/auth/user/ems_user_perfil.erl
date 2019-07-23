@@ -122,7 +122,6 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(User, ClientId, Field
 					ListTypePerfilPermisson = #{ Value => Records},
 					Result3 = lists:append(Result, [ListTypePerfilPermisson]),
 					{ok, ValueAluno} = find_by_client_com_perfil_permission_aluno(User, ClientId, Fields),
-					io:format("ValueAluno >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[ValueAluno]),
 					case ValueAluno of 
 						[] ->
 							Result2 = Result3;
