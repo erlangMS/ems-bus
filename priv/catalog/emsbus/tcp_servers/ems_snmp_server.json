@@ -1,0 +1,31 @@
+[
+	{
+		"name": "ems_snmp_server",
+		"comment": "Catalog for ems_snmp_server",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service" : "ems_snmp_server:start",
+		"url": "/emsbus/ems_snmp_server",
+		"type": "KERNEL",
+		"lang" : "erlang",
+		"pool_size" : 1,
+		"pool_max" : 1,
+		"protocol" : "snmp",
+		"snmp_agent_config_path" : "{{PRIV_PATH}}/snmp/config",
+		"snmp_manager_config_path" : "{{PRIV_PATH}}/snmp/config",
+		"snmp_agent_db_path" : "{{PRIV_PATH}}/snmp/db",
+		"snmp_manager_db_path" : "{{PRIV_PATH}}/snmp/db",
+		"snmp_metric_verbosity" : "log",
+		"tcp_max_connections" : 100000,
+		"tcp_port": 4000,
+		"tcp_keepalive": true,
+		"tcp_nodelay": true,
+		"tcp_accept_timeout" : 12000,
+		"tcp_send_timeout" : 12000,
+		"tcp_backlog" : 1024,
+		"tcp_buffer" : 8000,
+		"tcp_delay_send" : false,		
+		"start_timeout" : 4000,
+		"enable" : false
+	}
+]

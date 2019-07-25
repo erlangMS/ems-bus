@@ -7,5 +7,10 @@
 	{
 		"catalog": "/emsbus/tcp_servers/ems_ldap_server", 
 		"file": "ems_ldap_server.json"
-	}
+	},
+	
+	{
+		"catalog": "/emsbus/tcp_servers/ems_snmp_server", 
+		"file": "ems_snmp_server.json"
+	}	
 ]
