@@ -15,59 +15,75 @@ execute(Request = #request{type = Type,
 						   host = Host,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
-		case Type of
-			<<"GET">> -> GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request);
-			<<"POST">> -> GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request);
-			_ -> GrantType = undefined
-		end,
-		Result = case GrantType of
-				<<"password">> -> 
-					ems_db:inc_counter(ems_oauth2_grant_type_password),
-					case ems_util:get_client_request_by_id_and_secret(Request) of
-						{ok, Client0} -> password_grant(Request, Client0);
-						_ -> password_grant(Request, undefined) % cliente é opcional no grant_type password
-					end;
-				<<"client_credentials">> ->
-					case ems_util:get_client_request_by_id_and_secret(Request) of
-						{ok, Client0} ->
-							case OAuth2AllowClientCredentials of
-								true ->
-									ems_db:inc_counter(ems_oauth2_grant_type_client_credentials),
-									client_credentials_grant(Request, Client0);
-								false ->
-									ems_db:inc_counter(ems_oauth2_client_credentials_denied),
-									{error, access_denied, eoauth2_client_credentials_denied}	
+		io:format("aqui1\n"),
+		PassportKey = ems_util:get_querystring(<<"passport">>, <<>>, Request),
+		io:format("aqui1.1 ~p\n", [PassportKey]),
+		case parse_passport_key(PassportKey) of
+			{ok, eno_passport_present} ->		
+				io:format("aqui2\n"),
+				case Type of
+					<<"GET">> -> GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request);
+					<<"POST">> -> GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request);
+					_ -> GrantType = undefined
+				end,
+
+				Result = case GrantType of
+						<<"password">> -> 
+							ems_db:inc_counter(ems_oauth2_grant_type_password),
+							case ems_util:get_client_request_by_id_and_secret(Request) of
+								{ok, Client0} -> password_grant(Request, Client0);
+								_ -> password_grant(Request, undefined) % cliente é opcional no grant_type password
 							end;
-						Error -> Error
-					end;
-				<<"token">> -> 
-					ems_db:inc_counter(ems_oauth2_grant_type_token),
-					case ems_util:get_client_request_by_id(Request) of
-						{ok, Client0} -> authorization_request(Request, Client0);
-						Error -> Error
-					end;
-				<<"code">> ->	
-					ems_db:inc_counter(ems_oauth2_grant_type_code),
-					case ems_util:get_client_request_by_id(Request) of
-						{ok, Client0} -> authorization_request(Request, Client0);	
-						Error -> Error
-					end;
-				<<"authorization_code">> ->	
-					ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
-					case ems_util:get_client_request_by_id_and_secret(Request) of
-						{ok, Client0} -> 
-							access_token_request(Request, Client0);
-						Error -> Error
-					end;
-				<<"refresh_token">> ->	
-					ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
-					case ems_util:get_client_request_by_id(Request) of
-						{ok, Client0} -> refresh_token_request(Request, Client0);	
-						Error -> Error
-					end;
-				 _ -> 
-					{error, access_denied, einvalid_grant_type}
-		end, 
+						<<"client_credentials">> ->
+							case ems_util:get_client_request_by_id_and_secret(Request) of
+								{ok, Client0} ->
+									case OAuth2AllowClientCredentials of
+										true ->
+											ems_db:inc_counter(ems_oauth2_grant_type_client_credentials),
+											client_credentials_grant(Request, Client0);
+										false ->
+											ems_db:inc_counter(ems_oauth2_client_credentials_denied),
+											{error, access_denied, eoauth2_client_credentials_denied}	
+									end;
+								Error -> Error
+							end;
+						<<"token">> -> 
+							ems_db:inc_counter(ems_oauth2_grant_type_token),
+							case ems_util:get_client_request_by_id(Request) of
+								{ok, Client0} -> authorization_request(Request, Client0);
+								Error -> Error
+							end;
+						<<"code">> ->	
+							ems_db:inc_counter(ems_oauth2_grant_type_code),
+							case ems_util:get_client_request_by_id(Request) of
+								{ok, Client0} -> authorization_request(Request, Client0);	
+								Error -> Error
+							end;
+						<<"authorization_code">> ->	
+							ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
+							case ems_util:get_client_request_by_id_and_secret(Request) of
+								{ok, Client0} -> 
+									access_token_request(Request, Client0);
+								Error -> Error
+							end;
+						<<"refresh_token">> ->	
+							ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
+							case ems_util:get_client_request_by_id(Request) of
+								{ok, Client0} -> refresh_token_request(Request, Client0);	
+								Error -> Error
+							end;
+						 _ -> 
+							{error, access_denied, einvalid_grant_type}
+				end; 
+			{ok, Client0, User0} ->
+				io:format("aqui3\n"),
+				GrantType = <<"authorization_code">>,
+				Result = password_grant_passport(Request, PassportKey, Client0, User0);		
+			{error, ReasonPassport} ->
+				GrantType = <<"authorization_code">>,
+				Result = {error, access_denied, ReasonPassport}
+		end,
+		io:format("aqui4\n"),
 		case Result of
 			{ok, [ {<<"access_token">>,AccessToken},
 				   {<<"expires_in">>, ExpireIn},
@@ -298,6 +314,26 @@ password_grant(Request, Client) ->
 		_:_ -> {error, access_denied, eparse_password_grant_exception}
 	end.
 
+
+-spec password_grant_passport(#request{}, non_neg_integer(), #client{}, #user{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
+password_grant_passport(Request, PassportKey, Client, User) -> 
+	try
+		Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
+		case Client == undefined of
+			true -> 
+				Authz = oauth2:authorize_password(User, Scope, []),
+				ems_logger:info("ems_oauth2_authorize autenticate passport ~p user ~p.", [PassportKey, 
+																						  integer_to_list(User#user.id) ++ " - " ++ User#user.name]);
+			false -> 
+				Authz = oauth2:authorize_password(User, Client, Scope, []),
+				ems_logger:info("ems_oauth2_authorize autenticate passport ~p client ~p  user ~p.", [PassportKey, 
+																									 integer_to_list(Client#client.id) ++ " - " ++ Client#client.name, 
+																									 integer_to_list(User#user.id) ++ " - " ++ User#user.name])
+		end,
+		issue_token(Authz, Client)
+	catch
+		_:_ -> {error, access_denied, eparse_password_grant_password_exception}
+	end.
 	
 %% Verifica a URI do Cliente e redireciona para a página de autorização - Implicit Grant e Authorization Code Grant
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html
@@ -443,5 +479,15 @@ persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, c
 		false -> ok
 	end,
 	ok.
+
+
+parse_passport_key(<<>>) -> {ok, eno_passport_present};
+parse_passport_key(undefined) -> {ok, eno_passport_present};
+parse_passport_key(PassportKey) ->
+	{ok, User} = ems_user:find_by_login("evertonagilar"),
+	{ok, Client} = ems_client:find_by_name("sae"),
+	
+
+	{ok, Client, User}.
 
 

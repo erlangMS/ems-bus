@@ -58,16 +58,22 @@
 				"name": "secret",
 				"type": "string",
 				"comment": ""
-				},
+			},
+			
 			{
 				"name": "code",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "state",
 				"type": "string",
 				"comment": ""
+			},
+			{
+				"name": "passport",
+				"type": "string",
+				"comment": "The passport"
 			}
 		],
 		"lang" : "erlang"
@@ -129,17 +135,22 @@
 				"name": "code",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "state",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "refresh_token",
 				"type": "string",
 				"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
-				}
+			},
+			{
+				"name": "passport",
+				"type": "string",
+				"comment": "The passport"
+			}
 		],
 		"lang" : "erlang"
 	},
@@ -184,7 +195,7 @@
 				"name": "code",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "state",
 				"type": "string",
@@ -215,7 +226,7 @@
 	
 	{
 		"name" : "/resource",
-		"comment": "Get resourge",
+		"comment": "Get resource",
 		"owner": "auth",
 		"version": "1.0.0",
 		"service" : "ems_oauth2_recurso:execute",
