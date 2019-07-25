@@ -241,6 +241,7 @@ parse_cat_path_search(CatPathSearch, StaticFilePath, StaticFilePathProbing) ->
 
 	% Adiciona o catálogo do barramento se necessário
 	case lists:keymember(<<"ems-bus">>, 1, CatPathSearch3) orelse 
+		 lists:keymember(<<"ems_bus">>, 1, CatPathSearch3) orelse 
 		 lists:keymember(<<"emsbus">>, 1, CatPathSearch3) of
 			true -> CatPathSearch3;
 			false -> [{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch3]
@@ -362,10 +363,9 @@ parse_config(Json, Filename) ->
 		put(parse_step, database_path),
 		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
 		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
-		file:make_dir(DatabasePath),
 
 		put(parse_step, database_path_check),
-		case filelib:is_dir(DatabasePath) andalso ems_util:ensure_dir_writable(DatabasePath) == ok of
+		case ems_util:ensure_dir_writable(DatabasePath) == ok of
 			true -> ems_logger:format_info("ems_config using database_path \033[01;34m\"~s\"\033[0m.", [DatabasePath]);
 			false ->
 				ems_logger:format_error("ems_config cannot initialize read-only database path \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
@@ -375,10 +375,9 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_file_path),
 		LogFilePath0 = binary_to_list(maps:get(<<"log_file_path">>, Json, list_to_binary(filename:join(PrivPath, "log")))),
 		LogFilePath = ems_util:parse_file_name_path(LogFilePath0, [], undefined),
-		file:make_dir(LogFilePath),
 		
 		put(parse_step, log_file_path_check),
-		case filelib:is_dir(LogFilePath) andalso ems_util:ensure_dir_writable(LogFilePath) == ok of
+		case ems_util:ensure_dir_writable(LogFilePath) == ok of
 			true -> ems_logger:format_info("ems_config using log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]);
 			false ->
 				ems_logger:format_error("ems_config cannot initialize read-only log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]),
@@ -389,10 +388,11 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_file_archive_path),
 		LogFileArchivePath0 = binary_to_list(maps:get(<<"log_file_archive_path">>, Json, list_to_binary(filename:join(PrivPath, "archive_log")))),
 		LogFileArchivePath = ems_util:parse_file_name_path(LogFileArchivePath0, [], undefined),
-		file:make_dir(LogFileArchivePath),
+		ems_util:ensure_dir_writable(LogFileArchivePath),
+	
 		
 		put(parse_step, log_file_archive_path_check),
-		case filelib:is_dir(LogFileArchivePath) andalso ems_util:ensure_dir_writable(LogFileArchivePath) == ok of
+		case ems_util:ensure_dir_writable(LogFileArchivePath) == ok of
 			true -> ems_logger:format_info("ems_config using log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]);
 			false ->
 				ems_logger:format_error("ems_config cannot initialize read-only log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]),
