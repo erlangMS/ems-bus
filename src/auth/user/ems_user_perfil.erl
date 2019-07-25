@@ -146,7 +146,7 @@ find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
 			{ok,[]};
 		{ok, UserAlunoList} -> 			
 				UserAluno = ems_util:hd_or_empty(UserAlunoList),
-				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db],maps:get(<<"id">>, UserAluno)),
+				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db], maps:get(<<"id">>, UserAluno)),
 				case find_by_user_and_client_com_permissao(UserAlunoById#user.remap_user_id, ClientId, Fields) of
 					{ok,[]} -> 
 						{ok, #{}};
@@ -161,13 +161,6 @@ find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
 
 
 find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
-	case find_by_user_and_client_com_permissao(User, ClientId, Fields) of
-		{ok, Records} -> 
-			ListTypePerfilPermisson = change_user_type_to_atom(User#user.type, Records),
-			{ok , ListTypePerfilPermisson};
-		_ -> {ok, #{}}
-	end,
-
 	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
 		{ok, []} -> 
 			{ok, #{}};
@@ -182,7 +175,6 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 				end;
 		_ -> {ok, #{}}
 	end.
-
 
 
 change_user_type_to_atom(UserType, RecordsAluno) ->
