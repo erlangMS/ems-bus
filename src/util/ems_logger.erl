@@ -459,6 +459,7 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 				case FileSize > 0 of
 					true ->
 						% Primeira vamos verificar se a pasta onde será arquivado pode ser criada ou já existe
+						ems_util:ensure_dir_writable(LogFileArchivePath),
 						case ems_util:ensure_dir_writable(LogFileArchivePath) of
 							ok -> 
 								MakeDir = true;
