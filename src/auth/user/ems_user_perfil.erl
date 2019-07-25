@@ -112,14 +112,19 @@ find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) ->
 
 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(User, ClientId, Fields, Result) ->
 	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
-		{ok, Records} -> 
-			TupleTypes = [interno, tecnico, docente, discente, terceiros],  
-			Value = lists:nth(User#user.type + 1, TupleTypes),
-			case Value of 
+		{ok, Records} -> 		
+			case User#user.type of 
+				0 -> Type =  interno;
+				1 -> Type =tecnico;
+				2 -> Type = docente;
+				3 -> Type = discente;
+				4 -> Type = terceiros
+			end,
+			case Type of 
 				discente ->
 					{ok, Result2} = find_by_client_com_perfil_permission_aluno(User, ClientId, Fields);
 				_ ->
-					ListTypePerfilPermisson = #{ Value => Records},
+					ListTypePerfilPermisson = change_user_type_to_atom(User#user.type, Records),
 					Result3 = lists:append(Result, [ListTypePerfilPermisson]),
 					{ok, ValueAluno} = find_by_client_com_perfil_permission_aluno(User, ClientId, Fields),
 					case ValueAluno of 
@@ -144,47 +149,50 @@ find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
 				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db],maps:get(<<"id">>, UserAluno)),
 				case find_by_user_and_client_com_permissao(UserAlunoById#user.remap_user_id, ClientId, Fields) of
 					{ok,[]} -> 
-						{ok,[]};
+						{ok, #{}};
 					{ok, RecordsAluno} -> 			
-						TupleTypesAluno = [interno, tecnico, docente, discente, terceiros], 
-						ValueAluno = lists:nth(UserAlunoById#user.type + 1, TupleTypesAluno),
-						ListTypePerfilPermissonAluno = #{ ValueAluno => RecordsAluno},
+						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, RecordsAluno),
 						{ok , ListTypePerfilPermissonAluno};
 					_ -> 
-						{ok,[]}
+						{ok, #{}}
 				end;
-		_ -> {ok, []}
+		_ -> {ok, #{}}
 	end.
 
 
 find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 	case find_by_user_and_client_com_permissao(User, ClientId, Fields) of
 		{ok, Records} -> 
-			TupleTypes = [interno, tecnico, docente, discente, terceiros], 
-			Value = lists:nth(User#user.type + 1, TupleTypes),
-			ListTypePerfilPermisson = #{ Value => Records},
+			ListTypePerfilPermisson = change_user_type_to_atom(User#user.type, Records),
 			{ok , ListTypePerfilPermisson};
-		_ -> {ok,[]}
+		_ -> {ok, #{}}
 	end,
 
 	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
 		{ok, []} -> 
-			{ok, []};
+			{ok, #{}};
 		{ok, UserAluno} -> 
 				case find_by_user_and_client_com_permissao(UserAluno#user.remap_user_id, ClientId, Fields) of
 					{ok, []} -> 
 							{ok, []};
 					{ok, RecordsAluno} -> 
-						TupleTypesAluno = [interno, tecnico, docente, discente, terceiros], 
-						ValueAluno = lists:nth(UserAluno#user.type + 1, TupleTypesAluno),
-						ListTypePerfilPermissonAluno = #{ ValueAluno => RecordsAluno},
+						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, RecordsAluno),
 						{ok , ListTypePerfilPermissonAluno};
-					_ -> {ok,[]}
+					_ -> {ok, #{}}
 				end;
-		_ -> {ok, []}
+		_ -> {ok, #{}}
 	end.
 
 
+
+change_user_type_to_atom(UserType, RecordsAluno) ->
+	case UserType of 
+		0 -> #{interno => RecordsAluno};
+		1 -> #{tecnico => RecordsAluno};
+		2 -> #{docente => RecordsAluno};
+		3 -> #{discente => RecordsAluno};
+		4 -> #{terceiros => RecordsAluno}
+	end.
 
 -spec find_by_user_and_client_com_permissao(non_neg_integer(), non_neg_integer(), list()) -> list(map()).
 find_by_user_and_client_com_permissao(undefined, _, _) -> {ok, []};
