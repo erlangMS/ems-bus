@@ -527,7 +527,8 @@
 							 ctrl_insert :: binary(),									%% 36 - ctrl_insert				-> Data que foi inserido no banco mnesia
 							 ctrl_update :: binary(), 									%% 37 - ctrl_update				-> Data que foi atualiado no banco mnesia			
 							 ctrl_modified :: binary(),									%% 38 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-							 ctrl_hash :: non_neg_integer()								%% 39 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+							 ctrl_hash :: non_neg_integer(),							%% 39 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+							 ds_name :: binary()
 							}).
 
 -define(SERVICE_DATASOURCE_DESCRIPTOR, {
@@ -570,7 +571,8 @@
 			   binary_type, 								%% 36 - ctrl_insert
 			   binary_type, 								%% 37 - ctrl_update
 			   binary_type,									%% 38 - ctrl_modified
-			   non_neg_integer_type							%% 39 - ctrl_hash
+			   non_neg_integer_type,						%% 39 - ctrl_hash
+			   binary_type 									%% 40 - ds_name
 		}).
 
 

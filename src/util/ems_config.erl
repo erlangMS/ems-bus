@@ -269,7 +269,7 @@ parse_static_file_path(StaticFilePathMap) ->
 parse_datasources_([], _, _, Result) -> maps:from_list(Result);
 parse_datasources_([DsName|T], Datasources, Conf, Result) ->
 	M = maps:get(DsName, Datasources),
-	Ds = ems_db:create_datasource_from_map(M, undefined, Conf),
+	Ds = ems_db:create_datasource_from_map(M, undefined, Conf, DsName),
 	parse_datasources_(T, Datasources, Conf, [{DsName, Ds} | Result]).
 								
 parse_datasources(DatasourcesMap, Variables) ->

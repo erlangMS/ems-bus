@@ -88,6 +88,11 @@ init(_Service = #service{properties = Props}) ->
 	SqlSelectAccessToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_access_token">>, Props, <<>>))),
 	ems_db:set_param(sql_persist_access_token, SqlPersistAccessToken),
 	ems_db:set_param(sql_select_access_token, SqlSelectAccessToken),
+	
+	DatasourceSelectPassportCode = maps:get(<<"datasource_select_passport_code">>, Props, <<>>),
+	SqlSelectPassportCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_passport_code">>, Props, <<>>))),
+	ems_db:set_param(datasource_select_passport_code, DatasourceSelectPassportCode),
+	ems_db:set_param(sql_select_passport_code, SqlSelectPassportCode),
 
 
 	NewState = #state{},
