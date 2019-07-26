@@ -71,35 +71,39 @@ stop() -> ok.
  
 init(_Service = #service{properties = Props}) ->
     Conf = ems_config:getConfig(),
+    
     application:set_env(oauth2, backend, ems_oauth2_backend),
 	application:set_env(oauth2, expiry_time, Conf#config.oauth2_refresh_token),
 
-	DatasourcePersistAccessCode = maps:get(<<"datasource_persist_access_code">>, Props, <<>>),
+	PersistTokenSGBDEnabled = ems_util:parse_bool(maps:get(<<"persist_token_sgbd_enabled">>, Props, false)),
+	ems_db:set_param(persist_token_sgbd_enabled, PersistTokenSGBDEnabled),
+
+	DatasourcePersistSGBD = maps:get(<<"datasource_persist_token_sgbd">>, Props, <<>>),
+	ems_db:set_param(datasource_persist_token_sgbd, DatasourcePersistSGBD),
+
 	SqlPersistAccessCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist_access_code">>, Props, <<>>))),
 	SqlSelectAccessCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_access_code">>, Props, <<>>))),
-	ems_db:set_param(datasource_persist_access_code, DatasourcePersistAccessCode),
 	ems_db:set_param(sql_persist_access_code, SqlPersistAccessCode),
 	ems_db:set_param(sql_select_access_code, SqlSelectAccessCode),
 
-	DatasourcePersistRefreshToken = maps:get(<<"datasource_persist_refresh_token">>, Props, <<>>),
 	SqlPersistRefreshToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist_refresh_token">>, Props, <<>>))),
 	SqlSelectRefreshToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_refresh_token">>, Props, <<>>))),
-	ems_db:set_param(datasource_persist_refresh_token, DatasourcePersistRefreshToken),
 	ems_db:set_param(sql_persist_refresh_token, SqlPersistRefreshToken),
 	ems_db:set_param(sql_select_refresh_token, SqlSelectRefreshToken),
 
-	DatasourcePersistAccessToken = maps:get(<<"datasource_persist_access_token">>, Props, <<>>),
 	SqlPersistAccessToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist_access_token">>, Props, <<>>))),
 	SqlSelectAccessToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_access_token">>, Props, <<>>))),
-	ems_db:set_param(datasource_persist_access_token, DatasourcePersistAccessToken),
 	ems_db:set_param(sql_persist_access_token, SqlPersistAccessToken),
 	ems_db:set_param(sql_select_access_token, SqlSelectAccessToken),
 	
-	DatasourceSelectPassportCode = maps:get(<<"datasource_select_passport_code">>, Props, <<>>),
+	PassportCodeEnabled = ems_util:parse_bool(maps:get(<<"passport_code_enabled">>, Props, false)),
+	DatasourcePassportCode = maps:get(<<"datasource_passport_code">>, Props, <<>>),
 	SqlSelectPassportCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_passport_code">>, Props, <<>>))),
-	ems_db:set_param(datasource_select_passport_code, DatasourceSelectPassportCode),
+	SqlDisablePassportCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_disable_passport_code">>, Props, <<>>))),
+	ems_db:set_param(passport_code_enabled, PassportCodeEnabled),
+	ems_db:set_param(datasource_passport_code, DatasourcePassportCode),
 	ems_db:set_param(sql_select_passport_code, SqlSelectPassportCode),
-
+	ems_db:set_param(sql_disable_passport_code, SqlDisablePassportCode),
 
 	NewState = #state{},
     {ok, NewState}. 
@@ -159,25 +163,29 @@ associate_access_code(AccessCode, Context, _AppContext) ->
     {ok, Context}.
 
 associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = Context}) ->
-	SqlPersist = ems_db:get_param(sql_persist_access_code),
-	case SqlPersist =/= "" of
+	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+	case PersistTokenSGBDEnabled of
 		true ->
-			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-			case ems_odbc_pool:get_connection(Ds) of
-				{ok, Ds2} ->
-					Context1 = term_to_binary(Context),
-					Context2 = base64:encode(Context1),
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
-								  {{sql_varchar, 4000}, [binary_to_list(Context2)]}
-								],
-					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-					ems_odbc_pool:release_connection(Ds2);
-				{error, Reason} ->
-					ems_logger:error("ems_oauth2_backend associate_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason])
+			SqlPersist = ems_db:get_param(sql_persist_access_code),
+			case SqlPersist =/= "" of
+				true ->
+					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+					case ems_odbc_pool:get_connection(Ds) of
+						{ok, Ds2} ->
+							Context1 = term_to_binary(Context),
+							Context2 = base64:encode(Context1),
+							ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
+										  {{sql_varchar, 4000}, [binary_to_list(Context2)]}
+										],
+							ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+							ems_odbc_pool:release_connection(Ds2);
+						{error, Reason} ->
+							ems_logger:error("ems_oauth2_backend associate_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason])
+					end;
+				false -> ok
 			end;
 		false -> ok
-	end,
-	ok.
+	end.
 
 
 associate_refresh_token(RefreshToken, Context, _) ->
@@ -187,25 +195,30 @@ associate_refresh_token(RefreshToken, Context, _) ->
     {ok, Context}.
 
 associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, context = Context}) ->
-	SqlPersist = ems_db:get_param(sql_persist_refresh_token),
-	case SqlPersist =/= "" of
+	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+	case PersistTokenSGBDEnabled of
 		true ->
-			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-			case ems_odbc_pool:get_connection(Ds) of
-				{ok, Ds2} ->
-					Context1 = term_to_binary(Context),
-					Context2 = base64:encode(Context1),
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
-								  {{sql_varchar, 4000}, [binary_to_list(Context2)]}
-								],
-					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-					ems_odbc_pool:release_connection(Ds2);
-				{error, Reason} ->
-					ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+			SqlPersist = ems_db:get_param(sql_persist_refresh_token),
+			case SqlPersist =/= "" of
+				true ->
+					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+					case ems_odbc_pool:get_connection(Ds) of
+						{ok, Ds2} ->
+							Context1 = term_to_binary(Context),
+							Context2 = base64:encode(Context1),
+							ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
+										  {{sql_varchar, 4000}, [binary_to_list(Context2)]}
+										],
+							ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+							ems_odbc_pool:release_connection(Ds2);
+						{error, Reason} ->
+							ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+					end,
+					ok;
+				false -> ok
 			end;
 		false -> ok
-	end,
-	ok.
+	end.
 
 
 associate_access_token(AccessToken, Context, _) ->
@@ -215,25 +228,30 @@ associate_access_token(AccessToken, Context, _) ->
     {ok, Context}.
 
 associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context = Context}) ->
-	SqlPersist = ems_db:get_param(sql_persist_access_token),
-	case SqlPersist =/= "" of
+	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+	case PersistTokenSGBDEnabled of
 		true ->
-			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-			case ems_odbc_pool:get_connection(Ds) of
-				{ok, Ds2} ->
-					Context1 = term_to_binary(Context),
-					Context2 = base64:encode(Context1),
-					ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
-								  {{sql_varchar, 4000}, [binary_to_list(Context2)]}
-								],
-					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-					ems_odbc_pool:release_connection(Ds2);
-				{error, Reason} ->
-					ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+			SqlPersist = ems_db:get_param(sql_persist_access_token),
+			case SqlPersist =/= "" of
+				true ->
+					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+					case ems_odbc_pool:get_connection(Ds) of
+						{ok, Ds2} ->
+							Context1 = term_to_binary(Context),
+							Context2 = base64:encode(Context1),
+							ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
+										  {{sql_varchar, 4000}, [binary_to_list(Context2)]}
+										],
+							ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+							ems_odbc_pool:release_connection(Ds2);
+						{error, Reason} ->
+							ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+					end,
+					ok;
+				false -> ok
 			end;
 		false -> ok
-	end,
-	ok.
+	end.
 
 
 

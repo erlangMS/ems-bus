@@ -15,23 +15,20 @@ execute(Request = #request{type = Type,
 						   host = Host,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
-		io:format("aqui1\n"),
-		PassportCode = ems_util:get_querystring(<<"passport">>, <<>>, Request),
-		io:format("aqui1.1 ~p\n", [PassportCode]),
-		case parse_passport_code(PassportCode) of
-			{ok, eno_passport_present} ->		
-				io:format("aqui2\n"),
+		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
+		case parse_passport_code(PassportCodeBinBase64) of
+			{error, eno_passport_present} ->		
 				case Type of
 					<<"GET">> -> GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request);
 					<<"POST">> -> GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request);
 					_ -> GrantType = undefined
 				end,
-
 				Result = case GrantType of
 						<<"password">> -> 
-							ems_db:inc_counter(ems_oauth2_grant_type_password),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
-								{ok, Client0} -> password_grant(Request, Client0);
+								{ok, Client0} -> 
+									ems_db:inc_counter(ems_oauth2_grant_type_password),
+									password_grant(Request, Client0);
 								_ -> password_grant(Request, undefined) % cliente é opcional no grant_type password
 							end;
 						<<"client_credentials">> ->
@@ -48,42 +45,41 @@ execute(Request = #request{type = Type,
 								Error -> Error
 							end;
 						<<"token">> -> 
-							ems_db:inc_counter(ems_oauth2_grant_type_token),
 							case ems_util:get_client_request_by_id(Request) of
-								{ok, Client0} -> authorization_request(Request, Client0);
+								{ok, Client0} -> 
+									ems_db:inc_counter(ems_oauth2_grant_type_token),
+									authorization_request(Request, Client0);
 								Error -> Error
 							end;
 						<<"code">> ->	
-							ems_db:inc_counter(ems_oauth2_grant_type_code),
 							case ems_util:get_client_request_by_id(Request) of
-								{ok, Client0} -> authorization_request(Request, Client0);	
+								{ok, Client0} -> 
+									ems_db:inc_counter(ems_oauth2_grant_type_code),
+									authorization_request(Request, Client0);	
 								Error -> Error
 							end;
 						<<"authorization_code">> ->	
-							ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
+									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
 									access_token_request(Request, Client0);
 								Error -> Error
 							end;
 						<<"refresh_token">> ->	
-							ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
 							case ems_util:get_client_request_by_id(Request) of
-								{ok, Client0} -> refresh_token_request(Request, Client0);	
+								{ok, Client0} -> 
+									ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
+									refresh_token_request(Request, Client0);	
 								Error -> Error
 							end;
 						 _ -> 
 							{error, access_denied, einvalid_grant_type}
 				end; 
-			{ok, Client0, User0} ->
-				io:format("aqui3\n"),
+			{ok, PassportCodeInt, Client0, User0} ->
 				GrantType = <<"authorization_code">>,
-				Result = password_grant_passport(Request, PassportCode, Client0, User0);		
-			{error, ReasonPassport} ->
-				GrantType = <<"authorization_code">>,
-				Result = {error, access_denied, ReasonPassport}
+				ems_db:inc_counter(ems_oauth2_passport),
+				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0)	
 		end,
-		io:format("aqui4\n"),
 		case Result of
 			{ok, [ {<<"access_token">>,AccessToken},
 				   {<<"expires_in">>, ExpireIn},
@@ -315,24 +311,24 @@ password_grant(Request, Client) ->
 	end.
 
 
--spec password_grant_passport(#request{}, non_neg_integer(), #client{}, #user{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
-password_grant_passport(Request, PassportCode, Client, User) -> 
+-spec password_grant_passport(#request{}, string(), non_neg_integer(), #client{}, #user{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
+password_grant_passport(Request, PassportCodeBase64, PassportCodeInt, Client, User) -> 
 	try
 		Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
 		case Client == undefined of
 			true -> 
 				Authz = oauth2:authorize_password(User, Scope, []),
-				ems_logger:info("ems_oauth2_authorize autenticate passport ~p user ~p.", [PassportCode, 
+				ems_logger:info("ems_oauth2_authorize autenticate passport ~s (~p) user ~p.", [PassportCodeBase64, PassportCodeInt,
 																						  integer_to_list(User#user.id) ++ " - " ++ User#user.name]);
 			false -> 
 				Authz = oauth2:authorize_password(User, Client, Scope, []),
-				ems_logger:info("ems_oauth2_authorize autenticate passport ~p client ~p  user ~p.", [PassportCode, 
+				ems_logger:info("ems_oauth2_authorize autenticate passport ~s (~p) client ~p  user ~p.", [PassportCodeBase64, PassportCodeInt,
 																									 integer_to_list(Client#client.id) ++ " - " ++ Client#client.name, 
 																									 integer_to_list(User#user.id) ++ " - " ++ User#user.name])
 		end,
 		issue_token(Authz, Client)
 	catch
-		_:_ -> {error, access_denied, eparse_password_grant_password_exception}
+		_:_ -> {error, access_denied, eparse_password_grant_pass_exception}
 	end.
 	
 %% Verifica a URI do Cliente e redireciona para a página de autorização - Implicit Grant e Authorization Code Grant
@@ -481,68 +477,104 @@ persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, c
 	ok.
 
 
-parse_passport_code(<<>>) -> {ok, eno_passport_present};
-parse_passport_code(undefined) -> {ok, eno_passport_present};
+parse_passport_code(<<>>) -> {error, eno_passport_present};
+parse_passport_code(undefined) -> {error, eno_passport_present};
 parse_passport_code(PassportCodeBinBase64) ->
-	PassportCodeBinBase64Str = binary_to_list(PassportCodeBinBase64),
+	PassportCodeBinBase64Str = ems_util:remove_quoted_str(binary_to_list(PassportCodeBinBase64)),
 	PassportCodeStr = base64:decode_to_string(PassportCodeBinBase64Str),
 	PassportCodeStr2 = ems_util:str_trim(PassportCodeStr),
 	PassportCodeInt = ems_util:list_to_integer_def(PassportCodeStr2, 0),
 	case PassportCodeInt > 0 andalso PassportCodeInt =< 9999999999 of
 		true -> 
-			case select_password_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
-				{ok, UserId, ClientId, _DtCreated, _Active} ->
+			case select_passport_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
+				{ok, ClientId, UserId, _DtCreated} ->
 					case ems_client:find_by_id(ClientId) of
 						{ok, Client} ->
 							case ems_user:find_by_id(UserId) of
 								{ok, User} -> 
-									{ok, Client, User};
+									{ok, PassportCodeInt, Client, User};
 								_ -> 
 									ems_logger:error("ems_oauth2_authorize parse_passport_code failed to find user of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
-									{error, einvalid_user_passport}
+									{error, eno_passport_present}
 							end;
 						_ -> 
 							ms_logger:error("ems_oauth2_authorize parse_passport_code failed to find client of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
-							{error, einvalid_client_passport}
+							{error, eno_passport_present}
 					end;
-				{error, Reason} -> {error, Reason}
+				_ -> 
+					{error, eno_passport_present}
 			end;
 		false ->
-			ems_logger:error("ems_oauth2_authorize parse_passport_code failed to parse invalid passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
-			{error, epassport_code_is_not_number}
+			ems_logger:error("ems_oauth2_authorize parse_passport_code failed to parse invalid numeric passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
+			{error, eno_passport_present}
 	end.
 
 	
-
-
-select_password_code_sgbd(PassportCodeBinBase64, PassportCode) ->
-	DatasourceSelectPassportCode = ems_db:get_param(datasource_select_passport_code),
-	SqlSelectPassportCode = ems_db:get_param(sql_select_passport_code),
-	case SqlSelectPassportCode =/= "" andalso DatasourceSelectPassportCode =/= "" of
+select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
+	PassportEnabled = ems_db:get_param(passport_code_enabled),
+	case PassportEnabled of
 		true ->
-			case ems_db:find(service_datasource, [], [{ds_name, "==", DatasourceSelectPassportCode}]) of
+			DatasourcePassportCode = ems_db:get_param(datasource_passport_code),
+			SqlSelectPassportCode = ems_db:get_param(sql_select_passport_code),
+			case SqlSelectPassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
+				true ->
+					case ems_db:find_first(service_datasource, [], [{ds_name, "==", DatasourcePassportCode}]) of
+						{ok, Ds} ->
+							case ems_odbc_pool:get_connection(Ds) of
+								{ok, Ds2} ->
+									ParamsSql = [{sql_integer, [PassportCodeInt]}],
+									case ems_odbc_pool:param_query(Ds2, SqlSelectPassportCode, ParamsSql) of
+										{selected, _Fields, [{ClientId, UserId, DtCreated}]} ->
+											disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt),
+											Result = {ok, ClientId, UserId, DtCreated};
+										{_, _, []} -> 
+											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd does not find passport ~s (~p). Reason: passport inexistent or disabled.", [PassportCodeBinBase64, PassportCodeInt]),
+											Result = {error, einexistent_passport_code};
+										{error, Reason2} ->
+											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd failed to query select for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason2]),
+											Result = {error, eparam_query_error_passport_code} 
+									end,
+									ems_odbc_pool:release_connection(Ds2),
+									Result;
+								{error, Reason} ->
+									ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd failed to get database connection for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason]),
+									{error, einvalid_database_connection_passport} 
+							end;
+						_ ->
+							ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd failed to get database datasource for passport ~s (~p).", [PassportCodeBinBase64, PassportCodeInt]),
+							{error, einvalid_database_datasource_passport} 
+					end;
+				false -> 
+					ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd failed to get config on catalog ems_oauth2_backend for passport ~s (~p).", [PassportCodeBinBase64, PassportCodeInt]),
+					{error, einexistent_config_passport}
+			end;
+		false ->
+			ems_logger:error("ems_oauth2_authorize passport autenticate is disabled on catalog ems_oauth2_backend."),
+			{error, epassport_autenticate_disabled}
+	end.
+
+
+disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
+	DatasourcePassportCode = ems_db:get_param(datasource_select_passport_code),
+	SqlDisablePassportCode = ems_db:get_param(sql_disable_passport_code),
+	case SqlDisablePassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
+		true ->
+			case ems_db:find_first(service_datasource, [], [{ds_name, "==", DatasourcePassportCode}]) of
 				{ok, Ds} ->
 					case ems_odbc_pool:get_connection(Ds) of
 						{ok, Ds2} ->
-							ParamsSql = [{sql_integer, [PassportCode]}],
-							case ems_odbc_pool:param_query(Ds2, SqlSelectPassportCode, ParamsSql) of
-								{selected, _Fields, [{_Id, UserId, ClientId, DtCreated, Active}]} ->
-									Result = {ok, ClientId, UserId, DtCreated, Active};
-								{error, Reason2} ->
-									ems_logger:error("ems_oauth2_authorize select_password_code_sgbd failed to query data for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCode, Reason2]),
-									Result = {error, einvalid_passport_code} 
-							end,
+							ParamsSql = [{sql_integer, [PassportCodeInt]}],
+							ems_odbc_pool:param_query(Ds2, SqlDisablePassportCode, ParamsSql),
 							ems_odbc_pool:release_connection(Ds2),
-							Result;
+							ok;
 						{error, Reason} ->
-							ems_logger:error("ems_oauth2_authorize select_password_code_sgbd failed to get database connection for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCode, Reason]),
+							ems_logger:error("ems_oauth2_authorize disable_passport_code_sgbd failed to get database connection for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason]),
 							{error, einvalid_database_connection_passport} 
 					end;
 				_ ->
-					ems_logger:error("ems_oauth2_authorize select_password_code_sgbd failed to get database datasource for passport ~s (~p).", [PassportCodeBinBase64, PassportCode]),
+					ems_logger:error("ems_oauth2_authorize disable_passport_code_sgbd failed to get database datasource for passport ~s (~p).", [PassportCodeBinBase64, PassportCodeInt]),
 					{error, einvalid_database_datasource_passport} 
 			end;
 		false -> 
-			ems_logger:error("ems_oauth2_authorize select_password_code_sgbd failed to get config on catalog ems_oauth2_backend for passport ~s (~p).", [PassportCodeBinBase64, PassportCode]),
-			{error, einexistent_config_passport}
+			ok   %% desabilitar o passport eh opcional
 	end.

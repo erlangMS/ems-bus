@@ -654,7 +654,8 @@ remove_quoted_str("\"" ++ Str) ->
 	case lists:reverse(Str) of
 		"\"" ++ Str2 -> lists:reverse(Str2);
 		_ -> Str
-	end.
+	end;
+remove_quoted_str(Str) -> Str.
 
 
 %% @doc Boolean indicando se DateTime ocorreu no período (min, hour, day, week, year)
