@@ -74,18 +74,24 @@ init(_Service = #service{properties = Props}) ->
     application:set_env(oauth2, backend, ems_oauth2_backend),
 	application:set_env(oauth2, expiry_time, Conf#config.oauth2_refresh_token),
 
+	DatasourcePersistAccessCode = maps:get(<<"datasource_persist_access_code">>, Props, <<>>),
 	SqlPersistAccessCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist_access_code">>, Props, <<>>))),
 	SqlSelectAccessCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_access_code">>, Props, <<>>))),
+	ems_db:set_param(datasource_persist_access_code, DatasourcePersistAccessCode),
 	ems_db:set_param(sql_persist_access_code, SqlPersistAccessCode),
 	ems_db:set_param(sql_select_access_code, SqlSelectAccessCode),
 
+	DatasourcePersistRefreshToken = maps:get(<<"datasource_persist_refresh_token">>, Props, <<>>),
 	SqlPersistRefreshToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist_refresh_token">>, Props, <<>>))),
 	SqlSelectRefreshToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_refresh_token">>, Props, <<>>))),
+	ems_db:set_param(datasource_persist_refresh_token, DatasourcePersistRefreshToken),
 	ems_db:set_param(sql_persist_refresh_token, SqlPersistRefreshToken),
 	ems_db:set_param(sql_select_refresh_token, SqlSelectRefreshToken),
 
+	DatasourcePersistAccessToken = maps:get(<<"datasource_persist_access_token">>, Props, <<>>),
 	SqlPersistAccessToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist_access_token">>, Props, <<>>))),
 	SqlSelectAccessToken = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_access_token">>, Props, <<>>))),
+	ems_db:set_param(datasource_persist_access_token, DatasourcePersistAccessToken),
 	ems_db:set_param(sql_persist_access_token, SqlPersistAccessToken),
 	ems_db:set_param(sql_select_access_token, SqlSelectAccessToken),
 	
