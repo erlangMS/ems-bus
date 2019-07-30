@@ -24,7 +24,8 @@
 					jesse,
 					poolboy,
 					mochiweb,
-					oauth2
+					oauth2,
+					xmerl
                  ]},
   {mod, { ems_bus_app, []}},
   {env, [
