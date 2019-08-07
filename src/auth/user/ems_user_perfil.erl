@@ -170,7 +170,7 @@ find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
 
 
 find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
-	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
+	case ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
 		{ok, []} -> 
 			{ok, #{}};
 		{ok, UserAluno} -> 
@@ -178,7 +178,8 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 					{ok, []} -> 
 							{ok, []};
 					{ok, RecordsAluno} -> 
-						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, RecordsAluno),
+						AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),
+						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, AlunosRecordsMap),
 						{ok , ListTypePerfilPermissonAluno};
 					_ -> {ok, #{}}
 				end;
