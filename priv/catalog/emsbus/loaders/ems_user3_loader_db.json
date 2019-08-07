@@ -1,0 +1,108 @@
+{
+    "name": "ems_user3_loader_db",
+	"comment": "Catalog for ems_user3_loader_db",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_data_loader:start",
+	"url": "/emsbus/ems_user3_loader_db",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"update_checkpoint" : 31000,
+	"datasource" : "sig_unb",
+	"start_timeout" : 6000,
+	"middleware" : "ems_user_loader_middleware",
+	"group" : [],
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : false,
+	"source_type" : "user3_db",
+	"sql_load_packet_length" : 10000,
+	"sql_load" : 
+				"select 		
+				u.id_usuario as id,
+				u.id_pessoa as codigo,
+				u.login as login,
+				p.nome as name,
+				p.cpf_cnpj as cpf,
+				u.senha as password,
+				'MD5' as passwd_crypto,
+				p.endereco as endereco,
+				p.complemento as complemento_endereco,
+				p.bairro as bairro,
+				p.cidade as cidade,
+				p.uf as uf,
+				p.cep as cep,
+				null as rg,
+				p.data_nascimento as data_nascimento,
+				p.sexo as sexo,
+				p.telefone as telefone,
+				p.celular as celular,
+				null as ddd,
+				null as nome_pai,
+				p.nome_mae as nome_mae,
+				null as nacionalidade,
+				u.email as email,
+				1 as type,
+				0 as subtype,
+				case u.inativo when TRUE then 0 else 1 end as active,
+				u.expira_senha as dt_expire_password, 
+				case 
+					 when p.datacadastramento > u.datacadastramento then p.datacadastramento 
+					 else u.datacadastramento 
+				end as ctrl_modified 
+			 from comum.pessoa  p join rh.servidor s
+			 on p.id_pessoa = s.id_pessoa 
+			 join comum.usuario u 
+			 on s.id_pessoa = u.id_pessoa
+				",
+
+	"sql_update" :	"select 		
+						u.id_usuario as id,
+						u.id_pessoa as codigo,
+						u.login as login,
+						p.nome as name,
+						p.cpf_cnpj as cpf,
+						u.senha as password,
+						'MD5' as passwd_crypto,
+						p.endereco as endereco,
+						p.complemento as complemento_endereco,
+						p.bairro as bairro,
+						p.cidade as cidade,
+						p.uf as uf,
+						p.cep as cep,
+						null as rg,
+						p.data_nascimento as data_nascimento,
+						p.sexo as sexo,
+						p.telefone as telefone,
+						p.celular as celular,
+						null as ddd,
+						null as nome_pai,
+						p.nome_mae as nome_mae,
+						null as nacionalidade,
+						u.email as email,
+						1 as type,
+						0 as subtype,
+						case u.inativo when TRUE then 0 else 1 end as active,
+						u.expira_senha as dt_expire_password, 
+						case 
+							when p.datacadastramento > u.datacadastramento then p.datacadastramento 
+							else u.datacadastramento 
+						end as ctrl_modified 
+					from comum.pessoa  p join rh.servidor s
+					on p.id_pessoa = s.id_pessoa 
+					join comum.usuario u 
+					on s.id_pessoa = u.id_pessoa
+					where p.id_pessoa = u.id_pessoa 
+				 	 and (u.data_cadastro >= ? or p.ultima_atualizacao >= ? or 
+				       p.dataalteracao >= ? or p.dataalteracao >= ? or 
+  				       u.datacadastramento >= ? or p.datacadastramento >= ?)
+					",
+			
+	"fields" : ["id", "codigo", "login", "name", "cpf", "password", 
+					"passwd_crypto", "endereco", "complemento_endereco", 
+					"bairro", "cidade", "uf", "cep", "rg", "data_nascimento", 
+					"sexo", "telefone", "celular", "ddd", "nome_pai", "nome_mae", 
+					"nacionalidade", "email", "type", "subtype", 
+					"active", "dt_expire_password", "ctrl_modified"]
+		
+}
