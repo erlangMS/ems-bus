@@ -88,14 +88,13 @@
 							when p.datacadastramento > u.datacadastramento then p.datacadastramento 
 							else u.datacadastramento 
 						end as ctrl_modified 
-					from comum.pessoa  p join rh.servidor s
+					from comum.pessoa  p join rh.servidor s 
 					on p.id_pessoa = s.id_pessoa 
 					join comum.usuario u 
-					on s.id_pessoa = u.id_pessoa
-					where p.id_pessoa = u.id_pessoa 
-				 	 and (u.data_cadastro >= ? or p.ultima_atualizacao >= ? or 
+					on s.id_pessoa = u.id_pessoa 
+					where u.data_cadastro >= ? or p.ultima_atualizacao >= ? or 
 				       p.dataalteracao >= ? or p.dataalteracao >= ? or 
-  				       u.datacadastramento >= ? or p.datacadastramento >= ?)
+  				       u.datacadastramento >= ? or p.datacadastramento >= ? 
 					",
 			
 	"fields" : ["id", "codigo", "login", "name", "cpf", "password", 
