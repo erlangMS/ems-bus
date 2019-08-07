@@ -658,6 +658,7 @@ to_resource_owner(User, ClientId) ->
 
 			ListaPerfilPermissionFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 										{ok, ListaPerfilPermission} ->
+											io:format("Aqui 5 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 											case User#user.cpf of
 												<<>> ->
 													case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) of
