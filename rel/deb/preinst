@@ -18,7 +18,7 @@ if [ "$1" = "install" -o "$1" = "upgrade" ]; then
   # Para o serviço pre instalado
   systemctl stop ems-bus.service 2>/dev/null || true	
   
-  sleep 1
+  sleep 4
   sync
   sync
   sync

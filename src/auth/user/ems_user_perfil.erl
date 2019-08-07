@@ -14,12 +14,13 @@
 
 -export([all/0, 
 		 find_by_id/1,		 
-		 find_by_user_and_client/3,
+		 find_by_user_and_client/2, find_by_user_and_client/3,
 		 find_by_user_and_client_com_permissao/3,
 		 find_by_cpf_and_client_com_permissao/3,
 		 find_by_cpf_and_client_com_perfil_permission/3,
 		 find_by_id_and_client_com_perfil_permission/3,
 		 find_by_cpf_and_client/3,
+		 find_by_user/1,
 		 find_by_user/2,
 		 find_by_name/1, 
  		 new_from_map/2,
@@ -44,10 +45,13 @@ all() ->
 
 -spec find_by_user(non_neg_integer(), list()) -> {ok, list(#user_perfil{})} | {error, enoent}.
 find_by_user(Id, Fields) -> 
-	case ems_db:find([user_perfil_db, user_perfil_fs], Fields, [{user_id, "==", Id}]) of
+	case ems_db:find([user_perfil_db, user_perfil_fs], Fields, [{'or', [{user_id, "==", Id}, {user_id, "==", 0}]}]) of
 		{ok, Records} -> {ok, Records};
 		_ -> {error, enoent}
 	end.
+
+-spec find_by_user(non_neg_integer()) -> {ok, list(#user_perfil{})} | {error, enoent}.
+find_by_user(Id) -> find_by_user(Id, []).
 
 
 find_by_cpf_and_client(<<>>, _, _) -> {ok, []};
@@ -89,12 +93,14 @@ find_by_cpf_and_client_([UserByCpfMap|T], ClientId, Fields, Result) ->
 -spec find_by_user_and_client(non_neg_integer(), non_neg_integer(), list()) -> {ok, list(#user_perfil{})} | {error, enoent}.
 find_by_user_and_client(undefined, _, _) -> {ok, []};
 find_by_user_and_client(UserId, ClientId, Fields) -> 
-	case ems_db:find([user_perfil_db, user_perfil_fs], Fields, [{user_id, "==", UserId}, {client_id, "==", ClientId}]) of
+	case ems_db:find([user_perfil_db, user_perfil_fs], Fields, [{'or', [{user_id, "==", UserId}, {user_id, "==", 0}]}, {'or', [{client_id, "==", ClientId}, {client_id, "==", 0}]}]) of
 		{ok, Records} ->
 			{ok, Records};
 		_ -> {ok, []}
 	end.
 
+-spec find_by_user_and_client(non_neg_integer(), non_neg_integer()) -> {ok, list(#user_perfil{})} | {error, enoent}.
+find_by_user_and_client(UserId, ClientId) -> find_by_user_and_client(UserId,ClientId, []).
 
 find_by_cpf_and_client_com_perfil_permission(<<>>, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
@@ -114,8 +120,8 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(User, ClientId, Field
 	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
 		{ok, Records} -> 		
 			case User#user.type of 
-				0 -> Type =  interno;
-				1 -> Type =tecnico;
+				0 -> Type = interno;
+				1 -> Type = tecnico;
 				2 -> Type = docente;
 				3 -> Type = discente;
 				4 -> Type = terceiros
@@ -281,10 +287,10 @@ new_from_map(Map, _Conf) ->
 		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map, Id)),
 	
 		put(parse_step, user_id),
-		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map)),
+		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map, 0)),
 	
 		put(parse_step, client_id),
-		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, undefined)),
+		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, 0)),
 	
 		put(parse_step, name),
 		Name = ?UTF8_STRING(maps:get(<<"name">>, Map)),

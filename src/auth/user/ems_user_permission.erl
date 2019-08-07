@@ -14,8 +14,8 @@
 
 -export([all/0, 
 		 find_by_id/1,		 
-		 find_by_user/2,
-		 find_by_user_and_client/3,
+		 find_by_user/1, find_by_user/2,
+		 find_by_user_and_client/2, find_by_user_and_client/3,
 		 find_by_cpf_and_client/3,
 		 find_by_name/1, 
  		 new_from_map/2,
@@ -34,10 +34,14 @@ find_by_id(Id) ->
 	
 -spec find_by_user(non_neg_integer(), list()) -> {ok, list(#user_perfil{})} | {error, enoent}.
 find_by_user(Id, Fields) -> 
-	case ems_db:find([user_permission_db, user_permission_fs], Fields, [{user_id, "==", Id}]) of
+	case ems_db:find([user_permission_db, user_permission_fs], Fields, [{'or', [{user_id, "==", Id}, {user_id, "==", 0}]}]) of
 		{ok, Record} -> {ok, Record};
 		_ -> {error, enoent}
 	end.
+
+-spec find_by_user(non_neg_integer()) -> {ok, list(#user_perfil{})} | {error, enoent}.
+find_by_user(Id) -> find_by_user(Id, []).
+
 	
 find_by_cpf_and_client(<<>>, _, _) -> {ok, []};
 find_by_cpf_and_client(undefined, _, _) -> {ok, []};
@@ -50,6 +54,7 @@ find_by_cpf_and_client(Cpf, ClientId, Fields) ->
 			end;
 		{error, enoent} -> {ok, []}
 	end.
+
 
 find_by_cpf_and_client_([], _, _, Result) -> {ok, Result};
 find_by_cpf_and_client_([UserByCpfMap|T], ClientId, Fields, Result) ->
@@ -76,11 +81,13 @@ find_by_cpf_and_client_([UserByCpfMap|T], ClientId, Fields, Result) ->
 -spec find_by_user_and_client(non_neg_integer(), non_neg_integer(), list()) -> {ok, list(#user_perfil{})} | {error, enoent}.
 find_by_user_and_client(undefined, _, _) -> {ok, []};
 find_by_user_and_client(Id, ClientId, Fields) -> 
-	case ems_db:find([user_permission_db, user_permission_fs], Fields, [{user_id, "==", Id}, {client_id, "==", ClientId}]) of
+	case ems_db:find([user_permission_db, user_permission_fs], Fields, [ {'or', [{user_id, "==", Id}, {user_id, "==", 0}]}, {'or', [{client_id, "==", ClientId}, {client_id, "==", 0}]}]) of
 		{ok, Record} -> {ok, Record};
 		_ -> {ok, []}
 	end.
 
+-spec find_by_user_and_client(non_neg_integer(), non_neg_integer()) -> {ok, list(#user_perfil{})} | {error, enoent}.
+find_by_user_and_client(Id, ClientId) -> find_by_user_and_client(Id, ClientId, []).
 
 -spec all() -> {ok, list()}.
 all() -> 
@@ -114,13 +121,13 @@ new_from_map(Map, _Conf) ->
 		Id = ems_util:parse_to_integer(maps:get(<<"id">>, Map)),
 	
 		put(parse_step, user_id),
-		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map)),
+		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map, 0)),
 	
 		put(parse_step, client_id),
-		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, undefined)),
+		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, 0)),
 	
 		put(parse_step, perfil_id),
-		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map)),
+		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map, undefined)),
 	
 		put(parse_step, url),
 		Url = ?UTF8_STRING(maps:get(<<"url">>, Map)),
