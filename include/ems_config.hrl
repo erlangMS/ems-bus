@@ -117,6 +117,7 @@
 -define(RESTRICTED_SERVICES_OWNER, [ <<"netadm">>, <<"logger">>, <<"auth">> ]).
 -define(RESTRICTED_SERVICES_ADMIN, [ <<"erlangms">> ]).
 
+
 % Armazena o buffer do log a cada LOG_FILE_CHECKPOINT ms (Aumente este valor se existir muita contenção de escrita em disco)
 -define(LOG_FILE_CHECKPOINT, 400).  
 
@@ -201,6 +202,10 @@
 % Oauth2
 -define(OAUTH2_DEFAULT_AUTHORIZATION, oauth2).
 -define(AUTHORIZATION_TYPE_DEFAULT, <<"oauth2">>).
+
+-define(OAUTH2_RESOURCE_OWNER_FIELDS, [ <<"id">>, <<"remap_user_id">>, <<"codigo">>, <<"login">>, <<"name">>, <<"email">>, 
+										<<"type">>, <<"subtype">>,  <<"active">>, <<"cpf">>, <<"lista_perfil">>, 
+										<<"lista_permission">>, <<"lista_perfil_permission">> ]).
 
 -define(DEFAULT_PASSWD, <<"fEqNCco3Yq9h5ZUglD3CZJT4lBs=">>).
 
@@ -360,6 +365,8 @@
 				 authorization :: binary(),
 				 oauth2_with_check_constraint :: boolean(),
 				 oauth2_refresh_token :: non_neg_integer(),
+				 oauth2_resource_owner_find_permission_with_cpf = true :: boolean(), %% Deve usar o cpf ou o id do user para buscar a lista de perfis e permissões?
+				 oauth2_resource_owner_fields :: list(binary()),    %% Lista de campos que devem aparecer no resource_owner na autenticação oauth2
 				 auth_allow_user_inative_credentials :: boolean(),	%% Permite login de usuários inativos.
 				 rest_base_url :: binary(),
 				 rest_auth_url :: binary(),

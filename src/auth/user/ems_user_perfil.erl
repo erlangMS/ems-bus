@@ -107,10 +107,18 @@ find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) -> 
 	Value = case ems_client:find_by_id(ClientId) of
 		{ok, _Client} ->
-			 {ok, UserCpfList} = ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
-			 UserCpf = ems_util:hd_or_empty(UserCpfList),
-			 {ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
-			 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, []);
+			{ok, UserCpfList} = ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
+			UserCpf = ems_util:hd_or_empty(UserCpfList),
+			 case ems_db:find([user3_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of 
+				 {ok, []} ->
+					 {ok, AlunoCpfList} = ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
+					 AlunoCpf = ems_util:hd_or_empty(AlunoCpfList),
+					 {ok, UserCpfById} = ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db],maps:get(<<"id">>, AlunoCpf)),
+					 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, []);
+				 {ok, _User3} ->	
+					{ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
+					find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, [])
+			  end;
 		{error, enoent} -> {ok, []}
 	end,
 	{ok, Value}.
@@ -118,7 +126,7 @@ find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) ->
 
 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(User, ClientId, Fields, Result) ->
 	case find_by_user_and_client_com_permissao(User#user.id, ClientId, Fields) of
-		{ok, Records} -> 		
+		{ok, Records} -> 	
 			case User#user.type of 
 				0 -> Type = interno;
 				1 -> Type = tecnico;
@@ -147,17 +155,18 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(User, ClientId, Field
 
 
 find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
-	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of 
+	case ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, name, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of 
 		{ok,[]} -> 
 			{ok,[]};
 		{ok, UserAlunoList} -> 			
 				UserAluno = ems_util:hd_or_empty(UserAlunoList),
-				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db], maps:get(<<"id">>, UserAluno)),
+				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db], maps:get(<<"id">>, UserAluno)),
 				case find_by_user_and_client_com_permissao(UserAlunoById#user.remap_user_id, ClientId, Fields) of
 					{ok,[]} -> 
 						{ok, #{}};
-					{ok, RecordsAluno} -> 			
-						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, RecordsAluno),
+					{ok, RecordsAluno} -> 
+						AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),		
+						ListTypePerfilPermissonAluno = change_user_type_to_atom(maps:get(<<"type">>, UserAluno), AlunosRecordsMap),
 						{ok , ListTypePerfilPermissonAluno};
 					_ -> 
 						{ok, #{}}
@@ -167,7 +176,7 @@ find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
 
 
 find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
-	case ems_db:find([user_aluno_ativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
+	case ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
 		{ok, []} -> 
 			{ok, #{}};
 		{ok, UserAluno} -> 
@@ -175,7 +184,8 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 					{ok, []} -> 
 							{ok, []};
 					{ok, RecordsAluno} -> 
-						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, RecordsAluno),
+						AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),
+						ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, AlunosRecordsMap),
 						{ok , ListTypePerfilPermissonAluno};
 					_ -> {ok, #{}}
 				end;

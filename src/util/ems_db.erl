@@ -99,6 +99,12 @@ start(PrivPath, DatabasePath) ->
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
+    mnesia:create_table(user3_db, [{type, set},
+								  {disc_copies, Nodes},
+								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {attributes, record_info(fields, user)},
+								  {record_name, user}]),
+
     mnesia:create_table(user_history, [{type, set},
 									  {disc_copies, Nodes},
 									  {index, [#user_history.user_id]},
@@ -306,6 +312,7 @@ start(PrivPath, DatabasePath) ->
 							user_fs, 
 							user_db,
 							user2_db,
+							user3_db,
 							user_history,
 							user_aluno_ativo_db,
 							user_aluno_inativo_db,

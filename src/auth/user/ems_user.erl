@@ -562,24 +562,42 @@ get_admim_user() ->
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
 to_resource_owner(User, ClientId) ->
+	OAuth2ResourceOwnerFields = ems_db:get_param(oauth2_resource_owner_fields),
+	ShowListaPerfilPermission = lists:member(<<"lista_perfil_permission">>, OAuth2ResourceOwnerFields),
 	case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
-		true -> 
-			case User#user.cpf of
-				<<>> ->
-					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.cpf, ClientId, [perfil_id, name]),
+		true ->
+			OAuth2ResourceOwnerFindPermissionWithCPF = ems_db:get_param(oauth2_resource_owner_find_permission_with_cpf),
+			case User#user.cpf == <<>> orelse not OAuth2ResourceOwnerFindPermissionWithCPF of
+				true ->
+					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
+
 					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),
-					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
-					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
-				_ ->
+
+					case ShowListaPerfilPermission of
+						true -> 
+							io:format("CPF:ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) is ~p\n", [ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name])]),
+							{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
+							ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
+						false -> 
+							ListaPerfilPermissionJson = <<"[]">>
+					end;
+				false ->
 					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
+					
 					{ok, ListaPermission} = ems_user_permission:find_by_cpf_and_client(User#user.cpf, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),
-					{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
-					{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermission, 
-					ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPErmissionWithouthOk)
+					
+					case ShowListaPerfilPermission of
+						true -> 
+							{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
+							{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermission, 
+							ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPErmissionWithouthOk);
+						false ->
+							ListaPerfilPermissionJson = <<"[]">>
+					end
 			end,
 			iolist_to_binary([<<"{"/utf8>>,
 								<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
@@ -654,39 +672,47 @@ to_resource_owner(User, ClientId) ->
 													end
 											end
 									end,
+
 			ListaPermissionJson = ems_schema:to_json(ListaPermissionFinal),
 
-			ListaPerfilPermissionFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
-										{ok, ListaPerfilPermission} ->
-											case User#user.cpf of
-												<<>> ->
-													case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) of
-														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
-														_ -> ListaPerfilPermission
+			case ShowListaPerfilPermission of
+				true -> 
+					ListaPerfilPermissionFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+												{ok, ListaPerfilPermission} ->
+													case User#user.cpf of
+														<<>> ->
+															case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) of
+																{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
+																_ -> ListaPerfilPermission
+															end;
+														_ ->
+															case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+																{ok, ListaPerfilPermission2} -> 
+																	 ListaPerfilPermission2;
+																_ -> ListaPerfilPermission
+															end
 													end;
-												_ ->
-													case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
-														{ok, ListaPerfilPermission2} -> 
-															 ListaPerfilPermission2;
-														_ -> ListaPerfilPermission
+												_ -> 
+													case User#user.cpf of
+														<<>> ->
+															case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+																{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
+																_ -> []
+															end;
+														_ ->
+															case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
+																{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
+																_ -> []
+															end
 													end
-											end;
-										_ -> 
-											case User#user.cpf of
-												<<>> ->
-													case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
-														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
-														_ -> []
-													end;
-												_ ->
-													case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
-														{ok, ListaPerfilPermission2} -> ListaPerfilPermission2;
-														_ -> []
-													end
-											end
-									end,
-			{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermissionFinal,
-			ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPErmissionWithouthOk),
+											end,
+					{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermissionFinal,
+					ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPErmissionWithouthOk);
+				false ->
+					ListaPerfilPermissionJson = <<"[]">>
+			end,
+
+
 			iolist_to_binary([<<"{"/utf8>>,
 								<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
 								<<"\"remap_user_id\":"/utf8>>, integer_to_binary(User#user.remap_user_id), <<","/utf8>>,
@@ -791,6 +817,7 @@ new_from_map(Map, Conf) ->
 		Cpf0 = case maps:get(<<"cpf">>, Map, <<>>) of
 					undefined -> "";
 					null -> "";
+					<<>> -> "";
 					CepValue -> binary_to_list(?UTF8_STRING(CepValue))
 				end,
 

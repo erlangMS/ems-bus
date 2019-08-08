@@ -223,6 +223,8 @@ new_(_) -> erlang:error(einvalid_type).
 -spec get_schema_table(atom()) -> tuple() | undefined.
 get_schema_table(user) -> ?USER_SCHEMA_DESCRIPTOR;
 get_schema_table(user_db) -> ?USER_SCHEMA_DESCRIPTOR;
+get_schema_table(user2_db) -> ?USER_SCHEMA_DESCRIPTOR;
+get_schema_table(user3_db) -> ?USER_SCHEMA_DESCRIPTOR;
 get_schema_table(user_fs) -> ?USER_SCHEMA_DESCRIPTOR;
 get_schema_table(user_aluno_ativo_db) -> ?USER_SCHEMA_DESCRIPTOR;
 get_schema_table(user_aluno_inativo_db) -> ?USER_SCHEMA_DESCRIPTOR;

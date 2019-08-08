@@ -742,6 +742,15 @@ parse_config(Json, Filename) ->
 		NodeSearch = get_p(<<"node_search">>, Json, <<>>),		
 
 		WWWPath = ems_db:get_param(www_path),
+		
+		put(parse_step, oauth2_resource_owner_find_permission_with_cpf),
+		OAuth2ResourceOwnerFindPermissionWithCPF = ems_util:parse_bool(get_p(<<"oauth2_resource_owner_find_permission_with_cpf">>, Json, true)),
+		ems_db:set_param(oauth2_resource_owner_find_permission_with_cpf, OAuth2ResourceOwnerFindPermissionWithCPF),
+		
+		put(parse_step, oauth2_resource_owner_fields),
+		OAuth2ResourceOwnerFields = get_p(<<"oauth2_resource_owner_fields">>, Json, ?OAUTH2_RESOURCE_OWNER_FIELDS),
+		ems_db:set_param(oauth2_resource_owner_fields, OAuth2ResourceOwnerFields),
+
 
 		put(parse_step, new_config),
 		Conf0 = #config{ 
@@ -843,7 +852,10 @@ parse_config(Json, Filename) ->
 				 auth_default_scope = AuthDefaultScopesAtom,
 				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
 				 crypto_blowfish_module_path = BlowfishCryptoModPath,
-				 instance_type = InstanceType
+				 instance_type = InstanceType,
+				 oauth2_resource_owner_find_permission_with_cpf = OAuth2ResourceOwnerFindPermissionWithCPF,
+				 oauth2_resource_owner_fields = OAuth2ResourceOwnerFields
+				 
 			},
 
 		put(parse_step, datasources),

@@ -60,6 +60,8 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mrestricted_services_owner\033[0m: \033[01;34m~300p\033[0m.", [Conf#config.cat_restricted_services_owner]),
 			ems_logger:info("  \033[0;32mrestricted_services_admin\033[0m: \033[01;34m~p\033[0m.", [Conf#config.cat_restricted_services_admin]),
 			ems_logger:info("  \033[0;32moauth2_refresh_token\033[0m: \033[01;34m~p\033[0m.", [Conf#config.oauth2_refresh_token]),
+			ems_logger:info("  \033[0;32moauth2_resource_owner_find_permission_with_cpf\033[0m: \033[01;34m~p\033[0m.", [Conf#config.oauth2_resource_owner_find_permission_with_cpf]),
+			ems_logger:info("  \033[0;32moauth2_resource_owner_fields\033[0m: \033[01;34m~p\033[0m.", [Conf#config.oauth2_resource_owner_fields]),
 			ems_logger:info("  \033[0;32mtcp_listen_address\033[0m: \033[01;34m~300p\033[0m.", [Conf#config.tcp_listen_address]),
 			ems_logger:info("  \033[0;32mtcp_allowed_address\033[0m: \033[01;34m~300p\033[0m.", [Conf#config.tcp_allowed_address]),
 			ems_logger:info("  \033[0;32mtcp_listen_prefix_interface_names\033[0m: \033[01;34m~300p\033[0m.", [Conf#config.tcp_listen_prefix_interface_names]),
