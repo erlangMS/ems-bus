@@ -566,7 +566,7 @@ to_resource_owner(User, ClientId) ->
 		true -> 
 			case User#user.cpf of
 				<<>> ->
-					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.cpf, ClientId, [perfil_id, name]),
+					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
 					ListaPermissionJson = ems_schema:to_json(ListaPermission),

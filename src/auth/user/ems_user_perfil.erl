@@ -101,18 +101,21 @@ find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) -> 
 	Value = case ems_client:find_by_id(ClientId) of
 		{ok, _Client} ->
-			{ok, UserCpfList} = ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
-			UserCpf = ems_util:hd_or_empty(UserCpfList),
-			 case ems_db:find([user3_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of 
-				 {ok, []} ->
-					 {ok, AlunoCpfList} = ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
-					 AlunoCpf = ems_util:hd_or_empty(AlunoCpfList),
-					 {ok, UserCpfById} = ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db],maps:get(<<"id">>, AlunoCpf)),
-					 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, []);
-				 {ok, _User3} ->	
-					{ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
-					find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, [])
+			case ems_db:find([user_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of
+				{ok, UserCpfList} ->  
+					UserCpf = ems_util:hd_or_empty(UserCpfList),
+				case ems_db:find([user3_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]) of 
+					{ok, []} ->
+						{ok, AlunoCpfList} = ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, remap_user_id, type], [{cpf, "==", User#user.cpf}]),
+						AlunoCpf = ems_util:hd_or_empty(AlunoCpfList),
+						{ok, UserCpfById} = ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db],maps:get(<<"id">>, AlunoCpf)),
+						find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, []);
+					{ok, _User3} ->	
+						{ok, UserCpfById} = ems_db:find_by_id([user_db],maps:get(<<"id">>, UserCpf)),
+						find_by_cpf_and_client_com_perfil_permission_aluno_tecnico(UserCpfById, ClientId, Fields, [])
 			  end;
+				{error, enoent} -> {ok, []}
+			end;
 		{error, enoent} -> {ok, []}
 	end,
 	{ok, Value}.
