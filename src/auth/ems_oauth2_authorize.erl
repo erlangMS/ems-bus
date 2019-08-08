@@ -555,7 +555,7 @@ select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 
 
 disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
-	DatasourcePassportCode = ems_db:get_param(datasource_select_passport_code),
+	DatasourcePassportCode = ems_db:get_param(datasource_passport_code),
 	SqlDisablePassportCode = ems_db:get_param(sql_disable_passport_code),
 	case SqlDisablePassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
 		true ->
