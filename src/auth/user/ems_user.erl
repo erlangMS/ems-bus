@@ -577,7 +577,6 @@ to_resource_owner(User, ClientId) ->
 
 					case ShowListaPerfilPermission of
 						true -> 
-							io:format("CPF:ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) is ~p\n", [ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name])]),
 							{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
 							ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
 						false -> 
@@ -747,9 +746,9 @@ to_resource_owner(User) ->
 								<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
 								<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
-								<<"\"lista_perfil\":{},"/utf8>>, 
-								<<"\"lista_permission\":{},"/utf8>>, 
-								<<"\"lista_perfil_permission\":{}"/utf8>>,
+								<<"\"lista_perfil\":[],"/utf8>>, 
+								<<"\"lista_permission\":[],"/utf8>>, 
+								<<"\"lista_perfil_permission\":[]"/utf8>>,
 							<<"}"/utf8>>]);
 		false ->
 			iolist_to_binary([<<"{"/utf8>>,
@@ -763,9 +762,9 @@ to_resource_owner(User) ->
 								<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
 								<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
-								<<"\"lista_perfil\":{},"/utf8>>, 
-								<<"\"lista_permission\":{},"/utf8>>, 
-								<<"\"lista_perfil_permission\":{}"/utf8>>,
+								<<"\"lista_perfil\":[],"/utf8>>, 
+								<<"\"lista_permission\":[],"/utf8>>, 
+								<<"\"lista_perfil_permission\":[]"/utf8>>,
 							<<"}"/utf8>>])
 	end.
 
