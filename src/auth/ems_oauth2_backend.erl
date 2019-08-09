@@ -100,6 +100,7 @@ init(_Service = #service{properties = Props}) ->
 	DatasourcePassportCode = maps:get(<<"datasource_passport_code">>, Props, <<>>),
 	SqlSelectPassportCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_select_passport_code">>, Props, <<>>))),
 	SqlDisablePassportCode = ems_util:str_trim(binary_to_list(maps:get(<<"sql_disable_passport_code">>, Props, <<>>))),
+	
 	ems_db:set_param(passport_code_enabled, PassportCodeEnabled),
 	ems_db:set_param(datasource_passport_code, DatasourcePassportCode),
 	ems_db:set_param(sql_select_passport_code, SqlSelectPassportCode),
