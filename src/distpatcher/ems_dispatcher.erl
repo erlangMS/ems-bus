@@ -127,11 +127,12 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 											ResponeHeader = RequestCache#request.response_header,
 											case IfNoneMatch =/= <<>> orelse IfModifiedSince =/= <<>> of
 												true ->
+													StatusText = ems_util:format_rest_status(304, enot_modified, RequestCache#request.reason_detail, undefined, Latency),
 													case ShowDebugResponseHeaders of													
 														true -> 
 															{ok, request, Request2#request{result_cache = true,
 																						   code = 304,
-																						   reason = RequestCache#request.reason,
+																						   reason = enot_modified,
 																						   reason_detail = RequestCache#request.reason_detail,
 																						   content_type_out = RequestCache#request.content_type_out,
 																						   response_data = <<>>,
@@ -141,11 +142,11 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																						   filename = RequestCache#request.filename,
 																						   latency = Latency,
 																						   status = req_done,
-																						   status_text = RequestCache#request.status_text}};
+																						   status_text = StatusText}};
 														false ->
 															{ok, request, Request2#request{result_cache = true,
 																						   code = 304,
-																						   reason = RequestCache#request.reason,
+																						   reason = enot_modified,
 																						   reason_detail = RequestCache#request.reason_detail,
 																						   content_type_out = RequestCache#request.content_type_out,
 																						   response_data = <<>>,
@@ -155,7 +156,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																						   filename = RequestCache#request.filename,
 																						   latency = Latency,
 																						   status = req_done,
-																						   status_text = RequestCache#request.status_text}}
+																						   status_text = StatusText}}
 													end;
 												false ->
 													case ShowDebugResponseHeaders of													

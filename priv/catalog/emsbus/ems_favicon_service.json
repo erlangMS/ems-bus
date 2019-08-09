@@ -12,6 +12,7 @@
 	"authorization" : "public",
 	"cache_control" : "max-age=86400, private",
 	"expires_minute" : 1440,
+	"log_show_response" : false,
 	"lang" : "erlang"
 }
 

@@ -579,6 +579,9 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_show_payload),
 		LogShowPayload = ems_util:parse_bool(get_p(<<"log_show_payload">>, Json, ?LOG_SHOW_PAYLOAD)),
 		
+		put(parse_step, log_show_content_static_file),
+		LogShowPayloadStaticFile = ems_util:parse_bool(get_p(<<"log_show_content_static_file">>, Json, ?LOG_SHOW_CONTENT_STATIC_FILE)),
+
 		put(parse_step, log_show_response_max_length),
 		LogShowResponseMaxLength = get_p(<<"log_show_response_max_length">>, Json, ?LOG_SHOW_RESPONSE_MAX_LENGTH),
 		
@@ -813,6 +816,7 @@ parse_config(Json, Filename) ->
 				 sufixo_email_institucional = SufixoEmailInstitucional,
 				 log_show_response = LogShowResponse,
 				 log_show_payload = LogShowPayload,
+				 log_show_content_static_file = LogShowPayloadStaticFile,
 				 log_show_response_max_length = LogShowResponseMaxLength,
 				 log_show_payload_max_length = LogShowPayloadMaxLength,
 				 log_file_checkpoint = LogFileCheckpoint,

@@ -67,6 +67,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mtcp_listen_prefix_interface_names\033[0m: \033[01;34m~300p\033[0m.", [Conf#config.tcp_listen_prefix_interface_names]),
 			ems_logger:info("  \033[0;32mlog_show_response\033[0m: \033[01;34m~p\033[0m.", [Conf#config.log_show_response]),
 			ems_logger:info("  \033[0;32mlog_show_payload\033[0m: \033[01;34m~p\033[0m.", [Conf#config.log_show_payload]),
+			ems_logger:info("  \033[0;32mlog_show_content_static_file\033[0m: \033[01;34m~p\033[0m.", [Conf#config.log_show_content_static_file]),
 			ems_logger:info("  \033[0;32mlog_show_response_max_length\033[0m: \033[01;34m~p bytes\033[0m.", [Conf#config.log_show_response_max_length]),
 			ems_logger:info("  \033[0;32mlog_show_payload_max_length\033[0m: \033[01;34m~p bytes\033[0m.", [Conf#config.log_show_payload_max_length]),
 			ems_logger:info("  \033[0;32mlog_show_odbc_pool_activity\033[0m: \033[01;34m~p bytes\033[0m.", [Conf#config.log_show_odbc_pool_activity]),

@@ -113,6 +113,8 @@
 % Mostra no log payload e response
 -define(LOG_SHOW_RESPONSE, true).
 -define(LOG_SHOW_PAYLOAD, true).
+-define(LOG_SHOW_CONTENT_STATIC_FILE, false).
+
 
 -define(RESTRICTED_SERVICES_OWNER, [ <<"netadm">>, <<"logger">>, <<"auth">> ]).
 -define(RESTRICTED_SERVICES_ADMIN, [ <<"erlangms">> ]).
@@ -413,8 +415,8 @@
 				 sufixo_email_institucional :: binary(),
 				 http_headers :: map(),
 				 http_headers_options :: map(),
-				 log_show_response = false :: boolean(),			%% Se true, imprime o response no log
-				 log_show_payload = false :: boolean(),				%% Se true, imprime o payload no log
+				 log_show_response = ?LOG_SHOW_RESPONSE :: boolean(),			%% Se true, imprime o response no log
+				 log_show_payload = ?LOG_SHOW_PAYLOAD :: boolean(),				%% Se true, imprime o payload no log
 				 log_show_response_max_length :: boolean(),			%% show response if content length < show_response_max_length
 				 log_show_payload_max_length :: boolean(),			%% show payload if content length < show_response_max_length
 				 log_show_odbc_pool_activity = true :: boolean(),	%% Se true, vai mostrar a atividade do pool de conexões
@@ -423,6 +425,7 @@
 				 log_file_max_size :: non_neg_integer(),
 				 log_file_path :: string(),
 				 log_file_archive_path :: string(),
+				 log_show_content_static_file = ?LOG_SHOW_CONTENT_STATIC_FILE :: boolean(),				%% Se true, imprime o conteúdo do arquivo no log
 				 smtp_passwd :: string(),
 				 smtp_from :: string(),
 				 smtp_mail :: string(),

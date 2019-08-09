@@ -841,19 +841,6 @@ json_field_format_table(V) when is_list(V) -> [<<"\""/utf8>>, ?UTF8_STRING(list_
 json_field_format_table(Data = {{_,_,_},{_,_,_}}) -> [<<"\""/utf8>>, list_to_binary(date_to_string(Data)), <<"\""/utf8>>];
 json_field_format_table(V) -> throw({error, einvalid_value, validation, "Could not serialize " ++ V}).
 
-% Prepara um campo texto para o formato JSON UTF 8
-normalize_field_utf8("") ->	"";
-normalize_field_utf8(<<>>) -> "";
-normalize_field_utf8(V) when is_binary(V) -> normalize_field_utf8(binary_to_list(V));
-normalize_field_utf8(V) -> 
-	Text = case string:strip(V) of
-				[] -> "";
-				V2 -> [case Ch of 
-							34 -> "\\\""; 
-							_ -> Ch 
-					  end || Ch <- V2, Ch > 31]
-			end,
-	unicode:characters_to_binary(Text, utf8).
 
 json_encode_record(_, [], true, RecordJson) -> 	
 	[<<"{"/utf8>>, lists:reverse(RecordJson), <<"},"/utf8>>];
@@ -918,14 +905,6 @@ utf8_binary_to_list(Value) ->
 	end.
 
 
-check_encoding_bin(Bin) when is_binary(Bin) ->
-    case unicode:characters_to_binary(Bin,utf8,utf8) of
-	Bin ->
-	    utf8;
-	_ ->
-	    latin1
-    end.
-
 date_add_minute(Timestamp, Minutes) ->
     calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(Timestamp) + (Minutes * 60)).
 
@@ -978,6 +957,34 @@ utf8_string_win(Text) ->
 			Text
 	end.
 
+
+check_encoding_bin(Bin) when is_binary(Bin) ->
+    case unicode:characters_to_binary(Bin,utf8,utf8) of
+	Bin ->
+	    utf8;
+	_ ->
+	    latin1
+    end.
+
+% Prepara um campo texto para o formato JSON UTF 8
+normalize_field_utf8("") ->	"";
+normalize_field_utf8(<<>>) -> "";
+normalize_field_utf8(V) when is_binary(V) -> normalize_field_utf8(unicode:characters_to_list(V));
+normalize_field_utf8(V) -> 
+	Text = case string:strip(V) of
+				[] -> "";
+				V2 -> [case Ch of 
+							34 -> "\\\""; 
+							_ -> Ch 
+					  end || Ch <- V2, Ch > 31]
+			end,
+	case unicode:characters_to_binary(Text, utf8) of
+		{error, _} -> 
+			unicode:characters_to_binary(Text, latin1);
+		Result -> Result
+	end.
+
+
 utf8_string_linux(<<>>) -> <<""/utf8>>;
 utf8_string_linux("") -> <<""/utf8>>;
 utf8_string_linux(undefined) -> <<""/utf8>>;
@@ -987,14 +994,10 @@ utf8_string_linux(Text) when is_list(Text) ->
 utf8_string_linux(Text) when erlang:is_number(Text) -> integer_to_binary(Text);
 utf8_string_linux(Text) ->
 	try
-		case check_encoding_bin(Text) of
-			utf8 -> normalize_field_utf8(Text);
-			latin1 -> normalize_field_utf8(Text);
-			_ -> Text
-		end
+		normalize_field_utf8(Text)
 	catch
 		_Exception:Reason -> 
-			?DEBUG("utf8_string_linux convert ~p error: ~p\n", [Text, Reason]),
+			ems_logger:error("ems_util utf8_string_linux convert ~p error: ~p\n", [Text, Reason]),
 			Text
 	end.
 	
@@ -1002,7 +1005,8 @@ utf8_string_linux(Text) ->
 -spec read_file_as_map(Filename :: string()) -> map().
 read_file_as_map(Filename) -> 	
 	case file:read_file(Filename) of
-		{ok, Arq} -> json_decode_as_map(Arq);
+		{ok, Arq} -> 
+			json_decode_as_map(Arq);
 		Error -> Error
 	end.
 
@@ -2870,7 +2874,6 @@ load_from_file_req(Request = #request{url = Url,
 		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
 		false -> Filename = FilenameService
 	end,
-	ems_logger:info("ems_static_file_service reading file \033[01;34m~p\033[0m to url \033[01;34m~p\033[0m.", [Filename, Url]),
 	case file:read_file_info(Filename, [{time, universal}]) of
 		{ok,{file_info, FSize, _Type, _Access, _ATime, MTime, _CTime, _Mode,_,_,_,_,_,_}} -> 
 			MimeType = mime_type(filename:extension(Filename)),
@@ -2878,6 +2881,7 @@ load_from_file_req(Request = #request{url = Url,
 			LastModified = cowboy_clock:rfc1123(MTime),
 			ExpireDate = date_add_minute(Timestamp, ExpiresService + 180), 
 			Expires = cowboy_clock:rfc1123(ExpireDate),
+			ems_logger:info("ems_static_file_service reading file \033[01;34m~p\033[0m (Size: ~p bytes) from url \033[01;34m~p\033[0m.", [Filename, FSize, Url]),
 			case ShowDebugResponseHeaders of
 				true ->
 					ResponseHeader2 = ResponseHeader#{
@@ -2914,7 +2918,7 @@ load_from_file_req(Request = #request{url = Url,
 											      response_header = ResponseHeader2}
 							};
 						{error, Reason} = Error -> 
-							ems_logger:error("ems_static_file_service read file ~p failed to url ~p. Reason: ~p.", [Filename, Url, Reason]),
+							ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
 							{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 												     reason = Reason,
 												     content_type_out = ?CONTENT_TYPE_JSON,
@@ -2923,7 +2927,7 @@ load_from_file_req(Request = #request{url = Url,
 					end
 			end;
 		{error, Reason} = Error -> 
-			ems_logger:error("ems_static_file_service read file ~p failed to url ~p. Reason: ~p.", [Filename, Url, Reason]),
+			ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
 			{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 									 reason = Reason,	
 									 response_data = ems_schema:to_json(Error)}

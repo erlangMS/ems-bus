@@ -65,7 +65,8 @@
 				log_file_path,
 				log_file_archive_path,
 				log_file_sync_log_buffer_time_ref,
-				log_file_sync_log_buffer_tela_time_ref
+				log_file_sync_log_buffer_tela_time_ref,
+				log_show_content_static_file = false
  			   }). 
 
 
@@ -321,7 +322,8 @@ init(_Service) ->
  				   log_file_name = undefined,
  				   log_file_handle = undefined,
  				   log_file_path = Conf#config.log_file_path,
- 				   log_file_archive_path = Conf#config.log_file_archive_path},
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
 	State2 = checkpoint_arquive_log(State, false),
 	erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
     {ok, State2}.
@@ -777,7 +779,8 @@ do_log_request(Request = #request{rid = RID,
 							 log_show_payload_max_length = ShowPayloadMaxLength, 
 							 log_ult_reqhash = UltReqHash,
 							 log_show_response_url_list = ShowResponseUrlList,					
-							 log_show_payload_url_list = ShowPayloadUrlList}) ->
+							 log_show_payload_url_list = ShowPayloadUrlList,
+							 log_show_content_static_file = LogShowContentStaticFile}) ->
 	try
 		case UltReqHash == undefined orelse UltReqHash =/= ReqHash of
 			true ->
@@ -785,12 +788,20 @@ do_log_request(Request = #request{rid = RID,
 				case Service of
 					undefined -> 
 						ServiceService = <<>>,
+						ServiceName = <<>>,
+						ServiceUrl = <<>>,
+						ServiceOwner = <<>>,
+						ServiceUseRE = <<"false">>,
 						ResultCacheService = 0,
 						AuthorizationService = public,
 						ShowResponseService = false,
 						ShowPayloadService = false;
 					_ ->
 						ServiceService = Service#service.service,
+						ServiceName = Service#service.name,
+						ServiceUrl = Service#service.url,
+						ServiceOwner = Service#service.owner,
+						ServiceUseRE = ems_util:boolean_to_binary(Service#service.use_re),
 						ResultCacheService = Service#service.result_cache,
 						AuthorizationService = Service#service.authorization,
 						ShowResponseService = Service#service.log_show_response,
@@ -814,12 +825,13 @@ do_log_request(Request = #request{rid = RID,
 													_ -> Referer
 												end,
 						?TAB_GREEN_COLOR, <<"User-Agent">>, ?WHITE_PARAM_COLOR, ems_util:user_agent_atom_to_binary(UserAgent), ?SPACE_GREEN_COLOR, <<"Version">>, ?WHITE_PARAM_COLOR, UserAgentVersion,	
-						?TAB_GREEN_COLOR, <<"Service">>, ?WHITE_PARAM_COLOR, ServiceService,
+						?TAB_GREEN_COLOR, <<"Service name">>, ?WHITE_PARAM_COLOR, ServiceName, ?SPACE_GREEN_COLOR, <<"Service url">>, ?WHITE_PARAM_COLOR, ServiceUrl,
+						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"Service owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"Use-RE">>, ?WHITE_PARAM_COLOR, ServiceUseRE,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
 						case (Reason =/= ok orelse 
 							   ShowPayloadService orelse 
-							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList))
+							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList)) 
 							  ) andalso ContentLength > 0 of
 							true ->
 							   case ContentLength =< ShowPayloadMaxLength of
@@ -838,7 +850,9 @@ do_log_request(Request = #request{rid = RID,
 								end;
 							false -> <<>>
 						end,
-						case (Reason =/= ok orelse 
+						case (Filename == undefined orelse LogShowContentStaticFile)  
+						    andalso 
+							 (Reason =/= ok orelse 
 							   ShowResponseService orelse
 							   (ShowResponseUrlList =/= [] andalso lists:member(Url, ShowResponseUrlList))
 							  ) of
