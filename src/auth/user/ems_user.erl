@@ -12,7 +12,7 @@
 -include("include/ems_schema.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
--export([find_by_id/1,		 
+-export([find_by_id/1, find_by_id/2,		 
 		 find_by_login/1, 
 		 find_by_name/1, 
 		 find_by_email/1, 
@@ -35,13 +35,19 @@
 		 add_history/4,
 		 get_admim_user/0]).
 
-
--spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
-find_by_id(Id) -> 
-	case ems_db:get([user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs], Id) of
+-spec find_by_id(non_neg_integer(), list(atom())) -> {ok, #user{}} | {error, enoent}.
+find_by_id(Id, Tables) -> 
+	case ems_db:get(Tables, Id) of
 		{ok, Record} -> {ok, Record};
 		_ -> {error, enoent}
 	end.
+
+
+-spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
+find_by_id(Id) -> 
+	find_by_id([user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs], Id).
+	
+	
 
 -spec all() -> {ok, list()}.
 all() -> 
