@@ -489,8 +489,8 @@ parse_passport_code(PassportCodeBinBase64) ->
 			case select_passport_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
 				{ok, ClientId, UserId, _DtCreated} ->
 					case ems_client:find_by_id(ClientId) of
-						{ok, Client} ->
-							case ems_user:find_by_id(UserId) of
+						{ok, Client = #client{scope = Tables}} ->
+							case ems_user:find_by_id(UserId, Tables) of
 								{ok, User} -> 
 									{ok, PassportCodeInt, Client, User};
 								_ -> 
