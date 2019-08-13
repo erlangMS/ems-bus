@@ -487,10 +487,10 @@ parse_passport_code(PassportCodeBinBase64) ->
 	case PassportCodeInt > 0 andalso PassportCodeInt =< 9999999999 of
 		true -> 
 			case select_passport_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
-				{ok, ClientId, UserId, _DtCreated} ->
+				{ok, ClientId, UserId, _DtCreated, Escopo} ->
 					case ems_client:find_by_id(ClientId) of
-						{ok, Client = #client{scope = Tables}} ->
-							case ems_user:find_by_id(UserId, Tables) of
+						{ok, Client} ->
+							case ems_user:find_by_id(UserId, Escopo) of
 								{ok, User} -> 
 									{ok, PassportCodeInt, Client, User};
 								_ -> 
@@ -524,9 +524,9 @@ select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 								{ok, Ds2} ->
 									ParamsSql = [{sql_integer, [PassportCodeInt]}],
 									case ems_odbc_pool:param_query(Ds2, SqlSelectPassportCode, ParamsSql) of
-										{selected, _Fields, [{ClientId, UserId, DtCreated}]} ->
+										{selected, _Fields, [{ClientId, UserId, DtCreated, Escopo}]} ->
 											disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt),
-											Result = {ok, ClientId, UserId, DtCreated};
+											Result = {ok, ClientId, UserId, DtCreated, list_to_atom(Escopo)};
 										{_, _, []} -> 
 											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd does not find passport ~s (~p). Reason: passport inexistent or disabled.", [PassportCodeBinBase64, PassportCodeInt]),
 											Result = {error, einexistent_passport_code};
