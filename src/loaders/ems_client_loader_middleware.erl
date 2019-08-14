@@ -81,6 +81,14 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 version = NewClient#client.version,
 												 group = NewClient#client.group,
 												 glyphicon = NewClient#client.glyphicon,
+												 rest_base_url = case NewClient#client.rest_base_url of
+																	undefined -> Conf#config.rest_base_url;
+																	RestBaseUrlValue -> RestBaseUrlValue
+																 end,
+												 rest_auth_url = case NewClient#client.rest_auth_url of
+																	undefined -> Conf#config.rest_auth_url;
+																	RestAuthUrlValue -> RestAuthUrlValue
+																 end,
 												 ctrl_path = NewClient#client.ctrl_path,
 												 ctrl_file = NewClient#client.ctrl_file,
 												 ctrl_update = CtrlDate,

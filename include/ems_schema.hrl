@@ -454,12 +454,14 @@
 				 version :: binary(),						%%  8 - version
 				 group :: binary(), 						%%  9 - group
 				 glyphicon :: binary(),						%% 10 - glyphicon
-			     ctrl_path :: string(),						%% 11 - ctrl_path
-			     ctrl_file :: string(),						%% 12 - ctrl_file
-			     ctrl_insert :: binary(),					%% 13 - ctrl_insert				-> Data que foi inserido no banco mnesia
-			     ctrl_update :: binary(), 					%% 14 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-			     ctrl_modified :: binary(),					%% 15 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-			     ctrl_hash :: non_neg_integer()				%% 16 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+			     rest_base_url :: binary(),				    %% 11 - rest_base_url
+			     rest_auth_url :: binary(),					%% 12 - rest_auth_url
+			     ctrl_path :: string(),						%% 13 - ctrl_path
+			     ctrl_file :: string(),						%% 14 - ctrl_file
+			     ctrl_insert :: binary(),					%% 15 - ctrl_insert				-> Data que foi inserido no banco mnesia
+			     ctrl_update :: binary(), 					%% 16 - ctrl_update				-> Data que foi atualiado no banco mnesia			
+			     ctrl_modified :: binary(),					%% 17 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+			     ctrl_hash :: non_neg_integer()				%% 18 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
 		}).
 
 
@@ -475,12 +477,14 @@
 			   binary_type,									%%  8 - version
 			   binary_type,									%%  9 - group
 			   binary_type,									%% 10 - glyphicon
-			   string_type,									%% 11 - ctrl_path
-			   string_type,									%% 12 - ctrl_file
-			   binary_type,									%% 13 - ctrl_insert
-			   binary_type, 								%% 14 - ctrl_update
-			   binary_type,									%% 15 - ctrl_modified
-			   non_neg_integer_type							%% 16 - ctrl_hash 	
+			   binary_type,									%% 11 - rest_base_url
+			   binary_type,									%% 12 - rest_auth_url
+			   string_type,									%% 13 - ctrl_path
+			   string_type,									%% 14 - ctrl_file
+			   binary_type,									%% 15 - ctrl_insert
+			   binary_type, 								%% 16 - ctrl_update
+			   binary_type,									%% 17 - ctrl_modified
+			   non_neg_integer_type							%% 18 - ctrl_hash 	
 		}).
 
 -record(ctrl_params, {name :: string(),

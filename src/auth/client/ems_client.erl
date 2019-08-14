@@ -83,7 +83,7 @@ to_json(Client) ->
 
 	
 -spec new_from_map(map(), #config{}) -> {ok, #client{}} | {error, atom()}.
-new_from_map(Map, _Conf) ->
+new_from_map(Map, Conf) ->
 	try
 		{ok, #client{
 				id = maps:get(<<"id">>, Map),
@@ -96,6 +96,8 @@ new_from_map(Map, _Conf) ->
 				active = ems_util:parse_bool(maps:get(<<"active">>, Map, true)),
 				group = ?UTF8_STRING(maps:get(<<"group">>, Map, <<>>)),
 				glyphicon = ?UTF8_STRING(maps:get(<<"glyphicon">>, Map, <<>>)),
+				rest_base_url = ?UTF8_STRING(maps:get(<<"rest_base_url">>, Map, Conf#config.rest_base_url)),
+				rest_auth_url = ?UTF8_STRING(maps:get(<<"rest_auth_url">>, Map, Conf#config.rest_auth_url)),
 				ctrl_path = maps:get(<<"ctrl_path">>, Map, <<>>),
 				ctrl_file = maps:get(<<"ctrl_file">>, Map, <<>>),
 				ctrl_modified = maps:get(<<"ctrl_modified">>, Map, undefined),

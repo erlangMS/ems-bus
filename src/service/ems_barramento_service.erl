@@ -29,7 +29,7 @@ execute(Request = #request{timestamp = Timestamp,
 		AppName ->
 			AuthorizationHeader = [],
 			UriClient = binary_to_list(Conf#config.rest_base_url) ++ 
-						ems_util:url_mask_str(erlang:iolist_to_binary([<<"/auth/client?filter={\"name\":\"">>, AppName, <<"\"}&fields=id,version&limit=1">>])),
+						ems_util:url_mask_str(erlang:iolist_to_binary([<<"/auth/client?filter={\"name\":\"">>, AppName, <<"\"}&limit=1">>])),
 			case httpc:request(get, {UriClient, AuthorizationHeader}, [],[]) of
 				{ok,{_, _, ClientPayload}} ->
 					case ems_util:json_decode_as_map(list_to_binary(ClientPayload)) of
@@ -49,9 +49,9 @@ execute(Request = #request{timestamp = Timestamp,
 									};
 								false ->
 									ClientId = maps:get(<<"id">>, ClientParams),
-									ClientVersion = maps:get(<<"version">>, ClientParams),
-									BaseUrl = maps:get(<<"base_url">>, ClientParams, Conf#config.rest_base_url),
-									AuthUrl = maps:get(<<"auth_url">>, ClientParams, Conf#config.rest_auth_url),
+									ClientVersion = maps:get(<<"version">>, ClientParams, <<>>),
+									BaseUrl = maps:get(<<"rest_base_url">>, ClientParams, Conf#config.rest_base_url),
+									AuthUrl = maps:get(<<"rest_auth_url">>, ClientParams, Conf#config.rest_auth_url),
 									ContentData = iolist_to_binary([<<"{"/utf8>>,
 										<<"\"ip\":\""/utf8>>, Conf#config.tcp_listen_main_ip, <<"\","/utf8>>,
 										<<"\"base_url\":\""/utf8>>, BaseUrl, <<"\","/utf8>>,
