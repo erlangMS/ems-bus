@@ -254,15 +254,17 @@ parse_static_file_path(StaticFilePathMap) ->
 	StaticFilePathList2 = case lists:keymember(<<"www_path">>, 1, StaticFilePathList) of
 						     true -> 
 								{_, WWWPathBin} = lists:keyfind(<<"www_path">>, 1, StaticFilePathList),
-								WWWPathStr = binary_to_list(WWWPathBin),
+								WWWPathStr = ems_util:parse_file_name_path(binary_to_list(WWWPathBin)),
 								StaticFilePathList;
 							 false -> 
-								WWWPathStr = filename:join(ems_db:get_param(priv_path), "www"),
+								WWWPathStr = ems_util:parse_file_name_path(filename:join(ems_db:get_param(priv_path), "www")),
 								WWWPathBin = list_to_binary(WWWPathStr),
 								[{<<"www_path">>, WWWPathBin} | StaticFilePathList]
 						  end,
 	ems_db:set_param(www_path, WWWPathStr),
-	StaticFilePathList3 = [{<<"login_path">>, list_to_binary(filename:join(WWWPathStr, "login"))} | StaticFilePathList2],
+	LoginPath = list_to_binary(filename:join(WWWPathStr, "login")),
+	ems_db:set_param(login_path, LoginPath),
+	StaticFilePathList3 = [{<<"login_path">>, LoginPath} | StaticFilePathList2],
 	[{K, ems_util:parse_file_name_path(V)} || {K, V} <- StaticFilePathList3].
 	
 
@@ -515,7 +517,7 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, rest_auth_url),
 		case ems_util:get_param_or_variable(<<"rest_auth_url">>, Json, <<>>) of
-		<<>> ->	
+			<<>> ->	
 				case ems_util:get_param_or_variable(<<"rest_base_url">>, Json, <<>>) of		
 					<<>> -> RestAuthUrl = iolist_to_binary([<<"http://"/utf8>>, TcpListenMainIp, <<":2301/authorize"/utf8>>]);
 					_ -> RestAuthUrl = iolist_to_binary([RestBaseUrl, <<"/authorize"/utf8>>])
@@ -525,7 +527,7 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, rest_login_url),
 		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, <<>>) of
-			<<>> ->	RestLoginUrl = RestLoginUrl = iolist_to_binary([RestBaseUrl, <<"/login/index.html"/utf8>>]);
+			<<>> ->	RestLoginUrl = list_to_binary(re:replace(binary_to_list(RestAuthUrl), "/authorize", "/login/index.html", [global, {return, list}]));
 			RestLoginUrlValue -> RestLoginUrl = ems_util:remove_ult_backslash_url_binary(RestLoginUrlValue)
 		end,
  		put(parse_step, rest_url_mask),

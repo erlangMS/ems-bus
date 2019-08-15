@@ -22,7 +22,7 @@
 
 		"passport_code_enabled" : false,
 		"datasource_passport_code" : "sig_unb",
-		"sql_select_passport_code" : "select clientid, userid, dt_created from oauth.oauth_erlangms_passport where id =?  and active = 1",
+		"sql_select_passport_code" : "select clientid, userid, dt_created, escopo from oauth.oauth_erlangms_passport where id =?  and active = 1",
 		"sql_disable_passport_code" : "update oauth.oauth_erlangms_passport set active = 0, dt_disabled = current_timestamp where id = ?"
 	},
 	
