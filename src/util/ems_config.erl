@@ -540,7 +540,7 @@ parse_config(Json, Filename) ->
 		RestUser = binary_to_list(get_p(<<"rest_user">>, Json, <<"erlangms">>)),
 
 		put(parse_step, rest_passwd),
-		RestPasswd = binary_to_list(get_p(<<"rest_passwd">>, Json, <<"fEqNCco3Yq9h5ZUglD3CZJT4lBs=">>)),
+		RestPasswd = binary_to_list(get_p(<<"rest_passwd">>, Json, ?DEFAULT_PASSWD)),
 
 		put(parse_step, host_alias),
 		HostAlias = get_p(<<"host_alias">>, Json, #{<<"local">> => HostnameBin}),
@@ -555,7 +555,11 @@ parse_config(Json, Filename) ->
 		ResultCacheShared = ems_util:parse_bool(get_p(<<"result_cache_shared">>, Json, ?RESULT_CACHE_SHARED)),
 
 		put(parse_step, result_cache_enabled),
-		ResultCacheEnabled = ems_util:parse_bool(get_p(<<"result_cache_enabled">>, Json, true)),
+		case InstanceType of
+			production -> ResultCacheEnabledDefault = true;
+			_ -> ResultCacheEnabledDefault = false
+		end,
+		ResultCacheEnabled = ems_util:parse_bool(get_p(<<"result_cache_enabled">>, Json, ResultCacheEnabledDefault)),
 
 		put(parse_step, tcp_allowed_address),
 		TcpAllowedAddress = parse_tcp_allowed_address(get_p(<<"tcp_allowed_address">>, Json, all)),
