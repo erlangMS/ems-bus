@@ -519,17 +519,24 @@ parse_config(Json, Filename) ->
 		case ems_util:get_param_or_variable(<<"rest_auth_url">>, Json, <<>>) of
 			<<>> ->	
 				case ems_util:get_param_or_variable(<<"rest_base_url">>, Json, <<>>) of		
-					<<>> -> RestAuthUrl = iolist_to_binary([<<"http://"/utf8>>, TcpListenMainIp, <<":2301/authorize"/utf8>>]);
-					_ -> RestAuthUrl = iolist_to_binary([RestBaseUrl, <<"/authorize"/utf8>>])
+					<<>> -> RestAuthUrl0 = iolist_to_binary([<<"http://"/utf8>>, TcpListenMainIp, <<":2301/authorize"/utf8>>]);
+					_ -> RestAuthUrl0 = iolist_to_binary([RestBaseUrl, <<"/authorize"/utf8>>])
 				end;
-			RestAuthUrlValue -> RestAuthUrl = RestAuthUrlValue
+			RestAuthUrlValue -> RestAuthUrl0 = RestAuthUrlValue
 		end,
+
+		put(parse_step, rest_base_auth_url),
+		RestBaseAuthUrlStr = re:replace(binary_to_list(RestAuthUrl0), "/authorize", "", [global, {return, list}]),
+		RestBaseAuthUrl = list_to_binary(RestBaseAuthUrlStr),
+		
+		RestAuthUrl = list_to_binary(RestBaseAuthUrlStr ++ "/authorize"),
 
 		put(parse_step, rest_login_url),
 		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, <<>>) of
-			<<>> ->	RestLoginUrl = list_to_binary(re:replace(binary_to_list(RestAuthUrl), "/authorize", "/login/index.html", [global, {return, list}]));
+			<<>> ->	RestLoginUrl = RestBaseAuthUrlStr ++ "/login/index.html";
 			RestLoginUrlValue -> RestLoginUrl = ems_util:remove_ult_backslash_url_binary(RestLoginUrlValue)
 		end,
+
  		put(parse_step, rest_url_mask),
 		RestUrlMask = ems_util:parse_bool(get_p(<<"rest_url_mask">>, Json, false)),
 
@@ -798,6 +805,7 @@ parse_config(Json, Filename) ->
 				 oauth2_refresh_token = OAuth2RefreshToken,
 				 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials,
 				 rest_base_url = RestBaseUrl, 
+				 rest_base_auth_url = RestBaseAuthUrl,
 				 rest_auth_url = RestAuthUrl,
 				 rest_login_url = RestLoginUrl,
 				 rest_url_mask = RestUrlMask,

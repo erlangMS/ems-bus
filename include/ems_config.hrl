@@ -371,6 +371,7 @@
 				 oauth2_resource_owner_fields :: list(binary()),    %% Lista de campos que devem aparecer no resource_owner na autenticação oauth2
 				 auth_allow_user_inative_credentials :: boolean(),	%% Permite login de usuários inativos.
 				 rest_base_url :: binary(),
+				 rest_base_auth_url :: binary(),
 				 rest_auth_url :: binary(),
 				 rest_login_url :: binary(),						%% Url da tela de login
 				 rest_use_host_in_redirect :: boolean(),			%% Ao gerar a url de redirect, usa o host para a o dominio 

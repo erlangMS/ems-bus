@@ -41,6 +41,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mstatic_file_path\033[0m: \033[01;34m~p\033[0m.", [Conf#config.static_file_path]),
 			ems_logger:info("  \033[0;32mstatic_file_path_probing\033[0m: \033[01;34m~p\033[0m.", [Conf#config.static_file_path_probing]),
 			ems_logger:info("  \033[0;32mrest_base_url\033[0m: \033[01;34m~p\033[0m.", [Conf#config.rest_base_url]),
+			ems_logger:info("  \033[0;32mrest_base_auth_url\033[0m: \033[01;34m~p\033[0m.", [Conf#config.rest_base_auth_url]),
 			ems_logger:info("  \033[0;32mrest_auth_url\033[0m: \033[01;34m~p\033[0m.", [Conf#config.rest_auth_url]),
 			ems_logger:info("  \033[0;32mrest_login_url\033[0m: \033[01;34m~p\033[0m.", [Conf#config.rest_login_url]),
 			case Conf#config.oauth2_with_check_constraint of

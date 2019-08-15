@@ -415,7 +415,8 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentialsDefault,
 								 show_debug_response_headers = ShowDebugResponseHeadersDefault,
 								 log_show_response = LogShowResponseDefault,
-								 log_show_payload = LogShowPayloadDefault}) ->
+								 log_show_payload = LogShowPayloadDefault, 
+								 instance_type = InstanceType}) ->
 	try
 		put(parse_step, name),
 		Name = ems_util:parse_name_service(get_p(<<"name">>, Map, <<>>)),
@@ -589,13 +590,18 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				Middleware = parse_middleware(get_p(<<"middleware">>, Map, undefined)),
 				
 				put(parse_step, cache_control),
-				CacheControlValue = get_p(<<"cache_control">>, Map, ?CACHE_CONTROL_NO_CACHE),
-				case CacheControlValue of
-					<<"no-cache">> -> 
-						CacheControl = ?CACHE_CONTROL_NO_CACHE;
-					_ -> CacheControl = CacheControlValue
+				case InstanceType of
+					production ->
+						CacheControlValue = get_p(<<"cache_control">>, Map, ?CACHE_CONTROL_NO_CACHE),
+						case CacheControlValue of
+							<<"no-cache">> -> 
+								CacheControl = ?CACHE_CONTROL_NO_CACHE;
+							_ -> CacheControl = CacheControlValue
+						end;
+					_ -> 
+						CacheControl = ?CACHE_CONTROL_NO_CACHE
 				end,
-				
+
 				put(parse_step, expires_minute),
 				case maps:is_key(<<"expires_minute">>, Map) of
 					true -> ExpiresMinute = ems_util:parse_range(get_p(<<"expires_minute">>, Map, 0), ?SERVICE_MIN_EXPIRE_MINUTE, ?SERVICE_MAX_EXPIRE_MINUTE, einvalid_expires_minute);
@@ -613,6 +619,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				% Se for application/json substitui pelo application/json; charset=utf-8
 				case ContentType0 of
 					<<"application/json">> -> ContentType = ?CONTENT_TYPE_JSON;  
+					<<"json">> -> ContentType = ?CONTENT_TYPE_JSON;  
 					_ -> ContentType = ContentType0
 				end,
 				
