@@ -150,8 +150,7 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_([H|T], ClientId, Fie
 			case length(Response) of 
 				0 -> FinalResult = Result;
 				_ -> FinalResult = Result ++ Result2
-			end;
-		_ -> FinalResult = Result
+			end
 	end,
 	find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_(T, ClientId, Fields, FinalResult).
 
