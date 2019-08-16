@@ -127,7 +127,7 @@ new_from_map(Map, _Conf) ->
 		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, 0)),
 	
 		put(parse_step, perfil_id),
-		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map, undefined)),
+		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map, 0)),
 	
 		put(parse_step, url),
 		Url = ?UTF8_STRING(maps:get(<<"url">>, Map)),
