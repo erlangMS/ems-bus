@@ -112,6 +112,7 @@
 
 % Mostra no log payload e response
 -define(LOG_SHOW_RESPONSE, true).
+-define(LOG_SHOW_RESPONSE_HEADER, true).
 -define(LOG_SHOW_PAYLOAD, true).
 -define(LOG_SHOW_CONTENT_STATIC_FILE, false).
 
@@ -416,7 +417,8 @@
 				 sufixo_email_institucional :: binary(),
 				 http_headers :: map(),
 				 http_headers_options :: map(),
-				 log_show_response = ?LOG_SHOW_RESPONSE :: boolean(),			%% Se true, imprime o response no log
+				 log_show_response = ?LOG_SHOW_RESPONSE :: boolean(),						%% Se true, imprime o response no log
+				 log_show_response_header = ?LOG_SHOW_RESPONSE_HEADER :: boolean(),			%% Se true, imprime o response no log
 				 log_show_payload = ?LOG_SHOW_PAYLOAD :: boolean(),				%% Se true, imprime o payload no log
 				 log_show_response_max_length :: boolean(),			%% show response if content length < show_response_max_length
 				 log_show_payload_max_length :: boolean(),			%% show payload if content length < show_response_max_length

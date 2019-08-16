@@ -795,7 +795,8 @@ do_log_request(Request = #request{rid = RID,
 						ResultCacheService = 0,
 						AuthorizationService = public,
 						ShowResponseService = false,
-						ShowPayloadService = false;
+						ShowPayloadService = false,
+						ShowResponseHeaderService = false;
 					_ ->
 						ServiceService = Service#service.service,
 						ServiceName = Service#service.name,
@@ -805,7 +806,8 @@ do_log_request(Request = #request{rid = RID,
 						ResultCacheService = Service#service.result_cache,
 						AuthorizationService = Service#service.authorization,
 						ShowResponseService = Service#service.log_show_response,
-						ShowPayloadService = Service#service.log_show_payload
+						ShowPayloadService = Service#service.log_show_payload,
+						ShowResponseHeaderService = Service#service.log_show_response_header
 				end,
 				TextData = 
 					[
@@ -829,6 +831,10 @@ do_log_request(Request = #request{rid = RID,
 						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"Service owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"Use-RE">>, ?WHITE_PARAM_COLOR, ServiceUseRE,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
+						case ShowResponseHeaderService of
+							true -> [?TAB_GREEN_COLOR, <<"ResponseHeader">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [ResponseHeader]))];
+							false -> <<>>
+						end,
 						case (Reason =/= ok orelse 
 							   ShowPayloadService orelse 
 							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList)) 

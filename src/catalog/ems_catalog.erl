@@ -103,7 +103,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 			   ServiceResendMsg1, 
 			   AuthorizationPublicCheckCredential,
 			   HttpMaxContentLength, HttpHeaders, 
-			   LogShowResponse, LogShowPayload, Restricted,
+			   LogShowResponse, LogShowResponseHeader, LogShowPayload, Restricted,
 			   ShowDebugResponseHeader) ->
 	PatternKey = ems_util:make_rowid_from_url(Url, Type),
 	{ok, Id_re_compiled} = re:compile(PatternKey),
@@ -186,6 +186,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					http_max_content_length = HttpMaxContentLength,
 					http_headers = HttpHeaders,
 					log_show_response = LogShowResponse,
+					log_show_response_header = LogShowResponseHeader,
 					log_show_payload = LogShowPayload,
 					restricted = Restricted,
 					show_debug_response_headers = ShowDebugResponseHeader
@@ -212,8 +213,8 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 		    ServiceResendMsg1, 
 			AuthorizationPublicCheckCredential,
 			HttpMaxContentLength, HttpHeaders, 
-			LogShowResponse, LogShowPayload, Restricted,
-			ShowDebugResponseHeader) ->
+			LogShowResponse, LogShowResponseHeader, LogShowPayload, 
+			Restricted,	ShowDebugResponseHeader) ->
 	Contract = #service{
 				id = Id,
 				rowid = Rowid,
@@ -291,6 +292,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 				http_max_content_length = HttpMaxContentLength,
 				http_headers = HttpHeaders,
 				log_show_response = LogShowResponse,
+				log_show_response_header = LogShowResponseHeader,
 				log_show_payload = LogShowPayload,
 				restricted = Restricted,
 				show_debug_response_headers = ShowDebugResponseHeader
@@ -415,6 +417,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentialsDefault,
 								 show_debug_response_headers = ShowDebugResponseHeadersDefault,
 								 log_show_response = LogShowResponseDefault,
+								 log_show_response_header = LogShowResponseHeaderDefault,
 								 log_show_payload = LogShowPayloadDefault, 
 								 instance_type = InstanceType}) ->
 	try
@@ -675,6 +678,9 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				put(parse_step, log_show_response),
 				LogShowResponse = ems_util:parse_bool(get_p(<<"log_show_response">>, Map, LogShowResponseDefault)),
 				
+				put(parse_step, log_show_response_header),
+				LogShowResponseHeader = ems_util:parse_bool(get_p(<<"log_show_response_header">>, Map, LogShowResponseHeaderDefault)),
+
 				put(parse_step, log_show_payload),
 				LogShowPayload = ems_util:parse_bool(get_p(<<"log_show_payload">>, Map, LogShowPayloadDefault)),
 				
@@ -756,7 +762,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												   ServiceResendMsg1,
 												   AuthorizationPublicCheckCredential,
 												   HttpMaxContentLength, HttpHeaders, 
-												   LogShowResponse, LogShowPayload,
+												   LogShowResponse, LogShowResponseHeader, LogShowPayload,
 												   Restricted, ShowDebugResponseHeader);
 					false -> 
 						put(parse_step, new_service),
@@ -787,7 +793,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												ServiceResendMsg1,
 												AuthorizationPublicCheckCredential,
 												HttpMaxContentLength, HttpHeaders, 
-												LogShowResponse, LogShowPayload,
+												LogShowResponse, LogShowResponseHeader, LogShowPayload,
 												Restricted, ShowDebugResponseHeader)
 				end,
 				{ok, Service};
