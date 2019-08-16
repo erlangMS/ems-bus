@@ -1,7 +1,7 @@
 -module(ems_oauth2_authorize).
 
--export([execute/1]).
--export([code_request/1]).
+-export([execute/1, 
+		 code_request/1]).
 
 -include("include/ems_config.hrl").
 -include("include/ems_schema.hrl").
@@ -23,6 +23,7 @@ execute(Request = #request{type = Type,
 					<<"POST">> -> GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request);
 					_ -> GrantType = undefined
 				end,
+				ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [GrantType]),
 				Result = case GrantType of
 						<<"password">> -> 
 							case ems_util:get_client_request_by_id_and_secret(Request) of
@@ -63,7 +64,9 @@ execute(Request = #request{type = Type,
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
 									access_token_request(Request, Client0);
-								Error -> Error
+								{error, ReasonAuthorizationCode} = Error -> 
+									ems_logger:info("ems_oauth2_authorize execute authorization_code failed in get_client_request_by_id_and_secret. Reason: ~p.", [ReasonAuthorizationCode]),
+									Error
 							end;
 						<<"refresh_token">> ->	
 							case ems_util:get_client_request_by_id(Request) of
@@ -76,6 +79,7 @@ execute(Request = #request{type = Type,
 							{error, access_denied, einvalid_grant_type}
 				end; 
 			{ok, PassportCodeInt, Client0, User0} ->
+				ems_logger:info("ems_oauth2_authorize autenticate by passport PassportCodeInt: ~p Client: ~p User: ~p.", [PassportCodeInt, Client0, User0]),
 				GrantType = <<"authorization_code">>,
 				ems_db:inc_counter(ems_oauth2_passport),
 				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0)	
@@ -479,33 +483,40 @@ persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, c
 
 parse_passport_code(<<>>) -> {error, eno_passport_present};
 parse_passport_code(undefined) -> {error, eno_passport_present};
+parse_passport_code(<<"undefined">>) -> {error, eno_passport_present};
 parse_passport_code(PassportCodeBinBase64) ->
-	PassportCodeBinBase64Str = ems_util:remove_quoted_str(binary_to_list(PassportCodeBinBase64)),
-	PassportCodeStr = base64:decode_to_string(PassportCodeBinBase64Str),
-	PassportCodeStr2 = ems_util:str_trim(PassportCodeStr),
-	PassportCodeInt = ems_util:list_to_integer_def(PassportCodeStr2, 0),
-	case PassportCodeInt > 0 andalso PassportCodeInt =< 9999999999 of
-		true -> 
-			case select_passport_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
-				{ok, ClientId, UserId, _DtCreated, Escopo} ->
-					case ems_client:find_by_id(ClientId) of
-						{ok, Client} ->
-							case ems_user:find_by_id(UserId, Escopo) of
-								{ok, User} -> 
-									{ok, PassportCodeInt, Client, User};
-								_ -> 
-									ems_logger:error("ems_oauth2_authorize parse_passport_code failed to find user of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
-									{error, eno_passport_present}
-							end;
-						_ -> 
-							ms_logger:error("ems_oauth2_authorize parse_passport_code failed to find client of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
-							{error, eno_passport_present}
-					end;
-				_ -> 
-					{error, eno_passport_present}
-			end;
-		false ->
-			ems_logger:error("ems_oauth2_authorize parse_passport_code failed to parse invalid numeric passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
+	try
+		PassportCodeBinBase64Str = ems_util:remove_quoted_str(binary_to_list(PassportCodeBinBase64)),
+		PassportCodeStr = base64:decode_to_string(PassportCodeBinBase64Str),
+		PassportCodeStr2 = ems_util:str_trim(PassportCodeStr),
+		PassportCodeInt = ems_util:list_to_integer_def(PassportCodeStr2, 0),
+		case PassportCodeInt > 0 andalso PassportCodeInt =< 9999999999 of
+			true -> 
+				case select_passport_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
+					{ok, ClientId, UserId, _DtCreated, Escopo} ->
+						case ems_client:find_by_id(ClientId) of
+							{ok, Client} ->
+								case ems_user:find_by_id(UserId, Escopo) of
+									{ok, User} -> 
+										{ok, PassportCodeInt, Client, User};
+									_ -> 
+										ems_logger:error("ems_oauth2_authorize parse_passport_code failed to find user of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
+										{error, eno_passport_present}
+								end;
+							_ -> 
+								ms_logger:error("ems_oauth2_authorize parse_passport_code failed to find client of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
+								{error, eno_passport_present}
+						end;
+					_ -> 
+						{error, eno_passport_present}
+				end;
+			false ->
+				ems_logger:error("ems_oauth2_authorize parse_passport_code failed to parse invalid numeric passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
+				{error, eno_passport_present}
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("ems_oauth2_authorize parse_passport_code failed to parse invalid passport ~p. Reason: ~p.", [PassportCodeBinBase64, ReasonException]),
 			{error, eno_passport_present}
 	end.
 

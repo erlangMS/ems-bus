@@ -1174,6 +1174,7 @@ parse_file_name_path(Path) ->
 % Process the path "~" and "." wildcards and variable path. Return path
 -spec parse_file_name_path(string() | binary(), list(tuple()) | undefined, binary() | undefined) -> string().
 parse_file_name_path(undefined, _, _) -> <<>>;
+parse_file_name_path(<<"undefined">>, _, _) -> <<>>;
 parse_file_name_path(<<>>, _, _) -> <<>>;
 parse_file_name_path("", _, _) -> <<>>;
 parse_file_name_path(Path, StaticFilePathList, RootPath) when is_binary(Path) ->
@@ -3196,6 +3197,7 @@ json_field_strip_and_escape(Value) ->
 -spec parse_user_agent(binary() | string()) -> tuple().
 parse_user_agent(<<>>) -> {browser_other, ""};
 parse_user_agent(undefined) -> {browser_other, ""};
+parse_user_agent(<<"undefined">>) -> {browser_other, ""};
 parse_user_agent(UserAgent) when is_binary(UserAgent) ->
 	parse_user_agent(binary_to_list(UserAgent));
 parse_user_agent(UserAgent) ->

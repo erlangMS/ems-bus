@@ -123,59 +123,52 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_([], _, _, Result) ->
 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_([H|T], ClientId, Fields, Result) ->
 	case find_by_user_and_client_com_permissao(maps:get(<<"id">>, H), ClientId, Fields) of
 		{ok, []} ->
-			io:format("Chegou aqui no [] do método principal >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-			Result2 = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields);
+			{ok, Result2} = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields);
 		{ok, Records} -> 
 			case ems_user_dados_funcionais:find_by_id(maps:get(<<"id">>, H)) of 
 				{ok, TypeResolveList} ->
-					TypeResolve = ems_util:hd_or_empty(TypeResolveList),
-					case maps:get(<<"type">>, TypeResolve) of 
-						0 -> Type = interno;
-						1 -> Type = tecnico;
-						2 -> Type = docente;
-						3 -> Type = discente;
-						4 -> Type = terceiros;
-						_ -> Type = error
-					end,		
-					ListTypePerfilPermisson = change_user_type_to_atom(Type, Records),
-					Result3 = lists:append(Result, [ListTypePerfilPermisson]),
-					{ok, ValueAluno} = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields),
-					case ValueAluno of 
-						[] ->
-							Result2 = Result3;
-						_ ->
-							Result2 = lists:append(Result3, [ValueAluno])
-					end;
-
+					TypeResolve = ems_util:hd_or_empty(TypeResolveList),		
+					ListTypePerfilPermisson = change_user_type_to_atom(maps:get(<<"type">>, TypeResolve), Records),
+					Result2 = lists:append(Result, [ListTypePerfilPermisson]);
 			{error, enoent} -> 
 					{ok, Result2} = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields)
 			end;		
 		_ ->
-			io:format("Chegou aqui no {error, enoent} do método principal >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-			Result2 = lists:appnd(Result, find_by_client_com_perfil_permission_aluno(H, ClientId, Fields))		
+			{ok, Result2} = lists:appnd(Result, find_by_client_com_perfil_permission_aluno(H, ClientId, Fields))		
 	end,
-	find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_(T, ClientId, Fields, Result ++ Result2).
+	case Result2 of 
+		#{} ->
+			case map_size(Result2) of 
+				0 ->
+					FinalResult = Result;
+				_ -> FinalResult = Result ++ Result2
+			end; 
+		[] ->  FinalResult = Result;
+		Response ->
+			case length(Response) of 
+				0 -> FinalResult = Result;
+				_ -> FinalResult = Result ++ Result2
+			end
+	end,
+	find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_(T, ClientId, Fields, FinalResult).
 
 
 find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
-	case ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, name, remap_user_id, type], [{cpf, "==", maps:get(<<"cpf">>, User)}]) of 
-		{ok,[]} -> 
-			{ok,[]};
-		{ok, UserAlunoList} -> 			
-				UserAluno = ems_util:hd_or_empty(UserAlunoList),
-				{ok, UserAlunoById} = ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db], maps:get(<<"id">>, UserAluno)),
+		case ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db], maps:get(<<"id">>, User)) of 
+			{ok, UserAlunoById} ->
 				case find_by_user_and_client_com_permissao(UserAlunoById#user.remap_user_id, ClientId, Fields) of
 					{ok,[]} -> 
 						{ok, #{}};
 					{ok, RecordsAluno} -> 
-						AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),		
-						ListTypePerfilPermissonAluno = change_user_type_to_atom(maps:get(<<"type">>, UserAluno), AlunosRecordsMap),
+						AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),	
+						ListTypePerfilPermissonAluno = change_user_type_to_atom(maps:get(<<"type">>, User), AlunosRecordsMap),
 						{ok , ListTypePerfilPermissonAluno};
 					_ -> 
 						{ok, #{}}
 				end;
-		_ -> {ok, #{}}
-	end.
+			_ -> 
+				{ok, #{}}
+		end.
 
 
 find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->	
@@ -199,11 +192,11 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 
 change_user_type_to_atom(UserType, RecordsAluno) ->
 	case UserType of 
-		interno -> #{interno => RecordsAluno};
-		tecnico -> #{tecnico => RecordsAluno};
-		docente -> #{docente => RecordsAluno};
-		discente -> #{discente => RecordsAluno};
-		terceiros -> #{terceiros => RecordsAluno}
+		0 -> #{interno => RecordsAluno};
+		1 -> #{tecnico => RecordsAluno};
+		2 -> #{docente => RecordsAluno};
+		3 -> #{discente => RecordsAluno};
+		4 -> #{terceiros => RecordsAluno}
 	end.
 
 -spec find_by_user_and_client_com_permissao(non_neg_integer(), non_neg_integer(), list()) -> list(map()).
