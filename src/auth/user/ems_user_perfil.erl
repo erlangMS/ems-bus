@@ -297,10 +297,10 @@ new_from_map(Map, _Conf) ->
 		PerfilId = ems_util:parse_to_integer(maps:get(<<"perfil_id">>, Map, Id)),
 	
 		put(parse_step, user_id),
-		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map)),
+		UserId = ems_util:parse_to_integer(maps:get(<<"user_id">>, Map, 0)),
 	
 		put(parse_step, client_id),
-		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, undefined)),
+		ClientId = ems_util:parse_to_integer(maps:get(<<"client_id">>, Map, 0)),
 	
 		put(parse_step, name),
 		Name = ?UTF8_STRING(maps:get(<<"name">>, Map)),
