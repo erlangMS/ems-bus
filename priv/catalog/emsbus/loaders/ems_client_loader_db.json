@@ -26,7 +26,10 @@
 			   s.SisAuthScope,
 			   s.SisAuthSecret,
 			   s.SisGroup,
-			   s.SisGlyphIcon 
+			   s.SisGlyphIcon,
+			   null,
+			   null,
+			   s.SisAuthorizationOwher 
 			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
 			",
 	"sql_update" :
@@ -38,8 +41,11 @@
 			   s.SisSituacao as Active,
 			   s.SisAuthScope,
 			   s.SisGroup,
-			   s.SisGlyphIcon 
+			   s.SisGlyphIcon,
+			   null,
+			   null,
+			   s.SisAuthorizationOwher 
 			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
 			",
-	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope", "group", "glyphicon"]
+	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope", "group", "glyphicon", "rest_base_url", "rest_auth_url", "authorization_owner"]
 }
