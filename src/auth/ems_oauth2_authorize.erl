@@ -19,11 +19,15 @@ execute(Request = #request{type = Type,
 		case parse_passport_code(PassportCodeBinBase64) of
 			{error, eno_passport_present} ->		
 				case Type of
-					<<"GET">> -> GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request);
-					<<"POST">> -> GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request);
-					_ -> GrantType = undefined
+					<<"GET">> -> 
+						GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request),
+						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [binary_to_list(GrantType)]);
+					<<"POST">> -> 
+						GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request),
+						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [binary_to_list(GrantType)]);
+					_ -> 
+						GrantType = undefined
 				end,
-				ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [GrantType]),
 				Result = case GrantType of
 						<<"password">> -> 
 							case ems_util:get_client_request_by_id_and_secret(Request) of
@@ -76,6 +80,7 @@ execute(Request = #request{type = Type,
 								Error -> Error
 							end;
 						 _ -> 
+							ems_logger:error("ems_oauth2_authorize failed on parse invalid grant_type ~p.", [GrantType]),
 							{error, access_denied, einvalid_grant_type}
 				end; 
 			{ok, PassportCodeInt, Client0, User0} ->
@@ -208,6 +213,7 @@ execute(Request = #request{type = Type,
 %% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
 code_request(Request = #request{response_header = ResponseHeader}) ->
+	io:format("aqui1  ~p\n", [Request]),
     try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->

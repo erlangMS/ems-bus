@@ -456,12 +456,13 @@
 				 glyphicon :: binary(),						%% 10 - glyphicon
 			     rest_base_url :: binary(),				    %% 11 - rest_base_url
 			     rest_auth_url :: binary(),					%% 12 - rest_auth_url
-			     ctrl_path :: string(),						%% 13 - ctrl_path
-			     ctrl_file :: string(),						%% 14 - ctrl_file
-			     ctrl_insert :: binary(),					%% 15 - ctrl_insert				-> Data que foi inserido no banco mnesia
-			     ctrl_update :: binary(), 					%% 16 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-			     ctrl_modified :: binary(),					%% 17 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-			     ctrl_hash :: non_neg_integer()				%% 18 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+			     authorization_owner :: list(binary()),	    %% 13 - authorization_owner		-> permite ao cliente consumir os ws services de owners especificados na lista
+			     ctrl_path :: string(),						%% 14 - ctrl_path
+			     ctrl_file :: string(),						%% 15 - ctrl_file
+			     ctrl_insert :: binary(),					%% 16 - ctrl_insert				-> Data que foi inserido no banco mnesia
+			     ctrl_update :: binary(), 					%% 17 - ctrl_update				-> Data que foi atualiado no banco mnesia			
+			     ctrl_modified :: binary(),					%% 18 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+			     ctrl_hash :: non_neg_integer()				%% 19 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
 		}).
 
 
@@ -479,12 +480,13 @@
 			   binary_type,									%% 10 - glyphicon
 			   binary_type,									%% 11 - rest_base_url
 			   binary_type,									%% 12 - rest_auth_url
-			   string_type,									%% 13 - ctrl_path
-			   string_type,									%% 14 - ctrl_file
-			   binary_type,									%% 15 - ctrl_insert
-			   binary_type, 								%% 16 - ctrl_update
-			   binary_type,									%% 17 - ctrl_modified
-			   non_neg_integer_type							%% 18 - ctrl_hash 	
+			   binary_type,									%% 13 - authorization_owners
+			   string_type,									%% 14 - ctrl_path
+			   string_type,									%% 15 - ctrl_file
+			   binary_type,									%% 16 - ctrl_insert
+			   binary_type, 								%% 17 - ctrl_update
+			   binary_type,									%% 18 - ctrl_modified
+			   non_neg_integer_type							%% 19 - ctrl_hash 	
 		}).
 
 -record(ctrl_params, {name :: string(),
@@ -607,7 +609,7 @@
 					version :: binary(), 									%% 17 - version									-> Versão do contrato do serviço
 					owner :: binary(),  									%% 18 - owner									-> Quem é o proprietário pelo serviço. Ex.: auth
 					group :: binary(),										%% 19 - group									-> Quem é o grupo do serviço. Ex.: auth/user
-					async = false :: boolean(),										%% 20 - async									-> Indica se o serviço será processado em segundo plano (chamada assíncrona)
+					async = false :: boolean(),								%% 20 - async									-> Indica se o serviço será processado em segundo plano (chamada assíncrona)
 					querystring :: list(map()),								%% 21 - querystring								-> Definição da querystring para o contrato do serviço
 					qtd_querystring_req :: non_neg_integer(), 				%% 22 - qtd_querystring_req						-> Indica quantas querystrings são obrigatórias
 					host :: atom(),  										%% 23 - host									-> Atom do host onde está o módulo do serviço que vai processar a requisição

@@ -98,6 +98,7 @@ new_from_map(Map, Conf) ->
 				glyphicon = ?UTF8_STRING(maps:get(<<"glyphicon">>, Map, <<>>)),
 				rest_base_url = ?UTF8_STRING(maps:get(<<"rest_base_url">>, Map, Conf#config.rest_base_url)),
 				rest_auth_url = ?UTF8_STRING(maps:get(<<"rest_auth_url">>, Map, Conf#config.rest_auth_url)),
+				authorization_owner = maps:get(<<"authorization_owner">>, Map, []),
 				ctrl_path = maps:get(<<"ctrl_path">>, Map, <<>>),
 				ctrl_file = maps:get(<<"ctrl_file">>, Map, <<>>),
 				ctrl_modified = maps:get(<<"ctrl_modified">>, Map, undefined),

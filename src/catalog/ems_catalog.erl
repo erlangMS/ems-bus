@@ -463,10 +463,13 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				put(parse_step, glyphicon),
 				Glyphicon = get_p(<<"glyphicon">>, Map, <<>>),
 
+				put(parse_step, authorization),
+				Authorization = ems_util:parse_authorization_type(get_p(<<"authorization">>, Map, AuthorizationDefault)),
+
 				put(parse_step, restricted),
 				Restricted0 = get_p(<<"restricted">>, Map, undefined),
 				case Restricted0 of
-					undefined -> Restricted = lists:member(Owner, RestrictedServicesOwner);
+					undefined -> Restricted = lists:member(Owner, RestrictedServicesOwner) andalso Authorization =/= public;
 					_ -> Restricted = ems_util:parse_bool(Restricted0)
 				end,
 
@@ -544,9 +547,6 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 
 				put(parse_step, result_cache_shared),
 				ResultCacheShared = get_p(<<"result_cache_shared">>, Map, ResultCacheSharedDefault),
-				
-				put(parse_step, authorization),
-				Authorization = ems_util:parse_authorization_type(get_p(<<"authorization">>, Map, AuthorizationDefault)),
 				
 				put(parse_step, oauth2_with_check_constraint),
 				OAuth2WithCheckConstraint = ems_util:parse_bool(get_p(<<"oauth2_with_check_constraint">>, Map, Oauth2WithCheckConstraintDefault)),
@@ -732,6 +732,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				ServiceUnavailableMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_unavailable"),
 				ServiceTimeoutMetricName = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_timeout"),
 				ServiceResendMsg1 = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_resend_msg1"),
+				
 				
 				case UseRE of
 					true -> 

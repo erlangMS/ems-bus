@@ -36,6 +36,7 @@
 		"result_cache" : 0,
 		"type": "GET",
 		"authorization" : "public",
+		"restricted" : false,
 		"querystring": [
 			{
 				"name": "response_type",
@@ -103,6 +104,7 @@
 		"type": "POST",
 		"result_cache" : 0,
 		"authorization" : "public",
+		"restricted" : false,
 		"querystring": [
 			{
 				"name": "grant_type",
@@ -179,6 +181,7 @@
 		"type": "GET",
 		"result_cache" : 0,
 		"authorization" : "basic",
+		"restricted" : false,
 		"querystring": [
 			{
 				"name": "client_id",
@@ -220,25 +223,6 @@
 	},
 	
 	{
-		"name" : "/callback",
-		"comment": "Simulção de recurso",
-		"owner": "auth",
-		"version": "1.0.0",
-		"service" : "ems_oauth2_client:callback",
-		"url": "/callback",
-		"type": "GET",
-		"result_cache" : 0,
-		"querystring": [
-			{
-				"name": "code",
-				"type": "string",
-				"comment": "Token de acesso"
-			}
-		],
-		"lang" : "erlang"
-	},
-	
-	{
 		"name" : "/resource",
 		"comment": "Get resource",
 		"owner": "auth",
@@ -248,6 +232,7 @@
 		"type": "POST",
 		"result_cache" : 0,
 		"authorization": "oauth2",
+		"restricted" : false,
 		"querystring": [
 			{
 				"name": "token",
@@ -268,6 +253,7 @@
 		"type": "POST",
 		"result_cache" : 0,
 		"authorization": "oauth2",
+		"restricted" : false,
 		"querystring": [
 			{
 				"name": "token",
