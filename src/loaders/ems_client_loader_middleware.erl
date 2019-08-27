@@ -89,6 +89,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 																	undefined -> Conf#config.rest_auth_url;
 																	RestAuthUrlValue -> RestAuthUrlValue
 																 end,
+												 authorization_owner = NewClient#client.authorization_owner,
 												 ctrl_path = NewClient#client.ctrl_path,
 												 ctrl_file = NewClient#client.ctrl_file,
 												 ctrl_update = CtrlDate,
