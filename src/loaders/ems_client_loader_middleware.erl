@@ -83,10 +83,12 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 glyphicon = NewClient#client.glyphicon,
 												 rest_base_url = case NewClient#client.rest_base_url of
 																	undefined -> Conf#config.rest_base_url;
+																	null -> Conf#config.rest_base_url;
 																	RestBaseUrlValue -> RestBaseUrlValue
 																 end,
 												 rest_auth_url = case NewClient#client.rest_auth_url of
 																	undefined -> Conf#config.rest_auth_url;
+																	null -> Conf#config.rest_auth_url;
 																	RestAuthUrlValue -> RestAuthUrlValue
 																 end,
 												 authorization_owner = NewClient#client.authorization_owner,
