@@ -3300,7 +3300,9 @@ is_email_institucional(SufixoEmailInstitucional, Email) ->
 	end.
 
 -spec get_client_request_by_id_and_secret(#request{}) -> {ok, #client{}} | {error, enoent, atom()}.
-get_client_request_by_id_and_secret(Request = #request{authorization = Authorization}) ->
+get_client_request_by_id_and_secret(Request = #request{authorization = Authorization,
+													   user_agent = UserAgent,
+													   ip_bin = Peer}) ->
     try
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
@@ -3311,7 +3313,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 			true ->
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
-					{ok, Client} -> {ok, Client};
+					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
 					Error -> Error
 				end;
 			false ->
@@ -3325,7 +3327,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 								case ClientId2 > 0 of
 									true ->
 										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> {ok, Client};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
 											Error -> Error
 										end;
 									false -> {error, access_denied, einvalid_client_id}
@@ -3341,7 +3343,9 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 
 
 -spec get_client_request_by_id(#request{}) -> {ok, #client{}} | {error, enoent, atom()}.
-get_client_request_by_id(Request = #request{authorization = Authorization}) ->
+get_client_request_by_id(Request = #request{authorization = Authorization,
+											user_agent = UserAgent,
+											ip_bin = Peer}) ->
     try
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
@@ -3351,7 +3355,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization}) ->
 		case ClientId > 0 of
 			true ->
 				case ems_client:find_by_id(ClientId) of
-					{ok, Client} -> {ok, Client};
+					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
 					_ -> {error, access_denied, enoent}
 				end;
 			false ->
@@ -3364,7 +3368,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization}) ->
 								case ClientId2 > 0 of 	
 									true ->
 										case ems_client:find_by_id(ClientId2) of
-											{ok, Client} -> {ok, Client};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
 											_ -> {error, access_denied, enoent}
 										end;
 									false -> {error, access_denied, einvalid_client_id}

@@ -457,12 +457,14 @@
 			     rest_base_url :: binary(),				    %% 11 - rest_base_url
 			     rest_auth_url :: binary(),					%% 12 - rest_auth_url
 			     authorization_owner :: list(binary()),	    %% 13 - authorization_owner		-> permite ao cliente consumir os ws services de owners especificados na lista
-			     ctrl_path :: string(),						%% 14 - ctrl_path
-			     ctrl_file :: string(),						%% 15 - ctrl_file
-			     ctrl_insert :: binary(),					%% 16 - ctrl_insert				-> Data que foi inserido no banco mnesia
-			     ctrl_update :: binary(), 					%% 17 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-			     ctrl_modified :: binary(),					%% 18 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-			     ctrl_hash :: non_neg_integer()				%% 19 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+			     user_agent :: atom(),						%% 14 - user_agent
+			     peer :: binary(),							%% 15 - peer
+			     ctrl_path :: string(),						%% 16 - ctrl_path
+			     ctrl_file :: string(),						%% 17 - ctrl_file
+			     ctrl_insert :: binary(),					%% 18 - ctrl_insert				-> Data que foi inserido no banco mnesia
+			     ctrl_update :: binary(), 					%% 19 - ctrl_update				-> Data que foi atualiado no banco mnesia			
+			     ctrl_modified :: binary(),					%% 20 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+			     ctrl_hash :: non_neg_integer()				%% 21 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
 		}).
 
 
@@ -481,12 +483,14 @@
 			   binary_type,									%% 11 - rest_base_url
 			   binary_type,									%% 12 - rest_auth_url
 			   binary_type,									%% 13 - authorization_owners
-			   string_type,									%% 14 - ctrl_path
-			   string_type,									%% 15 - ctrl_file
-			   binary_type,									%% 16 - ctrl_insert
-			   binary_type, 								%% 17 - ctrl_update
-			   binary_type,									%% 18 - ctrl_modified
-			   non_neg_integer_type							%% 19 - ctrl_hash 	
+			   atom_type,									%% 14 - user_agent
+			   binary_type,									%% 15 - peer
+			   string_type,									%% 16 - ctrl_path
+			   string_type,									%% 17 - ctrl_file
+			   binary_type,									%% 18 - ctrl_insert
+			   binary_type, 								%% 19 - ctrl_update
+			   binary_type,									%% 20 - ctrl_modified
+			   non_neg_integer_type							%% 212 - ctrl_hash 	
 		}).
 
 -record(ctrl_params, {name :: string(),

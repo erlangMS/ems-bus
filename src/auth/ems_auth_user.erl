@@ -119,10 +119,20 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 						   {<<"resource_owner">>, User}, 
 						   {<<"expiry_time">>, _ExpityTime}, 
 						   {<<"scope">>, Scope}]}} -> 
-					ems_logger:info("ems_auth_user do_oauth2_check_access_token success for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m.", [AccessToken]),
-					do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
+					% O access_token deve ser do peer que solicitou o token
+					% Não é aceito um token gerado em um browser ser utilizado em outro browser
+					case Client#client.user_agent =:= Req#request.user_agent andalso
+						 Client#client.peer =:= Req#request.ip_bin of
+							true ->
+								ems_logger:info("ems_auth_user do_oauth2_check_access_token success for \033[0;32maccess token\033[0m: \033[01;34m~p\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~p\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~p\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m.", [AccessToken, User#user.login, Client#client.name,  binary_to_list(Client#client.peer), Client#client.user_agent]),
+								do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
+							false ->
+								ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid peer for \033[0;32maccess token\033[0m: \033[01;34m~p\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~p\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~p\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m.", [AccessToken, User#user.login, Client#client.name, binary_to_list(Client#client.peer), Client#client.user_agent]),
+								ems_db:inc_counter(einvalid_peer_token),
+								{error, access_denied, einvalid_peer_token}
+					end;
 				_ -> 
-					ems_logger:error("ems_auth_user do_oauth2_check_access_token failed on \033[0;32mvalidate access token\033[0m for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m.", [AccessToken]),
+					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m.", [AccessToken]),
 					ems_db:inc_counter(ems_auth_user_oauth2_denied),
 					{error, access_denied, einvalid_access_token}
 			end
@@ -174,12 +184,12 @@ do_check_grant_permission(Service = #service{restricted = RestrictedService, own
 			case not RestrictedService of
 				true ->
 					case PermiteAcessarComoAdmin of
-						true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m service\033[0m: \033[01;34m~s\033[0m, \033[0;admin user login\033[0m: \033[01;34m~s\033[0m, \033[0;32mis_admin\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
+						true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m service\033[0m: \033[01;34m~s\033[0m, \033[0;32madmin user login\033[0m: \033[01;34m~s\033[0m, \033[0;32mis_admin\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
 						false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m service\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mis_admin\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])
 					end;
 				false ->
 					case PermiteAcessarComoAdmin of
-						true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m restricted service\033[0m: \033[01;34m~s\033[0m, \033[0;admin user login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), ClientName, OwnerStr, AuthorizationOwnerStr]);
+						true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m restricted service\033[0m: \033[01;34m~s\033[0m, \033[0;32madmin user login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), ClientName, OwnerStr, AuthorizationOwnerStr]);
 						false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m restricted service\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), ClientName, OwnerStr, AuthorizationOwnerStr])
 					end
 			end,

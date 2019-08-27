@@ -213,7 +213,6 @@ execute(Request = #request{type = Type,
 %% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
 code_request(Request = #request{response_header = ResponseHeader}) ->
-	io:format("aqui1  ~p\n", [Request]),
     try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->
