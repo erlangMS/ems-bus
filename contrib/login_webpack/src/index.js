@@ -4,4 +4,3 @@ import 'jquery';
 import 'bootstrap';
 import './assets/js/login.js';
 import './assets/js/waves.min.js';
-import './assets/js/jquery.validate.js';
