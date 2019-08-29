@@ -791,44 +791,53 @@ do_log_request(Request = #request{rid = RID,
 						ServiceName = <<>>,
 						ServiceUrl = <<>>,
 						ServiceOwner = <<>>,
-						ServiceUseRE = <<"false">>,
+						ServiceGroup = <<>>,
+						ServiceUseRE = <<>>,
 						ResultCacheService = 0,
 						AuthorizationService = public,
 						ShowResponseService = false,
 						ShowPayloadService = false,
-						ShowResponseHeaderService = false;
+						ShowResponseHeaderService = false,
+						ServiceAuthorizarion = <<>>,
+						ServiceRestricted = <<>>,
+						OAuth2WithCheckConstraint = <<>>;
 					_ ->
 						ServiceService = Service#service.service,
 						ServiceName = Service#service.name,
 						ServiceUrl = Service#service.url,
 						ServiceOwner = Service#service.owner,
+						ServiceGroup = Service#service.group,
 						ServiceUseRE = ems_util:boolean_to_binary(Service#service.use_re),
 						ResultCacheService = Service#service.result_cache,
 						AuthorizationService = Service#service.authorization,
 						ShowResponseService = Service#service.log_show_response,
 						ShowPayloadService = Service#service.log_show_payload,
-						ShowResponseHeaderService = Service#service.log_show_response_header
+						ShowResponseHeaderService = Service#service.log_show_response_header,
+						ServiceAuthorizarion = atom_to_binary(Service#service.authorization, utf8),
+						ServiceRestricted = ems_util:boolean_to_binary(Service#service.restricted),
+						OAuth2WithCheckConstraint = ems_util:boolean_to_binary(Service#service.oauth2_with_check_constraint)
+						
 				end,
 				TextData = 
 					[
 					   ?BLUE_COLOR, Type, ?WHITE_SPACE_COLOR, Uri, <<" ">>, atom_to_binary(Version, utf8), <<" ">>,
 					   ?TAB_GREEN_COLOR, <<"RID">>, ?WHITE_PARAM_COLOR, integer_to_binary(RID), 
-					   <<"  (">>, ?GREEN_COLOR, <<"ReqHash">>, ?WHITE_PARAM_COLOR, integer_to_binary(ReqHash), <<")">>, 
+					   ?SPACE_GREEN_COLOR, <<"ReqHash">>, ?WHITE_PARAM_COLOR, integer_to_binary(ReqHash), 
 					   case UrlMasked of
 							true -> [?TAB_GREEN_COLOR, <<"UrlMasked">>, ?WHITE_PARAM_COLOR, Url];
 							false -> <<>>
 					   end,
 					   ?TAB_GREEN_COLOR, <<"Accept">>, ?WHITE_PARAM_COLOR, Accept,
 					   ?TAB_GREEN_COLOR, <<"Content-Type in">>, ?WHITE_PARAM_COLOR, ContentTypeIn, ?SPACE_GREEN_COLOR, <<"out">>, ?WHITE_PARAM_COLOR, ContentTypeOut,
-					   ?TAB_GREEN_COLOR, <<"Host">>, ?WHITE_PARAM_COLOR, Host, ?SPACE_GREEN_COLOR, <<"Peer">>, ?WHITE_PARAM_COLOR, IpBin, 
-					   ?SPACE_GREEN_COLOR, <<"Referer">>, ?WHITE_PARAM_COLOR, 
+					   ?TAB_GREEN_COLOR, <<"Referer">>, ?WHITE_PARAM_COLOR, 
 												case Referer of
 													undefined -> <<>>;
 													_ -> Referer
 												end,
-						?TAB_GREEN_COLOR, <<"User-Agent">>, ?WHITE_PARAM_COLOR, ems_util:user_agent_atom_to_binary(UserAgent), ?SPACE_GREEN_COLOR, <<"Version">>, ?WHITE_PARAM_COLOR, UserAgentVersion,	
-						?TAB_GREEN_COLOR, <<"Service name">>, ?WHITE_PARAM_COLOR, ServiceName, ?SPACE_GREEN_COLOR, <<"Service url">>, ?WHITE_PARAM_COLOR, ServiceUrl,
-						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"Service owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"Use-RE">>, ?WHITE_PARAM_COLOR, ServiceUseRE,
+						?TAB_GREEN_COLOR, <<"User-Agent">>, ?WHITE_PARAM_COLOR, ems_util:user_agent_atom_to_binary(UserAgent), ?SPACE_GREEN_COLOR, <<"Version">>, ?SPACE_GREEN_COLOR, ?WHITE_PARAM_COLOR, UserAgentVersion,	<<"Host">>, ?WHITE_PARAM_COLOR, Host, ?SPACE_GREEN_COLOR, <<"Peer">>, ?WHITE_PARAM_COLOR, IpBin, 
+						?TAB_GREEN_COLOR, <<"Service name">>, ?WHITE_PARAM_COLOR, ServiceName, ?SPACE_GREEN_COLOR, <<"url">>, ?WHITE_PARAM_COLOR, ServiceUrl, ?SPACE_GREEN_COLOR, <<"Use-RE">>, ?WHITE_PARAM_COLOR, ServiceUseRE,
+						?TAB_GREEN_COLOR, <<"Service authorization">>, ?WHITE_PARAM_COLOR, ServiceAuthorizarion, ?SPACE_GREEN_COLOR, <<"restricted">>, ?WHITE_PARAM_COLOR, ServiceRestricted, ?SPACE_GREEN_COLOR, <<"oauth2_with_check_constraint">>, ?WHITE_PARAM_COLOR, OAuth2WithCheckConstraint, 
+						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"group">>, ?WHITE_PARAM_COLOR, ServiceGroup,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
 						case ShowResponseHeaderService of

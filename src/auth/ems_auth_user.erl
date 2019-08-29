@@ -140,7 +140,9 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 	
 
 -spec do_check_grant_permission(#service{}, #request{}, #client{} | public, #user{}, binary(), binary(), atom()) -> {ok, #client{}, #user{}, binary(), binary()} | {error, access_denied}.
-do_check_grant_permission(Service = #service{restricted = RestrictedService, owner = Owner}, 
+do_check_grant_permission(Service = #service{name = ServiceName, 
+											 restricted = RestrictedService, 
+											 owner = Owner}, 
 						  Req, 
 						  Client, 
 						  User = #user{admin = Admin}, 
@@ -174,7 +176,11 @@ do_check_grant_permission(Service = #service{restricted = RestrictedService, own
 			PermiteAcessarWebserviceDoOwner = true
 	end,
 	AuthorizationOwnerStr = string:join(ems_util:binlist_to_list(AuthorizationOwner), ","),
-	case PermiteAcessarComoAdmin orelse PermiteAcessarWebserviceDoOwner of
+	case PermiteAcessarWebserviceDoOwner of 
+		false -> PermiteAcessarWsOAuth2 = ServiceName =:= <<"/authorize">> orelse ServiceName =:= <<"/code_request">> orelse ServiceName =:= <<"/resource">>;   
+		true -> PermiteAcessarWsOAuth2 = true
+	end,
+	case PermiteAcessarComoAdmin orelse PermiteAcessarWebserviceDoOwner orelse PermiteAcessarWsOAuth2 of
 		true -> 
 			case AuthorizationMode of
 				basic -> ems_db:inc_counter(ems_auth_user_basic_success);
