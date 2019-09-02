@@ -27,3 +27,5 @@ rel/rpm/ems-bus-centos-CentOS-7/SOURCES/**
 rel/rpm/ems-bus-centos-CentOS-7/BUILDROOT/**
 rel/deb/*.deb
 rel/deb/*/control
+contrib/login_webpack/dist/**
+contrib/login_webpack/node_modules/**

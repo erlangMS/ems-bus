@@ -166,14 +166,14 @@ class Login {
         e.preventDefault();
         const protocol = window.location.protocol;
         let baseUrl = protocol + '//' + window.location.hostname;
-        // Pode ser que esteja atras de um proxy e não vai ter porta na url
         if (window.location.port != "") {
             baseUrl = baseUrl + ':' + window.location.port;
         }
         const querystring = this.getQs();
+        const qsState = querystring['state'] || '';
         let url = baseUrl + '/dados/code_request?' +
             'client_id=' + querystring['client_id'] +
-            '&state=' + querystring['state'] +
+            '&state=' + qsState +
             '&redirect_uri=' + querystring['redirect_uri'];
         $.ajax({
             url: url,
@@ -191,17 +191,16 @@ class Login {
             complete: function(data, textStatus) {
                 if (textStatus == 'success') {
                     const referrer = document.referrer;
+                    let urlLocation = data.getResponseHeader("Location");
                     if (referrer != undefined && referrer != "") {
-                        baseUrlReferrer = referrer.split('/');
-                        url = baseUrlReferrer[0] + '//' + baseUrlReferrer[2] + data.getResponseHeader("Location");
+                        const baseUrlReferrer = referrer.split('/');
+                        urlLocation = baseUrlReferrer[0] + '//' + baseUrlReferrer[2] + urlLocation;
                     } else {
                         if (baseUrl.startsWith("/")) {
-                            url = baseUrl + data.getResponseHeader("Location");
-                        } else {
-                            url = data.getResponseHeader("Location")
+                            urlLocation = baseUrl + urlLocation;
                         }
                     }
-                    window.location.href = url;
+                    window.location.href = urlLocation;
                 }
             }
         });

@@ -29,7 +29,7 @@
 			   s.SisGlyphIcon,
 			   null,
 			   null,
-			   s.SisAuthorizationOwher 
+			   s.SisAuthorizationOwner, 
 			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
 			",
 	"sql_update" :
