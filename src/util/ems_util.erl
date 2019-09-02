@@ -996,7 +996,7 @@ utf8_string_linux(Text) ->
 	try
 		normalize_field_utf8(Text)
 	catch
-		_Exception:Reason -> 
+		_Exception:_Reason -> 
 			%Já está normalizado
 			Text
 	end.
