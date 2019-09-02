@@ -997,7 +997,7 @@ utf8_string_linux(Text) ->
 		normalize_field_utf8(Text)
 	catch
 		_Exception:Reason -> 
-			ems_logger:error("ems_util utf8_string_linux convert ~p error: ~p\n", [Text, Reason]),
+			%Já está normalizado
 			Text
 	end.
 	
