@@ -149,7 +149,6 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 						  AccessToken, 
 						  Scope, 
 						  AuthorizationMode) ->
-	io:format("aqui1\n"),
 	case Client of
 		public -> 
 			ClientName = "public",
@@ -158,35 +157,34 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 			ClientName = binary_to_list(Client#client.name),
 			AuthorizationOwner = Client#client.authorization_owner
 	end,
-	io:format("aqui2\n"),
 	OwnerStr = binary_to_list(Owner),
 	% Para consumir o serviço deve obedecer as regras
 	% ===================================================================
 	% O usuário é administrador e pode consumir qualquer serviço
 	% Não é administrador e possui permissão em serviços não restritos a administradores e o cliente tem permissão para consumir os ws do owner
 	PermiteAcessarComoAdmin = Admin,
-	case PermiteAcessarComoAdmin of
-		false -> 
-			PermiteAcessarServicoNaoRestritoComoUserNormal = not RestrictedService andalso ems_user_permission:has_grant_permission(Service, Req, User),
-			case PermiteAcessarServicoNaoRestritoComoUserNormal of
-				true ->
-					PermiteAcessarWebserviceDoOwner = AuthorizationOwner == [] orelse lists:member(Owner, AuthorizationOwner);
-				false ->
-					PermiteAcessarWebserviceDoOwner = false
-			end;
-		true -> 
-			PermiteAcessarWebserviceDoOwner = true
-	end,
 	case AuthorizationOwner =:= <<>> orelse AuthorizationOwner == undefined of
 		true -> 
 			AuthorizationOwnerStr = "",
-			PermiteAcessarWsOAuth2 = true;
+			PermiteAcessarWebserviceDoOwner = true;
 		false ->
-			AuthorizationOwnerStr = string:join(ems_util:binlist_to_list(AuthorizationOwner), ","),
-			case PermiteAcessarWebserviceDoOwner of 
-				false -> PermiteAcessarWsOAuth2 = ServiceName =:= <<"/authorize">> orelse ServiceName =:= <<"/code_request">> orelse ServiceName =:= <<"/resource">>;   
-				true -> PermiteAcessarWsOAuth2 = true
-			end
+			case PermiteAcessarComoAdmin of
+				false -> 
+					PermiteAcessarServicoNaoRestritoComoUserNormal = not RestrictedService andalso ems_user_permission:has_grant_permission(Service, Req, User),
+					case PermiteAcessarServicoNaoRestritoComoUserNormal of
+						true ->
+							PermiteAcessarWebserviceDoOwner = AuthorizationOwner == [] orelse lists:member(Owner, AuthorizationOwner);
+						false ->
+							PermiteAcessarWebserviceDoOwner = false
+					end;
+				true -> 
+					PermiteAcessarWebserviceDoOwner = true
+			end,
+			AuthorizationOwnerStr = string:join(ems_util:binlist_to_list(AuthorizationOwner), ",")
+	end,
+	case PermiteAcessarWebserviceDoOwner of 
+		false -> PermiteAcessarWsOAuth2 = ServiceName =:= <<"/authorize">> orelse ServiceName =:= <<"/code_request">> orelse ServiceName =:= <<"/resource">>;   
+		true -> PermiteAcessarWsOAuth2 = true
 	end,
 	case PermiteAcessarComoAdmin orelse PermiteAcessarWebserviceDoOwner orelse PermiteAcessarWsOAuth2 of
 		true -> 
