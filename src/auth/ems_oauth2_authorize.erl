@@ -358,7 +358,7 @@ authorization_request(Request, Client) ->
 		case ems_oauth2_backend:verify_redirection_uri(Client, RedirectUri, []) of
 			{ok, _} -> {redirect, Client};
 			_ -> 
-				ems_logger:error("ems_oauth2_authorize authorization_request does not validate url ~p with client name: ~s and redirect_uri: ~s.", [binary_to_list(RedirectUri), binary_to_list(Client#client.name), binary_to_list(Client#client.redirect_uri)]),
+				ems_logger:error("ems_oauth2_authorize authorization_request does not validate url ~s with client name: ~s and redirect_uri: ~s.", [binary_to_list(RedirectUri), binary_to_list(Client#client.name), binary_to_list(Client#client.redirect_uri)]),
 				{error, access_denied, einvalid_redirection_uri }
 		end
 	catch
