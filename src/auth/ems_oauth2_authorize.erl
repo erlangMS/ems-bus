@@ -47,29 +47,35 @@ execute(Request = #request{type = Type,
 											ems_db:inc_counter(ems_oauth2_client_credentials_denied),
 											{error, access_denied, eoauth2_client_credentials_denied}	
 									end;
-								Error -> Error
+								{error, ReasonAuthorizationCode, ReasonDetailClientCredential} = Error -> 
+									ems_logger:error("ems_oauth2_authorize execute client_credentials failed in get_client_request_by_id_and_secret. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailClientCredential]),
+									Error
 							end;
 						<<"token">> -> 
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_token),
 									authorization_request(Request, Client0);
-								Error -> Error
+								{error, ReasonAuthorizationCode, ReasonDetailToken} = Error -> 
+									ems_logger:error("ems_oauth2_authorize execute token failed in get_client_request_by_id. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailToken]),
+									Error
 							end;
 						<<"code">> ->	
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_code),
 									authorization_request(Request, Client0);	
-								Error -> Error
+								{error, ReasonAuthorizationCode, ReasonDetailCode} = Error -> 
+									ems_logger:error("ems_oauth2_authorize execute code failed in get_client_request_by_id. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailCode]),
+									Error
 							end;
 						<<"authorization_code">> ->	
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
 									access_token_request(Request, Client0);
-								{error, ReasonAuthorizationCode} = Error -> 
-									ems_logger:info("ems_oauth2_authorize execute authorization_code failed in get_client_request_by_id_and_secret. Reason: ~p.", [ReasonAuthorizationCode]),
+								{error, ReasonAuthorizationCode, ReasonDetailAuthorizationCode} = Error -> 
+									ems_logger:error("ems_oauth2_authorize execute authorization_code failed in get_client_request_by_id_and_secret. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailAuthorizationCode]),
 									Error
 							end;
 						<<"refresh_token">> ->	
@@ -77,7 +83,9 @@ execute(Request = #request{type = Type,
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
 									refresh_token_request(Request, Client0);	
-								Error -> Error
+								{error, ReasonAuthorizationCode, ReasonDetailRefreshToken} = Error -> 
+									ems_logger:error("ems_oauth2_authorize execute refresh_token failed in get_client_request_by_id. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailRefreshToken]),
+									Error
 							end;
 						 _ -> 
 							ems_logger:error("ems_oauth2_authorize failed on parse invalid grant_type ~p.", [GrantType]),
