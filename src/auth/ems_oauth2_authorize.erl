@@ -199,6 +199,7 @@ execute(Request = #request{type = Type,
 		end
 	catch
 		_:ReasonException ->
+			ems_logger:error("ems_oauth2_authorize execute failed. Reason: ~p.", [ReasonException]),
 			Request3 = Request#request{code = 401, 
 									   reason = access_denied,
 									   reason_detail = eparse_oauth2_authorize_execute,
