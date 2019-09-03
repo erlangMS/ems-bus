@@ -640,6 +640,7 @@ make_stage_area(){
 		die "Fatal: Could not access erlangms docker template $ERLANGMS_DOCKER_GIT_URL. Check your network or internet connection!"
 	fi
 	cd docker
+	git checkout ba80e55f7aad3858392e09bae9e31c570ea306e8
 	mkdir -p app
 	mkdir -p build
 	cd build

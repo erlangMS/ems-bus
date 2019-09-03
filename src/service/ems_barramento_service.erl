@@ -53,8 +53,16 @@ execute(Request = #request{timestamp = Timestamp,
 								false ->
 									ClientId = maps:get(<<"id">>, ClientParams),
 									ClientVersion = maps:get(<<"version">>, ClientParams, <<>>),
-									BaseUrl = maps:get(<<"rest_base_url">>, ClientParams, Conf#config.rest_base_url),
-									AuthUrl = maps:get(<<"rest_auth_url">>, ClientParams, Conf#config.rest_auth_url),
+									BaseUrl0 = maps:get(<<"rest_base_url">>, ClientParams, Conf#config.rest_base_url),
+									case BaseUrl0 == <<>> of
+										true -> BaseUrl = Conf#config.rest_base_url;
+										false -> BaseUrl = BaseUrl0
+									end,
+									AuthUrl0 = maps:get(<<"rest_auth_url">>, ClientParams, Conf#config.rest_auth_url),
+									case AuthUrl0 == <<>> of
+										true -> AuthUrl = Conf#config.rest_auth_url;
+										false -> AuthUrl = AuthUrl0
+									end,
 									ContentData = iolist_to_binary([<<"{"/utf8>>,
 										<<"\"base_url\":\""/utf8>>, BaseUrl, <<"\","/utf8>>,
 										<<"\"auth_url\":\""/utf8>>, AuthUrl, <<"\","/utf8>>,
