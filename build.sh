@@ -304,6 +304,7 @@ else
 	if [ "$KEEP_DB" = "false" ]; then
 		echo "Clearing the db folder before build..."
 		rm -Rf priv/db
+		rm -Rf ~/.erlangms/db
 	fi	
 	
 	rm -Rf priv/log
