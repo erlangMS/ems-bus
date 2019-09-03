@@ -967,9 +967,27 @@ check_encoding_bin(Bin) when is_binary(Bin) ->
     end.
 
 % Prepara um campo texto para o formato JSON UTF 8
+%normalize_field_utf8("") ->	"";
+%normalize_field_utf8(<<>>) -> "";
+%normalize_field_utf8(V) when is_binary(V) -> normalize_field_utf8(unicode:characters_to_list(V));
+%normalize_field_utf8(V) -> 
+%	Text = case string:strip(V) of
+%				[] -> "";
+%				V2 -> [case Ch of 
+%							34 -> "\\\""; 
+%							_ -> Ch 
+%					  end || Ch <- V2, Ch > 31]
+%			end,
+%	case unicode:characters_to_binary(Text, utf8) of
+%		{error, _} -> 
+%			unicode:characters_to_binary(Text, latin1);
+%		Result -> Result
+%	end.
+
+% Prepara um campo texto para o formato JSON UTF 8
 normalize_field_utf8("") ->	"";
 normalize_field_utf8(<<>>) -> "";
-normalize_field_utf8(V) when is_binary(V) -> normalize_field_utf8(unicode:characters_to_list(V));
+normalize_field_utf8(V) when is_binary(V) -> normalize_field_utf8(binary_to_list(V));
 normalize_field_utf8(V) -> 
 	Text = case string:strip(V) of
 				[] -> "";
@@ -978,11 +996,23 @@ normalize_field_utf8(V) ->
 							_ -> Ch 
 					  end || Ch <- V2, Ch > 31]
 			end,
-	case unicode:characters_to_binary(Text, utf8) of
-		{error, _} -> 
-			unicode:characters_to_binary(Text, latin1);
-		Result -> Result
-	end.
+	unicode:characters_to_binary(Text, utf8).
+
+%utf8_string_linux(<<>>) -> <<""/utf8>>;
+%utf8_string_linux("") -> <<""/utf8>>;
+%utf8_string_linux(undefined) -> <<""/utf8>>;
+%utf8_string_linux(null) -> <<""/utf8>>;
+%utf8_string_linux(Text) when is_list(Text) -> 
+%	utf8_string_linux(list_to_binary(Text));
+%utf8_string_linux(Text) when erlang:is_number(Text) -> integer_to_binary(Text);
+%utf8_string_linux(Text) ->
+%	try
+%		normalize_field_utf8(Text)
+%	catch
+%		_Exception:_Reason -> 
+%			%Já está normalizado
+%			Text
+%	end.
 
 
 utf8_string_linux(<<>>) -> <<""/utf8>>;
@@ -994,10 +1024,14 @@ utf8_string_linux(Text) when is_list(Text) ->
 utf8_string_linux(Text) when erlang:is_number(Text) -> integer_to_binary(Text);
 utf8_string_linux(Text) ->
 	try
-		normalize_field_utf8(Text)
+		case check_encoding_bin(Text) of
+			utf8 -> normalize_field_utf8(Text);
+			latin1 -> normalize_field_utf8(Text);
+			_ -> Text
+		end
 	catch
-		_Exception:_Reason -> 
-			%Já está normalizado
+		_Exception:Reason -> 
+			?DEBUG("utf8_string_linux convert ~p error: ~p\n", [Text, Reason]),
 			Text
 	end.
 	
