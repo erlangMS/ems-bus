@@ -2085,6 +2085,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 						ems_db:inc_counter(ehttp_verb_not_supported),
 						erlang:error(ehttp_verb_not_supported)
 			   end,
+		ems_logger:info("Request \033[01;34m~s\033[0m received \033[0;32muri\033[0m: \033[01;34m~s\033[0m \033[0;32murl\033[0m: \033[01;34m~s\033[0m \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(TypeLookup), binary_to_list(Uri), Url2, binary_to_list(Referer), binary_to_list(Host)]),
 		Request = #request{
 			rid = RID,
 			rowid = Rowid,

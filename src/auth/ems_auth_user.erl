@@ -110,7 +110,7 @@ do_oauth2_check_access_token(<<>>, _, _) ->
 do_oauth2_check_access_token(AccessToken, Service, Req) ->
 	case byte_size(AccessToken) > 32 of
 		true -> 
-			ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due \033[0;32minvalid token length\033[0m, \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m.", [AccessToken]),
+			ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due \033[0;32minvalid token length\033[0m, \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
 			ems_db:inc_counter(ems_auth_user_oauth2_denied),
 			{error, access_denied, einvalid_access_token_size};
 		false -> 
@@ -124,15 +124,15 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 					case Client#client.user_agent =:= Req#request.user_agent andalso
 						 Client#client.peer =:= Req#request.ip_bin of
 							true ->
-								ems_logger:info("ems_auth_user do_oauth2_check_access_token success for \033[0;32maccess token\033[0m: \033[01;34m~p\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~p\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~p\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m.", [AccessToken, User#user.login, Client#client.name,  binary_to_list(Client#client.peer), Client#client.user_agent]),
+								ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Client#client.peer), binary_to_list(AccessToken), User#user.login, binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
 								do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
 							false ->
-								ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid peer for \033[0;32maccess token\033[0m: \033[01;34m~p\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~p\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~p\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m.", [AccessToken, User#user.login, Client#client.name, binary_to_list(Client#client.peer), Client#client.user_agent]),
+								ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Client#client.peer), binary_to_list(AccessToken), User#user.login, binary_to_list(Client#client.name), binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
 								ems_db:inc_counter(einvalid_peer_token),
 								{error, access_denied, einvalid_peer_token}
 					end;
 				_ -> 
-					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m.", [AccessToken]),
+					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
 					ems_db:inc_counter(ems_auth_user_oauth2_denied),
 					{error, access_denied, einvalid_access_token}
 			end

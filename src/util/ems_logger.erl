@@ -834,7 +834,7 @@ do_log_request(Request = #request{rid = RID,
 													undefined -> <<>>;
 													_ -> Referer
 												end,
-						?TAB_GREEN_COLOR, <<"User-Agent">>, ?WHITE_PARAM_COLOR, ems_util:user_agent_atom_to_binary(UserAgent), ?SPACE_GREEN_COLOR, <<"Version">>, ?SPACE_GREEN_COLOR, ?WHITE_PARAM_COLOR, UserAgentVersion,	<<"Host">>, ?WHITE_PARAM_COLOR, Host, ?SPACE_GREEN_COLOR, <<"Peer">>, ?WHITE_PARAM_COLOR, IpBin, 
+						?TAB_GREEN_COLOR, <<"User-Agent">>, ?WHITE_PARAM_COLOR, ems_util:user_agent_atom_to_binary(UserAgent), ?SPACE_GREEN_COLOR, <<"Version">>, ?SPACE_GREEN_COLOR, ?WHITE_PARAM_COLOR, UserAgentVersion,	?SPACE_GREEN_COLOR, <<"Host">>, ?SPACE_GREEN_COLOR, ?WHITE_PARAM_COLOR, Host, ?SPACE_GREEN_COLOR, <<"Peer">>, ?WHITE_PARAM_COLOR, IpBin, 
 						?TAB_GREEN_COLOR, <<"Service name">>, ?WHITE_PARAM_COLOR, ServiceName, ?SPACE_GREEN_COLOR, <<"url">>, ?WHITE_PARAM_COLOR, ServiceUrl, ?SPACE_GREEN_COLOR, <<"Use-RE">>, ?WHITE_PARAM_COLOR, ServiceUseRE,
 						?TAB_GREEN_COLOR, <<"Service authorization">>, ?WHITE_PARAM_COLOR, ServiceAuthorizarion, ?SPACE_GREEN_COLOR, <<"restricted">>, ?WHITE_PARAM_COLOR, ServiceRestricted, ?SPACE_GREEN_COLOR, <<"oauth2_with_check_constraint">>, ?WHITE_PARAM_COLOR, OAuth2WithCheckConstraint, 
 						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"group">>, ?WHITE_PARAM_COLOR, ServiceGroup,
