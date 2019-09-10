@@ -119,9 +119,13 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 						   {<<"resource_owner">>, User}, 
 						   {<<"expiry_time">>, _ExpityTime}, 
 						   {<<"scope">>, Scope}]}} -> 
+						   
+						   io:format("Client#client.user_agent ~p =:= Req#request.user_agent ~p\n", [Client#client.user_agent, Req#request.user_agent]),
+						   io:format("Client#client.peer ~p =:= Req#request.ip_bin ~p\n", [Client#client.peer, Req#request.ip_bin]),
+						   
 					% O access_token deve ser do peer que solicitou o token
 					% Não é aceito um token gerado em um browser ser utilizado em outro browser
-					case Client#client.user_agent =:= Req#request.user_agent andalso
+					case %Client#client.user_agent =:= Req#request.user_agent andalso
 						 Client#client.peer =:= Req#request.ip_bin of
 							true ->
 								ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m, \033[0;32mUser-Agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Client#client.peer), binary_to_list(AccessToken), User#user.login, binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
