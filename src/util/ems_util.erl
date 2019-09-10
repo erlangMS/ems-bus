@@ -2040,7 +2040,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			undefined -> Accept_Encoding = <<"*">>;
 			AcceptEncodingValue -> Accept_Encoding = AcceptEncodingValue
 		end,
-		UserAgentBrowser = cowboy_req:header(<<"user-agent">>, CowboyReq),
+		case cowboy_req:header(<<"user-agent">>, CowboyReq) of
+			undefined -> UserAgentBrowser = <<>>;
+			UserAgentBrowserValue -> UserAgentBrowser = UserAgentBrowserValue
+		end,
 		{UserAgent, UserAgentVersion} = parse_user_agent(UserAgentBrowser),
 		case cowboy_req:header(<<"cache-control">>, CowboyReq) of
 			undefined -> Cache_Control = <<>>;
