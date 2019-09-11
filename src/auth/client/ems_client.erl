@@ -42,10 +42,12 @@ all() ->
 -spec find_by_id_and_secret(non_neg_integer(), binary()) -> {ok, #client{}} | {error, enoent, einvalid_secret | undefined}.
 find_by_id_and_secret(Id, Secret) ->
 	case find_by_id(Id) of
-		{ok, Client = #client{secret = CliSecret}} -> 
+		{ok, Client = #client{secret = CliSecret, name = ClientName}} -> 
 			case CliSecret =:= Secret orelse CliSecret =:= ems_util:criptografia_sha1(Secret)  of
 				true -> {ok, Client};
-				false -> {error, enoent, einvalid_client_secret}
+				false -> 
+					ems_logger:error("ems_client find_by_id_and_secret failed due invalid_secret \"~s\" for client ~p ~s. Expected secret: \"~s\".", [binary_to_list(Secret), Id, binary_to_list(ClientName), binary_to_list(CliSecret)]),
+					{error, enoent, einvalid_client_secret}
 			end;
 		_ -> {error, enoent, undefined}
 	end.
