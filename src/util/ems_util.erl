@@ -2065,6 +2065,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			undefined -> Referer = <<>>;
 			RefererValue -> Referer = RefererValue
 		end,
+		case cowboy_req:header(<<"x-forwarded-for">>, CowboyReq) of
+			undefined -> ForwardedFor = <<>>;
+			ForwardedForValue -> ForwardedFor = ForwardedForValue
+		end,
 		{Rowid, Params_url} = hashsym_and_params(Url2),
 		TypeLookup = case Type of
 					<<"OPTIONS">> -> 
@@ -2131,7 +2135,8 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			reason = ok,
 			reason_detail = undefined,
 			operation = webservice,
-			status_text = <<>>
+			status_text = <<>>,
+			forwarded_for = ForwardedFor
 		},	
 		case ems_catalog_lookup:lookup(Request) of
 			{Service = #service{name = ServiceName,
@@ -3341,7 +3346,8 @@ is_email_institucional(SufixoEmailInstitucional, Email) ->
 -spec get_client_request_by_id_and_secret(#request{}) -> {ok, #client{}} | {error, enoent, atom()}.
 get_client_request_by_id_and_secret(Request = #request{authorization = Authorization,
 													   user_agent = UserAgent,
-													   ip_bin = Peer}) ->
+													   ip_bin = Peer,
+													   forwarded_for = ForwardedFor}) ->
     try
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
@@ -3352,7 +3358,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 			true ->
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
-					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
+					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 					Error -> Error
 				end;
 			false ->
@@ -3366,7 +3372,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 								case ClientId2 > 0 of
 									true ->
 										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 											Error -> Error
 										end;
 									false -> {error, access_denied, einvalid_client_id}
@@ -3384,7 +3390,8 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 -spec get_client_request_by_id(#request{}) -> {ok, #client{}} | {error, enoent, atom()}.
 get_client_request_by_id(Request = #request{authorization = Authorization,
 											user_agent = UserAgent,
-											ip_bin = Peer}) ->
+											ip_bin = Peer,
+											forwarded_for = ForwardedFor}) ->
     try
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
@@ -3394,7 +3401,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 		case ClientId > 0 of
 			true ->
 				case ems_client:find_by_id(ClientId) of
-					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
+					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 					_ -> {error, access_denied, enoent}
 				end;
 			false ->
@@ -3407,7 +3414,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 								case ClientId2 > 0 of 	
 									true ->
 										case ems_client:find_by_id(ClientId2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 											_ -> {error, access_denied, enoent}
 										end;
 									false -> {error, access_denied, einvalid_client_id}

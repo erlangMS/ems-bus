@@ -459,12 +459,13 @@
 			     authorization_owner :: list(binary()),	    %% 13 - authorization_owner		-> permite ao cliente consumir os ws services de owners especificados na lista
 			     user_agent :: atom(),						%% 14 - user_agent
 			     peer :: binary(),							%% 15 - peer
-			     ctrl_path :: string(),						%% 16 - ctrl_path
-			     ctrl_file :: string(),						%% 17 - ctrl_file
-			     ctrl_insert :: binary(),					%% 18 - ctrl_insert				-> Data que foi inserido no banco mnesia
-			     ctrl_update :: binary(), 					%% 19 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-			     ctrl_modified :: binary(),					%% 20 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-			     ctrl_hash :: non_neg_integer()				%% 21 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+				 forwarded_for :: binary(),				 	%% 16 - forwarded_for
+			     ctrl_path :: string(),						%% 17 - ctrl_path
+			     ctrl_file :: string(),						%% 18 - ctrl_file
+			     ctrl_insert :: binary(),					%% 19 - ctrl_insert				-> Data que foi inserido no banco mnesia
+			     ctrl_update :: binary(), 					%% 20 - ctrl_update				-> Data que foi atualiado no banco mnesia			
+			     ctrl_modified :: binary(),					%% 21 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+			     ctrl_hash :: non_neg_integer()				%% 22 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
 		}).
 
 
@@ -484,13 +485,14 @@
 			   binary_type,									%% 12 - rest_auth_url
 			   binary_type,									%% 13 - authorization_owners
 			   atom_type,									%% 14 - user_agent
-			   binary_type,									%% 15 - peer
-			   string_type,									%% 16 - ctrl_path
-			   string_type,									%% 17 - ctrl_file
-			   binary_type,									%% 18 - ctrl_insert
-			   binary_type, 								%% 19 - ctrl_update
-			   binary_type,									%% 20 - ctrl_modified
-			   non_neg_integer_type							%% 212 - ctrl_hash 	
+			   binary_type,									%% 15 - forwarded_host
+			   binaty_type,									%% 16 - refer
+			   string_type,									%% 17 - ctrl_path
+			   string_type,									%% 18 - ctrl_file
+			   binary_type,									%% 19 - ctrl_insert
+			   binary_type, 								%% 20 - ctrl_update
+			   binary_type,									%% 21 - ctrl_modified
+			   non_neg_integer_type							%% 22 - ctrl_hash 	
 		}).
 
 -record(ctrl_params, {name :: string(),
@@ -838,7 +840,8 @@
 					  oauth2_grant_type :: binary(),			%% 55 - oauth2_grant_type
 					  oauth2_access_token :: binary(),			%% 56 - oauth2_access_token
 					  oauth2_refresh_token :: binary(),			%% 57 - oauth2_refresh_token
-					  status_text :: binary()					%% 58 - status_text				Status exibido no log 
+					  status_text :: binary(),					%% 58 - status_text				Status exibido no log 
+					  forwarded_for :: binary()					%% 59 - x-forwarded-for
 				  }).
 
 
