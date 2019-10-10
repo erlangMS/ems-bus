@@ -108,7 +108,7 @@ do_oauth2_check_access_token(<<>>, _, _) ->
 	ems_db:inc_counter(ems_auth_user_oauth2_denied),
 	{error, access_denied, eaccess_token_required};
 do_oauth2_check_access_token(AccessToken, Service, Req) ->
-	case byte_size(AccessToken) > 32 of
+case byte_size(AccessToken) > 32 of
 		true -> 
 			ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due \033[0;32minvalid token length\033[0m, \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
 			ems_db:inc_counter(ems_auth_user_oauth2_denied),
@@ -119,22 +119,29 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 						   {<<"resource_owner">>, User}, 
 						   {<<"expiry_time">>, _ExpityTime}, 
 						   {<<"scope">>, Scope}]}} -> 
-						   
-						   ems_logger:debug("Client#client.user_agent ~p =:= Req#request.user_agent ~p\n", [Client#client.user_agent, Req#request.user_agent]),
-						   ems_logger:debug("Client#client.peer ~p =:= Req#request.ip_bin ~p\n", [Client#client.peer, Req#request.ip_bin]),
-						   ems_logger:debug("Client#client.forwarded_for ~p =:= Req#request.forwarded_for ~p\n", [Client#client.forwarded_for, Req#request.forwarded_for]),
-						   
+						   %ems_logger:debug("Client#client.user_agent ~p =:= Req#request.user_agent ~p\n", [Client#client.user_agent, Req#request.user_agent]),
+						   %ems_logger:debug("Client#client.peer ~p =:= Req#request.ip_bin ~p\n", [Client#client.peer, Req#request.ip_bin]),
+						   %ems_logger:debug("Client#client.forwarded_for ~p =:= Req#request.forwarded_for ~p\n", [Client#client.forwarded_for, Req#request.forwarded_for]),
 					% O access_token deve ser do peer que solicitou o token
 					% Não é aceito um token gerado em um browser ser utilizado em outro browser
-					case Client#client.user_agent =:= Req#request.user_agent andalso
-						 Client#client.forwarded_for =:= Req#request.forwarded_for of
-							true ->
-								ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
-								do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
-							false ->
-								ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name), binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
-								ems_db:inc_counter(einvalid_peer_token),
-								{error, access_denied, einvalid_peer_token}
+				case Client =/= undefined of
+					true ->
+							case Client#client.user_agent =:= undefined andalso
+								Req#request.user_agent =:= undefined andalso
+								Client#client.forwarded_for =:= undefined andalso
+								Req#request.forwarded_for =:= undefined andalso
+								Client#client.user_agent =:= Req#request.user_agent andalso
+								Client#client.forwarded_for =:= Req#request.forwarded_for of
+									true ->
+										ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
+										do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
+									false ->
+										ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m for \033[0;32maccess token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name), binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Req#request.referer)]),
+										ems_db:inc_counter(einvalid_peer_token),
+										{error, access_denied, einvalid_peer_token}
+							end;
+					false ->
+							do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, oauth2)
 					end;
 				_ -> 
 					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
@@ -154,7 +161,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 						  AccessToken, 
 						  Scope, 
 						  AuthorizationMode) ->
-	case Client of
+case Client of
 		public -> 
 			ClientName = "public",
 			AuthorizationOwner = [];

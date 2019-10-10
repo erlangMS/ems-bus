@@ -44,7 +44,7 @@
 			   s.SisGlyphIcon,
 			   null,
 			   null,
-			   s.SisAuthorizationOwher 
+			   s.SisAuthorizationOwner 
 			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
 			",
 	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope", "group", "glyphicon", "rest_base_url", "rest_auth_url", "authorization_owner"]

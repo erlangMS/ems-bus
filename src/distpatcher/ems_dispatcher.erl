@@ -98,10 +98,10 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 				ShowDebugResponseHeaders) -> 
 	?DEBUG("ems_dispatcher lookup request ~p.", [Request]),
 	case ems_util:allow_ip_address(Ip, AllowedAddress) of
-		true ->
-			case ems_auth_user:authenticate(Service, Request) of
-				{ok, Client, User, AccessToken, Scope} -> 
-					ems_db:inc_counter(ServiceExecMetricName),				
+		true ->	
+		case ems_auth_user:authenticate(Service, Request) of
+				{ok, Client, User, AccessToken, Scope} -> 	
+				ems_db:inc_counter(ServiceExecMetricName),				
 					Latency = ems_util:get_milliseconds() - T1,
 					Request2 = Request#request{client = Client,
 											   user = User,
@@ -323,7 +323,8 @@ dispatch_service_work(Request = #request{type = Type,
 							    module = Module,
 							    function = Function},
  					  ShowDebugResponseHeaders) ->
-	ems_logger:info(iolist_to_binary([<<"ems_dispatcher \033[01;34m">>, Type, <<"\033[0m ">>, Url, <<" to ">>, list_to_binary(ModuleName), <<" from \033[0;33m">>, IpBin, <<".\033[0m">>])),
+io:format("aqui4\n"),	
+ems_logger:info(iolist_to_binary([<<"ems_dispatcher \033[01;34m">>, Type, <<"\033[0m ">>, Url, <<" to ">>, list_to_binary(ModuleName), <<" from \033[0;33m">>, IpBin, <<".\033[0m">>])),
 	%% Retornos possíveis:
 	%%
 	%% Com processamento de middleware function e result cache
@@ -360,6 +361,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 										 metadata = Metadata,
 										 timeout = Timeout},
 					  ShowDebugResponseHeaders) ->
+io:format("aqui5\n"),
 	case erlang:is_tuple(Client) of
 		false -> 
 			ClientJson = <<"{id:0, codigo:0, name:\"public\", active:true}">>;
@@ -390,7 +392,8 @@ dispatch_service_work(Request = #request{rid = Rid,
 
 dispatch_service_work_send(Request = #request{t1 = T1}, 
 						   #service{service_unavailable_metric_name = ServiceUnavailableMetricName}, _, _, 0) -> 
-	ems_db:inc_counter(ServiceUnavailableMetricName),
+io:format("aqui6\n"),	
+ems_db:inc_counter(ServiceUnavailableMetricName),
 	Latency = ems_util:get_milliseconds() - T1,
 	StatusText = ems_util:format_rest_status(400, eunavailable_service, in_dispatch_service_work_send, undefined, Latency),
 	{error, request, Request#request{code = 400,
