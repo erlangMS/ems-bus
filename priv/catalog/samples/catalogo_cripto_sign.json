@@ -1,0 +1,15 @@
+[
+	{
+		"name" : "/cripto/sign",
+		"comment": "Validate certificate",
+		"owner": "samples",
+		"version": "1",
+		"service" : "ems_cripto_sign:execute",
+		"url": "/cripto/sign",
+		"type": "GET",
+		"authorization" : "public",
+		"http_max_content_length": 1048576000,
+		"timeout" : 1000000,
+		"lang" : "erlang"
+	}
+]

@@ -3,24 +3,23 @@
 -include("../include/ems_schema.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--export([read_private_key/1, read_public_key/1, read_certificate/1 ,read_pdf/1, execute/1, verify_sign/3, read_xml/1, digest/3, sign_document_xades/3]).
+-export([read_private_key/1, read_public_key/1, read_certificate/1 ,read_pdf/1, execute/1, verify_sign/3, read_xml/1, digest/4, sign_document_xades/3]).
 
 
 
 execute(Request) -> 
-   
-    PrivateKey = read_private_key("/media/renato/SSD/desenvolvimento/barramento/certificado/ems-bus/src/certification/private.pem"),
-    Certificate = read_certificate("/media/renato/SSD/desenvolvimento/certificado/client.crt"),
+    PrivateKey = read_private_key("/mnt/desenvolvimento/barramento/certificado/ems-bus/src/certification/private.pem"),
+    Certificate = read_certificate("/mnt/desenvolvimento/certificado/client.crt"),
     PDF = read_pdf("/home/renato/Downloads/file.pdf"),
-    ListFilesAuthorities = read_all_files_path("/media/renato/SSD/desenvolvimento/certificado/autoridades"),
+    ListFilesAuthorities = read_all_files_path("/mnt/desenvolvimento/certificado/autoridades"),
     sign_pdf(PrivateKey, PDF),
-    PublicKey = read_public_key("/media/renato/SSD/desenvolvimento/barramento/certificado/ems-bus/src/certification/public.pem"),
-    Verified = verify_sign(PDF, "/media/renato/SSD/desenvolvimento/barramento/certificado/ems-bus/src/certification/fileSign", PublicKey),
-    sign_document_xades(PrivateKey,read_xml("/media/renato/SSD/desenvolvimento/certificado/diplomas/diploma.xml"), PublicKey),
+    PublicKey = read_public_key("/mnt/desenvolvimento/barramento/certificado/ems-bus/src/certification/public.pem"),
+    Verified = verify_sign(PDF, "/mnt/desenvolvimento/barramento/certificado/ems-bus/src/certification/fileSign", PublicKey),
+    sign_document_xades(PrivateKey,read_xml("/mnt/desenvolvimento/certificado/diplomas/diploma.xml"), PublicKey),
 
     {ok, Request#request{code = 200,
             content_type_out = <<"application/json">>,
-            response_data = <<"{\"response:\" \" Work correctlly!\"}">>}
+            response_data = <<"{\"response\" : \" Work correctlly!\"}">>}
 	}.
 
 read_private_key(FilePrivateKey) ->
@@ -52,7 +51,7 @@ read_pdf(FilePDF) ->
 sign_pdf(PrivKey, Msg) ->
     DigestType = sha256,
     SigBin = public_key:sign(Msg, DigestType, PrivKey),
-    file:write_file("/media/renato/SSD/desenvolvimento/barramento/certificado/ems-bus/src/certification/fileSign", SigBin).
+    file:write_file("/mnt/desenvolvimento/barramento/certificado/ems-bus/src/certification/fileSign", SigBin).
 
 
 read_xml(FileXML) ->
@@ -67,24 +66,28 @@ sign_xml(PrivKey, Msg) ->
     
 
 sign_document_xades(PrivKey, Xml, PublicKey) ->
-    {ok, Data, _Unused} = erlsom:simple_form_file("/media/renato/SSD/desenvolvimento/certificado/diplomas/diploma.xml"),
+    {ok, Data, _Unused} = erlsom:simple_form_file("/mnt/desenvolvimento/certificado/diplomas/diploma.xml"),
     XmlUpdated = tuple_to_list(Data),
     Atributes = create_xml_sign(XmlUpdated, []),
     Result = create_atributes_xml(Atributes,[]),
-    %%TODO: Adicionar a assinatura neste ponto
     
-    SignedXml = sign_xml(PrivKey, ems_util:open_file("/media/renato/SSD/desenvolvimento/certificado/diplomas/diploma.xml")),
+    SignedXml = sign_xml(PrivKey, ems_util:open_file("/mnt/desenvolvimento/certificado/diplomas/diploma.xml")),
     Result2 = string:concat("<?xml version=\"1.0\" encoding=\"UTF-8\"?><CertificadoExtensao>",Result),
 
     %%TODO: Adicionar o XML de validação do XML
     %%term_to_binary() base64:encode(X)
     XmlSign = part_xml_signed(),
     FileWithXmlSign = string:concat(Result2, XmlSign),
-    Digest =  digest(XmlUpdated, sha256, FileWithXmlSign),
-    SignatureValue = insert_ds_signature(SignedXml, Digest), 
+    XmlWithId = change_value_to_specification(random(),"\\?\\?\\?Id",FileWithXmlSign),
+    Digest =  digest(XmlUpdated, sha256,"\\?\\?\\?DigestSha256", XmlWithId),
+
+    DigestX509 = digest(PublicKey, sha256, "\\?\\?\\?DigestCertX509",Digest),
+
+    SignatureValue = insert_ds_signature(SignedXml, DigestX509), 
     X509Certificate = insert_ds_certificate(PublicKey, SignatureValue),
-    ResultFinal = string:concat(X509Certificate, "</CertificadoExtensao>"),
-    file:write_file("/media/renato/SSD/desenvolvimento/certificado/diplomas/sign_diploma.xml", ResultFinal),
+    XmlWithSignAndTimestamp = change_value_to_specification(ems_util:timestamp_str(), "\\?\\?\\?TimestampSign", X509Certificate),
+    ResultFinal = string:concat(XmlWithSignAndTimestamp, "</CertificadoExtensao>"),
+    file:write_file("/mnt/desenvolvimento/certificado/diplomas/sign_diploma.xml", ResultFinal),
     Xml.
 
 
@@ -116,7 +119,7 @@ verify_sign(Msg, SignatureFile ,PublicKey) ->
     DigestType = sha256,
     Signature = ems_util:open_file(SignatureFile),
     public_key:verify(Msg, DigestType, Signature, PublicKey).
-
+    
 
 read_all_files_path(Dir) ->
     read_all_files_path(Dir, true).
@@ -169,12 +172,24 @@ iterator_list(Certificate,[H|T]) ->
 
 
 
+random() ->
+   Random = rand:uniform(9999999999),
+   base64:encode(term_to_binary(Random)).
 
-digest(Data, HashFunction, XmlWithSign) ->
+
+digest(Data, HashFunction, ConstantForDigest , XmlWithSign) ->
     Result =  crypto:hash(HashFunction, lists:flatten(io_lib:format("~p",[Data]))),
     Result2 =  base64:encode(Result),
-    re:replace(XmlWithSign,"\\?\\?\\?Digest",Result2,[global, {return, list}]).
+    re:replace(XmlWithSign, ConstantForDigest, Result2,[global, {return, list}]).
 
+
+create_id_signature(XmlWithouthId) ->
+    IdGenerate = crypto:rand_uniform(9999999999999999),
+    StringGenerate = string:concat("SignatureValue-", IdGenerate),
+    re:replace(XmlWithouthId, "\\?\\?\\?Id",StringGenerate,[global, {return, list}]).
+
+change_value_to_specification(ValueChange, ConstantToChange, XmlSpecification) ->
+    re:replace(XmlSpecification, ConstantToChange, ValueChange ,[global, {return, list}]).
 
 insert_ds_signature(SignBase64, XmlWithDigest) ->
    re:replace(XmlWithDigest, "\\?\\?\\?SignaturaValue", SignBase64,[global, {return, list}]).
@@ -193,7 +208,7 @@ part_xml_signed() ->
     <ds:XPath>not(ancestor-or-self::ds:Signature)</ds:XPath>
     </ds:Transform></ds:Transforms>
     <ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"></ds:DigestMethod>
-    <ds:DigestValue>???Digest</ds:DigestValue>
+    <ds:DigestValue>???DigestSha256</ds:DigestValue>
     </ds:Reference></ds:SignedInfo><ds:SignatureValue>???SignaturaValue</ds:SignatureValue>
     <ds:KeyInfo><ds:X509Data><ds:X509Certificate>???X509Certificate</ds:X509Certificate>
     </ds:X509Data></ds:KeyInfo>
@@ -201,7 +216,7 @@ part_xml_signed() ->
     <xades:SignedProperties Id=\"SIG_PROPERTIES_36666\">
     <xades:SignedSignatureProperties><xades:SigningTime>???TimestampSign</xades:SigningTime><xades:SigningCertificate><xades:Cert>
     <xades:CertDigest><ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"></ds:DigestMethod>
-   <ds:DigestValue>???DigestXades</ds:DigestValue></xades:CertDigest><xades:IssuerSerial>
+   <ds:DigestValue>???DigestCertX509</ds:DigestValue></xades:CertDigest><xades:IssuerSerial>
     <ds:X509IssuerName>???X509IssueName</ds:X509IssuerName><ds:X509SerialNumber>1196012478306194314</ds:X509SerialNumber></xades:IssuerSerial>
     </xades:Cert></xades:SigningCertificate><xades:SignaturePolicyIdentifier><xades:SignaturePolicyId><xades:SigPolicyId>
     <xades:Identifier Qualifier=\"OIDAsURN\">urn:oid:2.16.76.1.7.1.6.2.3</xades:Identifier>

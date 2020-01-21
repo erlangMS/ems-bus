@@ -45,6 +45,11 @@
 	},
 
 	{
+		"catalog": "/samples/catalogo_cripto_sign", 
+		"file": "catalogo_cripto_sign.json"
+	},
+
+	{
 		"catalog": "/samples/catalogo_cifer", 
 		"file": "catalogo_cifer.json"
 	}	
