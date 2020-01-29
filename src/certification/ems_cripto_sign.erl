@@ -134,10 +134,9 @@ sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_bin
             end
     end,
     {HashFunction, DigestMethod, SignatureMethodAlgorithm} = signature_props(SigMethod),
-    io:format("HashFunction >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[HashFunction]),
     % first we need the digest, to generate our SignedInfo element
     CanonXml = xmerl_c14n:c14n(Element),
-    % create a digest value. Verify if is doing correctly
+    % create a digest value. 
     DigestValue = base64:encode_to_string(
         crypto:hash(HashFunction, unicode:characters_to_binary(CanonXml, unicode, utf8))),
     % start create a xml signed
@@ -165,8 +164,55 @@ sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_bin
         ]
     }),
 
-    % now we sign the SignedInfo element...
     SigInfoCanon = xmerl_c14n:c14n(SigInfo),
+    DigestValueSingInfo = base64:encode_to_string(
+       crypto:hash(HashFunction, unicode:characters_to_binary(SigInfoCanon, unicode, utf8))),
+
+    SubjectCertificate = os:cmd("openssl x509 -noout -in /mnt/desenvolvimento/certificado/certificados_teste/test-certs/AlanCert.pem -subject"),
+    SerialX509NumberHex = os:cmd("openssl x509 -in /mnt/desenvolvimento/certificado/certificados_teste/test-certs/AlanCert.pem -serial -noout"),
+    Serialx509NumberList = re:split(lists:nth(2,re:split(SerialX509NumberHex, "=")),"\n"),
+    SerialX509NumberDecimal = binary_to_integer(lists:nth(1,Serialx509NumberList), 16),
+    SerialX509String = lists:flatten(io_lib:format("~p", [SerialX509NumberDecimal])),
+
+    SigElemObject = esaml_util:build_nsinfo(Ns, #xmlElement{
+        name = 'ds:Object',
+        attributes = [#xmlAttribute{name='id', value="xades"}],
+        content = [
+            #xmlElement{name = 'xades:QualifyingProperties',
+                        attributes = [#xmlAttribute{name = 'xmlns:xades', value = "http://uri.etsi.org/01903/v1.3.2#"}],
+                        content = [
+                            #xmlElement{name = 'xades:SignedProperties',
+                            attributes = [#xmlAttribute{name = 'Id', value = "SIG_PROPERTIES_4875"}],
+                            content = [
+                                #xmlElement{name = 'xades:SigningTime',
+                                content = [#xmlText{value = esaml_util:datetime_to_saml(calendar:local_time())}]}
+                            ]},
+                            #xmlElement{name = 'xades:SigningCertificate',
+                            content = [
+                                #xmlElement{name = 'xades:Cert',
+                                content = [
+                                    #xmlElement{name = 'xades:CertDigest',
+                                    content = [
+                                        #xmlElement{name = 'ds:DigestMethod',
+                                        attributes = [#xmlAttribute{name = 'Algorithm', value = "http://www.w3.org/2001/04/xmlenc#sha256"}]},
+                                        #xmlElement{name = 'ds:DigestValue',
+                                        content = [#xmlText{value = DigestValueSingInfo}]}
+                                    ]},
+                                #xmlElement{name = 'xades:IssuerSerial',
+                                content = [
+                                    #xmlElement{name = 'ds:X509IssuerName',
+                                    content=[#xmlText{value = SubjectCertificate}]},
+                                    #xmlElement{name = 'ds:X509SerialNumber',
+                                    content=[#xmlText{value = SerialX509String}]}
+                                ]}]}
+                            ]}
+                        ]}
+        ]
+    }),
+
+    io:format("SigElementObject >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[SigElemObject]),
+
+    % now we sign the SignedInfo element...  
     Data = unicode:characters_to_binary(SigInfoCanon, unicode, utf8),
     Signature = public_key:sign(Data, HashFunction, PrivateKey),
     %change bin sign in base 64 sign
@@ -182,9 +228,12 @@ sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_bin
             #xmlElement{name = 'ds:SignatureValue', content = [#xmlText{value = Sig64}]},
             #xmlElement{name = 'ds:KeyInfo', content = [
                 #xmlElement{name = 'ds:X509Data', content = [
-                    #xmlElement{name = 'ds:X509Certificate', content = [#xmlText{value = Cert64} ]}]}]}
+                    #xmlElement{name = 'ds:X509Certificate', content = [#xmlText{value = Cert64} ]}]}]},
+            SigElemObject
         ]
     }),
+
+ 
 
     Element#xmlElement{content = [SigElem | Element#xmlElement.content]}.
 

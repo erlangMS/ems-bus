@@ -52,6 +52,7 @@ convert_fingerprints(FPs) ->
 -spec datetime_to_saml(calendar:datetime()) -> esaml:datetime().
 datetime_to_saml(Time) ->
     {{Y,Mo,D}, {H, Mi, S}} = Time,
+    % Verify if this format is correct
     lists:flatten(io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0BZ", [Y, Mo, D, H, Mi, S])).
 
 %% @doc Converts a SAML time string into a calendar:datetime()
@@ -241,74 +242,3 @@ check_dupe_ets(A, Digest) ->
             end, []]),
             ok
     end.
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
-
-fingerprints_test() ->
-    [<<0:128>>] = convert_fingerprints([<<0:128>>]),
-    {'EXIT', _} = (catch convert_fingerprints(["testing"])),
-    [<<0:32,1,10,3>>] = convert_fingerprints(["00:00:00:00:01:0a:03"]),
-    Hash = crypto:hash(sha, <<"testing1234">>),
-    [{sha,Hash}] = convert_fingerprints(["SHA:" ++ base64:encode_to_string(Hash)]),
-    Sha256 = crypto:hash(sha256, <<"testing1234">>),
-    [{sha256,Sha256},{md5,Hash}] = convert_fingerprints(["SHA256:" ++ base64:encode_to_string(Sha256), "md5:" ++ base64:encode_to_string(Hash)]),
-    {'EXIT', _} = (catch convert_fingerprints(["SOMEALGO:AAAAA="])).
-
-datetime_test() ->
-    "2013-05-02T17:26:53Z" = datetime_to_saml({{2013,5,2},{17,26,53}}),
-    {{1990,11,23},{18,1,1}} = saml_to_datetime("1990-11-23T18:01:01Z").
-
-build_nsinfo_test() ->
-    EmptyNs = #xmlNamespace{},
-    FooNs = #xmlNamespace{nodes = [{"foo", 'urn:foo:'}]},
-
-    E1 = #xmlElement{name = 'foo', content = [#xmlText{value = 'bar'}]},
-    E1 = build_nsinfo(EmptyNs, E1),
-
-    E2 = #xmlElement{name = 'foo:Blah', content = [#xmlText{value = 'bar'}]},
-    E2Ns = E2#xmlElement{nsinfo = {"foo", "Blah"}, namespace = FooNs},
-    E2Ns = build_nsinfo(FooNs, E2),
-
-    E3 = #xmlElement{name = 'blah:George', content = [E2]},
-    E3Ns = E3#xmlElement{nsinfo = {"blah", "George"}, namespace = FooNs, content = [E2Ns]},
-    E3Ns = build_nsinfo(FooNs, E3).
-
--include("xmerl_xpath_macros.hrl").
-
--record(b, {name, ctext}).
-
-xpath_attr_test() ->
-    {Xml, _} = xmerl_scan:string("<a><b name=\"foo\"><c name=\"bar\">hi</c></b><b name=\"foobar\"><c name=\"foofoo\"></c></b></a>", [{namespace_conformant, true}]),
-    Ns = [],
-    Fun = ?xpath_attr("/a/b[@name='foo']/c/@name", b, name),
-    Rec = Fun(#b{}),
-    ?assertMatch(#b{name = "bar"}, Rec),
-    Fun2 = ?xpath_attr("/a/b[@name='foobar']/c/@name", b, name),
-    Rec2 = Fun2(Rec),
-    ?assertMatch(#b{name = "foofoo"}, Rec2),
-    Fun3 = ?xpath_attr("/a/b[@name='bar']/c/@name", b, name),
-    Rec3 = Fun3(Rec2),
-    ?assertMatch(Rec2, Rec3).
-
-xpath_attr_trans_test() ->
-    {Xml, _} = xmerl_scan:string("<a><b name=\"foo\"><c name=\"bar\">hi</c></b><b name=\"foobar\"><c name=\"foofoo\"></c></b></a>", [{namespace_conformant, true}]),
-    Ns = [],
-    Fun = ?xpath_attr("/a/b[@name='foobar']/c/@name", b, name, fun(X) -> list_to_atom(X) end),
-    Rec = Fun(#b{}),
-    ?assertMatch(#b{name = foofoo}, Rec).
-
-xpath_text_test() ->
-    {Xml, _} = xmerl_scan:string("<a><b name=\"foo\"><c name=\"bar\">hi</c></b><b name=\"foobar\"><c name=\"foofoo\"></c></b></a>", [{namespace_conformant, true}]),
-    Ns = [],
-    Fun = ?xpath_text("/a/b[@name='foo']/c/text()", b, ctext),
-    Rec = Fun(#b{}),
-    ?assertMatch(#b{ctext = "hi"}, Rec),
-    Fun2 = ?xpath_text("/a/b[@name='foobar']/c/text()", b, ctext),
-    Rec2 = Fun2(Rec),
-    ?assertMatch(Rec, Rec2),
-    Fun3 = ?xpath_text("/a/b[@name='bar']/c/text()", b, name),
-    Rec3 = Fun3(Rec2),
-    ?assertMatch(Rec2, Rec3).
-
--endif.
