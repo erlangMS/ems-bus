@@ -393,6 +393,7 @@ access_token_request(Request, Client) ->
 			Code -> 
 				RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 				Authz = oauth2:authorize_code_grant(Client, Code, RedirectUri, []),
+				io:format("access_token_request 1   Authz is ~p\n", [Authz]),
 				issue_token_and_refresh(Authz, Client)
 		end
 	catch
@@ -401,6 +402,7 @@ access_token_request(Request, Client) ->
 	
 
 issue_token({ok, {_, Auth}}, Client) ->
+	io:format("aqui1\n"),
 	case oauth2:issue_token(Auth, []) of
 		{ok, {_, {response, AccessToken, 
 							undefined,
@@ -412,6 +414,7 @@ issue_token({ok, {_, Auth}}, Client) ->
 							TokenType
 				 }
 			}} ->
+			io:format("aqui2\n"),
 				{ok, [{<<"access_token">>, AccessToken},
 						{<<"expires_in">>, ExpiresIn},
 						{<<"resource_owner">>, User},
@@ -419,7 +422,9 @@ issue_token({ok, {_, Auth}}, Client) ->
 						{<<"refresh_token">>, RefreshToken},
 						{<<"refresh_token_expires_in">>, RefreshTokenExpiresIn},
 						{<<"token_type">>, TokenType}], Client};
-		_ -> {error, access_denied, einvalid_issue_token}
+		_ -> 
+			io:format("aqui3\n"),
+			{error, access_denied, einvalid_issue_token}
 	end;
 issue_token(Result, Client) -> 
 	ems_logger:error("ems_oauth2_authorize issue_token failed. Result: ~p  Client: ~p.", [Result, Client]),
@@ -427,6 +432,7 @@ issue_token(Result, Client) ->
     
 
 issue_token_and_refresh({ok, {_, Auth}}, Client) ->
+	io:format("aqui r1\n"),
 	case oauth2:issue_token_and_refresh(Auth, []) of
 		{ok, {_, {response, AccessToken, 
 							undefined,
@@ -438,6 +444,7 @@ issue_token_and_refresh({ok, {_, Auth}}, Client) ->
 							TokenType
 				 }
 			}} ->
+			io:format("aqui r2\n"),
 				{ok, [{<<"access_token">>, AccessToken},
 						{<<"expires_in">>, ExpiresIn},
 						{<<"resource_owner">>, User},
@@ -448,7 +455,8 @@ issue_token_and_refresh({ok, {_, Auth}}, Client) ->
 		_ -> {error, access_denied, einvalid_issue_token_and_refresh}
 	end;
 issue_token_and_refresh(Result, Client) -> 
-	ems_logger:error("ems_oauth2_authorize issue_token failed. Result: ~p  Client: ~p.", [Result, Client]),
+	io:format("aqui r3\n"),
+	ems_logger:error("ems_oauth2_authorize issue_token_and_refresh failed. Result: ~p  Client: ~p.", [Result, Client]),
 	{error, access_denied, einvalid_authorization}.
 
 

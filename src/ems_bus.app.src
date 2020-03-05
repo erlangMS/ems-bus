@@ -1,7 +1,7 @@
 {application, ems_bus,
  [
   {description, "ErlangMS"},
-  {vsn, "2.0.8"},
+  {vsn, "2.0.9"},
   {registered, []},
   {applications, [
 					kernel,
@@ -23,8 +23,7 @@
 					jiffy,
 					jesse,
 					poolboy,
-					mochiweb,
-					oauth2
+					mochiweb
                  ]},
   {mod, { ems_bus_app, []}},
   {env, [

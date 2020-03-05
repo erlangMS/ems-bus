@@ -157,12 +157,14 @@ get_client_identity(Client, _) ->
         
 
 associate_access_code(AccessCode, Context, _AppContext) ->
+	io:format("b1\n"),
     AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context},
     mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
     associate_access_code_sgbd(AuthOAuth2AccessCode),
     {ok, Context}.
 
 associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = Context}) ->
+	io:format("b2\n"),
 	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 	case PersistTokenSGBDEnabled of
 		true ->
@@ -189,12 +191,14 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 
 
 associate_refresh_token(RefreshToken, Context, _) ->
+io:format("b16\n"),
     AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context},
     mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
     associate_refresh_token_sgbd(AuthOauth2RefreshToken),
     {ok, Context}.
 
 associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, context = Context}) ->
+io:format("b17\n"),
 	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 	case PersistTokenSGBDEnabled of
 		true ->
@@ -222,12 +226,14 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 
 
 associate_access_token(AccessToken, Context, _) ->
+io:format("b18\n"),
     AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context},
     mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
     associate_access_token_sgbd(AuthOauth2AccessToken),
     {ok, Context}.
 
 associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context = Context}) ->
+io:format("b19\n"),
 	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 	case PersistTokenSGBDEnabled of
 		true ->
@@ -256,19 +262,25 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 
 
 resolve_access_code(AccessCode, _) ->
+io:format("b3\n"),
 	case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
         {ok, #auth_oauth2_access_code{context = Context}} -> 	
+        io:format("b3.1\n"),
 			{ok, {[], Context}};
         _ -> 
+        io:format("b3.2\n"),
 			case resolve_access_code_sgbd(AccessCode) of
 				{ok, #auth_oauth2_access_code{context = Context2}} -> 	
+					io:format("b3.3\n"),
 					{ok, {[], Context2}};
 				Error -> 
+				io:format("b3.4\n"),
 					Error
 			end
     end.
 
 resolve_access_code_sgbd(AccessCode) ->
+io:format("b4\n"),
 	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 	case PersistTokenSGBDEnabled of
 		true ->
@@ -305,6 +317,7 @@ resolve_access_code_sgbd(AccessCode) ->
 
 
 resolve_refresh_token(RefreshToken, _AppContext) ->
+    io:format("b5\n"),
     case ems_db:get(auth_oauth2_refresh_token_table, RefreshToken) of
        {ok, #auth_oauth2_refresh_token{context = Context}} -> 	
 			{ok, {[], Context}};
@@ -318,6 +331,7 @@ resolve_refresh_token(RefreshToken, _AppContext) ->
     end.
 
 resolve_refresh_token_sgbd(RefreshToken) ->
+io:format("b6\n"),
 	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 	case PersistTokenSGBDEnabled of
 		true ->
@@ -354,6 +368,7 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 
 
 resolve_access_token(AccessToken, _) ->
+io:format("b7\n"),
     case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
        {ok, #auth_oauth2_access_token{context = Context}} -> 	
 			{ok, {[], Context}};
@@ -367,6 +382,7 @@ resolve_access_token(AccessToken, _) ->
     end.
 
 resolve_access_token_sgbd(AccessToken) ->
+io:format("b8\n"),
 	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 	case PersistTokenSGBDEnabled of
 		true ->
@@ -403,6 +419,7 @@ resolve_access_token_sgbd(AccessToken) ->
 
 
 revoke_access_code(AccessCode, _AppContext) ->
+io:format("b9\n"),
     case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
 		{ok, Record} -> 
 			ems_db:delete(Record);
@@ -411,6 +428,7 @@ revoke_access_code(AccessCode, _AppContext) ->
     {ok, []}.
 
 revoke_access_token(AccessToken, _) ->
+io:format("b10\n"),
     case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
 		{ok, Record} -> 
 			ems_db:delete(Record);
@@ -419,6 +437,7 @@ revoke_access_token(AccessToken, _) ->
     {ok, []}.
 
 revoke_refresh_token(RefreshToken, _) ->
+io:format("b11\n"),
     case ems_db:get(auth_oauth2_refresh_token_table, RefreshToken) of
 		{ok, Record} -> 
 			ems_db:delete(Record);
@@ -427,6 +446,7 @@ revoke_refresh_token(RefreshToken, _) ->
     {ok, []}.
 
 get_redirection_uri(Client, _) ->
+io:format("b12\n"),
     case get_client_identity(Client, [])  of
         {ok, #client{redirect_uri = RedirectUri}} -> {ok, RedirectUri};
         _ -> {error, einvalid_uri} 
@@ -434,14 +454,18 @@ get_redirection_uri(Client, _) ->
 
 
 verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
+io:format("b13\n"),
     case ClientUri =:= RedirUri of
 		true -> 
+			io:format("b13.1\n"),
 			{ok, []};
 		_Error -> 
+			io:format("b13.2\n"),
 			{error, unauthorized_client}
     end.
 
 verify_client_scope(#client{id = ClientID}, Scope, _) ->
+io:format("b14\n"),
 	case ems_client:find_by_id(ClientID) of
         {ok, #client{scope = Scope0}} ->     
 			case Scope =:= Scope0 of
@@ -453,14 +477,17 @@ verify_client_scope(#client{id = ClientID}, Scope, _) ->
     end.
     
 verify_resowner_scope(_ResOwner, Scope, _) ->
+io:format("b20\n"),
     {ok, {[], Scope}}.
 
 verify_scope(_RegScope, Scope , _) ->
+io:format("b21\n"),
     {ok, {[], Scope}}.
 
     
 % função criada pois a biblioteca OAuth2 não trata refresh_tokens
 authorize_refresh_token(Client, RefreshToken, Scope) ->
+io:format("b15\n"),
 	case resolve_refresh_token(RefreshToken, []) of
 		{ok, {_, [_, {_, ResourceOwner}, _, _]}} -> 
 			case verify_client_scope(Client, Scope, []) of
