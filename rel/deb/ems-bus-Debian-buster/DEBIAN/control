@@ -2,7 +2,7 @@ Package: ems-bus
 Source: ems-bus
 Version: 2.0.2-debian.10
 Architecture: amd64
-Depends: procps, libc6, libncurses5, libssl1.0.0 | libssl1.0.2, libgcc1, libstdc++6, unixodbc, tdsodbc, freetds-common, odbcinst1debian2, odbcinst, libcppdb-sqlite3-0,  libodbc1, libiodbc2, libcppdb-odbc0, libltdl7, libcppdb0, libiodbc2 
+Depends: procps, libc6, libncurses5, libssl1.0.0 | libssl1.0.2, libgcc1, libstdc++6, unixodbc, libiodbc2, tdsodbc, freetds-common, odbcinst1debian2, odbcinst, libcppdb-sqlite3-0,  libodbc1, libiodbc2, libcppdb-odbc0, libltdl7, libcppdb0, libiodbc2  
 Maintainer: ErlangMS Team <evertonagilar@gmail.com>
 Section: contrib/misc
 Priority: extra
