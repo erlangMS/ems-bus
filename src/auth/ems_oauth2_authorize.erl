@@ -15,6 +15,7 @@ execute(Request = #request{type = Type,
 						   host = Host,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
+	io:format("exec1\n"),
 		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
 		case parse_passport_code(PassportCodeBinBase64) of
 			{error, eno_passport_present} ->		
@@ -28,8 +29,10 @@ execute(Request = #request{type = Type,
 					_ -> 
 						GrantType = undefined
 				end,
+				io:format("exec2\n"),
 				Result = case GrantType of
 						<<"password">> -> 
+						io:format("exec3\n"),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_password),
@@ -37,6 +40,7 @@ execute(Request = #request{type = Type,
 								_ -> password_grant(Request, undefined) % cliente é opcional no grant_type password
 							end;
 						<<"client_credentials">> ->
+						io:format("exec4\n"),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} ->
 									case OAuth2AllowClientCredentials of
@@ -52,6 +56,7 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"token">> -> 
+						io:format("exec5\n"),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_token),
@@ -61,6 +66,7 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"code">> ->	
+						io:format("exec6\n"),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_code),
@@ -70,6 +76,7 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"authorization_code">> ->	
+						io:format("exec7\n"),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
@@ -79,6 +86,7 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"refresh_token">> ->	
+						io:format("exec8\n"),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
@@ -92,6 +100,7 @@ execute(Request = #request{type = Type,
 							{error, access_denied, einvalid_grant_type}
 				end; 
 			{ok, PassportCodeInt, Client0, User0} ->
+			io:format("exec9\n"),
 				ems_logger:info("ems_oauth2_authorize autenticate by passport PassportCodeInt: ~p Client: ~p User: ~p.", [PassportCodeInt, Client0, User0]),
 				GrantType = <<"authorization_code">>,
 				ems_db:inc_counter(ems_oauth2_passport),
@@ -108,6 +117,7 @@ execute(Request = #request{type = Type,
 				 ], 
 				 Client
 			 } ->
+			 io:format("exec10\n"),
 					% When it is authorization_code, we will record metrics for singlesignon
 					case User =/= undefined of
 						true -> 
@@ -116,20 +126,30 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
+					io:format("exec11\n"),
 					case Client =/= undefined of
 						true ->
+							io:format("exec11.1\n"),
 							ClientJson = ems_client:to_json(Client),
+							io:format("exec11.2\n"),
 							ResourceOwner = ems_user:to_resource_owner(User, Client#client.id),
+							io:format("exec11.3\n"),
 							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>];
 						false ->
+							io:format("exec11.4\n"),
 							ResourceOwner = ems_user:to_resource_owner(User),
+							io:format("exec11.5\n"),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
+					io:format("exec12\n"),
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
-						true -> persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
+						true -> 
+							io:format("exec12.1\n"),
+							persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
+					io:format("exec13\n"),
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, AccessToken, <<"\","/utf8>>,
@@ -146,6 +166,7 @@ execute(Request = #request{type = Type,
 																							 end, <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, TokenType, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
+					io:format("exec14\n"),
 					Request2 = Request#request{code = 200, 
 											    reason = ok,
 											    operation = oauth2_authenticate,
@@ -156,18 +177,23 @@ execute(Request = #request{type = Type,
 											    client = Client,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},
+					io:format("exec15\n"),
 					{ok, Request2};		
 			{redirect, Client = #client{id = ClientId, name = Name, redirect_uri = RedirectUri}} ->
+					io:format("exec redirect 1\n"),
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
+					io:format("exec redirect 2\n"),
 					case Config#config.rest_use_host_in_redirect of
 						true -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]);
 						false -> LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri])
 					end,
+					io:format("exec redirect3\n"),
 					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
 						true ->
+							io:format("exec redirect4\n"),
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
 							Request2 = Request#request{code = 302, 
@@ -180,6 +206,7 @@ execute(Request = #request{type = Type,
 																						 <<"expires">> => Expires}
 													};
 						false ->
+							io:format("exec redirect5\n"),
 							Request2 = Request#request{code = 302, 
 													   reason = ok,
 													   operation = oauth2_client_redirect,
@@ -189,8 +216,10 @@ execute(Request = #request{type = Type,
 																						 <<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}
 														}
 					end,
+					io:format("exec redirect6\n"),
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
+					io:format("exec16\n"),
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 					case ems_util:get_user_request_by_login(Request) of
 						{ok, UserFound} -> User = UserFound;

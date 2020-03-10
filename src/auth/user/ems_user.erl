@@ -568,13 +568,20 @@ get_admim_user() ->
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
 to_resource_owner(User, ClientId) ->
+  io:format("to_resource_owner1\n"),
+
 	OAuth2ResourceOwnerFields = ems_db:get_param(oauth2_resource_owner_fields),
+	  io:format("to_resource_owner2\n"),
 	ShowListaPerfilPermission = lists:member(<<"lista_perfil_permission">>, OAuth2ResourceOwnerFields),
+	  io:format("to_resource_owner3\n"),
 	case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
 		true ->
+		  io:format("to_resource_owner4\n"),
 			OAuth2ResourceOwnerFindPermissionWithCPF = ems_db:get_param(oauth2_resource_owner_find_permission_with_cpf),
+			  io:format("to_resource_owner5\n"),
 			case User#user.cpf == <<>> orelse not OAuth2ResourceOwnerFindPermissionWithCPF of
 				true ->
+					  io:format("to_resource_owner6\n"),
 					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 
@@ -589,6 +596,7 @@ to_resource_owner(User, ClientId) ->
 							ListaPerfilPermissionJson = <<"[]">>
 					end;
 				false ->
+				  io:format("to_resource_owner7\n"),
 					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					
@@ -603,6 +611,7 @@ to_resource_owner(User, ClientId) ->
 							ListaPerfilPermissionJson = <<"[]">>
 					end
 			end,
+			  io:format("to_resource_owner8\n"),
 			iolist_to_binary([<<"{"/utf8>>,
 								<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
 								<<"\"remap_user_id\":null,"/utf8>>, 
@@ -619,6 +628,7 @@ to_resource_owner(User, ClientId) ->
 								<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 							<<"}"/utf8>>]);
 		false ->
+		  io:format("to_resource_owner9\n"),
 			ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [perfil_id, name]) of
 									{ok, ListaPerfil} -> 
 										case User#user.cpf of

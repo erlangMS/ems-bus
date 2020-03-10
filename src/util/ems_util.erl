@@ -3359,7 +3359,9 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
 					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
-					Error -> Error
+					Error -> 
+						io:format("emsutil:get_client_request_by_id_and_secret falhou ao localizar id %d", ClientId),
+						Error
 				end;
 			false ->
 				% O ClientId também pode ser passado via header Authorization
@@ -3393,16 +3395,22 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 											ip_bin = Peer,
 											forwarded_for = ForwardedFor}) ->
     try
+		io:format("get_client_request_by_id 1\n"),
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
 			undefined -> ClientId = 0;
 			ClientIdValue -> ClientId = binary_to_integer(ClientIdValue)
 		end,
+			io:format("get_client_request_by_id 2\n"),
 		case ClientId > 0 of
 			true ->
 				case ems_client:find_by_id(ClientId) of
-					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
-					_ -> {error, access_denied, enoent}
+					{ok, Client} -> 
+							io:format("get_client_request_by_id 3\n"),
+						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+					_ -> 
+							io:format("get_client_request_by_id 4\n"),
+						{error, access_denied, enoent}
 				end;
 			false ->
 				% O ClientId também pode ser passado via header Authorization
@@ -3410,22 +3418,37 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 					true ->
 						case parse_basic_authorization_header(Authorization) of
 							{ok, ClientLogin, _} ->
+									io:format("get_client_request_by_id 5\n"),
 								ClientId2 = list_to_integer(ClientLogin),
+									io:format("get_client_request_by_id 6\n"),
 								case ClientId2 > 0 of 	
 									true ->
+											io:format("get_client_request_by_id 7\n"),
 										case ems_client:find_by_id(ClientId2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
-											_ -> {error, access_denied, enoent}
+											{ok, Client} -> 
+													io:format("get_client_request_by_id 8\n"),
+												{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+											_ -> 
+													io:format("get_client_request_by_id 9\n"),
+												{error, access_denied, enoent}
 										end;
-									false -> {error, access_denied, einvalid_client_id}
+									false -> 
+											io:format("get_client_request_by_id 10\n"),
+										{error, access_denied, einvalid_client_id}
 								end;
-							Error -> Error
+							Error -> 
+									io:format("get_client_request_by_id 11\n"),
+								Error
 						end;
-					false -> {error, access_denied, eauthorization_header_required}
+					false -> 
+							io:format("get_client_request_by_id 12\n"),
+						{error, access_denied, eauthorization_header_required}
 				end
 		end
 	catch
-		_:_ -> {error, access_denied, eparse_get_client_request_by_id_exception}
+		_:_ ->
+				io:format("get_client_request_by_id 13\n"),
+			{error, access_denied, eparse_get_client_request_by_id_exception}
 	end.
 
 
