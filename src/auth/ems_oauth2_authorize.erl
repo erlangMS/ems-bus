@@ -579,20 +579,30 @@ parse_passport_code(PassportCodeBinBase64) ->
 	
 select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 	PassportEnabled = ems_db:get_param(passport_code_enabled),
+	io:format("Aqui 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	case PassportEnabled of
 		true ->
+			io:format("Aqui 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			DatasourcePassportCode = ems_db:get_param(datasource_passport_code),
+			io:format("Aqui 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			SqlSelectPassportCode = ems_db:get_param(sql_select_passport_code),
+			io:format("Aqui 4 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			case SqlSelectPassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
 				true ->
+					io:format("Aqui 5 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					case ems_db:find_first(service_datasource, [], [{ds_name, "==", DatasourcePassportCode}]) of
 						{ok, Ds} ->
+							io:format("Aqui 6 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							case ems_odbc_pool:get_connection(Ds) of
 								{ok, Ds2} ->
+									io:format("Aqui 7 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 									ParamsSql = [{sql_integer, [PassportCodeInt]}],
+									io:format("Aqui 8 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 									case ems_odbc_pool:param_query(Ds2, SqlSelectPassportCode, ParamsSql) of
 										{selected, _Fields, [{ClientId, UserId, DtCreated, Escopo}]} ->
+											io:format("Aqui 9 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 											disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt),
+											io:format("Aqui 10 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 											Result = {ok, ClientId, UserId, DtCreated, list_to_atom(Escopo)};
 										{_, _, []} -> 
 											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd does not find passport ~s (~p). Reason: passport inexistent or disabled.", [PassportCodeBinBase64, PassportCodeInt]),
@@ -601,6 +611,7 @@ select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd failed to query select for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason2]),
 											Result = {error, eparam_query_error_passport_code} 
 									end,
+									io:format("Aqui 11 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 									ems_odbc_pool:release_connection(Ds2),
 									Result;
 								{error, Reason} ->
