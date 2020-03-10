@@ -604,17 +604,26 @@ select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 
 
 disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
+	io:format("Aqui 12 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	DatasourcePassportCode = ems_db:get_param(datasource_passport_code),
+	io:format("Aqui 13 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	SqlDisablePassportCode = ems_db:get_param(sql_disable_passport_code),
+	io:format("Aqui 14 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	case SqlDisablePassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
 		true ->
+			io:format("Aqui 15 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			case ems_db:find_first(service_datasource, [], [{ds_name, "==", DatasourcePassportCode}]) of
 				{ok, Ds} ->
+					io:format("Aqui 16 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					case ems_odbc_pool:get_connection(Ds) of
 						{ok, Ds2} ->
+							io:format("Aqui 17 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ParamsSql = [{sql_integer, [PassportCodeInt]}],
+							io:format("Aqui 18 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ems_odbc_pool:param_query(Ds2, SqlDisablePassportCode, ParamsSql),
+							io:format("Aqui 19 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ems_odbc_pool:release_connection(Ds2),
+							io:format("Aqui 20 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ok;
 						{error, Reason} ->
 							ems_logger:error("ems_oauth2_authorize disable_passport_code_sgbd failed to get database connection for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason]),
