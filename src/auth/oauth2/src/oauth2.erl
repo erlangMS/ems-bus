@@ -287,6 +287,8 @@ verify_access_code(AccessCode, Client, Ctx0) ->
     case verify_access_code(AccessCode, Ctx0) of
         {error, _}=E           -> E;
         {ok, {Ctx1, GrantCtx}} ->
+            io:format("cliente is ~p\n\n", [Client]),
+            io:format("GrantCtx is ~p\n\n", [GrantCtx]),
             case get(GrantCtx, <<"client">>) of
                 {ok, _} -> {ok, {Ctx1, GrantCtx}};
                 Error            -> 
