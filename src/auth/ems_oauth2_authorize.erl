@@ -126,7 +126,7 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
-					io:format("exec11\n"),
+					io:format("exec11  client is ~p\n", [Client]),
 					case Client =/= undefined of
 						true ->
 							io:format("exec11.1\n"),
@@ -416,13 +416,19 @@ refresh_token_request(Request, Client) ->
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=authorization_code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w&secret=qwer&code=dxUlCWj2JYxnGp59nthGfXFFtn3hJTqx
 -spec access_token_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
 access_token_request(Request, Client) ->
+	io:format("eparse_access_token_request 0\n"),
 	try
 		case ems_util:get_querystring(<<"code">>, <<>>, Request) of
-			<<>> -> {error, access_denied, ecode_empty};
+			<<>> -> 
+				io:format("eparse_access_token_request 1\n"),
+				{error, access_denied, ecode_empty};
 			Code -> 
+				io:format("eparse_access_token_request 2\n"),
 				RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
+				io:format("eparse_access_token_request 3\n"),
 				Authz = oauth2:authorize_code_grant(Client, Code, RedirectUri, []),
-				io:format("access_token_request 1   Authz is ~p\n", [Authz]),
+				io:format("eparse_access_token_request 4\n"),
+				io:format("access_token_request 5   Authz is ~p\n", [Authz]),
 				issue_token_and_refresh(Authz, Client)
 		end
 	catch
