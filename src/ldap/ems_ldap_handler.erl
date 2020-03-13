@@ -34,7 +34,8 @@
 				host_denied_metric_name,
 				error_metric_name,
 				request_capabilities_metric_name,
-				auth_allow_user_inative_credentials
+				auth_allow_user_inative_credentials,
+				auth_default_scope
 			}).   
 
 
@@ -491,15 +492,6 @@ make_result_entry_item(#user{id = UsuId,
 										  attributes = Attributes2
 										}.
 
-
-%make_result_entry_list_([], _, _, ItemList) -> 
-%	{searchResEntry, ItemList};
-%make_result_entry_list_([H|T], AdminLdap, AtrributesToReturn, ItemList) ->
-%	Item = make_result_entry_item(H, AdminLdap, AtrributesToReturn),
-%	make_result_entry_list_(T, AdminLdap, AtrributesToReturn, [Item | ItemList]).
-
-%make_result_entry_list(L, AdminLdap, AtrributesToReturn) -> make_result_entry_list_(L, AdminLdap, AtrributesToReturn, []).
-
 make_result_entry(User, AdminLdap, AtrributesToReturn) -> 
 	Item = make_result_entry_item(User, AdminLdap, AtrributesToReturn),
 	{searchResEntry, Item}.
@@ -583,12 +575,13 @@ handle_bind_request(Name,
 handle_request_search_login(Name, 
 						    Attribute,
 							State = #state{search_invalid_credential_metric_name = SearchInvalidCredentialMetricName,
-										   search_success_metric_name = SearchSuccessMetricName}, 
+										   search_success_metric_name = SearchSuccessMetricName,
+										   auth_default_scope = AuthDefaultScope}, 
 										   Ip, Port, TimestampBin, AttributesToReturn) ->	
 	case ems_util:parse_ldap_name(Name) of
 		{ok, _, UserLogin, _BaseFilter} ->
 			{IsAdmin, BindRequestName} = get_bind_user(Ip, Port, UserLogin),
-			case ems_user:find_by_login(UserLogin) of
+			case ems_user:find_by_login_and_scope(UserLogin, AuthDefaultScope) of
 				{error, Reason, ReasonDetail} ->
 					ems_db:inc_counter(SearchInvalidCredentialMetricName),
 					case Attribute of
@@ -707,10 +700,10 @@ handle_request_search_filter(FilterLdap, State, Ip, Port, TimestampBin, Attribut
 
 
 do_find_by_filter(Filter, 
-				  _State, 
+				  #state{auth_default_scope = AuthDefaultScope}, 
 				  Ip, Port, TimestampBin, AttributesToReturn, UserLogin) ->
 	{IsAdmin, BindRequestName} = get_bind_user(Ip, Port, undefined),
-	case ems_user:find_by_filter([], Filter) of
+	case ems_user:find_by_filter_and_scope([], Filter, AuthDefaultScope) of
 		{error, Reason, ReasonDetail} ->
 			case BindRequestName of
 				<<>> ->	ems_logger:error("ems_ldap_handler do_find_by_filter unbind search ~p does not exist from ~p.", [Filter, Ip]);
@@ -781,8 +774,9 @@ do_find_by_filter(Filter,
 
 
 % Autentica o admin a partir da base de usuários de users com flag admin = true	
-do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, Ip, Port, TimestampBin) ->
-	case ems_user:find_by_login_and_password(UserLogin, UserPassword, #client{id = 0, name = <<"ldap">>, scope = ?CLIENT_DEFAULT_SCOPE}) of
+do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials, 
+																	  auth_default_scope = AuthDefaultScope}, Ip, Port, TimestampBin) ->
+	case ems_user:find_by_login_and_password(UserLogin, UserPassword, #client{id = 0, name = <<"ldap">>, scope = AuthDefaultScope}) of
 		{ok, User = #user{active = Active}} -> 
 			case Active orelse AuthAllowUserInativeCredentials of
 				true -> 

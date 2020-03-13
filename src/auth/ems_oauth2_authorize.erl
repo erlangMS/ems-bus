@@ -15,7 +15,6 @@ execute(Request = #request{type = Type,
 						   host = Host,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
-	io:format("exec1\n"),
 		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
 		case parse_passport_code(PassportCodeBinBase64) of
 			{error, eno_passport_present} ->		
@@ -29,10 +28,8 @@ execute(Request = #request{type = Type,
 					_ -> 
 						GrantType = undefined
 				end,
-				io:format("exec2\n"),
 				Result = case GrantType of
 						<<"password">> -> 
-						io:format("exec3\n"),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_password),
@@ -40,7 +37,6 @@ execute(Request = #request{type = Type,
 								_ -> password_grant(Request, undefined) % cliente é opcional no grant_type password
 							end;
 						<<"client_credentials">> ->
-						io:format("exec4\n"),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} ->
 									case OAuth2AllowClientCredentials of
@@ -56,7 +52,6 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"token">> -> 
-						io:format("exec5\n"),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_token),
@@ -66,7 +61,6 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"code">> ->	
-						io:format("exec6\n"),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_code),
@@ -76,7 +70,6 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"authorization_code">> ->	
-						io:format("exec7\n"),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
@@ -86,7 +79,6 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"refresh_token">> ->	
-						io:format("exec8\n"),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
@@ -100,7 +92,6 @@ execute(Request = #request{type = Type,
 							{error, access_denied, einvalid_grant_type}
 				end; 
 			{ok, PassportCodeInt, Client0, User0} ->
-			io:format("exec9\n"),
 				ems_logger:info("ems_oauth2_authorize autenticate by passport PassportCodeInt: ~p Client: ~p User: ~p.", [PassportCodeInt, Client0, User0]),
 				GrantType = <<"authorization_code">>,
 				ems_db:inc_counter(ems_oauth2_passport),
@@ -117,7 +108,7 @@ execute(Request = #request{type = Type,
 				 ], 
 				 Client
 			 } ->
-			 io:format("exec10\n"),
+
 					% When it is authorization_code, we will record metrics for singlesignon
 					case User =/= undefined of
 						true -> 
@@ -126,30 +117,24 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
-					io:format("exec11  client is ~p\n", [Client]),
+		
 					case Client =/= undefined of
 						true ->
-							io:format("exec11.1\n"),
 							ClientJson = ems_client:to_json(Client),
-							io:format("exec11.2\n"),
 							ResourceOwner = ems_user:to_resource_owner(User, Client#client.id),
-							io:format("exec11.3\n"),
 							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>];
 						false ->
-							io:format("exec11.4\n"),
 							ResourceOwner = ems_user:to_resource_owner(User),
-							io:format("exec11.5\n"),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
-					io:format("exec12\n"),
+					
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
-							io:format("exec12.1\n"),
 							persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
-					io:format("exec13\n"),
+		
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, AccessToken, <<"\","/utf8>>,
@@ -166,7 +151,7 @@ execute(Request = #request{type = Type,
 																							 end, <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, TokenType, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
-					io:format("exec14\n"),
+			
 					Request2 = Request#request{code = 200, 
 											    reason = ok,
 											    operation = oauth2_authenticate,
@@ -177,23 +162,19 @@ execute(Request = #request{type = Type,
 											    client = Client,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},
-					io:format("exec15\n"),
+		
 					{ok, Request2};		
 			{redirect, Client = #client{id = ClientId, name = Name, redirect_uri = RedirectUri}} ->
-					io:format("exec redirect 1\n"),
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
-					io:format("exec redirect 2\n"),
 					case Config#config.rest_use_host_in_redirect of
 						true -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]);
 						false -> LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri])
 					end,
-					io:format("exec redirect3\n"),
 					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
 						true ->
-							io:format("exec redirect4\n"),
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
 							Request2 = Request#request{code = 302, 
@@ -206,7 +187,6 @@ execute(Request = #request{type = Type,
 																						 <<"expires">> => Expires}
 													};
 						false ->
-							io:format("exec redirect5\n"),
 							Request2 = Request#request{code = 302, 
 													   reason = ok,
 													   operation = oauth2_client_redirect,
@@ -216,10 +196,8 @@ execute(Request = #request{type = Type,
 																						 <<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}
 														}
 					end,
-					io:format("exec redirect6\n"),
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
-					io:format("exec16\n"),
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 					case ems_util:get_user_request_by_login(Request) of
 						{ok, UserFound} -> User = UserFound;
@@ -416,19 +394,13 @@ refresh_token_request(Request, Client) ->
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=authorization_code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w&secret=qwer&code=dxUlCWj2JYxnGp59nthGfXFFtn3hJTqx
 -spec access_token_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
 access_token_request(Request, Client) ->
-	io:format("eparse_access_token_request 0\n"),
 	try
 		case ems_util:get_querystring(<<"code">>, <<>>, Request) of
 			<<>> -> 
-				io:format("eparse_access_token_request 1\n"),
 				{error, access_denied, ecode_empty};
 			Code -> 
-				io:format("eparse_access_token_request 2\n"),
 				RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
-				io:format("eparse_access_token_request 3\n"),
 				Authz = oauth2:authorize_code_grant(Client, Code, RedirectUri, []),
-				io:format("eparse_access_token_request 4\n"),
-				io:format("access_token_request 5   Authz is ~p\n", [Authz]),
 				issue_token_and_refresh(Authz, Client)
 		end
 	catch
@@ -437,7 +409,6 @@ access_token_request(Request, Client) ->
 	
 
 issue_token({ok, {_, Auth}}, Client) ->
-	io:format("aqui1\n"),
 	case oauth2:issue_token(Auth, []) of
 		{ok, {_, {response, AccessToken, 
 							undefined,
@@ -449,7 +420,6 @@ issue_token({ok, {_, Auth}}, Client) ->
 							TokenType
 				 }
 			}} ->
-			io:format("aqui2\n"),
 				{ok, [{<<"access_token">>, AccessToken},
 						{<<"expires_in">>, ExpiresIn},
 						{<<"resource_owner">>, User},
@@ -458,7 +428,6 @@ issue_token({ok, {_, Auth}}, Client) ->
 						{<<"refresh_token_expires_in">>, RefreshTokenExpiresIn},
 						{<<"token_type">>, TokenType}], Client};
 		_ -> 
-			io:format("aqui3\n"),
 			{error, access_denied, einvalid_issue_token}
 	end;
 issue_token(Result, Client) -> 
@@ -467,7 +436,6 @@ issue_token(Result, Client) ->
     
 
 issue_token_and_refresh({ok, {_, Auth}}, Client) ->
-	io:format("aqui r1\n"),
 	case oauth2:issue_token_and_refresh(Auth, []) of
 		{ok, {_, {response, AccessToken, 
 							undefined,
@@ -479,7 +447,6 @@ issue_token_and_refresh({ok, {_, Auth}}, Client) ->
 							TokenType
 				 }
 			}} ->
-			io:format("aqui r2\n"),
 				{ok, [{<<"access_token">>, AccessToken},
 						{<<"expires_in">>, ExpiresIn},
 						{<<"resource_owner">>, User},
@@ -490,7 +457,6 @@ issue_token_and_refresh({ok, {_, Auth}}, Client) ->
 		_ -> {error, access_denied, einvalid_issue_token_and_refresh}
 	end;
 issue_token_and_refresh(Result, Client) -> 
-	io:format("aqui r3\n"),
 	ems_logger:error("ems_oauth2_authorize issue_token_and_refresh failed. Result: ~p  Client: ~p.", [Result, Client]),
 	{error, access_denied, einvalid_authorization}.
 
@@ -585,30 +551,20 @@ parse_passport_code(PassportCodeBinBase64) ->
 	
 select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 	PassportEnabled = ems_db:get_param(passport_code_enabled),
-	io:format("Aqui 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	case PassportEnabled of
 		true ->
-			io:format("Aqui 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			DatasourcePassportCode = ems_db:get_param(datasource_passport_code),
-			io:format("Aqui 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			SqlSelectPassportCode = ems_db:get_param(sql_select_passport_code),
-			io:format("Aqui 4 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			case SqlSelectPassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
 				true ->
-					io:format("Aqui 5 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					case ems_db:find_first(service_datasource, [], [{ds_name, "==", DatasourcePassportCode}]) of
 						{ok, Ds} ->
-							io:format("Aqui 6 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							case ems_odbc_pool:get_connection(Ds) of
 								{ok, Ds2} ->
-									io:format("Aqui 7 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 									ParamsSql = [{sql_integer, [PassportCodeInt]}],
-									io:format("Aqui 8 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 									case ems_odbc_pool:param_query(Ds2, SqlSelectPassportCode, ParamsSql) of
 										{selected, _Fields, [{ClientId, UserId, DtCreated, Escopo}]} ->
-											io:format("Aqui 9 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 											disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt),
-											io:format("Aqui 10 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 											Result = {ok, ClientId, UserId, DtCreated, list_to_atom(Escopo)};
 										{_, _, []} -> 
 											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd does not find passport ~s (~p). Reason: passport inexistent or disabled.", [PassportCodeBinBase64, PassportCodeInt]),
@@ -617,7 +573,6 @@ select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 											ems_logger:error("ems_oauth2_authorize select_passport_code_sgbd failed to query select for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason2]),
 											Result = {error, eparam_query_error_passport_code} 
 									end,
-									io:format("Aqui 11 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 									ems_odbc_pool:release_connection(Ds2),
 									Result;
 								{error, Reason} ->
@@ -639,26 +594,17 @@ select_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 
 
 disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
-	io:format("Aqui 12 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	DatasourcePassportCode = ems_db:get_param(datasource_passport_code),
-	io:format("Aqui 13 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	SqlDisablePassportCode = ems_db:get_param(sql_disable_passport_code),
-	io:format("Aqui 14 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 	case SqlDisablePassportCode =/= "" andalso DatasourcePassportCode =/= <<>> of
 		true ->
-			io:format("Aqui 15 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			case ems_db:find_first(service_datasource, [], [{ds_name, "==", DatasourcePassportCode}]) of
 				{ok, Ds} ->
-					io:format("Aqui 16 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					case ems_odbc_pool:get_connection(Ds) of
 						{ok, Ds2} ->
-							io:format("Aqui 17 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ParamsSql = [{sql_integer, [PassportCodeInt]}],
-							io:format("Aqui 18 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ems_odbc_pool:param_query(Ds2, SqlDisablePassportCode, ParamsSql),
-							io:format("Aqui 19 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ems_odbc_pool:release_connection(Ds2),
-							io:format("Aqui 20 >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 							ok;
 						{error, Reason} ->
 							ems_logger:error("ems_oauth2_authorize disable_passport_code_sgbd failed to get database connection for passport ~s (~p). Reason: ~p.", [PassportCodeBinBase64, PassportCodeInt, Reason]),

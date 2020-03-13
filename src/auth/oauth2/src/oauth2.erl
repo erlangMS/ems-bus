@@ -266,14 +266,12 @@ issue_token_and_refresh( #a{client=Client, resowner=Owner, scope=Scope, ttl=TTL}
 verify_access_code(AccessCode, Ctx0) ->
     case ?BACKEND:resolve_access_code(AccessCode, Ctx0) of
         {error, _}             ->
-			io:format("invalid grant 1\n"),
 			{error, invalid_grant};
         {ok, {Ctx1, GrantCtx}} ->
             case get_(GrantCtx, <<"expiry_time">>) > seconds_since_epoch(0) of
                 true  -> {ok, {Ctx1, GrantCtx}};
                 false ->
                     ?BACKEND:revoke_access_code(AccessCode, Ctx1),
-                    io:format("invalid grant 2\n"),
                     {error, invalid_grant}
             end
     end.
@@ -283,16 +281,13 @@ verify_access_code(AccessCode, Ctx0) ->
 %%      error code is returned.
 -spec verify_access_code(token(), client(), appctx()) ->
                                 {ok, {appctx(), context()}} | {error, error()}.
-verify_access_code(AccessCode, Client, Ctx0) ->
+verify_access_code(AccessCode, _Client, Ctx0) ->
     case verify_access_code(AccessCode, Ctx0) of
         {error, _}=E           -> E;
         {ok, {Ctx1, GrantCtx}} ->
-            io:format("cliente is ~p\n\n", [Client]),
-            io:format("GrantCtx is ~p\n\n", [GrantCtx]),
             case get(GrantCtx, <<"client">>) of
                 {ok, _} -> {ok, {Ctx1, GrantCtx}};
-                Error            -> 
-					io:format("invalid grant 3 error: ~p\n", [Error]),
+                _Error            -> 
 					{error, invalid_grant}
             end
     end.
@@ -309,7 +304,6 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
         {ok, {Ctx1, C}} ->
             case ?BACKEND:resolve_refresh_token(RefreshToken, Ctx1) of
                 {error, _}             -> 
-					io:format("invalid grant 4\n"),
 					{error, invalid_grant};
                 {ok, {Ctx2, GrantCtx}} ->
                     {ok, ExpiryAbsolute} = get(GrantCtx, <<"expiry_time">>),
@@ -334,7 +328,6 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
                             end;
                         false ->
                             ?BACKEND:revoke_refresh_token(RefreshToken, Ctx2),
-                            io:format("invalid grant 5\n"),
                             {error, invalid_grant}
                     end
             end
@@ -380,7 +373,6 @@ auth_client(Client, RedirUri, Ctx0) ->
         {ok, {Ctx1, C}} ->
             case ?BACKEND:verify_redirection_uri(C, RedirUri, Ctx1) of
                 {error, _} -> 
-					io:format("invalid grant 6\n"),
 					{error, invalid_grant};
                 {ok, Ctx2} -> {ok, {Ctx2, C}}
             end

@@ -14,6 +14,7 @@
 
 -export([find_by_id/1, find_by_id/2,		 
 		 find_by_login/1, 
+		 find_by_login_and_scope/2,
 		 find_by_name/1, 
 		 find_by_email/1, 
 		 find_by_cpf/1, 
@@ -22,6 +23,7 @@
 		 find_by_codigo_pessoa/1, 
 		 find_by_codigo_pessoa/2,
 		 find_by_filter/2,
+		 find_by_filter_and_scope/3,
 		 to_resource_owner/1,
 		 to_resource_owner/2,
  		 new_from_map/2,
@@ -63,7 +65,8 @@ all() ->
 find_by_filter(Fields, Filter) -> 
 	ems_db:find([user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs], Fields, Filter).
 
-
+find_by_filter_and_scope(Fields, Filter, TableScope) -> 
+	ems_db:find(TableScope, Fields, Filter).
 
 -spec find_by_codigo_pessoa(non_neg_integer()) -> {ok, list(#user{})} | {error, enoent}.
 find_by_codigo_pessoa(Codigo) ->
@@ -214,7 +217,6 @@ find_index_by_login_and_password_cmp_password([Table|_] = Tables,
 
 
 find_index_by_login_and_password([], _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) ->
-	ems_data_loader:sync(ems_user_loader_db),
 	{error, access_denied, enoent};
 find_index_by_login_and_password([Table|T] = Tables, 
 											LoginBin, 
@@ -316,6 +318,7 @@ find_by_login_and_password(Login, Password, Client)  ->
 			% A verificação de senhas entre scopes eh somente em user_aluno_ativo_db e user_db
 			AuthPasswordCheckBetweenScope = ems_db:get_param(auth_password_check_between_scope) and lists:member(user_db, TablesScope) == true,
 			
+			
 			case find_index_by_login_and_password(TablesScope, 
 											 LoginBin, 
 											 PasswordBin, 
@@ -351,7 +354,34 @@ find_by_login_and_password(Login, Password, Client)  ->
 			{error, access_denied, einvalid_password_size}
 	end.
 
+
+find_by_login_and_scope_(_, []) -> {error, access_denied, enoent};
+find_by_login_and_scope_(LoginBin, [Table|T]) ->
+	IndexFind = fun() ->
+		case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
+			[User|_] -> {ok, User};
+			_ -> {error, enoent}
+		end
+	end,	
+	case IndexFind() of
+		{error, enoent} -> find_by_login_and_scope_(LoginBin, T);
+		{ok, Record} -> {ok, Record}
+	end.
+
+
+-spec find_by_login_and_scope(binary() | string(), list(atom())) -> {ok, #user{}} | {error, access_denied, enoent | elogin_empty}.
+find_by_login_and_scope(<<>>, _) -> {error, access_denied, elogin_empty};	
+find_by_login_and_scope("", _) -> {error, access_denied, elogin_empty};	
+find_by_login_and_scope(undefined, _) -> {error, access_denied, elogin_empty};	
+find_by_login_and_scope(Login, AuthScope) ->
+	LoginStr = case is_list(Login) of
+					true -> string:to_lower(Login);
+					false -> string:to_lower(binary_to_list(Login))
+			   end,
+	LoginBin = list_to_binary(LoginStr),
+	find_by_login_and_scope_(LoginBin, AuthScope).
 	
+
 
 -spec find_by_login(binary() | string()) -> {ok, #user{}} | {error, access_denied, enoent | elogin_empty}.
 find_by_login(<<>>) -> {error, access_denied, elogin_empty};	
@@ -381,7 +411,6 @@ find_by_login(Login) ->
 										{error, enoent} -> 
 											case IndexFind(user_fs) of
 												{error, enoent} -> 
-													ems_data_loader:sync(ems_user_loader_db),
 													{error, access_denied, enoent};
 												{ok, Record} -> {ok, Record}
 											end;
@@ -395,6 +424,7 @@ find_by_login(Login) ->
 			end;
 		{ok, Record} -> {ok, Record}
 	end.
+
 
 
 -spec find_by_email(binary()) -> #user{} | {error, enoent}.
@@ -568,35 +598,39 @@ get_admim_user() ->
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
 to_resource_owner(User, ClientId) ->
-  io:format("to_resource_owner1\n"),
+	try
 
 	OAuth2ResourceOwnerFields = ems_db:get_param(oauth2_resource_owner_fields),
-	  io:format("to_resource_owner2\n"),
+	
 	ShowListaPerfilPermission = lists:member(<<"lista_perfil_permission">>, OAuth2ResourceOwnerFields),
-	  io:format("to_resource_owner3\n"),
+
 	case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
 		true ->
-		  io:format("to_resource_owner4\n"),
+	
 			OAuth2ResourceOwnerFindPermissionWithCPF = ems_db:get_param(oauth2_resource_owner_find_permission_with_cpf),
-			  io:format("to_resource_owner5\n"),
+			
 			case User#user.cpf == <<>> orelse not OAuth2ResourceOwnerFindPermissionWithCPF of
 				true ->
-					  io:format("to_resource_owner6\n"),
-					{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
-					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
+				
+						{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
+				
+						ListaPerfilJson = ems_schema:to_json(ListaPerfil),
+				
+						{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
+		
 
-					{ok, ListaPermission} = ems_user_permission:find_by_user_and_client(User#user.id, ClientId, [id, perfil_id, name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]),
-					ListaPermissionJson = ems_schema:to_json(ListaPermission),
+						ListaPermissionJson = ems_schema:to_json(ListaPermission),
+				
+						case ShowListaPerfilPermission of
+							true -> 
+								{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
+								ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
+							false -> 
+								ListaPerfilPermissionJson = <<"[]">>
+						end;
+		
 
-					case ShowListaPerfilPermission of
-						true -> 
-							{ok, ListaPerfilPermission} = ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
-							ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermission);
-						false -> 
-							ListaPerfilPermissionJson = <<"[]">>
-					end;
 				false ->
-				  io:format("to_resource_owner7\n"),
 					{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 					ListaPerfilJson = ems_schema:to_json(ListaPerfil),
 					
@@ -611,7 +645,7 @@ to_resource_owner(User, ClientId) ->
 							ListaPerfilPermissionJson = <<"[]">>
 					end
 			end,
-			  io:format("to_resource_owner8\n"),
+	
 			iolist_to_binary([<<"{"/utf8>>,
 								<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
 								<<"\"remap_user_id\":null,"/utf8>>, 
@@ -628,7 +662,6 @@ to_resource_owner(User, ClientId) ->
 								<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 							<<"}"/utf8>>]);
 		false ->
-		  io:format("to_resource_owner9\n"),
 			ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [perfil_id, name]) of
 									{ok, ListaPerfil} -> 
 										case User#user.cpf of
@@ -742,7 +775,16 @@ to_resource_owner(User, ClientId) ->
 								<<"\"lista_permission\":"/utf8>>, ListaPermissionJson, <<","/utf8>>,
 								<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 							<<"}"/utf8>>])
-	end.
+							
+	end
+	
+		catch
+			_Exception:Reason -> 
+				ems_logger:warn("ems_user to_resource_owner failed to get ListaPerfilPermissionJson. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, Reason]),
+				to_resource_owner(User)
+				
+		end.
+
 
 
 -spec to_resource_owner(#user{}) -> binary().

@@ -40,7 +40,8 @@
 				host_denied_metric_name,
 				error_metric_name,
 				request_capabilities_metric_name,
-				auth_allow_user_inative_credentials
+				auth_allow_user_inative_credentials,
+				auth_default_scope
 			}).   
 
 
@@ -114,7 +115,8 @@ init({IpAddress,
 				   host_denied_metric_name = HostDeniedMetricName,
 				   error_metric_name = ErrorMetricName,
 				   request_capabilities_metric_name = RequestCapabilitiesMetricName,
-				   auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials
+				   auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials,
+				   auth_default_scope = Conf#config.auth_default_scope
 			   },
 	Ret = ranch:start_listener(ListenerName, ranch_tcp, #{socket_opts => [{ip, IpAddress}, 
 																	      {port, Port}]}, 
