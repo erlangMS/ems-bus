@@ -153,13 +153,23 @@ authorize_client_credentials(Client, Scope0, Ctx0) ->
 -spec authorize_code_grant(client(), binary(), rediruri(), appctx())
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_code_grant(Client, Code, RedirUri, Ctx0) ->
+    io:format("z1\n"),
     case auth_client(Client, RedirUri, Ctx0) of
-        {error, _}      -> {error, invalid_client};
+        {error, _}      -> 
+			io:format("z2\n"),
+			{error, invalid_client};
         {ok, {Ctx1, C}} ->
+			io:format("z3\n"),
             case verify_access_code(Code, C, Ctx1) of
-                {error, _}=E           -> E;
+                {error, _}=E           -> 
+					io:format("z4\n"),
+					E;
                 {ok, {Ctx2, GrantCtx}} ->
-                    {ok, Ctx3} = ?BACKEND:revoke_access_code(Code, Ctx2),
+					io:format("z5\n"),
+                    {ok, Ctx3} = 
+						io:format("z6\n"),
+						?BACKEND:revoke_access_code(Code, Ctx2),
+						io:format("z7\n"),
                     {ok, {Ctx3, #a{ client  =C
                                   , resowner=get_(GrantCtx,<<"resource_owner">>)
                                   , scope   =get_(GrantCtx, <<"scope">>)
