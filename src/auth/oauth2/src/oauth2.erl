@@ -274,13 +274,19 @@ issue_token_and_refresh( #a{client=Client, resowner=Owner, scope=Scope, ttl=TTL}
 -spec verify_access_code(token(), appctx()) -> {ok, {appctx(), context()}}
                                              | {error, error()}.
 verify_access_code(AccessCode, Ctx0) ->
+  io:format("verify_access_code1\n"),
     case ?BACKEND:resolve_access_code(AccessCode, Ctx0) of
         {error, _}             ->
+			io:format("verify_access_code2\n"),
 			{error, invalid_grant};
         {ok, {Ctx1, GrantCtx}} ->
+			io:format("verify_access_code3\n"),
             case get_(GrantCtx, <<"expiry_time">>) > seconds_since_epoch(0) of
-                true  -> {ok, {Ctx1, GrantCtx}};
+                true  -> 
+					io:format("verify_access_code4\n"),
+					{ok, {Ctx1, GrantCtx}};
                 false ->
+					io:format("verify_access_code5\n"),
                     ?BACKEND:revoke_access_code(AccessCode, Ctx1),
                     {error, invalid_grant}
             end
@@ -292,12 +298,19 @@ verify_access_code(AccessCode, Ctx0) ->
 -spec verify_access_code(token(), client(), appctx()) ->
                                 {ok, {appctx(), context()}} | {error, error()}.
 verify_access_code(AccessCode, _Client, Ctx0) ->
+    io:format("verify_access_code6\n"),
     case verify_access_code(AccessCode, Ctx0) of
-        {error, _}=E           -> E;
+        {error, _}=E           -> 
+        io:format("verify_access_code7\n"),
+			E;
         {ok, {Ctx1, GrantCtx}} ->
+			io:format("verify_access_code8\n"),
             case get(GrantCtx, <<"client">>) of
-                {ok, _} -> {ok, {Ctx1, GrantCtx}};
+                {ok, _} -> 
+					io:format("verify_access_code9\n"),
+					{ok, {Ctx1, GrantCtx}};
                 _Error            -> 
+					io:format("verify_access_code10\n"),
 					{error, invalid_grant}
             end
     end.
