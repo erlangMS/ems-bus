@@ -294,8 +294,9 @@ resolve_access_code_sgbd(AccessCode) ->
 							case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 								{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 									io:format("resolve_access_sgbd_code8\n"),
+									io:format("resolve_access_sgbd_code8  context: \n", [Context]),
 									Context1 = base64:decode(list_to_binary(Context)),
-									io:format("resolve_access_sgbd_code8\n"),
+									io:format("resolve_access_sgbd_code8.0\n"),
 									Context2 = binary_to_term(Context1),
 									io:format("resolve_access_sgbd_code8.1\n"),
 									ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
