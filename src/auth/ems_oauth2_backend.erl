@@ -264,7 +264,6 @@ resolve_access_code(AccessCode, _) ->
         _ -> 
 			io:format("resolve_access_code3\n"),
 			case resolve_access_code_sgbd(AccessCode) of
-				io:format("resolve_access_code4\n"),
 				{ok, #auth_oauth2_access_code{context = Context2}} -> 	
 					io:format("resolve_access_code5\n"),
 					{ok, {[], Context2}};
