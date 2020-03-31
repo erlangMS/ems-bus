@@ -294,7 +294,7 @@ resolve_access_code_sgbd(AccessCode) ->
 							case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 								{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 									io:format("resolve_access_sgbd_code8\n"),
-									io:format("resolve_access_sgbd_code8  context: \n", [Context]),
+									io:format("resolve_access_sgbd_code8  context: ~p\n", [Context]),
 									Context1 = base64:decode(list_to_binary(Context)),
 									io:format("resolve_access_sgbd_code8.0\n"),
 									Context2 = binary_to_term(Context1),
