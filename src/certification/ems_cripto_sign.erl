@@ -20,7 +20,7 @@
 %% enveloped mode.
 -module(ems_cripto_sign).
 
--export([execute/1,verify/1, verify/2, sign/3, strip/1, digest/1, sign_256_key/0]).
+-export([execute/1,verify/1, verify/2, sign/4, strip/1, digest/1, sign_256_key/0]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 -include_lib("public_key/include/public_key.hrl").
@@ -32,13 +32,14 @@
 -type fingerprint() :: binary() | {sha | sha256, binary()}.
 
 execute(Request) -> 
-    {Doc, _} = xmerl_scan:string("<x:foo id=\"test\" xmlns:x=\"urn:foo:x:\"><x:name>blah</x:name></x:foo>", [{namespace_conformant, true}]),
+
+    {Docs, _} = xmerl_scan:string("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Diploma><content>Content of the certificate...</content></Diploma>", [{namespace_conformant, true}]),
     %{Key, CertBin} = sign_256_key(),
-    Key = read_private_key("/mnt/desenvolvimento/certificado/certificados_teste/test-certs/AlanPrivateKey.pem"),
-    CertBin = read_certificate("/mnt/desenvolvimento/certificado/certificados_teste/test-certs/AlanCert.pem"),
-    SignedXml = sign(Doc, Key, CertBin, rsa_sha256),
+    Key = read_private_key("/home/renato/Downloads/desenvolvimento/cpd/git/barramento/certificado/certificado/certificado_fabiano/private_key.pem"),
+    CertBin = read_certificate("/home/renato/Downloads/desenvolvimento/cpd/git/barramento/certificado/certificado/certificado_fabiano/publicCert.pem"),
+    SignedXml = sign(Docs, Key, rsa_sha256, CertBin),
     XmlFormater = transform_tuple_in_xml(SignedXml),
-    create_file_signed("/mnt/desenvolvimento/certificado/test_signed/signed_xml.xml",XmlFormater),
+    create_file_signed("/home/renato/Downloads/desenvolvimento/cpd/git/barramento/certificado/certificado/test_signed/signed_xml.xml",XmlFormater),
     %Doc = strip(SignedXml), 
     %ok = verify(SignedXml, [crypto:hash(sha, CertBin)]),
     {ok, Request#request{code = 200,
@@ -109,39 +110,67 @@ strip(#xmlElement{content = Kids} = Elem) ->
 %%      the element with the signature added.
 %%
 %% Don't use "ds" as a namespace prefix in the envelope document, or things will go baaaad.
--spec sign(Element :: #xmlElement{}, PrivateKey :: #'RSAPrivateKey'{}, CertBin :: binary()) -> #xmlElement{}.
-sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin) when is_binary(CertBin) ->
-    sign(ElementIn, PrivateKey, CertBin, "http://www.w3.org/2000/09/xmldsig#rsa-sha1").
-
--spec sign(Element :: #xmlElement{}, PrivateKey :: #'RSAPrivateKey'{}, CertBin :: binary(), SignatureMethod :: sig_method() | sig_method_uri()) -> #xmlElement{}.
-sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_binary(CertBin) ->
+sign(ElementIn, PrivateKey, SigMethod, [])  ->
+    io:format("Aqui Errado >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    ElementIn;
+sign(ElementIn, PrivateKey, SigMethod, [H|T]) ->
+    io:format("H >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[H]),
+    io:format("T >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[T]),
     % Transforma o documento Xml em uma lista chave e valor
-    ElementStrip = strip(ElementIn),
+    io:format("Aqui 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    io:format("Elem >>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[ElementIn]),
+    CertBin = element(2,H),
+    %ElementStrip = strip(ElementIn),
     % make sure the root element has an ID... if it doesn't yet, add one
-    {Element, Id} = case lists:keyfind('ID', 2, ElementStrip#xmlElement.attributes) of
+    io:format("Aqui 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    {Element, Id} = case lists:keyfind('ID', 2, ElementIn#xmlElement.attributes) of
         #xmlAttribute{value = CapId} ->
-            {ElementStrip, CapId};
+            io:format("Aqui 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+            {ElementIn, CapId};
         _ ->
-            case lists:keyfind('id', 2, ElementStrip#xmlElement.attributes) of
+            case lists:keyfind('id', 2, ElementIn#xmlElement.attributes) of
                 #xmlAttribute{value = LowId} ->
-                    {ElementStrip, LowId};
+                    io:format("Aqui 4 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+                    {ElementIn, LowId};
                 _ ->
-                    NewId = uuid:to_string(uuid:uuid1()),
+                    io:format("Aqui 5 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+                    NewId = uuid:to_string(uuid:uuid4()),
+                    io:format("Aqui 6 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
                     Attr = #xmlAttribute{name = 'ID', value = NewId, namespace = #xmlNamespace{}},
-                    NewAttrs = [Attr | ElementStrip#xmlElement.attributes],
-                    Elem = ElementStrip#xmlElement{attributes = NewAttrs},
+                    io:format("Aqui 7 >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+                    NewAttrs = [Attr | ElementIn#xmlElement.attributes],
+                    Elem = ElementIn#xmlElement{attributes = NewAttrs},
                     {Elem, NewId}
             end
     end,
+
+    % start create de signature elements in xades pattern
     {HashFunction, DigestMethod, SignatureMethodAlgorithm} = signature_props(SigMethod),
+    % create a ds with url signature
+    Ns = #xmlNamespace{nodes = [{"ds", 'http://www.w3.org/2000/09/xmldsig#'}]},
     % first we need the digest, to generate our SignedInfo element
+    SigInfo = generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, DigestMethod, Ns, Id),
+    SigInfoCanon = xmerl_c14n:c14n(SigInfo),
+    SigElemObject =  generate_xades_sing_element(HashFunction, SigInfoCanon, Ns),
+    % now we sign the SignedInfo element...  
+    Data = unicode:characters_to_binary(SigInfoCanon, unicode, utf8),
+    Signature = public_key:sign(Data, HashFunction, PrivateKey),
+    %change bin sign in base 64 sign
+    Sig64 = base64:encode_to_string(Signature),
+    Cert64 = base64:encode_to_string(CertBin),
+    % and wrap it all up with the signature and certificate
+    SigElem = generate_element_ds_signature(SigInfo,SigElemObject, Sig64, Cert64, Ns),
+    ElementSigned = Element#xmlElement{content = [SigElem | Element#xmlElement.content]},
+    sign(ElementSigned, PrivateKey, SigMethod, T).
+
+
+
+generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, DigestMethod, Ns, Id) ->
     CanonXml = xmerl_c14n:c14n(Element),
     % create a digest value. 
-    DigestValue = base64:encode_to_string(
-        crypto:hash(HashFunction, unicode:characters_to_binary(CanonXml, unicode, utf8))),
-    % start create a xml signed
-    Ns = #xmlNamespace{nodes = [{"ds", 'http://www.w3.org/2000/09/xmldsig#'}]},
-    SigInfo = esaml_util:build_nsinfo(Ns, #xmlElement{
+    DigestValue = base64:encode_to_string(crypto:hash(HashFunction, unicode:characters_to_binary(CanonXml, unicode, utf8))),
+    %Generate Structure for SignedInfo and retur this
+    esaml_util:build_nsinfo(Ns, #xmlElement{
         name = 'ds:SignedInfo',
         content = [
             #xmlElement{name = 'ds:CanonicalizationMethod',
@@ -162,19 +191,28 @@ sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_bin
                         content = [#xmlText{value = DigestValue}]}
                 ]}
         ]
-    }),
+    }).
 
-    SigInfoCanon = xmerl_c14n:c14n(SigInfo),
+
+generate_xades_sing_element(HashFunction, SigInfoCanon, Ns) ->
+    io:format("generate_xades_sing_element 1 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
     DigestValueSingInfo = base64:encode_to_string(
        crypto:hash(HashFunction, unicode:characters_to_binary(SigInfoCanon, unicode, utf8))),
 
-    SubjectCertificate = os:cmd("openssl x509 -noout -in /mnt/desenvolvimento/certificado/certificados_teste/test-certs/AlanCert.pem -subject"),
-    SerialX509NumberHex = os:cmd("openssl x509 -in /mnt/desenvolvimento/certificado/certificados_teste/test-certs/AlanCert.pem -serial -noout"),
+    io:format("generate_xades_sing_element 2 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    SubjectCertificate = os:cmd("openssl x509 -noout -in /home/renato/Downloads/desenvolvimento/cpd/git/barramento/certificado/certificado/certificado_fabiano/publicCert.pem -subject"),
+    io:format("generate_xades_sing_element 3 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    SerialX509NumberHex = os:cmd("openssl x509 -in /home/renato/Downloads/desenvolvimento/cpd/git/barramento/certificado/certificado/certificado_fabiano/publicCert.pem -serial -noout"),
+    io:format("generate_xades_sing_element 4 >>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[SerialX509NumberHex]),
     Serialx509NumberList = re:split(lists:nth(2,re:split(SerialX509NumberHex, "=")),"\n"),
+    io:format("generate_xades_sing_element 5 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
     SerialX509NumberDecimal = binary_to_integer(lists:nth(1,Serialx509NumberList), 16),
+    io:format("generate_xades_sing_element 6 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
     SerialX509String = lists:flatten(io_lib:format("~p", [SerialX509NumberDecimal])),
-
-    SigElemObject = esaml_util:build_nsinfo(Ns, #xmlElement{
+    io:format("generate_xades_sing_element 7 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    %Return element xades for signature
+    io:format("generate_xades_sing_element 8 >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+     esaml_util:build_nsinfo(Ns, #xmlElement{
         name = 'ds:Object',
         attributes = [#xmlAttribute{name='id', value="xades"}],
         content = [
@@ -205,22 +243,43 @@ sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_bin
                                     #xmlElement{name = 'ds:X509SerialNumber',
                                     content=[#xmlText{value = SerialX509String}]}
                                 ]}]}
-                            ]}
+                            ]},
+                          #xmlElement{name = 'xades:SignaturePolicyIdentifier',
+                          content = [
+                              #xmlElement{name = 'xades:SignaturePolicyId',
+                              content = [
+                                  #xmlElement{name = 'xades:SigPolicyId',
+                                  content = [
+                                      #xmlElement{name = 'xades:Identifier',
+                                      attributes = [#xmlAttribute{name = 'Qualifier', value = "OIDAsURN"}],
+                                      content = [#xmlText{value = "http://uri.etsi.org/01903/v1.2.2#ProofOfOrigin"}]}
+                                  ]},
+                                  #xmlElement{name = 'xades:SigPolicyHash',
+                                  content = [
+                                      #xmlElement{name = 'ds:DigestMethod',
+                                      attributes = [#xmlAttribute{name = 'Algorithm', value="http://www.w3.org/2001/04/xmlenc#sha256"}]},
+                                      #xmlElement{name = 'ds:DigestValue',
+                                      content=[#xmlText{value = "Verify what is use in this place"}]}
+                                  ]},
+                                  #xmlElement{name = 'xades:SigPolicyQualifiers',
+                                  content = [
+                                      #xmlElement{name = 'xades:SigPolicyQualifier',
+                                      content = [
+                                          #xmlElement{name = 'xades:SPURI',
+                                          content = [#xmlText{value="http://politicas.icpbrasil.gov.br/PA_AD_RB_v2_3.xml"}]}
+                                      ]}
+                                  ]}
+                              ]}
+                          ]}
                         ]}
         ]
-    }),
+    }).
 
-    io:format("SigElementObject >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[SigElemObject]),
 
-    % now we sign the SignedInfo element...  
-    Data = unicode:characters_to_binary(SigInfoCanon, unicode, utf8),
-    Signature = public_key:sign(Data, HashFunction, PrivateKey),
-    %change bin sign in base 64 sign
-    Sig64 = base64:encode_to_string(Signature),
-    Cert64 = base64:encode_to_string(CertBin),
+generate_element_ds_signature(SigInfo,SigElemObject, Sig64, Cert64, Ns) ->
 
-    % and wrap it all up with the signature and certificate
-    SigElem = esaml_util:build_nsinfo(Ns, #xmlElement{
+      % get all others elements and get in ds:signature
+      esaml_util:build_nsinfo(Ns, #xmlElement{
         name = 'ds:Signature',
         attributes = [#xmlAttribute{name = 'xmlns:ds', value = "http://www.w3.org/2000/09/xmldsig#"}],
         content = [
@@ -231,12 +290,7 @@ sign(ElementIn, PrivateKey = #'RSAPrivateKey'{}, CertBin, SigMethod) when is_bin
                     #xmlElement{name = 'ds:X509Certificate', content = [#xmlText{value = Cert64} ]}]}]},
             SigElemObject
         ]
-    }),
-
- 
-
-    Element#xmlElement{content = [SigElem | Element#xmlElement.content]}.
-
+    }).
 
 
 read_private_key(FilePrivateKey) ->
@@ -247,8 +301,7 @@ read_private_key(FilePrivateKey) ->
 
 read_certificate(FileCertificate) ->
     ContentCert = ems_util:open_file(FileCertificate),
-    [ Certificate ] = public_key:pem_decode(ContentCert),
-    element(2,Certificate).
+     public_key:pem_decode(ContentCert).
 
 
 transform_tuple_in_xml(Xml) ->
