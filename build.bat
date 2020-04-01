@@ -1,7 +1,7 @@
 @echo off
 cls
 echo Copiando dependencia jiffy para deps...
-xcopy /e /q /y deps_win\jiffy\* deps\jiffy
+xcopy /e /q /y deps_win\jiffy\* deps\jiffy\
 echo Build ems-bus with rebar...
 if not exist priv\log goto DeleteDBFolder
 rmdir /S /Q priv\log
