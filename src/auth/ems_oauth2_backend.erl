@@ -157,121 +157,167 @@ get_client_identity(Client, _) ->
         
 
 associate_access_code(AccessCode, Context, _AppContext) ->
-    AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context},
-    mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
-    associate_access_code_sgbd(AuthOAuth2AccessCode),
-    {ok, Context}.
+	try
+		AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context},
+		mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
+		associate_access_code_sgbd(AuthOAuth2AccessCode),
+		{ok, Context}
+	catch
+		_:ReasonException -> 
+			ems_logger:error("associate_access_code failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_associate_access_code}
+	end.
+    
 
 associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = Context}) ->
-	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-	case PersistTokenSGBDEnabled of
-		true ->
-			SqlPersist = ems_db:get_param(sql_persist_access_code),
-			case SqlPersist =/= "" of
-				true ->
-					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-					case ems_odbc_pool:get_connection(Ds) of
-						{ok, Ds2} ->
-							Context1 = term_to_binary(Context, [{minor_version,1}]),
-							io:format("associate_access_code_sgbd Context1 is ~p\n", [Context1]),
-							ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
-										  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
-										],
-							ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-							ems_odbc_pool:release_connection(Ds2);
-						{error, Reason} ->
-							ems_logger:error("ems_oauth2_backend associate_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason])
-					end;
-				false -> ok
-			end;
-		false -> ok
+	try
+		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+		case PersistTokenSGBDEnabled of
+			true ->
+				SqlPersist = ems_db:get_param(sql_persist_access_code),
+				case SqlPersist =/= "" of
+					true ->
+						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						case ems_odbc_pool:get_connection(Ds) of
+							{ok, Ds2} ->
+								Context1 = term_to_binary(Context, [{minor_version,1}]),
+								io:format("associate_access_code_sgbd Context1 is ~p\n", [Context1]),
+								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
+											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
+											],
+								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+								ems_odbc_pool:release_connection(Ds2);
+							{error, Reason} ->
+								ems_logger:error("ems_oauth2_backend associate_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason])
+						end;
+					false -> ok
+				end;
+			false -> ok
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("associate_access_code_sgbd failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_associate_access_code_sgbd}
 	end.
 
 
 associate_refresh_token(RefreshToken, Context, _) ->
-    AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context},
-    mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
-    associate_refresh_token_sgbd(AuthOauth2RefreshToken),
-    {ok, Context}.
+	try
+		AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context},
+		mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
+		associate_refresh_token_sgbd(AuthOauth2RefreshToken),
+		{ok, Context}
+	catch
+		_:ReasonException -> 
+			ems_logger:error("associate_refresh_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_associate_refresh_token}
+	end.
+		
 
 associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, context = Context}) ->
-	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-	case PersistTokenSGBDEnabled of
-		true ->
-			SqlPersist = ems_db:get_param(sql_persist_refresh_token),
-			case SqlPersist =/= "" of
-				true ->
-					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-					case ems_odbc_pool:get_connection(Ds) of
-						{ok, Ds2} ->
-							Context1 = term_to_binary(Context, [{minor_version,1}]),
-							ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
-										  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
-										],
-							ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-							ems_odbc_pool:release_connection(Ds2);
-						{error, Reason} ->
-							ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
-					end,
-					ok;
-				false -> ok
-			end;
-		false -> ok
+	try
+		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+		case PersistTokenSGBDEnabled of
+			true ->
+				SqlPersist = ems_db:get_param(sql_persist_refresh_token),
+				case SqlPersist =/= "" of
+					true ->
+						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						case ems_odbc_pool:get_connection(Ds) of
+							{ok, Ds2} ->
+								Context1 = term_to_binary(Context, [{minor_version,1}]),
+								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
+											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
+											],
+								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+								ems_odbc_pool:release_connection(Ds2);
+							{error, Reason} ->
+								ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+						end,
+						ok;
+					false -> ok
+				end;
+			false -> ok
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("associate_refresh_token_sgbd failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_associate_refresh_token_sgbd}
 	end.
 
 
 associate_access_token(AccessToken, Context, _) ->
-    AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context},
-    mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
-    associate_access_token_sgbd(AuthOauth2AccessToken),
-    {ok, Context}.
+	try
+		AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context},
+		mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
+		associate_access_token_sgbd(AuthOauth2AccessToken),
+		{ok, Context}
+	catch
+		_:ReasonException -> 
+			ems_logger:error("associate_access_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_associate_access_token}
+	end.
+		
 
 associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context = Context}) ->
-	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-	case PersistTokenSGBDEnabled of
-		true ->
-			SqlPersist = ems_db:get_param(sql_persist_access_token),
-			case SqlPersist =/= "" of
-				true ->
-					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-					case ems_odbc_pool:get_connection(Ds) of
-						{ok, Ds2} ->
-							Context1 = term_to_binary(Context, [{minor_version,1}]),
-							ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
-										  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
-										],
-							io:format("salvando access token ~p      context: ~p\n", [binary_to_list(AccessToken), binary_to_list(Context1)]),
-							ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-							io:format("salvou access token\n"),
-							ems_odbc_pool:release_connection(Ds2);
-						{error, Reason} ->
-							ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
-					end,
-					ok;
-				false -> ok
-			end;
-		false -> ok
+	try
+		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+		case PersistTokenSGBDEnabled of
+			true ->
+				SqlPersist = ems_db:get_param(sql_persist_access_token),
+				case SqlPersist =/= "" of
+					true ->
+						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						case ems_odbc_pool:get_connection(Ds) of
+							{ok, Ds2} ->
+								Context1 = term_to_binary(Context, [{minor_version,1}]),
+								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
+											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
+											],
+								io:format("salvando access token ~p      context: ~p\n", [binary_to_list(AccessToken), binary_to_list(Context1)]),
+								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+								io:format("salvou access token\n"),
+								ems_odbc_pool:release_connection(Ds2);
+							{error, Reason} ->
+								ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+						end,
+						ok;
+					false -> ok
+				end;
+			false -> ok
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("associate_access_token_sgbd failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_associate_access_token_sgbd}
 	end.
 
 
 
 resolve_access_code(AccessCode, _) ->
-	io:format("resolve_access_code1 ~p\n", [AccessCode]),
-	case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
-        {ok, #auth_oauth2_access_code{context = Context}} -> 	
-			io:format("resolve_access_code2  ~p  ok!!!\n", [AccessCode]),
-			{ok, {[], Context}};
-        _ -> 
-			io:format("resolve_access_code3 NOT\n"),
-			case resolve_access_code_sgbd(AccessCode) of
-				{ok, #auth_oauth2_access_code{context = Context2}} -> 	
-					io:format("resolve_access_code5  sgbd OK\n"),
-					{ok, {[], Context2}};
-				Error -> 
-					io:format("resolve_access_code6\n"),
-					Error
-			end
-    end.
+	try
+		io:format("resolve_access_code1 ~p\n", [AccessCode]),
+		case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
+			{ok, #auth_oauth2_access_code{context = Context}} -> 	
+				io:format("resolve_access_code2  ~p  ok!!!\n", [AccessCode]),
+				{ok, {[], Context}};
+			_ -> 
+				io:format("resolve_access_code3 NOT\n"),
+				case resolve_access_code_sgbd(AccessCode) of
+					{ok, #auth_oauth2_access_code{context = Context2}} -> 	
+						io:format("resolve_access_code5  sgbd OK\n"),
+						{ok, {[], Context2}};
+					Error -> 
+						io:format("resolve_access_code6\n"),
+						Error
+				end
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("resolve_access_code failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_resolve_access_code}
+	end.
+		
 
 resolve_access_code_sgbd(AccessCode) ->
 	try
@@ -328,139 +374,188 @@ resolve_access_code_sgbd(AccessCode) ->
 				{error, invalid_code} 
 		end
 	catch
-		_:_ -> 
-			io:format("resolve_access_sgbd_code14  NAO ENCONTARADO EXCEPTION\n"),
-			{error, invalid_code} 
+		_:ReasonException -> 
+			ems_logger:error("resolve_access_code_sgbd failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_resolve_access_code_sgbd}
 	end.
 	
 		
 
 
 resolve_refresh_token(RefreshToken, _AppContext) ->
-    case ems_db:get(auth_oauth2_refresh_token_table, RefreshToken) of
-       {ok, #auth_oauth2_refresh_token{context = Context}} -> 	
-			{ok, {[], Context}};
-        _ -> 
-			case resolve_refresh_token_sgbd(RefreshToken) of
-			   {ok, #auth_oauth2_refresh_token{context = Context2}} -> 	
-					{ok, {[], Context2}};
-				Error -> 
-					Error
-			end
-    end.
+	try
+		case ems_db:get(auth_oauth2_refresh_token_table, RefreshToken) of
+		   {ok, #auth_oauth2_refresh_token{context = Context}} -> 	
+				{ok, {[], Context}};
+			_ -> 
+				case resolve_refresh_token_sgbd(RefreshToken) of
+				   {ok, #auth_oauth2_refresh_token{context = Context2}} -> 	
+						{ok, {[], Context2}};
+					Error -> 
+						Error
+				end
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("resolve_refresh_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_resolve_refresh_token}
+	end.
+		
 
 resolve_refresh_token_sgbd(RefreshToken) ->
-	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-	case PersistTokenSGBDEnabled of
-		true ->
-			SqlSelect = ems_db:get_param(sql_select_refresh_token),
-			case SqlSelect =/= "" of
-				true ->
-					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-					case ems_odbc_pool:get_connection(Ds) of
-						{ok, Ds2} ->
-							ParamsSql = [{{sql_varchar, 60}, [binary_to_list(RefreshToken)]}],
-							case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
-								{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-									Context1 = list_to_binary(Context),
-									Context2 = binary_to_term(Context1),
-									ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
-									AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
-									mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
-									Result = {ok, AuthOauth2RefreshToken};
-								_ ->
-									Result = {error, invalid_code} 
-							end,
-							ems_odbc_pool:release_connection(Ds2),
-							Result;
-						{error, Reason} ->
-							ems_logger:error("ems_oauth2_backend resolve_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
-							{error, invalid_code} 
-					end;
-				false -> 
-					{error, invalid_code} 
-			end;
-		false -> {error, invalid_code} 
+	try
+		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+		case PersistTokenSGBDEnabled of
+			true ->
+				SqlSelect = ems_db:get_param(sql_select_refresh_token),
+				case SqlSelect =/= "" of
+					true ->
+						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						case ems_odbc_pool:get_connection(Ds) of
+							{ok, Ds2} ->
+								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(RefreshToken)]}],
+								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
+									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
+										Context1 = list_to_binary(Context),
+										Context2 = binary_to_term(Context1),
+										ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
+										AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
+										mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
+										Result = {ok, AuthOauth2RefreshToken};
+									_ ->
+										Result = {error, invalid_code} 
+								end,
+								ems_odbc_pool:release_connection(Ds2),
+								Result;
+							{error, Reason} ->
+								ems_logger:error("ems_oauth2_backend resolve_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
+								{error, invalid_code} 
+						end;
+					false -> 
+						{error, invalid_code} 
+				end;
+			false -> {error, invalid_code} 
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("resolve_refresh_token_sgbd failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_resolve_refresh_token_sgbd}
 	end.
+		
 
 
 
 resolve_access_token(AccessToken, _) ->
-    case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
-       {ok, #auth_oauth2_access_token{context = Context}} -> 	
-			{ok, {[], Context}};
-        _ -> 
-			case resolve_access_token_sgbd(AccessToken) of
-			   {ok, #auth_oauth2_access_token{context = Context2}} -> 	
-						{ok, {[], Context2}};
-				Error -> 
-					Error
-			end
-    end.
+	try
+		case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
+		   {ok, #auth_oauth2_access_token{context = Context}} -> 	
+				{ok, {[], Context}};
+			_ -> 
+				case resolve_access_token_sgbd(AccessToken) of
+				   {ok, #auth_oauth2_access_token{context = Context2}} -> 	
+							{ok, {[], Context2}};
+					Error -> 
+						Error
+				end
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("resolve_access_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_resolve_access_token}
+	end.
+		
 
 resolve_access_token_sgbd(AccessToken) ->
-	PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-	case PersistTokenSGBDEnabled of
-		true ->
-			SqlSelect = ems_db:get_param(sql_select_access_token),
-			case SqlSelect =/= "" of
-				true ->
-					{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-					case ems_odbc_pool:get_connection(Ds) of
-						{ok, Ds2} ->
-							ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
-							case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
-								{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-									Context1 = list_to_binary(Context),
-									Context2 = binary_to_term(Context1),
-									ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
-									AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
-									mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
-									Result = {ok, AuthOauth2AccessToken};
-								_ ->
-									ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed to access_token ~p.", [AccessToken]),
-									Result = {error, invalid_code} 
-							end,
-							ems_odbc_pool:release_connection(Ds2),
-							Result;
-						{error, Reason} ->
-							ems_logger:error("ems_oauth2_backend resolve_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
-							{error, invalid_code} 
-					end;
-				false -> 
-					ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed. SqlSelect == "". Reason:_token ~p.", [AccessToken]),
-					{error, invalid_code} 
-			end;
-		false -> 
-			ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd exception. Reason:_token ~p.", [AccessToken]),
-			{error, invalid_code} 
+	try
+		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+		case PersistTokenSGBDEnabled of
+			true ->
+				SqlSelect = ems_db:get_param(sql_select_access_token),
+				case SqlSelect =/= "" of
+					true ->
+						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						case ems_odbc_pool:get_connection(Ds) of
+							{ok, Ds2} ->
+								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
+								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
+									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
+										Context1 = list_to_binary(Context),
+										Context2 = binary_to_term(Context1),
+										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
+										AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
+										mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
+										Result = {ok, AuthOauth2AccessToken};
+									_ ->
+										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed to access_token ~p.", [AccessToken]),
+										Result = {error, invalid_code} 
+								end,
+								ems_odbc_pool:release_connection(Ds2),
+								Result;
+							{error, Reason} ->
+								ems_logger:error("ems_oauth2_backend resolve_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
+								{error, invalid_code} 
+						end;
+					false -> 
+						ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed. SqlSelect == "". Reason:_token ~p.", [AccessToken]),
+						{error, invalid_code} 
+				end;
+			false -> 
+				ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd exception. Reason:_token ~p.", [AccessToken]),
+				{error, invalid_code} 
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("resolve_access_token_sgbd failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_resolve_access_token_sgbd}
 	end.
+		
 
 
 
 revoke_access_code(AccessCode, _AppContext) ->
-    case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
-		{ok, Record} -> 
-			ems_db:delete(Record);
-		_ -> ok
-	end,
-    {ok, []}.
+	try
+		case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
+			{ok, Record} -> 
+				ems_db:delete(Record);
+			_ -> ok
+		end,
+		{ok, []}
+	catch
+		_:ReasonException -> 
+			ems_logger:error("revoke_access_code failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_revoke_access_code}
+	end.
+
 
 revoke_access_token(AccessToken, _) ->
-    case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
-		{ok, Record} -> 
-			ems_db:delete(Record);
-		_ -> ok
-	end,
-    {ok, []}.
+	try
+		case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
+			{ok, Record} -> 
+				ems_db:delete(Record);
+			_ -> ok
+		end,
+		{ok, []}
+	catch
+		_:ReasonException -> 
+			ems_logger:error("revoke_access_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_revoke_access_token}
+	end.
+		
 
 revoke_refresh_token(RefreshToken, _) ->
-    case ems_db:get(auth_oauth2_refresh_token_table, RefreshToken) of
-		{ok, Record} -> 
-			ems_db:delete(Record);
-		_ -> ok
-	end,
-    {ok, []}.
+	try
+		case ems_db:get(auth_oauth2_refresh_token_table, RefreshToken) of
+			{ok, Record} -> 
+				ems_db:delete(Record);
+			_ -> ok
+		end,
+		{ok, []}
+	catch
+		_:ReasonException -> 
+			ems_logger:error("revoke_refresh_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_revoke_refresh_token}
+	end.
+		
 
 get_redirection_uri(Client, _) ->
     case get_client_identity(Client, [])  of
@@ -497,19 +592,26 @@ verify_scope(_RegScope, Scope , _) ->
     
 % função criada pois a biblioteca OAuth2 não trata refresh_tokens
 authorize_refresh_token(Client, RefreshToken, Scope) ->
-	case resolve_refresh_token(RefreshToken, []) of
-		{ok, {_, [_, {_, ResourceOwner}, _, _]}} -> 
-			case verify_client_scope(Client, Scope, []) of
-				{error, _} -> {error, invalid_scope};
-				{ok, {Ctx3, _}} ->
-					Result = {ok, {Ctx3, #a{client = Client,
-								   resowner = ResourceOwner,
-								   scope = Scope,
-								   ttl = oauth2_config:expiry_time(password_credentials)
-					}}},
-					Result
-			end;
-		Error -> Error
+	try
+		case resolve_refresh_token(RefreshToken, []) of
+			{ok, {_, [_, {_, ResourceOwner}, _, _]}} -> 
+				case verify_client_scope(Client, Scope, []) of
+					{error, _} -> {error, invalid_scope};
+					{ok, {Ctx3, _}} ->
+						Result = {ok, {Ctx3, #a{client = Client,
+									   resowner = ResourceOwner,
+									   scope = Scope,
+									   ttl = oauth2_config:expiry_time(password_credentials)
+						}}},
+						Result
+				end;
+			Error -> Error
+		end
+	catch
+		_:ReasonException -> 
+			ems_logger:error("authorize_refresh_token failed. Reason: ~p.", [ReasonException]),
+			{error, eparse_authorize_refresh_token}
 	end.
+		
 
 
