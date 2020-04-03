@@ -108,7 +108,7 @@ execute(Request = #request{type = Type,
 				 ], 
 				 Client
 			 } ->
-
+				
 					% When it is authorization_code, we will record metrics for singlesignon
 					case User =/= undefined of
 						true -> 
@@ -395,16 +395,12 @@ refresh_token_request(Request, Client) ->
 -spec access_token_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
 access_token_request(Request, Client) ->
 	try
-		io:format("aqui0\n"),
 		case ems_util:get_querystring(<<"code">>, <<>>, Request) of
 			<<>> -> 
 				{error, access_denied, ecode_empty};
 			Code -> 
-				io:format("aqui1\n"),
 				RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
-				io:format("aqui2\n"),
 				Authz = oauth2:authorize_code_grant(Client, Code, RedirectUri, []),
-				io:format("aqui3\n"),
 				issue_token_and_refresh(Authz, Client)
 		end
 	catch

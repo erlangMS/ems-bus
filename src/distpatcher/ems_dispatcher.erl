@@ -323,7 +323,6 @@ dispatch_service_work(Request = #request{type = Type,
 							    module = Module,
 							    function = Function},
  					  ShowDebugResponseHeaders) ->
-io:format("aqui4\n"),	
 ems_logger:info(iolist_to_binary([<<"ems_dispatcher \033[01;34m">>, Type, <<"\033[0m ">>, Url, <<" to ">>, list_to_binary(ModuleName), <<" from \033[0;33m">>, IpBin, <<".\033[0m">>])),
 	%% Retornos possíveis:
 	%%
@@ -361,7 +360,6 @@ dispatch_service_work(Request = #request{rid = Rid,
 										 metadata = Metadata,
 										 timeout = Timeout},
 					  ShowDebugResponseHeaders) ->
-io:format("aqui5\n"),
 	case erlang:is_tuple(Client) of
 		false -> 
 			ClientJson = <<"{id:0, codigo:0, name:\"public\", active:true}">>;
@@ -378,13 +376,6 @@ io:format("aqui5\n"),
 			end
 	end,
 	T2 = ems_util:get_milliseconds(),
-	io:format("Rid is ~p\n", [Rid]),
-	io:format("Url is ~p\n", [Url]),
-	io:format("binary_to_list(Type) is ~p\n", [binary_to_list(Type)]),
-	io:format("Payload is ~p\n", [Payload]),
-	io:format("ContentType is ~p\n", [ContentType]),
-	io:format("ModuleName is ~p\n", [ModuleName]),
-	io:format("FunctionName is ~p\n", [FunctionName]),
 	Msg = {{Rid, Url, binary_to_list(Type), ParamsMap, QuerystringMap, Payload, ContentType, ModuleName, FunctionName, 
 			ClientJson, UserJson, Metadata, {Scope, AccessToken}, T2, Timeout}, self()},
 	dispatch_service_work_send(Request, Service, ShowDebugResponseHeaders, Msg, 1).
@@ -392,7 +383,6 @@ io:format("aqui5\n"),
 
 dispatch_service_work_send(Request = #request{t1 = T1}, 
 						   #service{service_unavailable_metric_name = ServiceUnavailableMetricName}, _, _, 0) -> 
-io:format("aqui6\n"),	
 ems_db:inc_counter(ServiceUnavailableMetricName),
 	Latency = ems_util:get_milliseconds() - T1,
 	StatusText = ems_util:format_rest_status(400, eunavailable_service, in_dispatch_service_work_send, undefined, Latency),
@@ -415,8 +405,6 @@ dispatch_service_work_send(Request = #request{type = Type},
 						   Count) ->
 	case get_work_node(Host, Host, HostName, ModuleName) of
 		{ok, Node} ->
-			io:format("NODE is ~p\n", [Node]),
-			io:format("Module is ~p\n", [Module]),
 			{Module, Node} ! Msg,
 			?DEBUG("ems_dispatcher send msg to ~p with timeout ~pms.", [{Module, Node}, TimeoutService]),
 			case Type of 

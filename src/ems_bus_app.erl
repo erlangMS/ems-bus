@@ -28,6 +28,9 @@ start(_StartType, StartArgs) ->
 									oauth2 -> <<"oauth2">>;
 									public -> <<"public">>
 								end,
+			ems_logger:info("Server: ~p", [?SERVER_NAME]),
+			ems_logger:info("Erlang Runtime: ~p", [erlang:system_info(otp_release)]),
+			ems_logger:info("ems-bus PID: ~p", [os:getpid()]),
 			ems_logger:info("Parameters:"),
 			ems_logger:info("  \033[0;32minstance_type\033[0m: \033[01;34m~p\033[0m.", [Conf#config.instance_type]),
 			ems_logger:info("  \033[0;32mconfig_file\033[0m: \033[01;34m~p\033[0m.", [Conf#config.config_file]),

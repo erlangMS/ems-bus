@@ -274,7 +274,7 @@
 -ifdef(win32_plataform).
 	-define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, []).
 -else.
-	-define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, [<<"lo">>, <<"enp">>, <<"eth">>, <<"wl">>, <<"eno">>]).
+	-define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, [<<"lo">>, <<"enp">>, <<"eth">>, <<"wl">>, <<"eno">>, <<"ens">>]).
 -endif.
 
 
@@ -358,7 +358,7 @@
 				 ems_result_cache_shared :: non_neg_integer(),
 				 ems_result_cache_enabled = true :: boolean(),
 				 ems_datasources :: map(),
-				 show_debug_response_headers = false :: boolean(),	%% Add debug headers in HTTP response headers
+				 show_debug_response_headers = true :: boolean(),	%% Add debug headers in HTTP response headers
 				 tcp_listen_address :: list(),
 				 tcp_listen_address_t :: list(),
 				 tcp_listen_main_ip :: binary(),

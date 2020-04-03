@@ -181,7 +181,6 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
 								Context1 = term_to_binary(Context, [{minor_version,1}]),
-								io:format("associate_access_code_sgbd Context1 is ~p\n", [Context1]),
 								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
 											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
 											],
@@ -274,9 +273,7 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
 											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
 											],
-								io:format("salvando access token ~p      context: ~p\n", [binary_to_list(AccessToken), binary_to_list(Context1)]),
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-								io:format("salvou access token\n"),
 								ems_odbc_pool:release_connection(Ds2);
 							{error, Reason} ->
 								ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
@@ -296,19 +293,14 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 
 resolve_access_code(AccessCode, _) ->
 	try
-		io:format("resolve_access_code1 ~p\n", [AccessCode]),
 		case ems_db:get(auth_oauth2_access_code_table, AccessCode) of
 			{ok, #auth_oauth2_access_code{context = Context}} -> 	
-				io:format("resolve_access_code2  ~p  ok!!!\n", [AccessCode]),
 				{ok, {[], Context}};
 			_ -> 
-				io:format("resolve_access_code3 NOT\n"),
 				case resolve_access_code_sgbd(AccessCode) of
 					{ok, #auth_oauth2_access_code{context = Context2}} -> 	
-						io:format("resolve_access_code5  sgbd OK\n"),
 						{ok, {[], Context2}};
 					Error -> 
-						io:format("resolve_access_code6\n"),
 						Error
 				end
 		end
@@ -321,56 +313,37 @@ resolve_access_code(AccessCode, _) ->
 
 resolve_access_code_sgbd(AccessCode) ->
 	try
-		io:format("resolve_access_sgbd_code1\n"),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-		io:format("resolve_access_sgbd_code2\n"),
 		case PersistTokenSGBDEnabled of
 			true ->
-				io:format("resolve_access_sgbd_code3\n"),
 				SqlSelect = ems_db:get_param(sql_select_access_code),
-				io:format("resolve_access_sgbd_code4\n"),
 				case SqlSelect =/= "" of
 					true ->
-						io:format("resolve_access_sgbd_code5\n"),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-						io:format("resolve_access_sgbd_code6\n"),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
-								io:format("resolve_access_sgbd_code7 AccessCode ~p \n", [AccessCode]),
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessCode)]}],
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-										io:format("resolve_access_sgbd_code8\n"),
-										io:format("resolve_access_sgbd_code8  context: ~p\n", [Context]),
 										Context1 = list_to_binary(Context),
-										io:format("resolve_access_sgbd_code8.0\n"),
 										Context2 = binary_to_term(Context1),
-										io:format("resolve_access_sgbd_code8.1\n"),
 										ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
-										io:format("resolve_access_sgbd_code8.2\n"),
 										AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context2},
-										io:format("resolve_access_sgbd_code8.3\n"),
 										mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
-										io:format("resolve_access_sgbd_code8.4\n"),
 										Result = {ok, AuthOAuth2AccessCode};
 									_ ->
-										io:format("resolve_access_sgbd_code9\n"),
 										Result = {error, invalid_code} 
 								end,
-								io:format("resolve_access_sgbd_code10\n"),
 								ems_odbc_pool:release_connection(Ds2),
 								Result;
 							{error, Reason} ->
-								io:format("resolve_access_sgbd_code11\n"),
 								ems_logger:error("ems_oauth2_backend resolve_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason]),
 								{error, invalid_code} 
 						end;
 					false -> 
-						io:format("resolve_access_sgbd_code12\n"),
 						{error, invalid_code} 
 				end;
 			false -> 
-				io:format("resolve_access_sgbd_code13\n"),
 				{error, invalid_code} 
 		end
 	catch

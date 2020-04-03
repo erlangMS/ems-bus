@@ -119,10 +119,6 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 						   {<<"resource_owner">>, User}, 
 						   {<<"expiry_time">>, _ExpityTime}, 
 						   {<<"scope">>, Scope}]}} -> 
-						   %ems_logger:debug("Client#client.user_agent ~p =:= Req#request.user_agent ~p\n", [Client#client.user_agent, Req#request.user_agent]),
-						   %ems_logger:debug("Client#client.peer ~p =:= Req#request.ip_bin ~p\n", [Client#client.peer, Req#request.ip_bin]),
-						   %ems_logger:debug("Client#client.forwarded_for ~p =:= Req#request.forwarded_for ~p\n", [Client#client.forwarded_for, Req#request.forwarded_for]),
-					% O access_token deve ser do peer que solicitou o token
 					% Não é aceito um token gerado em um browser ser utilizado em outro browser
 					case Client =/= undefined of
 						true ->
@@ -139,7 +135,6 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 								do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, oauth2)
 					end;
 			_ -> 
-				io:format("~n~nEntrou aqui 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 				ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
 				ems_db:inc_counter(ems_auth_user_oauth2_denied),
 				{error, access_denied, einvalid_access_token}
