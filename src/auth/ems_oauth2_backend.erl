@@ -180,9 +180,10 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
-								Context1 = term_to_binary(Context, [{minor_version,1}]),
+								Context1 = term_to_binary(Context),
+								Context2 = base64:encode(Context1),
 								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
-											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
+											{{sql_varchar, 4000}, [binary_to_list(Context2)]}
 											],
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 								ems_odbc_pool:release_connection(Ds2);
@@ -224,9 +225,10 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
-								Context1 = term_to_binary(Context, [{minor_version,1}]),
+								Context1 = term_to_binary(Context),
+								Context2 = base64:encode(Context1),
 								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
-											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
+											{{sql_varchar, 4000}, [binary_to_list(Context2)]}
 											],
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 								ems_odbc_pool:release_connection(Ds2);
@@ -269,9 +271,10 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
-								Context1 = term_to_binary(Context, [{minor_version,1}]),
+								Context1 = term_to_binary(Context),
+								Context2 = base64:encode(Context1),
 								ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
-											  {{sql_varchar, 4000}, [binary_to_list(Context1)]}
+											{{sql_varchar, 4000}, [binary_to_list(Context2)]}
 											],
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 								ems_odbc_pool:release_connection(Ds2);
@@ -325,7 +328,7 @@ resolve_access_code_sgbd(AccessCode) ->
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessCode)]}],
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-										Context1 = list_to_binary(Context),
+										Context1 = base64:decode(list_to_binary(Context)),
 										Context2 = binary_to_term(Context1),
 										ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
 										AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context2},
@@ -389,7 +392,7 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(RefreshToken)]}],
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-										Context1 = list_to_binary(Context),
+										Context1 = base64:decode(list_to_binary(Context)),
 										Context2 = binary_to_term(Context1),
 										ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
 										AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
@@ -452,7 +455,7 @@ resolve_access_token_sgbd(AccessToken) ->
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-										Context1 = list_to_binary(Context),
+										Context1 = base64:decode(list_to_binary(Context)),
 										Context2 = binary_to_term(Context1),
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
 										AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
