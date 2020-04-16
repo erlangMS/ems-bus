@@ -1436,7 +1436,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		end,
 		
 		put(parse_step, max_pool_size),
-		MaxPoolSize = ems_util:parse_range(maps:get(<<"max_pool_size">>, M, ?MAX_CONNECTION_BY_POOL), 1, ?MAX_CONNECTION_BY_POOL),
+		MaxPoolSize = ems_util:parse_range(maps:get(<<"max_pool_size">>, M, 1), 1, ?MAX_CONNECTION_BY_POOL),
 		
 		put(parse_step, sql_check_valid_connection),
 		SqlCheckValidConnection = parse_datasource_sql_check_validation_connection(Type, maps:get(<<"sql_check_valid_connection">>, M, undefined)),

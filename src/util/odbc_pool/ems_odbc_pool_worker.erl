@@ -70,7 +70,8 @@ init(Datasource) ->
 						query_count = 0,
 						check_valid_connection_ref = undefined,
 						close_idle_connection_ref = undefined}};
-		_Error -> ignore
+		_Error -> 
+			{stop, shutdown}
 	end.
 	
     
@@ -158,7 +159,7 @@ handle_call(notify_return_pool, _From, State = #state{datasource = InternalDatas
 									check_valid_connection_ref = CheckValidConnectionRef,
 									close_idle_connection_ref = CloseIdleConnectionRef}};
 		{error, Reason} ->
-			?DEBUG("ems_odbc_pool_worker notify_return_pool skip due error (Ds: ~p QueryCount: ~p LastError: ~p).", [Id, QueryCount, Reason]),
+			ems_logger:error("ems_odbc_pool_worker notify_return_pool skip due error (Ds: ~p QueryCount: ~p LastError: ~p).", [Id, QueryCount, Reason]),
 			{reply, LastError, State}
 	end;
 
@@ -231,7 +232,7 @@ handle_info(Msg, State) ->
 
 terminate(Reason, State) ->
     do_disconnect(State),
-	?DEBUG("ems_odbc_pool_worker terminate ~p.", [Reason]),   
+	ems_logger:error("ems_odbc_pool_worker terminate ~p.", [Reason]),   
     ok.
  
 code_change(_OldVsn, State, _Extra) ->
@@ -259,8 +260,10 @@ do_connect(Datasource = #service_datasource{connection = Connection}) ->
 			{error, Reason} -> {error, Reason}
 		end
 	catch 
-		_Exception:{PosixError2, _} -> {error, PosixError2};
-		_Exception2:Reason2 -> {error, Reason2}
+		_Exception:{PosixError2, _} -> 
+			{error, PosixError2};
+		_Exception2:Reason2 -> 
+			{error, Reason2}
 	end.
 
 do_disconnect(#state{datasource = #service_datasource{id = Id, conn_ref = ConnRef, type = sqlite, driver = sqlite3}, 

@@ -49,33 +49,16 @@ get_connection(Datasource = #service_datasource{id = Id}) ->
 				?DEBUG("ems_odbc_pool get_connection from datasource id ~p.", [Id]),
 				Result;
 			{error, eodbc_restricted_connection} -> 
+				ems_logger:debug("ems_odbc_pool get_connection eodbc_restricted_connection from datasource id ~p.", [Id]),
 				{error, eodbc_restricted_connection};
-			_ -> 
-				case gen_server:call(?SERVER, {create_connection, Datasource}, 16000) of
-					{ok, _Datasource2} = Result2 ->
-						?DEBUG("ems_odbc_pool get_connection from datasource id ~p after the second attempt.", [Id]),
-						Result2;
-					{error, Reason2} -> 
-						?DEBUG("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Reason2]),
-						{error, eunavailable_odbc_connection}
-				end
+			Error -> 
+				ems_logger:debug("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Error]),
+				{error, eunavailable_odbc_connection}
 		end
 	catch
-		_:_ -> %% provavelmente timeout
-			try
-				case gen_server:call(?SERVER, {create_connection, Datasource}, 16000) of
-					{ok, _Datasource3} = Result3 ->
-						?DEBUG("ems_odbc_pool get_connection from datasource id ~p after timeout.", [Id]),
-						Result3;
-					{error, Reason3} -> 
-						?DEBUG("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Reason3]),
-						{error, eunavailable_odbc_connection}
-				end
-			catch 
-				_:_ ->
-					?DEBUG("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: eodbc_connection_timeout.", [Id]),
-					{error, eunavailable_odbc_connection}
-			end
+		_:ReasonException -> %% provavelmente timeout
+			ems_logger:error("ems_odbc_pool get_connection exception from datasource id ~p. Reason: ~p.", [Id, ReasonException]),
+			{error, eunavailable_odbc_connection}
 	end.
 
 
@@ -274,7 +257,9 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 								case ems_db:is_database_in_restricted_mode(Reason) of	
 									true -> {error, eodbc_restricted_connection};
 									false -> {error, eunavailable_odbc_connection}
-								end
+								end;
+							ignore -> 
+								{error, eodbc_restricted_connection}
 						end;
 					false -> 
 						ems_db:inc_counter(ConnectionMaxPoolSizeExceededMetricName),
@@ -299,7 +284,9 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 				{ok, Datasource3}
 		end
 	catch
-		_:_ -> {error, ecreate_odbc_connection}	
+		_:ReasonException -> 
+			ems_logger:error("ems_odbc_pool do_create_connection exception. Reason: ~p.", [ReasonException]),
+			{error, ecreate_odbc_connection}	
 	end.
 
 -spec do_release_connection(#service_datasource{}) -> ok.
@@ -349,7 +336,7 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 		end
 	catch
 		_:Reason -> 
-			?DEBUG("ems_odbc_pool do_release_connection exception (Ds: ~p ConnectionCount: ~p Reason: ~p).", [Id, ConnectionCount, Reason]),
+			ems_logger:error("ems_odbc_pool do_release_connection exception (Ds: ~p ConnectionCount: ~p Reason: ~p).", [Id, ConnectionCount, Reason]),
 			ok
 	end.
 
@@ -370,7 +357,7 @@ do_shutdown_connection(#service_datasource{id = Id,
 		ok
 	catch
 		_:Reason -> 
-			?DEBUG("ems_odbc_pool do_shutdown_connection exception (Ds: ~p ConnectionCount: ~p Reason: ~p).", [Id, ConnectionCount, Reason]),
+			ems_logger:error("ems_odbc_pool do_shutdown_connection exception (Ds: ~p ConnectionCount: ~p Reason: ~p).", [Id, ConnectionCount, Reason]),
 			ok
 	end.
 
