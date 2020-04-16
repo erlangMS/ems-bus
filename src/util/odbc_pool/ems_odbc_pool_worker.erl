@@ -230,7 +230,7 @@ handle_info(Msg, State) ->
    ems_logger:error("ems_odbc_pool_worker handle_info unknow message ~p.", [Msg]),
    {noreply, State}.
 
-terminate(_Reason, normal) ->
+terminate(normal, _) ->
     ok;
 terminate(Reason, State) ->
 	ems_logger:error("ems_odbc_pool_worker terminate due error. Reason ~p. State: ~p.", [Reason, State]),   
