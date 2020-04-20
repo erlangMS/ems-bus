@@ -44,15 +44,15 @@ stop() ->
 -spec get_connection(#service_datasource{}) -> {ok, #service_datasource{}} | {error, eunavailable_odbc_connection}.
 get_connection(Datasource = #service_datasource{id = Id}) ->
 	try
-		case gen_server:call(?SERVER, {create_connection, Datasource}, 16000) of
+		case gen_server:call(?SERVER, {create_connection, Datasource}, 120000) of
 			{ok, _Datasource2} = Result ->
 				?DEBUG("ems_odbc_pool get_connection from datasource id ~p.", [Id]),
 				Result;
 			{error, eodbc_restricted_connection} -> 
-				ems_logger:debug("ems_odbc_pool get_connection eodbc_restricted_connection from datasource id ~p.", [Id]),
+				ems_logger:error("ems_odbc_pool get_connection eodbc_restricted_connection from datasource id ~p.", [Id]),
 				{error, eodbc_restricted_connection};
 			Error -> 
-				ems_logger:debug("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Error]),
+				ems_logger:error("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Error]),
 				{error, eunavailable_odbc_connection}
 		end
 	catch
@@ -68,7 +68,7 @@ release_connection(Datasource = #service_datasource{id = Id}) ->
 		gen_server:call(?SERVER, {release_connection, Datasource}, 16000)
 	catch 
 		_: Reason -> 
-			?DEBUG("ems_odbc_pool release_connection exception from datasource id ~p. Reason: ~p.", [Id, Reason]),
+			ems_logger:error("ems_odbc_pool release_connection exception from datasource id ~p. Reason: ~p.", [Id, Reason]),
 			ok
 	end.
 
@@ -253,12 +253,14 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 								ems_logger:info("ems_odbc_pool start new worker (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount2], LogShowPoolActivity),
 								{ok, Datasource3};
 							{error, Reason} -> 
+								ems_logger:error("ems_odbc_pool do_create_connection failed (Ds: ~p). Reason: ~p.", [Id, Reason]),
 								ems_db:inc_counter(ConnectionUnavailableMetricName),								
 								case ems_db:is_database_in_restricted_mode(Reason) of	
 									true -> {error, eodbc_restricted_connection};
 									false -> {error, eunavailable_odbc_connection}
 								end;
 							ignore -> 
+								ems_logger:error("ems_odbc_pool do_create_connection ignored (Ds: ~p).", [Id]),
 								{error, eodbc_restricted_connection}
 						end;
 					false -> 
