@@ -86,6 +86,7 @@ to_json(Client) ->
 	
 -spec new_from_map(map(), #config{}) -> {ok, #client{}} | {error, atom()}.
 new_from_map(Map, Conf) ->
+	io:format("Map >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n",[Map]),
 	try
 		{ok, #client{
 				id = maps:get(<<"id">>, Map),
@@ -94,6 +95,7 @@ new_from_map(Map, Conf) ->
 				redirect_uri = ems_util:to_lower_and_remove_backslash(?UTF8_STRING(maps:get(<<"redirect_uri">>, Map, <<>>))),
 				description = ?UTF8_STRING(maps:get(<<"description">>, Map, <<>>)),
 				scope =  ems_util:parse_oauth2_scope(maps:get(<<"scope">>, Map, <<>>)),
+				state =  ?UTF8_STRING(maps:get(<<"state">>, Map, <<>>)),
 				version = ?UTF8_STRING(maps:get(<<"version">>, Map, <<"1.0.0">>)),
 				active = ems_util:parse_bool(maps:get(<<"active">>, Map, true)),
 				group = ?UTF8_STRING(maps:get(<<"group">>, Map, <<>>)),

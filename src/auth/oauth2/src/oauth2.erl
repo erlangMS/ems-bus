@@ -161,6 +161,7 @@ authorize_code_grant(Client, Code, RedirUri, Ctx0) ->
                 {error, _}=E           -> 
 					E;
                 {ok, {Ctx2, GrantCtx}} ->
+                    io:format("GrantCtx >>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[GrantCtx]),
 					?BACKEND:revoke_access_code(Code, Ctx2),
                     {ok, {[], #a{ client  =C
                                   , resowner=get_(GrantCtx,<<"resource_owner">>)
