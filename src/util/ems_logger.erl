@@ -241,7 +241,7 @@ log_file_name() ->
 	gen_server:call(?SERVER, log_file_name). 		
 	
 checkpoint() -> 
-	info("ems_logger archive log file checkpoint."),
+	format_info("ems_logger archive log file checkpoint."),
 	?SERVER ! checkpoint_archive_log.
 
 
@@ -323,6 +323,7 @@ init(_Service) ->
  				   log_file_path = Conf#config.log_file_path,
  				   log_file_archive_path = Conf#config.log_file_archive_path},
 	State2 = checkpoint_arquive_log(State, false),
+	erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
     {ok, State2}.
     
 handle_cast(shutdown, State) ->
@@ -413,6 +414,7 @@ handle_info(checkpoint, State) ->
 
 handle_info(checkpoint_archive_log, State) ->
 	Reply = checkpoint_arquive_log(State, false),
+	erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
 	{noreply, Reply}.
 
 terminate(_Reason, #state{log_file_handle = undefined}) ->
@@ -435,53 +437,95 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 									  log_file_name = CurrentLogFilename,
 									  log_file_archive_path = LogFileArchivePath}, Immediate) ->
 	try
-		% Fecha o arquivo atual se existir
-		case CurrentLogFilename =/= undefined andalso CurrentIODevice =/= undefined andalso filelib:is_regular(CurrentLogFilename) of
-			true ->
-				?DEBUG("ems_logger close current log file \033[01;34m~p\033[0m.", [CurrentLogFilename]),
-				file:close(CurrentIODevice),
-
-				% Cria um nome de arquivo para arquivamento
-				{{Ano,Mes,Dia},{Hora,Min,_}} = calendar:local_time(),
-				MesAbrev = ems_util:mes_abreviado(Mes),
-				ArchiveLogFilename = lists:flatten(io_lib:format("~s/~p/~s/~s_~s_~2..0w~2..0w~4..0w_~2..0w~2..0w.log", [LogFileArchivePath, Ano, MesAbrev, "server", MesAbrev, Dia, Mes, Ano, Hora, Min])),
-
-				% Renomear o arquivo atual para arquivar com outro nome
-				case filelib:ensure_dir(ArchiveLogFilename) of
-					ok ->
-						case file:copy(CurrentLogFilename, ArchiveLogFilename) of
-							{ok, _BytesCopied} ->
-								file:delete(CurrentLogFilename),
-								case Immediate of
-									true -> 
-										ems_db:inc_counter(ems_logger_immediate_archive_log_checkpoint),
-										ems_logger:info("ems_logger immediate archive log file \033[01;34m~p\033[0m.", [ArchiveLogFilename]);
-									false -> 
-										ems_db:inc_counter(ems_logger_archive_log_checkpoint),
-										ems_logger:info("ems_logger archive log file \033[01;34m~p\033[0m.", [ArchiveLogFilename])
-								end;
-							{error, Reason2} ->
-								ems_db:inc_counter(ems_logger_archive_log_error),
-								ems_logger:error("ems_logger archive log file failed on rename file \033[01;34m~p\033[0m to \033[01;34m~p\033[0m. Reason: ~p.", [CurrentLogFilename, ArchiveLogFilename, Reason2])
-						end;
-					_ -> 
-						ems_db:inc_counter(ems_logger_create_archive_path_failed),
-						ems_logger:error("ems_logger archive log file failed on create archive path \033[01;34m~p\033[0m.", [LogFileArchivePath])
+		% Precisamos ver se o arquivo atual ainda existe para arquivar
+		case ems_util:file_exists(CurrentLogFilename) of
+			true -> 
+				CanArchive = true;
+			false -> 
+				% Vamos fechar o handle do arquivo atual já que o arquivo não existe
+				case CurrentIODevice =/= undefined of
+					true -> 
+						ems_logger:warn("ems_logger close IODevice of inexistent log file \033[01;34m~p\033[0m.", [CurrentLogFilename]),
+						file:close(CurrentIODevice);
+					false -> ok
 				end,
-				% Mesmo que possa ocorrer arquivo ao arquivar, precisamos criar o novo arquivo de log
-				State2 = create_new_logfile(State);
+				CanArchive = false
+		end,
+		
+		case CanArchive of
+			true ->
+				FileSize = filelib:file_size(CurrentLogFilename),
+				ems_logger:info("ems_logger starting archive of current log file \033[01;34m~p\033[0m with size: \033[01;34m~p\033[0m bytes.", [CurrentLogFilename, FileSize]),
+				case FileSize > 0 of
+					true ->
+						% Primeira vamos verificar se a pasta onde será arquivado pode ser criada ou já existe
+						ems_util:ensure_dir_writable(LogFileArchivePath),
+						case ems_util:ensure_dir_writable(LogFileArchivePath) of
+							ok -> 
+								MakeDir = true;
+							{error, ReasonMakeDir} -> 
+								MakeDir = false,
+								ems_logger:error("ems_logger archive log file failed on create archive path \033[01;34m~p\033[0m. Reason: ~p.", [LogFileArchivePath, ReasonMakeDir])
+						end,
+						
+						case MakeDir of
+							true ->
+								% Cria um nome de arquivo para arquivamento
+								{{Ano,Mes,Dia},{Hora,Min,_}} = calendar:local_time(),
+								MesAbrev = ems_util:mes_abreviado(Mes),
+								ArchiveLogFilename = lists:flatten(io_lib:format("~s/~p/~s/~s_~s_~2..0w~2..0w~4..0w_~2..0w~2..0w.log", [LogFileArchivePath, Ano, MesAbrev, "server", MesAbrev, Dia, Mes, Ano, Hora, Min])),
+
+								% Vamos ver se consegue criar os subdiretórios da pasta de arquivamento
+								case ems_util:ensure_dir_writable(filename:dirname(ArchiveLogFilename)) of
+									ok -> 
+										MakeSubDir = true;
+									{error, ReasonMakeSubDir} -> 
+										ems_logger:error("ems_logger archive current log file failed on create archive path \033[01;34m~p\033[0m. Reason: ~p.", [LogFileArchivePath, ReasonMakeSubDir]),
+										MakeSubDir = false
+								end,
+
+								case MakeSubDir of
+									true ->
+										case file:copy(CurrentLogFilename, ArchiveLogFilename) of
+											{ok, _BytesCopied} ->
+												ems_logger:info("ems_logger close current log file \033[01;34m~p\033[0m.", [CurrentLogFilename]),
+												file:close(CurrentIODevice),
+												file:delete(CurrentLogFilename),
+												case Immediate of
+													true -> 
+														ems_logger:info("ems_logger immediate archive current log file to \033[01;34m~p\033[0m.", [ArchiveLogFilename]);
+													false -> 
+														ems_logger:info("ems_logger archive current log file to \033[01;34m~p\033[0m.", [ArchiveLogFilename])
+												end,
+												State2 = create_new_logfile(State);
+											{error, Reason2} ->
+												State2 = State#state{log_file_name = undefined,
+																	 log_file_handle = undefined},
+												ems_logger:error("ems_logger archive current log file failed on rename file \033[01;34m~p\033[0m to \033[01;34m~p\033[0m. Reason: ~p.", [CurrentLogFilename, ArchiveLogFilename, Reason2])
+										end;
+									false ->
+										State2 = State#state{log_file_name = undefined,
+															 log_file_handle = undefined}
+								end;
+							false ->
+								ems_logger:error("ems_logger archive current log file failed to archive."),
+								State2 = State#state{log_file_name = undefined,
+													 log_file_handle = undefined}
+						end;
+					false ->
+						ems_logger:info("ems_logger archive current log skip, there's nothing to archive now."),
+						State2 = State
+				end;
 			false -> 
 				% Como o arquivo não existe, apenas cria novo arquivo de log
 				State2 = create_new_logfile(State)
 		end,
-		erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
 		State2
 	catch
 		_:Reason3 ->
+			io:format("checkpoint_arquive_log12\n"),
 			ems_db:inc_counter(ems_logger_archive_log_error),
 			ems_logger:error("ems_logger archive log file checkpoint exception. Reason: ~p.", [Reason3]),
-			erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
-			ems_util:flush_messages(),
 			State#state{log_file_name = undefined,
 						log_file_handle = undefined}
 	end.
@@ -489,12 +533,14 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 
    
 create_new_logfile(State = #state{log_file_path = LogFilePath}) -> 
+	file:make_dir(LogFilePath),
 	LogFilename = filename:join([LogFilePath, "server.log"]),
-	case filelib:ensure_dir(LogFilename) of
-		ok ->
+	%format_info("ems_logger create_new_logfile \033[01;34m~p\033[0m.", [LogFilename]),
+	case filelib:is_dir(LogFilePath) andalso ems_util:path_writable(LogFilePath) of
+		true ->
 			case file:open(LogFilename, [append]) of
 				{ok, IODevice} -> 
-					ems_logger:info("ems_logger open new logfile \033[01;34m~p\033[0m.", [LogFilename]),
+					ems_logger:info("ems_logger new log file \033[01;34m~p\033[0m created.", [LogFilename]),
 					State#state{log_file_name = LogFilename, 
 								log_file_handle = IODevice};
 				{error, enospc} ->
@@ -504,13 +550,13 @@ create_new_logfile(State = #state{log_file_path = LogFilePath}) ->
 								log_file_handle = undefined};
 				{error, Reason} -> 
 					ems_db:inc_counter(ems_logger_create_file_error),
-					ems_logger:error("ems_logger create_new_logfile failed to open log file ~p to write. Reason: ~p.", [LogFilename, Reason]),
+					ems_logger:error("ems_logger create_new_logfile failed to open log file \033[01;34m~p\033[0m to write. Reason: ~p.", [LogFilename, Reason]),
 					State#state{log_file_name = undefined, 
 								log_file_handle = undefined}
 			end;
-		{error, Reason} -> 
+		false -> 
 			ems_db:inc_counter(ems_logger_create_path_failed),
-			ems_logger:error("ems_logger create_new_logfile failed to create log file dir. Reason: ~p.", [Reason]),
+			format_error("ems_logger create_new_logfile failed to create log file \033[01;34m~p\033[0m.", [LogFilename]),
 			State#state{log_file_name = undefined, 
 						log_file_handle = undefined}
 	end.
@@ -542,16 +588,12 @@ write_msg(Tipo, Msg, State = #state{log_level = Level,
 		true ->
 			case Tipo of
 				info  -> 
-					ems_db:inc_counter(ems_logger_write_info),
 					Msg1 = iolist_to_binary([?INFO_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, Msg, <<"\n">>]);
 				error -> 
-					ems_db:inc_counter(ems_logger_write_error),
 					Msg1 = iolist_to_binary([?ERROR_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Msg, ?WHITE_BRK_COLOR]);
 				warn  -> 
-					ems_db:inc_counter(ems_logger_write_warn),
 					Msg1 = iolist_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Msg, ?WHITE_BRK_COLOR]);
 				debug -> 
-					ems_db:inc_counter(ems_logger_write_debug),
 					Msg1 = iolist_to_binary([?DEBUG_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Msg, ?WHITE_BRK_COLOR])
 			end,
 			case (Level == error andalso Tipo /= error) andalso (Tipo /= debug) of
@@ -621,7 +663,6 @@ write_msg(Tipo, Msg, Params, State) ->
 	
 sync_log_buffer_screen(State = #state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined}) -> State;
 sync_log_buffer_screen(State) ->
-	ems_db:inc_counter(ems_logger_sync_log_buffer_screen),
 	MsgList = lists:reverse(State#state.log_log_buffer_screen),
 	sync_log_buffer_screen_(MsgList),
 	State#state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined}.
@@ -667,7 +708,6 @@ sync_log_buffer(State = #state{log_buffer = Buffer,
 		Msg = lists:reverse(Buffer),
 		case file:write(State2#state.log_file_handle, Msg) of
 			ok -> 
-				ems_db:inc_counter(ems_logger_sync_log_buffer),
 				ok;
 			{error, enospc} -> 
 				ems_db:inc_counter(ems_logger_sync_log_buffer_enospc),
@@ -733,9 +773,7 @@ do_log_request(Request = #request{rid = RID,
 								  oauth2_refresh_token = RefreshToken,
 								  status_text = StatusText
 			  }, 
-			  State = #state{log_show_response = ShowResponse, 
-							 log_show_response_max_length = ShowResponseMaxLength, 
-							 log_show_payload = ShowPayload, 
+			  State = #state{log_show_response_max_length = ShowResponseMaxLength, 
 							 log_show_payload_max_length = ShowPayloadMaxLength, 
 							 log_ult_reqhash = UltReqHash,
 							 log_show_response_url_list = ShowResponseUrlList,					
@@ -779,8 +817,7 @@ do_log_request(Request = #request{rid = RID,
 						?TAB_GREEN_COLOR, <<"Service">>, ?WHITE_PARAM_COLOR, ServiceService,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
-						case (ShowPayload orelse 
-							   Reason =/= ok orelse 
+						case (Reason =/= ok orelse 
 							   ShowPayloadService orelse 
 							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList))
 							  ) andalso ContentLength > 0 of
@@ -801,8 +838,7 @@ do_log_request(Request = #request{rid = RID,
 								end;
 							false -> <<>>
 						end,
-						case (ShowResponse orelse
-							   Reason =/= ok orelse 
+						case (Reason =/= ok orelse 
 							   ShowResponseService orelse
 							   (ShowResponseUrlList =/= [] andalso lists:member(Url, ShowResponseUrlList))
 							  ) of
@@ -932,7 +968,6 @@ do_log_request(Request = #request{rid = RID,
 							end,
 				NewState;
 			false -> 
-				ems_db:inc_counter(ems_logger_write_dup),
 				State
 		end
 	catch 

@@ -14,6 +14,7 @@
 
 -export([new_from_map/2,
 		 get_table/1,
+		 find_by_id/1,
 		 find/2,
 		 all/1]).
 
@@ -54,4 +55,14 @@ find(Table, Id) ->
 
 -spec all(user_dados_funcionais_fs | user_dados_funcionais_db) -> list() | {error, atom()}.
 all(Table) -> ems_db:all(Table).
+
+
+-spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, atom()}.
+find_by_id(UserId) ->
+	case ems_db:find([user_dados_funcionais_db,user_dados_funcionais_fs],[id,type,subtype,active], [{user_id, "==", UserId}]) of
+		{ok, []} ->
+			{error, enoent};
+		{ok, Record} -> 
+			{ok, Record}
+	end.
 

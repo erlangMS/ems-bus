@@ -2,12 +2,12 @@ Package: ems-bus
 Source: ems-bus
 Version: 2.0.2-ubuntu.18.10
 Architecture: amd64
-Depends: procps, libc6, libncurses5, libssl1.0.0 | libssl1.0.2, libgcc1, libstdc++6, unixodbc, tdsodbc:amd64, odbcinst1debian2:amd64, odbcinst, libsqliteodbc:amd64, libsqliteodbc, libodbc1:amd64, libodbc1, libsqlite0, freetds-common, libiodbc2
+Depends: procps, libc6, libncurses5, libssl1.0.0 | libssl1.0.2, libgcc1, libstdc++6, unixodbc, tdsodbc:amd64, odbcinst1debian2:amd64, odbcinst, libsqliteodbc:amd64, libsqliteodbc, libodbc1:amd64, libodbc1, libsqlite0, freetds-common, libiodbc2, libncurses5
 Maintainer: ErlangMS Team <evertonagilar@gmail.com>
 Section: contrib/misc
 Priority: extra
 Recommends:  
-Suggests: default-jre-headless | java2-runtime-headless | java1-runtime-headless | java2-runtime | java1-runtime
+Suggests: 
 Conflicts: ems-bus
 Replaces: ems-bus
 Provides: ems-bus

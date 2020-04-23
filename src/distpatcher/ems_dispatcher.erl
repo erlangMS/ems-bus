@@ -322,7 +322,7 @@ dispatch_service_work(Request = #request{type = Type,
 							    module = Module,
 							    function = Function},
  					  ShowDebugResponseHeaders) ->
-	ems_logger:info(iolist_to_binary([<<"ems_dispatcher \033[01;34m">>, Type, <<"\033[0m ">>, Url, <<" to ">>, list_to_binary(ModuleName), <<" from \033[0;33m">>, IpBin, <<"\033[0m">>])),
+	ems_logger:info(iolist_to_binary([<<"ems_dispatcher \033[01;34m">>, Type, <<"\033[0m ">>, Url, <<" to ">>, list_to_binary(ModuleName), <<" from \033[0;33m">>, IpBin, <<".\033[0m">>])),
 	%% Retornos possíveis:
 	%%
 	%% Com processamento de middleware function e result cache

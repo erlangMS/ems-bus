@@ -60,9 +60,9 @@ do_basic_authorization(Service = #service{auth_allow_user_inative_credentials = 
 		{ok, Login, Password} ->
 			?DEBUG("ems_auth_user do_basic_authorization Authorization: ~p.", [Authorization]),
 			case ems_user:find_by_login_and_password(Login, Password) of
-				{ok, User = #user{active = Active}} -> 
+				{ok, User = #user{active = Active, ctrl_source_type = Table}} -> 
 					case Active orelse AuthAllowUserInativeCredentials of
-						true -> do_check_grant_permission(Service, Request, public, User, <<>>, <<>>, basic);
+						true -> do_check_grant_permission(Service, Request, public, User, <<>>, atom_to_binary(Table, utf8), basic);
 						false -> {error, access_denied, einative_user}
 					end;
 				Error -> Error

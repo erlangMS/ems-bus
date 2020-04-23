@@ -25,6 +25,8 @@
 -define(SERVER_NAME, ems_util:server_name()).
 
 
+-define(PRIV_PATH_DEFAULT, ems_util:get_priv_dir_default()).
+
 % Caminho do diretório privado
 -define(PRIV_PATH, ems_util:get_priv_dir()).
 
@@ -35,14 +37,16 @@
 -define(TEMP_PATH, filename:join(?PRIV_PATH, "tmp")).
 
 % Caminho do catálogo de serviços
+-define(CONF_PATH_DEFAULT, filename:join(?PRIV_PATH_DEFAULT, "conf")).
+
+% Caminho do catálogo de serviços
 -define(CONF_PATH, filename:join(?PRIV_PATH, "conf")).
 
 % Caminho da pasta para o arquivo server.log
--define(LOG_FILE_PATH, filename:join(?PRIV_PATH, "log")).
+-define(LOG_FILE_PATH, ems_util:get_log_file_path()).
 
 % Caminho da pasta para arquivar o server.log
--define(LOG_FILE_ARCHIVE_PATH, filename:join([?PRIV_PATH, "archive", "log"])).
-
+-define(LOG_FILE_ARCHIVE_PATH, ems_util:get_log_file_archive_path()).
 
 % Caminho do favicon
 -define(FAVICON_PATH, filename:join(?PRIV_PATH, "favicon.ico")).
@@ -54,7 +58,7 @@
 -define(CATALOGO_ESB_PATH, filename:join(?CATALOGO_PATH, "catalog.json")).
 
 % Caminho da pasta de databases
--define(DATABASE_PATH, filename:join(?PRIV_PATH, "db")).
+-define(DATABASE_PATH, ems_db:get_param(database_path)).
 
 % Caminho da pasta de databases
 -define(JAVA_JAR_PATH, filename:join(?PRIV_PATH, "jar")).
@@ -62,10 +66,13 @@
 -define(JAVA_SERVICE_SCAN, "br.unb").
 
 % Caminho do arquivo de configuração padrão (Pode ser incluído também na pasta ~/.erlangms do usuário)
+-define(CONF_FILE_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "emsbus.conf")).
+
+% Caminho do arquivo de configuração padrão (Pode ser incluído também na pasta ~/.erlangms do usuário)
 -define(CONF_FILE_PATH, filename:join(?CONF_PATH, "emsbus.conf")).
 
-% Caminho inicial para os arquivos estáticos
--define(STATIC_FILE_PATH, filename:join(?PRIV_PATH, "www")).
+% Caminho inicial para a pasta www
+-define(WWW_PATH, ems_util:get_www_path()).
 
 % Sonda a lista static_file_path para localizar contratos de serviços
 -define(STATIC_FILE_PATH_PROBING, false).
@@ -199,9 +206,13 @@
 
 % Mensagens de saída json comuns
 -define(CONTENT_TYPE_JSON, <<"application/json; charset=utf-8"/utf8>>).
--define(CACHE_CONTROL_NO_CACHE, <<"max-age=31536000, private, no-cache, no-store, must-revalidate"/utf8>>).
+
+
+-define(CACHE_CONTROL_1_MIN, <<"max-age=60, public"/utf8>>).
 -define(CACHE_CONTROL_1_DAYS, <<"max-age=86400, public"/utf8>>).
 -define(CACHE_CONTROL_30_DAYS, <<"max-age=2592000, private"/utf8>>).
+-define(CACHE_CONTROL_NO_CACHE, <<"max-age=31536000, private, no-cache, no-store, must-revalidate"/utf8>>).
+
 -define(OK_JSON, <<"{\"ok\": true}"/utf8>>).
 -define(ENOENT_JSON, <<"{\"error\": \"enoent\"}"/utf8>>).
 -define(ENOENT_SERVICE_CONTRACT_JSON, <<"{\"error\": \"enoent_service_contract\"}"/utf8>>).
@@ -264,9 +275,9 @@
 -define(RESULT_CACHE_MAX_SIZE_ENTRY, 524288). % 512KB
 -define(RESULT_CACHE_SHARED, true). 
 
--define(CLIENT_DEFAULT_SCOPE, [user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs]).
--define(CLIENT_DEFAULT_SCOPE_BIN, [<<"user_db">>, <<"user2_db">>, <<"user_aluno_ativo_db">>, <<"user_aluno_inativo_db">>, <<"user_fs">>]).
+-define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user2_db">>, <<"user_aluno_ativo_db">>, <<"user_aluno_inativo_db">>, <<"user_fs">>]).
 
+-define(CLIENT_DEFAULT_SCOPE, ems_util:get_auth_default_scope()).
 
 
 % Código de cores
@@ -315,8 +326,10 @@
 -endif.
 
 
+
 %  Definição para o arquivo de configuração
--record(config, {cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
+-record(config, {instance_type :: atom(),							%% Tipo de instância: production, development, test
+				 cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
 				 cat_host_search,									%% Lista de hosts para pesquisar os serviços
 				 cat_node_search,									%% Lista de nodes para pesquisar os serviços
 				 cat_path_search :: list(tuple()),					%% Lista de tuplas com caminhos alternativos para catálogos
@@ -351,6 +364,7 @@
 				 rest_base_url :: binary(),
 				 rest_auth_url :: binary(),
 				 rest_login_url :: binary(),						%% Url da tela de login
+				 rest_use_host_in_redirect :: boolean(),			%% Ao gerar a url de redirect, usa o host para a o dominio 
 				 rest_url_mask :: boolean(),
 				 rest_default_querystring :: map(),					%% querystring default
 				 rest_environment :: binary(),
@@ -411,7 +425,13 @@
 				 ldap_password_admin :: string(),
 				 ldap_password_admin_crypto :: string(),
 				 ldap_base_search :: string(),
- 				 custom_variables :: list(binary())						%% Lista de variáveis genéricas
-
+ 				 custom_variables :: list(binary()),						%% Lista de variáveis genéricas
+ 				 priv_path :: string(),
+ 				 database_path :: string(),
+ 				 log_path :: string(),
+ 				 www_path :: string(),
+ 				 auth_default_scope :: list(atom()),
+ 				 auth_password_check_between_scope :: boolean(),
+ 				 crypto_blowfish_module_path :: string()
 		 }). 	
 

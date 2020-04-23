@@ -306,6 +306,8 @@ else
 		rm -Rf priv/db
 	fi	
 	
+	rm -Rf priv/log
+	
 	echo "Compiling the project erlangms..."
 
 	if [ "$SKIP_DEPS" = "false" ]; then

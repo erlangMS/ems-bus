@@ -138,7 +138,7 @@ sync_full(Request) ->
 			ems_data_loader:sync_full(ems_user_aluno_inativo_loader_db),
 			{ok, Request#request{code = 200, 
 								 response_data = ?OK_JSON}
-			};
+			};				
 		_ -> 
 			{error, Request#request{code = 400, 
 									response_data = ?EINVALID_DATA_LOADER}

@@ -32,8 +32,9 @@ execute(Request = #request{timestamp = Timestamp,
 				{ok, AccessToken} -> 
 					case AccessToken of
 						undefined -> 
-							ems_logger:warn("ems_barramento_service oauth2 authenticate ~s with user erlangms denied. Endpoint /auth/client needs be public.", [RestAuthUrl]),
-							AuthorizationHeader = undefied;
+							AuthorizationHeader = [];
+						<<>> -> 
+							AuthorizationHeader = [];
 						_ -> 
 							ems_logger:info("ems_barramento_service oauth2 authenticate ~s with user erlangms. AccessToken: ~p.", [RestAuthUrl, AccessToken]),
 							AuthorizationHeader = [{"Authorization", "Bearer " ++ binary_to_list(AccessToken)}]
@@ -86,21 +87,21 @@ execute(Request = #request{timestamp = Timestamp,
 									{error, Request#request{code = 400, 
 															reason = einvalid_decode_client_json,
 															operation = json_decode_as_map,
-															response_data = <<"{\"error\": \"eunavailable_rest_server\"}"/utf8>>}
+															response_data = <<"{\"error\": \"eget_client_error\"}"/utf8>>}
 									}
 							end;
 						_ -> 
 							{error, Request#request{code = 400, 
 													reason = einvalid_decode_client_json,
 													operation = httpc_request,
-													response_data = <<"{\"error\": \"eunavailable_rest_server\"}"/utf8>>}
+													response_data = <<"{\"error\": \"eoauth2_error\"}"/utf8>>}
 							}
 					end;
 				{error, Reason} ->
 						{error, Request#request{code = 400, 
 												reason = Reason,
 												operation = oauth2_authenticate_rest_server,
-												response_data = <<"{\"error\": \"eunavailable_rest_server\"}"/utf8>>}
+												response_data = <<"{\"error\": \"eget_token_error\"}"/utf8>>}
 						}
 			end
 	end.

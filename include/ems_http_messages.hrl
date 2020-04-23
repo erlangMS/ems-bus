@@ -21,3 +21,5 @@
 -define(HTTP_ERROR_502(Motivo), io_lib:format(<<"{\"error\":\"HTTP 502\",\"message\":\"~p\"}"/utf8>>, [Motivo])).
 -define(HTTP_ERROR_502, <<"{\"error\":\"HTTP 502\",\"message\":\"eservice_failed\"}"/utf8>>).
 -define(HTTP_ERROR_503, <<"{\"error\":\"HTTP 503\",\"message\":\"eunavailable_service\"}"/utf8>>).
+
+
