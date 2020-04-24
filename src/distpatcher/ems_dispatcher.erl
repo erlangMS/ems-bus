@@ -97,9 +97,11 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									service_auth_denied_metric_name = ServiceAuthDeniedMetricName},
 				ShowDebugResponseHeaders) -> 
 	?DEBUG("ems_dispatcher lookup request ~p.", [Request]),
+	io:format("d1\n"),
 	case ems_util:allow_ip_address(Ip, AllowedAddress) of
 		true ->	
-		case ems_auth_user:authenticate(Service, Request) of
+			io:format("d2\n"),
+			case ems_auth_user:authenticate(Service, Request) of
 				{ok, Client, User, AccessToken, Scope} -> 	
 				ems_db:inc_counter(ServiceExecMetricName),				
 					Latency = ems_util:get_milliseconds() - T1,
@@ -109,18 +111,22 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 											   access_token = AccessToken},
 					case Type of
 						<<"OPTIONS">> -> 
+							io:format("d2\n"),
 								{ok, request, Request2#request{code = 200, 
 															   content_type_out = ?CONTENT_TYPE_JSON,
 															   response_data = ems_catalog:get_metadata_json(Service),
 															   latency = Latency}
 								};
 						"HEAD" -> 
+							io:format("d3\n"),
 								{ok, request, Request2#request{code = 200, 
 															   latency = Latency}
 								};
 						<<"GET">> ->
+							io:format("d4\n"),
 							case ResultCache > 0 of
 								true ->
+									io:format("d4.1\n"),
 									case check_result_cache(ReqHash, WorkerSend, T1) of
 										{true, RequestCache} -> 
 											ems_db:inc_counter(ServiceResultCacheHitMetricName),								
@@ -200,6 +206,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 							dispatch_service_work(Request2, Service, ShowDebugResponseHeaders)
 					end;
 				{error, Reason, ReasonDetail} -> 
+					io:format("d5\n"),
 					Latency = ems_util:get_milliseconds() - T1,
 					ResponseHeader = Request#request.response_header,
 					case Type of
@@ -275,6 +282,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 					end
 			end;
 		false -> 
+			io:format("d6\n"),
 			Latency = ems_util:get_milliseconds() - T1,
 			ResponseHeader = Request#request.response_header,
 			StatusText = ems_util:format_rest_status(400, access_denied, host_denied, undefined, Latency),
@@ -305,11 +313,13 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 											   latency = Latency,
 											   status_text = StatusText}
 			end,
+			io:format("d71\n"),
 			ems_user:add_history(case User of 
 									undefined -> #user{};
 									_ -> User
 								 end,
 								 #client{}, Service, Request2),
+			io:format("d8\n"),
 			{error, request, Request2}
 	end.
 	
