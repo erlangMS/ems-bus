@@ -103,15 +103,17 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 			io:format("d2\n"),
 			case ems_auth_user:authenticate(Service, Request) of
 				{ok, Client, User, AccessToken, Scope} -> 	
-				ems_db:inc_counter(ServiceExecMetricName),				
+					io:format("d2.1\n"),
+					ems_db:inc_counter(ServiceExecMetricName),				
 					Latency = ems_util:get_milliseconds() - T1,
 					Request2 = Request#request{client = Client,
 											   user = User,
 											   scope = Scope,
 											   access_token = AccessToken},
+					io:format("d2.2\n"),
 					case Type of
 						<<"OPTIONS">> -> 
-							io:format("d2\n"),
+							io:format("d2.3\n"),
 								{ok, request, Request2#request{code = 200, 
 															   content_type_out = ?CONTENT_TYPE_JSON,
 															   response_data = ems_catalog:get_metadata_json(Service),
