@@ -2094,6 +2094,8 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 						erlang:error(ehttp_verb_not_supported)
 			   end,
 		ems_logger:info("Request \033[01;34m~s\033[0m received \033[0;32muri\033[0m: \033[01;34m~s\033[0m \033[0;32murl\033[0m: \033[01;34m~s\033[0m \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(TypeLookup), binary_to_list(Uri), Url2, binary_to_list(Referer), binary_to_list(Host), binary_to_list(UserAgentBrowser)]),
+		
+		io:format("r1\n"),
 		Request = #request{
 			rid = RID,
 			rowid = Rowid,
@@ -2138,6 +2140,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			status_text = <<>>,
 			forwarded_for = ForwardedFor
 		},	
+		io:format("r2\n"),
 		case ems_catalog_lookup:lookup(Request) of
 			{Service = #service{name = ServiceName,
 								 service = ServiceService,	
@@ -2157,10 +2160,12 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								 result_cache_shared = ResultCacheSharedService}, 
 			 ParamsMap, 
 			 QuerystringMap} -> 
+			 io:format("r3\n"),
 				case cowboy_req:body_length(CowboyReq) of
 					undefined -> ContentLength = 0; %% The value returned will be undefined if the length couldn't be figured out from the request headers. 
 					ContentLengthValue -> ContentLength = ContentLengthValue
 				end,
+				io:format("r4\n"),
 				case ContentLength > 0 of
 					true ->
 						case ContentLength > HttpMaxContentLengthService of
@@ -2169,6 +2174,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								erlang:error(ehttp_max_content_length_error);
 							false -> ok
 						end,
+						io:format("r5\n"),
 						ReadBodyOpts = #{length => HttpMaxContentLengthService + 8000, period => 190000, timeout => 180000},
 						case ContentTypeIn of
 							<<"application/json">> ->
@@ -2304,6 +2310,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 					true ->	ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, Payload]);
 					false -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, AuthorizationService, IpBin, UserAgent, Payload])
 				end,
+				io:format("r6\n"),
 				Request2 = Request#request{
 					type = Type, % use original verb of request
 					querystring_map = QuerystringMap2,
@@ -2368,8 +2375,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 												end
 									  end
 				},	
+				io:format("r7\n"),
 				{ok, Request2, Service, CowboyReq2};
 			_ -> 
+				io:format("r8\n"),
 				ReqHash = erlang:phash2([Url, QuerystringMap0, 0, ContentTypeIn]),
 				Latency = ems_util:get_milliseconds() - T1,
 				if 
@@ -2394,8 +2403,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																latency = Latency,
 																status_text = StatusText}
 							end,
+							io:format("r8.1\n"),
 							{ok, request, Request2, CowboyReq};
 					true ->
+						io:format("r9\n"),
 						ems_db:inc_counter(ems_dispatcher_lookup_enoent),								
 						StatusText = ems_util:format_rest_status(404, enoent_service_contract, undefined, undefined, Latency),
 						case ShowDebugResponseHeaders of
@@ -2418,6 +2429,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 															latency = Latency,
 															status_text = StatusText}
 						end,
+						io:format("r9.1\n"),
 						{error, request, Request2, CowboyReq}
 				end			
 		end
