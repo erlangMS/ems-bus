@@ -303,11 +303,11 @@ else
 
 	if [ "$KEEP_DB" = "false" ]; then
 		echo "Clearing the db folder before build..."
-		sudo rm -Rf priv/db
+		rm -Rf priv/db
 		rm -Rf ~/.erlangms/db
 	fi	
 	
-	sudo rm -Rf priv/log
+	rm -Rf priv/log
 	
 	echo "Compiling the project erlangms..."
 

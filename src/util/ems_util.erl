@@ -2165,7 +2165,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 					true ->
 						case ContentLength > HttpMaxContentLengthService of
 							true ->	
-								ems_logger:warn("ems_http_handler ehttp_max_content_length_error exception. HttpMaxContentLengthService of the request ~s ~s is ~p bytes.", [binary_to_list(Type), Url, HttpMaxContentLengthService]),
+								ems_logger:error("ems_http_handler ehttp_max_content_length_error exception. HttpMaxContentLengthService of the request ~s ~s is ~p bytes.", [binary_to_list(Type), Url, HttpMaxContentLengthService]),
 								erlang:error(ehttp_max_content_length_error);
 							false -> ok
 						end,
@@ -2422,7 +2422,9 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 				end			
 		end
 	catch
-		_Exception:Reason2 -> {error, Reason2}
+		_Exception:ReasonException ->
+			ems_logger:error("ems_util encode_request_cowboy failed. Reason: ~p.", [ReasonException]),
+			{error, ReasonException}
 	end.
 
 
