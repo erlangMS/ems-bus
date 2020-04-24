@@ -627,8 +627,13 @@ to_resource_owner(User, ClientId) ->
 						true -> 
 							{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
 							{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermission, 
-							ResultIsList = is_list(ListaPerfilPErmissionWithouthOk),
-							case ResultIsList of
+							case ListaPerfilPErmissionWithouthOk of
+								[] -> 
+									ResultList = false;
+								_ ->
+									ResultList = is_list(ListaPerfilPErmissionWithouthOk)
+							end,
+							case ResultList of
 								true ->
 									ListaPerfilPermissionCorrect = lists:nth(1,ListaPerfilPErmissionWithouthOk);
 								false ->
@@ -739,7 +744,7 @@ to_resource_owner(User, ClientId) ->
 																{ok, ListaPerfilPermission2} -> 
 																ListaPerfilPermission2;
 																_ -> 
-																ListaPerfilPermission
+													io:format("Chegou aqui 45 >>>>>>>>~n~n"),								ListaPerfilPermission
 															end;
 														_ ->
 															case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of

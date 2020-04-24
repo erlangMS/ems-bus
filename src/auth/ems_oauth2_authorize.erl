@@ -90,7 +90,7 @@ execute(Request = #request{type = Type,
 						 _ -> 
 							ems_logger:error("ems_oauth2_authorize failed on parse invalid grant_type ~p.", [GrantType]),
 							{error, access_denied, einvalid_grant_type}
-				end; 
+				end;
 			{ok, PassportCodeInt, Client0, User0} ->
 				ems_logger:info("ems_oauth2_authorize autenticate by passport PassportCodeInt: ~p Client: ~p User: ~p.", [PassportCodeInt, Client0, User0]),
 				GrantType = <<"authorization_code">>,
@@ -161,20 +161,23 @@ execute(Request = #request{type = Type,
 											    oauth2_refresh_token = RefreshToken,
 											    client = Client,
 											    user = User,
-											    content_type_out = ?CONTENT_TYPE_JSON},
-		
+											    content_type_out = ?CONTENT_TYPE_JSON},		
 					{ok, Request2};		
 			{redirect, Client = #client{id = ClientId, name = Name, redirect_uri = RedirectUri}} ->
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
 					case Config#config.rest_use_host_in_redirect of
-						true -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri]);
-						false -> LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&redirect_uri=">>, RedirectUri])
+						true -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]);
+						false ->
+							io:format("Chegou aqui 1234 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
+							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]),
+							io:format("LocationPath >>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[LocationPath])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
 						true ->
+							io:format("LocationPath >>>>>>>>>>>>>>>>>> ~p~n~n",[LocationPath]),
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
 							Request2 = Request#request{code = 302, 

@@ -453,11 +453,12 @@
 				 scope :: binary(),							%%  7 - scope	
 				 version :: binary(),						%%  8 - version
 				 group :: binary(), 						%%  9 - group
+				 state :: binary(),							%%  7 - state
 				 glyphicon :: binary(),						%% 10 - glyphicon
 			     rest_base_url :: binary(),				    %% 11 - rest_base_url
 			     rest_auth_url :: binary(),					%% 12 - rest_auth_url
 			     authorization_owner :: list(binary()),	    %% 13 - authorization_owner		-> permite ao cliente consumir os ws services de owners especificados na lista
-			     user_agent :: atom(),						%% 14 - user_agent
+				 user_agent :: atom(),						%% 14 - user_agent
 			     peer :: binary(),							%% 15 - peer
 				 forwarded_for :: binary(),				 	%% 16 - forwarded_for
 			     ctrl_path :: string(),						%% 17 - ctrl_path
@@ -478,6 +479,7 @@
 			   binary_type,									%%  5 - redirect_uri
 			   boolean_type,								%%  6 - active
 			   binary_type,									%%  7 - scope
+			   binary_type,									%%  7 - state
 			   binary_type,									%%  8 - version
 			   binary_type,									%%  9 - group
 			   binary_type,									%% 10 - glyphicon

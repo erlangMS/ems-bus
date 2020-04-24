@@ -38,6 +38,7 @@
 -export([get_redirection_uri/2]).
 -export([verify_redirection_uri/3]).
 -export([verify_client_scope/3]).
+-export([verify_client_state/3]).
 -export([verify_resowner_scope/3]).
 -export([verify_scope/3]).
         
@@ -554,6 +555,17 @@ verify_client_scope(#client{id = ClientID}, Scope, _) ->
 			case Scope =:= Scope0 of
 				true -> 
 					{ok, {[], Scope0}};
+				_ -> {error, unauthorized_client}
+			end;
+        _ -> {error, invalid_scope}
+    end.
+
+verify_client_state(#client{id = ClientID}, State, _) ->
+	case ems_client:find_by_id(ClientID) of
+        {ok, #client{state = State0}} ->     
+			case State =:= State0 of
+				true -> 
+					{ok, {[], State0}};
 				_ -> {error, unauthorized_client}
 			end;
         _ -> {error, invalid_scope}

@@ -119,11 +119,14 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 						   {<<"resource_owner">>, User}, 
 						   {<<"expiry_time">>, _ExpityTime}, 
 						   {<<"scope">>, Scope}]}} -> 
+					io:format("Aqui 1 >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 					% Não é aceito um token gerado em um browser ser utilizado em outro browser
 					case Client =/= undefined of
 						true ->
+							io:format("Aqui 2 >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 								case Client#client.user_agent =:= Req#request.user_agent  of 
 										true ->
+										io:format("Aqui 3 >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 											ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32m, user-agent\033[0m: \033[01;34m~s\033[0m, \033[0;32mforwarded-for\033[0m: \033[01;34m~s\033[0m \033[0;32mfor access token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mtoken forwarded-for\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
 											do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
 										false ->

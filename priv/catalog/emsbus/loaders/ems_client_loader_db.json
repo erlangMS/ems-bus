@@ -24,12 +24,12 @@
 			   rtrim(s.SisDescricao) as Description,
 			   s.SisSituacao as Active,
 			   s.SisAuthScope,
-			   s.SisAuthSecret,
+			   s.SisState,
 			   s.SisGroup,
 			   s.SisGlyphIcon,
 			   null,
 			   null,
-			   s.SisAuthorizationOwner 
+			   s.SisAuthorizationOwner       
 			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
 			",
 	"sql_update" :
@@ -40,12 +40,13 @@
 			   rtrim(s.SisDescricao) as Description,
 			   s.SisSituacao as Active,
 			   s.SisAuthScope,
+			   s.SisState, 
 			   s.SisGroup,
 			   s.SisGlyphIcon,
 			   null,
 			   null,
-			   s.SisAuthorizationOwner 
+			   s.SisAuthorizationOwner       
 			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
 			",
-	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope", "group", "glyphicon", "rest_base_url", "rest_auth_url", "authorization_owner"]
+	"fields" : ["id", "name", "secret", "redirect_uri", "description", "active", "scope","state", "group", "glyphicon", "rest_base_url", "rest_auth_url", "authorization_owner"]
 }
