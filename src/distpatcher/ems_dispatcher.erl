@@ -392,7 +392,11 @@ ems_db:inc_counter(ServiceUnavailableMetricName),
 									 response_data = ?EUNAVAILABLE_SERVICE_JSON,
 									 latency = Latency,
 									 status_text = StatusText}};
-dispatch_service_work_send(Request = #request{type = Type},
+dispatch_service_work_send(Request = #request{type = Type, 
+											  url_masked = UrlMasked, 
+											  url = Url,
+											  user_agent = UserAgent,
+											  host = IP},
 						   Service = #service{host = Host,
 							 				  host_name = HostName,
 											  module_name = ModuleName,
@@ -406,7 +410,7 @@ dispatch_service_work_send(Request = #request{type = Type},
 	case get_work_node(Host, Host, HostName, ModuleName) of
 		{ok, Node} ->
 			{Module, Node} ! Msg,
-			?DEBUG("ems_dispatcher send msg to ~p with timeout ~pms.", [{Module, Node}, TimeoutService]),
+			ems_logger:info("ems_dispatcher send msg to Wildfly service: ~p IP: ~p  url: ~p  UrlMasked: ~p  User_agent = ~p with timeout ~pms.", [{Module, Node}, IP, Url, UrlMasked, UserAgent, TimeoutService]),
 			case Type of 
 				<<"GET">> -> TimeoutConfirmation = 3500;
 				_ -> TimeoutConfirmation = 35000
@@ -414,7 +418,7 @@ dispatch_service_work_send(Request = #request{type = Type},
 			receive 
 				ok -> dispatch_service_work_receive(Request, Service, Node, TimeoutService, 0, ShowDebugResponseHeaders)
 				after TimeoutConfirmation -> 
-					ems_logger:info("ems_dispatcher dispatch_service_work_send timeout confirmation ~p.", [{Module, Node}]),
+					ems_logger:error("ems_dispatcher dispatch_service_work_send timeout confirmation ~p.", [{Module, Node}]),
 					ems_db:inc_counter(ServiceResendMsg),
 					dispatch_service_work_send(Request, Service, ShowDebugResponseHeaders, Msg, Count-1)
 			end;
