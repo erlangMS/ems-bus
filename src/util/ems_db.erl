@@ -600,6 +600,7 @@ get_sqlite_connection_from_csv_file(Datasource = #service_datasource{driver = Dr
 -spec get(atom() | list(atom()), non_neg_integer()) -> {ok, tuple()} | {error, enoent}.
 get(Tab, Id) when is_atom(Tab) ->
 	io:format("entrou no get da consulta >>>>>>>>>>>>> ~n~n"),
+	io:format(" mnesia:dirty_read(Tab, Id) >>>>>>>>>>>> ~p~n~n",[ mnesia:dirty_read(Tab, Id)]),
 	case mnesia:dirty_read(Tab, Id) of
 		[] -> 
 			io:format("Erro na consulta ~p~p~n",[Tab,Id]),
