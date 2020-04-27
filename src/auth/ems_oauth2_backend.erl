@@ -463,6 +463,7 @@ resolve_access_token_sgbd(AccessToken) ->
 						io:format("resolve_access_token_sgbd 5 >>>>>>>>>>>>>>>>> ~n"),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 						io:format("resolve_access_token_sgbd 6 >>>>>>>>>>>>>>>>> ~n"),
+						io:format("get_conection fora >>>>>>>>>>>>>>>>>>> ~p~n",[ems_odbc_pool:get_connection(Ds)]),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
 								io:format("resolve_access_token_sgbd 7 >>>>>>>>>>>>>>>>> ~n"),
