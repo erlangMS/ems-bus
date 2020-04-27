@@ -450,9 +450,12 @@ resolve_access_token(AccessToken, _) ->
 
 resolve_access_token_sgbd(AccessToken) ->
 	try
+		io:format("resolve_access_token_sgbd 1 >>>>>>>>>>>>>>>>> ~n"),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
+		io:format("resolve_access_token_sgbd 2 >>>>>>>>>>>>>>>>> ~n"),
 		case PersistTokenSGBDEnabled of
 			true ->
+				io:format("resolve_access_token_sgbd 3 >>>>>>>>>>>>>>>>> ~n"),
 				SqlSelect = ems_db:get_param(sql_select_access_token),
 				case SqlSelect =/= "" of
 					true ->
