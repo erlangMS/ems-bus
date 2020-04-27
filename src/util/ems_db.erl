@@ -607,9 +607,9 @@ get(Tab, Id) when is_atom(Tab) ->
 			io:format("Erro na consulta ~p~p~n",[Tab,Id]),
 			{error, enoent};
 		[Record|_] -> {ok, Record};
-		[Record] -> 
+		_ -> 
 			io:format("Chegou aqui >>>>>>>>>>>>>>>>>>>>> ~n"),
-			{ok, Record}
+			{ok, enoent}
 	end;
 get([], _) -> {error, enoent};
 get([Tab|TabT], Id) ->
@@ -617,9 +617,9 @@ get([Tab|TabT], Id) ->
 	case mnesia:dirty_read(Tab, Id) of
 		[] -> get(TabT, Id);
 		[Record|_] -> {ok, Record};
-		[Record] -> 
+		_ -> 
 			io:format("Chegou aqui 22 >>>>>>>>>>>>>>>>>>>>> ~n"),
-			{ok, Record}
+			{ok, enoent}
 	end.
 
 
