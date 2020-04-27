@@ -432,6 +432,7 @@ resolve_access_token(AccessToken, _) ->
 			   io:format("resolve_acces_token 1 >>>>>>>>>>>>>>>>>>>>> ~n"),	
 				{ok, {[], Context}};
 			_ -> 
+				io:format("Chegou aqui no select >>>>>>>>>>>>>>>>>>>>> ~n"),
 				case resolve_access_token_sgbd(AccessToken) of
 				   {ok, #auth_oauth2_access_token{context = Context2}} -> 	
 							{ok, {[], Context2}};
