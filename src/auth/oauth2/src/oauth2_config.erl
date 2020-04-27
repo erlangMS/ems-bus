@@ -52,7 +52,9 @@ expiry_time(Flow) ->
 
 %% @doc Gets the backend for validating passwords, storing tokens, etc.
 -spec backend() -> atom().
-backend() -> get_required(backend).
+backend() -> 
+    io:format("get_required(backend) >>>>>>>>>>>>>>>>>>>>>> ~p~n",[get_required(backend)]),
+    get_required(backend).
 
 %% @doc Gets the backend for generating tokens.
 -spec token_generation() -> atom().
