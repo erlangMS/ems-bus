@@ -609,7 +609,7 @@ get(Tab, Id) when is_atom(Tab) ->
 		[Record|_] -> {ok, Record};
 		_ -> 
 			io:format("Chegou aqui >>>>>>>>>>>>>>>>>>>>> ~n"),
-			{ok, enoent}
+			{error, enoent}
 	end;
 get([], _) -> {error, enoent};
 get([Tab|TabT], Id) ->
@@ -619,7 +619,7 @@ get([Tab|TabT], Id) ->
 		[Record|_] -> {ok, Record};
 		_ -> 
 			io:format("Chegou aqui 22 >>>>>>>>>>>>>>>>>>>>> ~n"),
-			{ok, enoent}
+			{error, enoent}
 	end.
 
 
