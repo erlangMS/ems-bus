@@ -161,7 +161,6 @@ authorize_code_grant(Client, Code, RedirUri, Ctx0) ->
                 {error, _}=E           -> 
 					E;
                 {ok, {Ctx2, GrantCtx}} ->
-                    io:format("GrantCtx >>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[GrantCtx]),
 					?BACKEND:revoke_access_code(Code, Ctx2),
                     {ok, {[], #a{ client  =C
                                   , resowner=get_(GrantCtx,<<"resource_owner">>)
@@ -344,6 +343,7 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
 -spec verify_access_token(token(), appctx()) -> {ok, {appctx(), context()}}
                                               | {error, error()}.
 verify_access_token(AccessToken, Ctx0) ->
+     io:format("verify_access_token 0.1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
     case ?BACKEND:resolve_access_token(AccessToken, Ctx0) of
         {error, _}             -> {error, access_denied};
         {ok, {Ctx1, GrantCtx}} ->
