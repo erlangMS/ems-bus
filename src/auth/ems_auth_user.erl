@@ -150,6 +150,7 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 				{error, access_denied, einvalid_access_token_size};
 			false -> 
 				io:format("do_oauth2_check_access_token3\n"),
+				io:format("oauth2:verify_access_token(AccessToken, undefined) ~p~n~n",[oauth2:verify_access_token(AccessToken, undefined)]),
 				case oauth2:verify_access_token(AccessToken, undefined) of
 					{ok, {[], [{<<"client">>, Client}, 
 							   {<<"resource_owner">>, User}, 

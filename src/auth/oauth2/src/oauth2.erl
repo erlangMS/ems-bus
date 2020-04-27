@@ -347,9 +347,13 @@ verify_access_token(AccessToken, Ctx0) ->
     case ?BACKEND:resolve_access_token(AccessToken, Ctx0) of
         {error, _}             -> {error, access_denied};
         {ok, {Ctx1, GrantCtx}} ->
+            io:format("verify_access_token >>>>>>>>>>>>>>>>>>>>> ~n~n"),
             case get_(GrantCtx, <<"expiry_time">>) > seconds_since_epoch(0) of
-                true  -> {ok, {Ctx1, GrantCtx}};
+                true  -> 
+                    io:format("verify_access_token 1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
+                    {ok, {Ctx1, GrantCtx}};
                 false ->
+                    io:format("verify_access_token 2 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
                     ?BACKEND:revoke_access_token(AccessToken, Ctx1),
                     {error, access_denied}
             end
