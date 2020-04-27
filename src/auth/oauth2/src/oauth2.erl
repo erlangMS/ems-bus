@@ -345,6 +345,7 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
 verify_access_token(AccessToken, Ctx0) ->
      io:format("verify_access_token 0.1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
      io:format("AccessTpken >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[AccessToken]),
+     io:format("?BACKEND:resolve_access_token(AccessToken, Ctx0) >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[?BACKEND:resolve_access_token(AccessToken, Ctx0)]),
     case ?BACKEND:resolve_access_token(AccessToken, Ctx0) of
         {error, _}             -> 
             io:format("AccesToken and Ctx0 ?>>>>>>>>>>>> ~p~p~n",[AccessToken,Ctx0]),
