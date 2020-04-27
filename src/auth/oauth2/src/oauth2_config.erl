@@ -66,6 +66,7 @@ get_optional(Key, Default) ->
     end.
 
 get_required(Key) ->
+    io:format("get_required >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
     case application:get_env(oauth2, Key) of
         undefined   -> throw({missing_config, Key});
         {ok, Value} -> Value
