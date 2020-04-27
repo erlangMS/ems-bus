@@ -428,9 +428,6 @@ resolve_access_token(AccessToken, _) ->
 	try
 		io:format("resolve_acces_token >>>>>>>>>>>>>>>>>>>>> ~n"),
 		case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
-			_ -> 
-				io:format("Entrou aqui neste método >>>>>>>>>> ~n~n");
-
 		   {ok, #auth_oauth2_access_token{context = Context}} -> 
 
 			   io:format("resolve_acces_token 1 >>>>>>>>>>>>>>>>>>>>> ~n"),	
