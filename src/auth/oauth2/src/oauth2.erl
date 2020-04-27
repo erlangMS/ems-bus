@@ -344,6 +344,7 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
                                               | {error, error()}.
 verify_access_token(AccessToken, Ctx0) ->
      io:format("verify_access_token 0.1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
+     io:format("AccessTpken >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[AccessToken]),
     case ?BACKEND:resolve_access_token(AccessToken, Ctx0) of
         {error, _}             -> {error, access_denied};
         {ok, {Ctx1, GrantCtx}} ->
