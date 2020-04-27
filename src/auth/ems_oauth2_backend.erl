@@ -251,6 +251,7 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 associate_access_token(AccessToken, Context, _) ->
 	try
 		AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context},
+		io:format("Chegou antes de fazer a consulta no banco corretamente ~n~n"),
 		mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
 		io:format("Consegui fazer a consulta no banco corretamente ~n~n"),
 		associate_access_token_sgbd(AuthOauth2AccessToken),
