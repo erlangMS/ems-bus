@@ -608,6 +608,7 @@ get(Tab, Id) when is_atom(Tab) ->
 	end;
 get([], _) -> {error, enoent};
 get([Tab|TabT], Id) ->
+	io:format("Chegou até a consulta interna com tab >>>>>>>>>>>>>>>> ~n"),
 	case mnesia:dirty_read(Tab, Id) of
 		[] -> get(TabT, Id);
 		[Record|_] -> {ok, Record}
