@@ -78,18 +78,18 @@ if [ "$PROFILE" = "local" ]; then
 		echo "Start with observer daemon..."
 		erl -pa $current_dir/ebin $deps \
 			-sname emsbus -setcookie erlangms \
+			-env ERL_MAX_PORTS 100000 \
 			-eval "ems_bus:start()" \
 			-boot start_sasl \
-			-config $current_dir/priv/conf/elog \
-			-run observer \
+			-config $current_dir/priv/conf/elog
 			--enable-dirty-schedulers
 	else
 		erl -pa $current_dir/ebin $deps \
 			-sname emsbus -setcookie erlangms \
+			-env ERL_MAX_PORTS 100000 \
 			-eval "ems_bus:start()" \
 			-boot start_sasl \
-			-config $current_dir/priv/conf/elog \
-			--enable-dirty-schedulers
+			-config $current_dir/priv/conf/elog
 	fi
 else
 	epmd -kill > /dev/null 2>&1

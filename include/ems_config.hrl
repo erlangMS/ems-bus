@@ -180,7 +180,7 @@
 -define(TIMEOUT_DISPATCHER_CACHE, 30000).
 
 % Number of datasource entries by odbc connection pool
--define(MAX_CONNECTION_BY_POOL, 25).
+-define(MAX_CONNECTION_BY_POOL, 1000).
 
 
 % Timeout to check odbc connection

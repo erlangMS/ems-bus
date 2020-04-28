@@ -1280,7 +1280,7 @@ parse_datasource_type(<<"sqlserver">>) -> sqlserver;
 parse_datasource_type(<<"postgresql">>) -> postgresql;
 parse_datasource_type(<<"csvfile">>) -> csvfile;
 parse_datasource_type(<<"db2">>) -> db2;
-parse_datasource_type(_) -> erlang:error(einvalid_datasource_type_property).
+parse_datasource_type(_) -> sqlserver.
 
 -spec parse_data_source_driver(atom(), binary()) -> atom().
 parse_data_source_driver(csvfile, <<"sqlite3">>) -> sqlite3;
@@ -1452,7 +1452,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		end,
 		
 		put(parse_step, max_pool_size),
-		MaxPoolSize = ems_util:parse_range(maps:get(<<"max_pool_size">>, M, 1), 1, ?MAX_CONNECTION_BY_POOL),
+		MaxPoolSize = ems_util:parse_range(maps:get(<<"max_pool_size">>, M, 50), 1, ?MAX_CONNECTION_BY_POOL),
 		
 		put(parse_step, sql_check_valid_connection),
 		SqlCheckValidConnection = parse_datasource_sql_check_validation_connection(Type, maps:get(<<"sql_check_valid_connection">>, M, undefined)),

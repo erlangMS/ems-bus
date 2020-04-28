@@ -226,12 +226,12 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 													  table_name = TableName,
 													  sql = Sql,
 													  primary_key = PrimaryKey,
-													  max_pool_size = MaxPoolSize,
+													  %max_pool_size = MaxPoolSize,
 													  connection_count_metric_name = ConnectionCountMetricName,
 													  connection_created_metric_name = ConnectionCreatedMetricName,
 													  connection_reuse_metric_name = ConnectionReuseMetricName,
 													  connection_unavailable_metric_name = ConnectionUnavailableMetricName,
-													  connection_max_pool_size_exceeded_metric_name = ConnectionMaxPoolSizeExceededMetricName,
+													  %connection_max_pool_size_exceeded_metric_name = ConnectionMaxPoolSizeExceededMetricName,
 													  log_show_odbc_pool_activity = LogShowPoolActivity}, 
 					 PidModule) ->
 	try
@@ -239,9 +239,9 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 		PoolSize = queue:len(Pool),
 		case PoolSize of
 			0 ->
-				ConnectionCount = ems_db:current_counter(ConnectionCountMetricName),
-				case ConnectionCount =< MaxPoolSize of
-					true ->
+				%ConnectionCount = ems_db:current_counter(ConnectionCountMetricName),
+				%case ConnectionCount =< MaxPoolSize of
+				%	true ->
 						case ems_odbc_pool_worker:start_link(Datasource) of
 							{ok, WorkerPid} ->
 								PidModuleRef = erlang:monitor(process, PidModule),
@@ -265,13 +265,13 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 								end;
 							ignore -> 
 								ems_logger:error("ems_odbc_pool do_create_connection ignored (Ds: ~p).", [Id]),
-								{error, eodbc_restricted_connection}
+								{error, eunavailable_odbc_connection}
 						end;
-					false -> 
-						ems_db:inc_counter(ConnectionMaxPoolSizeExceededMetricName),
-						ems_logger:info("ems_odbc_pool connection limit (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount], LogShowPoolActivity),
-						{error, eodbc_connection_limit}	
-				end;
+				%	false -> 
+				%		ems_db:inc_counter(ConnectionMaxPoolSizeExceededMetricName),
+				%		ems_logger:info("ems_odbc_pool connection limit (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount], LogShowPoolActivity),
+				%		{error, eodbc_connection_limit}	
+				%end;
 			_ -> 
 				{{value, Datasource2}, Pool2} = queue:out(Pool),
 				erlang:put(Id, Pool2),
