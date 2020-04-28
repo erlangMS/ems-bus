@@ -86,7 +86,6 @@ to_json(Client) ->
 	
 -spec new_from_map(map(), #config{}) -> {ok, #client{}} | {error, atom()}.
 new_from_map(Map, Conf) ->
-	io:format("Map >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n",[Map]),
 	try
 		{ok, #client{
 				id = maps:get(<<"id">>, Map),

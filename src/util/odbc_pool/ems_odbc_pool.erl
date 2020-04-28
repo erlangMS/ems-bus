@@ -44,18 +44,14 @@ stop() ->
 -spec get_connection(#service_datasource{}) -> {ok, #service_datasource{}} | {error, eunavailable_odbc_connection}.
 get_connection(Datasource = #service_datasource{id = Id}) ->
 	try
-	io:format("get_connection 1 >>>>>>>>>>>>>>>>>>>>>> ~n"),
 		case gen_server:call(?SERVER, {create_connection, Datasource}, 120000) of
 			{ok, _Datasource2} = Result ->
-				io:format("get_connection 2 >>>>>>>>>>>>>>>>>>>>>> ~n"),
 				?DEBUG("ems_odbc_pool get_connection from datasource id ~p.", [Id]),
 				Result;
 			{error, eodbc_restricted_connection} -> 
-				io:format("get_connection 3 >>>>>>>>>>>>>>>>>>>>>> ~n"),
 				ems_logger:error("ems_odbc_pool get_connection eodbc_restricted_connection from datasource id ~p.", [Id]),
 				{error, eodbc_restricted_connection};
 			Error -> 
-				io:format("get_connection 4 >>>>>>>>>>>>>>>>>>>>>> ~n"),
 				ems_logger:error("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Error]),
 				{error, eunavailable_odbc_connection}
 		end

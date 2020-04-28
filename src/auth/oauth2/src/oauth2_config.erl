@@ -53,7 +53,6 @@ expiry_time(Flow) ->
 %% @doc Gets the backend for validating passwords, storing tokens, etc.
 -spec backend() -> atom().
 backend() -> 
-    io:format("get_required(backend) >>>>>>>>>>>>>>>>>>>>>> ~p~n",[get_required(backend)]),
     get_required(backend).
 
 %% @doc Gets the backend for generating tokens.
@@ -68,11 +67,9 @@ get_optional(Key, Default) ->
     end.
 
 get_required(Key) ->
-    io:format("get_required >>>>>>>>>>>>>>>>>>>>>> ~n~n"),
     case application:get_env(oauth2, Key) of
         undefined   -> throw({missing_config, Key});
         {ok, Value} -> 
-            io:format("Value >>>>>>>>> ~p~n~n",[Value]),
             Value
     end.
 

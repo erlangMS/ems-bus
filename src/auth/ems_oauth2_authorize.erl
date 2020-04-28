@@ -170,14 +170,11 @@ execute(Request = #request{type = Type,
 					case Config#config.rest_use_host_in_redirect of
 						true -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]);
 						false ->
-							io:format("Chegou aqui 1234 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]),
-							io:format("LocationPath >>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[LocationPath])
+							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
 						true ->
-							io:format("LocationPath >>>>>>>>>>>>>>>>>> ~p~n~n",[LocationPath]),
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
 							Request2 = Request#request{code = 302, 

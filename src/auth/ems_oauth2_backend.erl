@@ -426,14 +426,10 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 
 resolve_access_token(AccessToken, _) ->
 	try
-		io:format("resolve_acces_token >>>>>>>>>>>>>>>>>>>>> ~n"),
 		case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
 		   {ok, #auth_oauth2_access_token{context = Context}} -> 
-
-			   io:format("resolve_acces_token 1 >>>>>>>>>>>>>>>>>>>>> ~n"),	
 				{ok, {[], Context}};
 			_ -> 
-				io:format("Chegou aqui no select >>>>>>>>>>>>>>>>>>>>> ~n"),
 				case resolve_access_token_sgbd(AccessToken) of
 				   {ok, #auth_oauth2_access_token{context = Context2}} -> 	
 							{ok, {[], Context2}};
@@ -450,38 +446,23 @@ resolve_access_token(AccessToken, _) ->
 
 resolve_access_token_sgbd(AccessToken) ->
 	try
-		io:format("resolve_access_token_sgbd 1 >>>>>>>>>>>>>>>>> ~n"),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-		io:format("resolve_access_token_sgbd 2 >>>>>>>>>>>>>>>>> ~n"),
 		case PersistTokenSGBDEnabled of
 			true ->
-				io:format("resolve_access_token_sgbd 3 >>>>>>>>>>>>>>>>> ~n"),
 				SqlSelect = ems_db:get_param(sql_select_access_token),
-				io:format("resolve_access_token_sgbd 4 >>>>>>>>>>>>>>>>> ~n"),
 				case SqlSelect =/= "" of
 					true ->
-						io:format("resolve_access_token_sgbd 5 >>>>>>>>>>>>>>>>> ~n"),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-						io:format("resolve_access_token_sgbd 6 >>>>>>>>>>>>>>>>> ~p~n",[Ds]),
-						io:format("get_conection fora >>>>>>>>>>>>>>>>>>> ~p~n",[ems_odbc_pool:get_connection(Ds)]),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
-								io:format("resolve_access_token_sgbd 7 >>>>>>>>>>>>>>>>> ~n"),
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
-								io:format("resolve_access_token_sgbd 8 >>>>>>>>>>>>>>>>> ~n"),
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-										io:format("resolve_access_token_sgbd 9 >>>>>>>>>>>>>>>>> ~n"),
 										Context1 = base64:decode(list_to_binary(Context)),
-										io:format("resolve_access_token_sgbd 10 >>>>>>>>>>>>>>>>> ~n"),
 										Context2 = binary_to_term(Context1),
-										io:format("resolve_access_token_sgbd 11 >>>>>>>>>>>>>>>>> ~n"),
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
-										io:format("resolve_access_token_sgbd 12 >>>>>>>>>>>>>>>>> ~n"),
 										AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
-										io:format("resolve_access_token_sgbd 13 >>>>>>>>>>>>>>>>> ~n"),
 										mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
-										io:format("resolve_access_token_sgbd 14 >>>>>>>>>>>>>>>>> ~n"),
 										Result = {ok, AuthOauth2AccessToken};
 									_ ->
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed to access_token ~p.", [AccessToken]),

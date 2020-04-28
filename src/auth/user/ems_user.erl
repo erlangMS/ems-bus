@@ -743,8 +743,7 @@ to_resource_owner(User, ClientId) ->
 															case ems_user_perfil:find_by_id_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]) of
 																{ok, ListaPerfilPermission2} -> 
 																ListaPerfilPermission2;
-																_ -> 
-													io:format("Chegou aqui 45 >>>>>>>>~n~n"),								ListaPerfilPermission
+																_ -> ListaPerfilPermission
 															end;
 														_ ->
 															case ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
@@ -773,7 +772,19 @@ to_resource_owner(User, ClientId) ->
 													end
 											end,
 					{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermissionFinal,
-					ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPErmissionWithouthOk);
+					case ListaPerfilPErmissionWithouthOk of
+								[] -> 
+									ResultList = false;
+								_ ->
+									ResultList = is_list(ListaPerfilPErmissionWithouthOk)
+							end,
+							case ResultList of
+								true ->
+									ListaPerfilPermissionCorrect = lists:nth(1,ListaPerfilPErmissionWithouthOk);
+								false ->
+									ListaPerfilPermissionCorrect = ListaPerfilPErmissionWithouthOk
+								end,
+					ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPermissionCorrect);
 				false ->
 					ListaPerfilPermissionJson = <<"[]">>
 			end,

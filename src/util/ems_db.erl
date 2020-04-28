@@ -599,30 +599,21 @@ get_sqlite_connection_from_csv_file(Datasource = #service_datasource{driver = Dr
 %
 -spec get(atom() | list(atom()), non_neg_integer()) -> {ok, tuple()} | {error, enoent}.
 get(Tab, Id) when is_atom(Tab) ->
-	io:format("entrou no get da consulta >>>>>>>>>>>>> ~n~n"),
-	io:format("tab e id >>>>>>>>>>>>>>>>>>>>>>> ~p~p~n",[Tab, Id]),
-	io:format(" mnesia:dirty_read(Tab, Id) >>>>>>>>>>>> ~p~n~n",[ mnesia:dirty_read(Tab, Id)]),
 	case mnesia:dirty_read(Tab, Id) of
 		[] -> 
-			io:format("Erro na consulta ~p~p~n",[Tab,Id]),
 			{error, enoent};
 		[Record|_] -> 
-			io:format("Chegou no record >>>>>>>>>>>>>>>>>> ~n~n"),
 			{ok, Record};
 		_ -> 
-			io:format("Chegou aqui >>>>>>>>>>>>>>>>>>>>> ~n"),
 			{error, enoent}
 	end;
 get([], _) -> {error, enoent};
 get([Tab|TabT], Id) ->
-	io:format("Chegou até a consulta interna com tab >>>>>>>>>>>>>>>> ~n"),
 	case mnesia:dirty_read(Tab, Id) of
 		[] -> get(TabT, Id);
 		[Record|_] -> 
-			io:format("Chegou no record >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			{ok, Record};
 		_ -> 
-			io:format("Chegou aqui 22 >>>>>>>>>>>>>>>>>>>>> ~n"),
 			{error, enoent}
 	end.
 

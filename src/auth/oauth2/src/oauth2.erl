@@ -343,21 +343,14 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
 -spec verify_access_token(token(), appctx()) -> {ok, {appctx(), context()}}
                                               | {error, error()}.
 verify_access_token(AccessToken, Ctx0) ->
-     io:format("verify_access_token 0.1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
-     io:format("AccessTpken >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[AccessToken]),
-     io:format("?BACKEND:resolve_access_token(AccessToken, Ctx0) >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[?BACKEND:resolve_access_token(AccessToken, Ctx0)]),
     case ?BACKEND:resolve_access_token(AccessToken, Ctx0) of
         {error, _}             -> 
-            io:format("AccesToken and Ctx0 ?>>>>>>>>>>>> ~p~p~n",[AccessToken,Ctx0]),
             {error, access_denied};
         {ok, {Ctx1, GrantCtx}} ->
-            io:format("verify_access_token >>>>>>>>>>>>>>>>>>>>> ~n~n"),
             case get_(GrantCtx, <<"expiry_time">>) > seconds_since_epoch(0) of
                 true  -> 
-                    io:format("verify_access_token 1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
                     {ok, {Ctx1, GrantCtx}};
                 false ->
-                    io:format("verify_access_token 2 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
                     ?BACKEND:revoke_access_token(AccessToken, Ctx1),
                     {error, access_denied}
             end
