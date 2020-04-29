@@ -34,7 +34,8 @@ execute(Request = #request{type = Type,
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_password),
 									password_grant(Request, Client0);
-								_ -> password_grant(Request, undefined) % cliente é opcional no grant_type password
+								_ -> 
+									password_grant(Request, undefined) % cliente é opcional no grant_type password
 							end;
 						<<"client_credentials">> ->
 							case ems_util:get_client_request_by_id_and_secret(Request) of
@@ -108,7 +109,6 @@ execute(Request = #request{type = Type,
 				 ], 
 				 Client
 			 } ->
-				
 					% When it is authorization_code, we will record metrics for singlesignon
 					case User =/= undefined of
 						true -> 
@@ -117,7 +117,6 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
-		
 					case Client =/= undefined of
 						true ->
 							ClientJson = ems_client:to_json(Client),
@@ -127,14 +126,12 @@ execute(Request = #request{type = Type,
 							ResourceOwner = ems_user:to_resource_owner(User),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
-					
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
 							persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
-		
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, AccessToken, <<"\","/utf8>>,
@@ -151,7 +148,6 @@ execute(Request = #request{type = Type,
 																							 end, <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, TokenType, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
-			
 					Request2 = Request#request{code = 200, 
 											    reason = ok,
 											    operation = oauth2_authenticate,
@@ -168,16 +164,14 @@ execute(Request = #request{type = Type,
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
 					case Config#config.rest_use_host_in_redirect of
-						true -> LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]);
+						true -> 
+							LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]);
 						false ->
-							io:format("Chegou aqui 1234 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]),
-							io:format("LocationPath >>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[LocationPath])
+							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
 						true ->
-							io:format("LocationPath >>>>>>>>>>>>>>>>>> ~p~n~n",[LocationPath]),
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
 							Request2 = Request#request{code = 302, 
@@ -217,7 +211,7 @@ execute(Request = #request{type = Type,
 		end
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_oauth2_authorize execute failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_authorize execute exception. Request: ~p Reason: ~p.", [Request, ReasonException]),
 			Request3 = Request#request{code = 401, 
 									   reason = access_denied,
 									   reason_detail = eparse_oauth2_authorize_execute,
@@ -289,6 +283,7 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 		end
 	catch
 		_:ReasonException ->
+			ems_logger:error("ems_oauth2_authorize code_request exception. Request: ~p Reason: ~p.", [Request, ReasonException]),
 			Request3 = Request#request{code = 401, 
 										reason = access_denied,
 										reason_detail = eparse_code_request_exception,
@@ -328,14 +323,22 @@ password_grant(Request, Client) ->
 			{ok, User} ->
 				Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
 				case Client == undefined of
-					true -> Authz = oauth2:authorize_password(User, Scope, []);
-					false -> Authz = oauth2:authorize_password(User, Client, Scope, [])
+					true -> 
+						Authz = oauth2:authorize_password(User, Scope, []);
+					false -> 
+						Authz = oauth2:authorize_password(User, Client, Scope, []),
+						Authz
+						
 				end,
-				issue_token(Authz, Client);
-			Error -> Error
+				Token = issue_token(Authz, Client),
+				Token;
+			Error -> 
+				Error
 		end
 	catch
-		_:_ -> {error, access_denied, eparse_password_grant_exception}
+		_:ReasonException -> 
+			ems_logger:error("ems_util password_grant exception. Client: ~p Request: ~p. Reason: ~p.", [Client, Request, ReasonException]),
+			{error, access_denied, eparse_password_grant_exception}
 	end.
 
 
@@ -366,10 +369,13 @@ authorization_request(Request, Client) ->
     try
 		RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 		case ems_oauth2_backend:verify_redirection_uri(Client, RedirectUri, []) of
-			{ok, _} -> {redirect, Client};
+			{ok, _} -> 
+				{redirect, Client};
 			_ -> 
-				ems_logger:error("ems_oauth2_authorize authorization_request does not validate url ~s with client name: ~s and redirect_uri: ~s.", [binary_to_list(RedirectUri), binary_to_list(Client#client.name), binary_to_list(Client#client.redirect_uri)]),
-				{error, access_denied, einvalid_redirection_uri }
+				ems_logger:warn("ems_oauth2_authorize authorization_client redirect_uri diferent. Client RedirectUri: \"~s\"  Loader RedirectUri: \"~s\".", 
+																																[binary_to_list(RedirectUri), 
+				  																											     binary_to_list(Client#client.redirect_uri)]),
+				{redirect, Client}
 		end
 	catch
 		_:_ -> {error, access_denied, eparse_authorization_request_exception}

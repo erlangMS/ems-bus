@@ -165,7 +165,7 @@ associate_access_code(AccessCode, Context, _AppContext) ->
 		{ok, Context}
 	catch
 		_:ReasonException -> 
-			ems_logger:error("associate_access_code failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend associate_access_code exception. AccessCode: ~p. Reason: ~p.", [AccessCode, ReasonException]),
 			{error, eparse_associate_access_code}
 	end.
     
@@ -189,7 +189,8 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 								ems_odbc_pool:release_connection(Ds2);
 							{error, Reason} ->
-								ems_logger:error("ems_oauth2_backend associate_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason])
+								ems_logger:error("ems_oauth2_backend associate_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason]),
+								ok
 						end;
 					false -> ok
 				end;
@@ -197,8 +198,8 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("associate_access_code_sgbd failed. Reason: ~p.", [ReasonException]),
-			{error, eparse_associate_access_code_sgbd}
+			ems_logger:error("ems_oauth2_backend associate_access_code_sgbd exception. AccessCode: ~p. Reason: ~p.", [AccessCode, ReasonException]),
+			ok   % não pode retornar erro porque senão a pesquisa em user_fs não funciona
 	end.
 
 
@@ -210,8 +211,8 @@ associate_refresh_token(RefreshToken, Context, _) ->
 		{ok, Context}
 	catch
 		_:ReasonException -> 
-			ems_logger:error("associate_refresh_token failed. Reason: ~p.", [ReasonException]),
-			{error, eparse_associate_refresh_token}
+			ems_logger:error("ems_oauth2_backend associate_refresh_token exception. RefreshToken: ~p. Reason: ~p.", [RefreshToken, ReasonException]),
+			{error, eassociate_refresh_token}
 	end.
 		
 
@@ -234,7 +235,8 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 								ems_odbc_pool:release_connection(Ds2);
 							{error, Reason} ->
-								ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+								ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
+								ok
 						end,
 						ok;
 					false -> ok
@@ -243,22 +245,20 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("associate_refresh_token_sgbd failed. Reason: ~p.", [ReasonException]),
-			{error, eparse_associate_refresh_token_sgbd}
+			ems_logger:error("ems_oauth2_backend associate_refresh_token_sgbd failed. RefreshToken: ~p. Reason: ~p.", [RefreshToken, ReasonException]),
+			ok  % não pode retornar erro porque senão a pesquisa em user_fs não funciona
 	end.
 
 
 associate_access_token(AccessToken, Context, _) ->
 	try
 		AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context},
-		io:format("Chegou antes de fazer a consulta no banco corretamente ~n~n"),
 		mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
-		io:format("Consegui fazer a consulta no banco corretamente ~n~n"),
 		associate_access_token_sgbd(AuthOauth2AccessToken),
 		{ok, Context}
 	catch
 		_:ReasonException -> 
-			ems_logger:error("associate_access_token failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend associate_access_token failed. AccessToken: ~p. Reason: ~p.", [AccessToken, ReasonException]),
 			{error, eparse_associate_access_token}
 	end.
 		
@@ -282,7 +282,8 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 								ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 								ems_odbc_pool:release_connection(Ds2);
 							{error, Reason} ->
-								ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+								ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
+								ok
 						end,
 						ok;
 					false -> ok
@@ -291,8 +292,8 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("associate_access_token_sgbd failed. Reason: ~p.", [ReasonException]),
-			{error, eparse_associate_access_token_sgbd}
+			ems_logger:error("ems_oauth2_backend associate_access_token_sgbd failed. AccessToken: ~p. Reason: ~p.", [AccessToken, ReasonException]),
+			ok  % não pode retornar erro porque senão a pesquisa em user_fs não funciona
 	end.
 
 
@@ -312,7 +313,7 @@ resolve_access_code(AccessCode, _) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("resolve_access_code failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_access_code failed. AccessCode: ~p Reason: ~p.", [AccessCode, ReasonException]),
 			{error, eparse_resolve_access_code}
 	end.
 		
@@ -354,7 +355,7 @@ resolve_access_code_sgbd(AccessCode) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("resolve_access_code_sgbd failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_access_code_sgbd failed. AccessCode: ~p Reason: ~p.", [AccessCode, ReasonException]),
 			{error, eparse_resolve_access_code_sgbd}
 	end.
 	
@@ -376,7 +377,7 @@ resolve_refresh_token(RefreshToken, _AppContext) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("resolve_refresh_token failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_refresh_token failed. RefreshToken: ~p Reason: ~p.", [RefreshToken, ReasonException]),
 			{error, eparse_resolve_refresh_token}
 	end.
 		
@@ -417,7 +418,7 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("resolve_refresh_token_sgbd failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_refresh_token_sgbd failed. RefreshToken: ~p Reason: ~p.", [RefreshToken, ReasonException]),
 			{error, eparse_resolve_refresh_token_sgbd}
 	end.
 		
@@ -426,14 +427,10 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 
 resolve_access_token(AccessToken, _) ->
 	try
-		io:format("resolve_acces_token >>>>>>>>>>>>>>>>>>>>> ~n"),
 		case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
 		   {ok, #auth_oauth2_access_token{context = Context}} -> 
-
-			   io:format("resolve_acces_token 1 >>>>>>>>>>>>>>>>>>>>> ~n"),	
 				{ok, {[], Context}};
 			_ -> 
-				io:format("Chegou aqui no select >>>>>>>>>>>>>>>>>>>>> ~n"),
 				case resolve_access_token_sgbd(AccessToken) of
 				   {ok, #auth_oauth2_access_token{context = Context2}} -> 	
 							{ok, {[], Context2}};
@@ -443,45 +440,30 @@ resolve_access_token(AccessToken, _) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("resolve_access_token failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_access_token failed. AccessToken: ~p Reason: ~p.", [AccessToken, ReasonException]),
 			{error, eparse_resolve_access_token}
 	end.
 		
 
 resolve_access_token_sgbd(AccessToken) ->
 	try
-		io:format("resolve_access_token_sgbd 1 >>>>>>>>>>>>>>>>> ~n"),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
-		io:format("resolve_access_token_sgbd 2 >>>>>>>>>>>>>>>>> ~n"),
 		case PersistTokenSGBDEnabled of
 			true ->
-				io:format("resolve_access_token_sgbd 3 >>>>>>>>>>>>>>>>> ~n"),
 				SqlSelect = ems_db:get_param(sql_select_access_token),
-				io:format("resolve_access_token_sgbd 4 >>>>>>>>>>>>>>>>> ~n"),
 				case SqlSelect =/= "" of
 					true ->
-						io:format("resolve_access_token_sgbd 5 >>>>>>>>>>>>>>>>> ~n"),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-						io:format("resolve_access_token_sgbd 6 >>>>>>>>>>>>>>>>> ~p~n",[Ds]),
-						io:format("get_conection fora >>>>>>>>>>>>>>>>>>> ~p~n",[ems_odbc_pool:get_connection(Ds)]),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
-								io:format("resolve_access_token_sgbd 7 >>>>>>>>>>>>>>>>> ~n"),
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
-								io:format("resolve_access_token_sgbd 8 >>>>>>>>>>>>>>>>> ~n"),
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
-										io:format("resolve_access_token_sgbd 9 >>>>>>>>>>>>>>>>> ~n"),
 										Context1 = base64:decode(list_to_binary(Context)),
-										io:format("resolve_access_token_sgbd 10 >>>>>>>>>>>>>>>>> ~n"),
 										Context2 = binary_to_term(Context1),
-										io:format("resolve_access_token_sgbd 11 >>>>>>>>>>>>>>>>> ~n"),
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
-										io:format("resolve_access_token_sgbd 12 >>>>>>>>>>>>>>>>> ~n"),
 										AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
-										io:format("resolve_access_token_sgbd 13 >>>>>>>>>>>>>>>>> ~n"),
 										mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
-										io:format("resolve_access_token_sgbd 14 >>>>>>>>>>>>>>>>> ~n"),
 										Result = {ok, AuthOauth2AccessToken};
 									_ ->
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed to access_token ~p.", [AccessToken]),
@@ -503,7 +485,7 @@ resolve_access_token_sgbd(AccessToken) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("resolve_access_token_sgbd failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_access_token_sgbd failed. AccessToken: ~p Reason: ~p.", [AccessToken, ReasonException]),
 			{error, eparse_resolve_access_token_sgbd}
 	end.
 		
@@ -520,7 +502,7 @@ revoke_access_code(AccessCode, _AppContext) ->
 		{ok, []}
 	catch
 		_:ReasonException -> 
-			ems_logger:error("revoke_access_code failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend revoke_access_code failed. AccessCode: ~p Reason: ~p.", [AccessCode, ReasonException]),
 			{error, eparse_revoke_access_code}
 	end.
 
@@ -535,7 +517,7 @@ revoke_access_token(AccessToken, _) ->
 		{ok, []}
 	catch
 		_:ReasonException -> 
-			ems_logger:error("revoke_access_token failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend revoke_access_token failed. AccessToken: ~p Reason: ~p.", [AccessToken, ReasonException]),
 			{error, eparse_revoke_access_token}
 	end.
 		
@@ -550,52 +532,40 @@ revoke_refresh_token(RefreshToken, _) ->
 		{ok, []}
 	catch
 		_:ReasonException -> 
-			ems_logger:error("revoke_refresh_token failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend ems_oauth2_backend revoke_refresh_token exception. RefreshToken: ~p Reason: ~p.", [RefreshToken, ReasonException]),
 			{error, eparse_revoke_refresh_token}
 	end.
 		
 
 get_redirection_uri(Client, _) ->
     case get_client_identity(Client, [])  of
-        {ok, #client{redirect_uri = RedirectUri}} -> {ok, RedirectUri};
-        _ -> {error, einvalid_uri} 
+        {ok, #client{redirect_uri = RedirectUri}} -> 
+			{ok, RedirectUri};
+        _ -> 
+			{error, einvalid_uri} 
     end.
 
 
-verify_redirection_uri(#client{redirect_uri = RedirUri}, ClientUri, _) ->
-    case ClientUri =:= RedirUri of
-		true -> 
-			{ok, []};
-		_Error -> 
-			{error, unauthorized_client}
-    end.
+verify_redirection_uri(#client{redirect_uri = _RedirUri}, _ClientUri, _) ->
+%    case ClientUri =:= RedirUri of
+%		true -> 
+%			{ok, []};
+%		_Error -> 
+%			{error, unauthorized_client}
+%   end.
+{ok, []}.
 
-verify_client_scope(#client{id = ClientID}, Scope, _) ->
-	case ems_client:find_by_id(ClientID) of
-        {ok, #client{scope = Scope0}} ->     
-			case Scope =:= Scope0 of
-				true -> 
-					{ok, {[], Scope0}};
-				_ -> {error, unauthorized_client}
-			end;
-        _ -> {error, invalid_scope}
-    end.
+verify_client_scope(#client{id = _ClientID}, Scope, _) ->
+	{ok, {[], Scope}}.
 
-verify_client_state(#client{id = ClientID}, State, _) ->
-	case ems_client:find_by_id(ClientID) of
-        {ok, #client{state = State0}} ->     
-			case State =:= State0 of
-				true -> 
-					{ok, {[], State0}};
-				_ -> {error, unauthorized_client}
-			end;
-        _ -> {error, invalid_scope}
-    end.
+verify_client_state(#client{id = _ClientID}, State, _) ->
+	{ok, {[], State}}.
+
     
 verify_resowner_scope(_ResOwner, Scope, _) ->
     {ok, {[], Scope}}.
 
-verify_scope(_RegScope, Scope , _) ->
+verify_scope(_RegScope, Scope, _) ->
     {ok, {[], Scope}}.
 
     
@@ -605,7 +575,8 @@ authorize_refresh_token(Client, RefreshToken, Scope) ->
 		case resolve_refresh_token(RefreshToken, []) of
 			{ok, {_, [_, {_, ResourceOwner}, _, _]}} -> 
 				case verify_client_scope(Client, Scope, []) of
-					{error, _} -> {error, invalid_scope};
+					{error, _} -> 
+						{error, invalid_scope};
 					{ok, {Ctx3, _}} ->
 						Result = {ok, {Ctx3, #a{client = Client,
 									   resowner = ResourceOwner,
@@ -618,7 +589,7 @@ authorize_refresh_token(Client, RefreshToken, Scope) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("authorize_refresh_token failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_backend authorize_refresh_token exception. Client: ~p  RefreshToken: ~p Reason: ~p.", [Client, RefreshToken, ReasonException]),
 			{error, eparse_authorize_refresh_token}
 	end.
 		

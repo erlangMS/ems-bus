@@ -2094,8 +2094,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 						erlang:error(ehttp_verb_not_supported)
 			   end,
 		ems_logger:info("Request \033[01;34m~s\033[0m received \033[0;32muri\033[0m: \033[01;34m~s\033[0m \033[0;32murl\033[0m: \033[01;34m~s\033[0m \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(TypeLookup), binary_to_list(Uri), Url2, binary_to_list(Referer), binary_to_list(Host), binary_to_list(UserAgentBrowser)]),
-		
-		io:format("r1\n"),
+	
 		Request = #request{
 			rid = RID,
 			rowid = Rowid,
@@ -2140,7 +2139,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			status_text = <<>>,
 			forwarded_for = ForwardedFor
 		},	
-		io:format("r2\n"),
 		case ems_catalog_lookup:lookup(Request) of
 			{Service = #service{name = ServiceName,
 								 service = ServiceService,	
@@ -2160,12 +2158,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								 result_cache_shared = ResultCacheSharedService}, 
 			 ParamsMap, 
 			 QuerystringMap} -> 
-			 io:format("r3\n"),
 				case cowboy_req:body_length(CowboyReq) of
 					undefined -> ContentLength = 0; %% The value returned will be undefined if the length couldn't be figured out from the request headers. 
 					ContentLengthValue -> ContentLength = ContentLengthValue
 				end,
-				io:format("r4\n"),
 				case ContentLength > 0 of
 					true ->
 						case ContentLength > HttpMaxContentLengthService of
@@ -2174,7 +2170,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								erlang:error(ehttp_max_content_length_error);
 							false -> ok
 						end,
-						io:format("r5\n"),
 						ReadBodyOpts = #{length => HttpMaxContentLengthService + 8000, period => 190000, timeout => 180000},
 						case ContentTypeIn of
 							<<"application/json">> ->
@@ -2310,7 +2305,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 					true ->	ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, Payload]);
 					false -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, AuthorizationService, IpBin, UserAgent, Payload])
 				end,
-				io:format("r6\n"),
 				Request2 = Request#request{
 					type = Type, % use original verb of request
 					querystring_map = QuerystringMap2,
@@ -2375,10 +2369,8 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 												end
 									  end
 				},	
-				io:format("r7\n"),
 				{ok, Request2, Service, CowboyReq2};
 			_ -> 
-				io:format("r8\n"),
 				ReqHash = erlang:phash2([Url, QuerystringMap0, 0, ContentTypeIn]),
 				Latency = ems_util:get_milliseconds() - T1,
 				if 
@@ -2403,10 +2395,8 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																latency = Latency,
 																status_text = StatusText}
 							end,
-							io:format("r8.1\n"),
 							{ok, request, Request2, CowboyReq};
 					true ->
-						io:format("r9\n"),
 						ems_db:inc_counter(ems_dispatcher_lookup_enoent),								
 						StatusText = ems_util:format_rest_status(404, enoent_service_contract, undefined, undefined, Latency),
 						case ShowDebugResponseHeaders of
@@ -2429,7 +2419,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 															latency = Latency,
 															status_text = StatusText}
 						end,
-						io:format("r9.1\n"),
 						{error, request, Request2, CowboyReq}
 				end			
 		end
@@ -3367,13 +3356,19 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 			undefined -> ClientId = 0;
 			ClientIdValue -> ClientId = binary_to_integer(ClientIdValue)
 		end,
+		case get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> State = <<>>;
+			undefined -> State = <<>>;
+			StateValue -> State = StateValue
+		end,
 		case ClientId > 0 of
 			true ->
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
-					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+					{ok, Client} -> 
+						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
 					Error -> 
-						io:format("emsutil:get_client_request_by_id_and_secret falhou ao localizar id %d", ClientId),
+						ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id_and_secret. client_id: ~p. Reason: ~p", [ClientId, Error]),
 						Error
 				end;
 			false ->
@@ -3387,18 +3382,29 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 								case ClientId2 > 0 of
 									true ->
 										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
-											Error -> Error
+											{ok, Client} -> 
+												Client2 = Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State},
+												{ok, Client2};
+											Error -> 
+												ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id_and_secret. client_id: ~p. Request: ~p Reason: ~p", [ClientId2, Request, Error]),
+												Error
 										end;
-									false -> {error, access_denied, einvalid_client_id}
+									false -> 
+										ems_logger:error("ems_util get_client_request_by_id_and_secret invalid client_id ~p Authorization: ~p. Request: ~p.", [ClientId2, Authorization, Request]),
+										{error, access_denied, einvalid_client_id}
 								end;
-							Error -> Error
+							Error -> 
+								ems_logger:error("ems_util get_client_request_by_id_and_secret failed on parse_basic_authorization_header. client_id: ~p  Authorization: ~p. Reason: ~p", [ClientId, Authorization, Error]),
+								Error
 						end;
-					false -> {error, access_denied, eauthorization_header_required}
+					false -> 
+						{error, access_denied, eauthorization_header_required}
 				end
 		end
 	catch
-		_:_ -> {error, access_denied, eparse_get_client_request_by_id_and_secret_exception}
+		_:ReasonException -> 
+			ems_logger:error("ems_util get_client_request_by_id_and_secret exception. Request: ~p. Reason: ~p.", [Request, ReasonException]),
+			{error, access_denied, eparse_get_client_request_by_id_and_secret_exception}
 	end.
 
 
@@ -3413,12 +3419,18 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 			undefined -> ClientId = 0;
 			ClientIdValue -> ClientId = binary_to_integer(ClientIdValue)
 		end,
+		case get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> State = <<>>;
+			undefined -> State = <<>>;
+			StateValue -> State = StateValue
+		end,
 		case ClientId > 0 of
 			true ->
 				case ems_client:find_by_id(ClientId) of
 					{ok, Client} -> 
-						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
-					_ -> 
+						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+					Error -> 
+						ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 						{error, access_denied, enoent}
 				end;
 			false ->
@@ -3432,14 +3444,16 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 									true ->
 										case ems_client:find_by_id(ClientId2) of
 											{ok, Client} -> 
-												{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
-											_ -> 
+												{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+											Error -> 
+												ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 												{error, access_denied, enoent}
 										end;
 									false -> 
 										{error, access_denied, einvalid_client_id}
 								end;
 							Error -> 
+								ems_logger:error("ems_util get_client_request_by_id_and_secret on parse_basic_authorization_header failed. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 								Error
 						end;
 					false -> 
@@ -3447,7 +3461,8 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 				end
 		end
 	catch
-		_:_ ->
+		_:ReasonException -> 
+			ems_logger:error("ems_util get_client_request_by_id exception. Request: ~p. Reason: ~p.", [Request, ReasonException]),
 			{error, access_denied, eparse_get_client_request_by_id_exception}
 	end.
 

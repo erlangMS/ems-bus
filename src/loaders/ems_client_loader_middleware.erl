@@ -60,10 +60,8 @@ get_filename() ->
 -spec insert_or_update(map() | tuple(), tuple(), #config{}, atom(), insert | update) -> {ok, #service{}, atom(), insert | update} | {ok, skip} | {error, atom()}.
 insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 	try
-		io:format("Entrou aqui 20 >>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 		case ems_client:new_from_map(Map, Conf) of
 			{ok, NewClient = #client{id = Id, ctrl_hash = CtrlHash}} -> 
-				io:format("NewClient >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[NewClient]),
 				Table = ems_client:get_table(SourceType),
 				case ems_client:find(Table, Id) of
 					{error, enoent} -> 
@@ -72,7 +70,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentClient = #client{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								io:format("Chegou aqui 10 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 								?DEBUG("ems_client_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								Client = CurrentClient#client{
 												 name = NewClient#client.name,

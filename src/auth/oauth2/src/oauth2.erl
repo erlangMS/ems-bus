@@ -101,7 +101,8 @@ authorize_password(User, Scope, Ctx0) ->
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_password(User, Client, Scope, Ctx0) ->
     case auth_client(Client, no_redir, Ctx0) of
-        {error, _}      -> {error, invalid_client};
+        {error, _}      -> 
+			{error, invalid_client};
         {ok, {Ctx1, C}} ->
             case auth_user(User, Scope, Ctx1) of
                 {error, _} = E     -> E;
@@ -118,11 +119,14 @@ authorize_password(User, Client, Scope, Ctx0) ->
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_password(User, Client, RedirUri, Scope, Ctx0) ->
     case auth_client(Client, RedirUri, Ctx0) of
-        {error, _}      -> {error, invalid_client};
+        {error, _}      -> 
+			{error, invalid_client};
         {ok, {Ctx1, C}} ->
             case auth_user(User, Scope, Ctx1) of
-                {error, _} = E     -> E;
-                {ok, {Ctx2, Auth}} -> {ok, {Ctx2, Auth#a{client=C}}}
+                {error, _} = E -> 
+					E;
+                {ok, {Ctx2, Auth}} -> 
+					{ok, {Ctx2, Auth#a{client=C}}}
             end
     end.
 
@@ -133,10 +137,12 @@ authorize_password(User, Client, RedirUri, Scope, Ctx0) ->
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_client_credentials(Client, Scope0, Ctx0) ->
     case auth_client(Client, no_redir, Ctx0) of
-        {error, _}      -> {error, invalid_client};
+        {error, _}      -> 
+			{error, invalid_client};
         {ok, {Ctx1, C}} ->
             case ?BACKEND:verify_client_scope(C, Scope0, Ctx1) of
-                {error, _}           -> {error, invalid_scope};
+                {error, _} -> 
+					{error, invalid_scope};
                 {ok, {Ctx2, Scope1}} ->
                     {ok, {Ctx2, #a{ client=C
                                   , scope =Scope1
@@ -154,11 +160,11 @@ authorize_client_credentials(Client, Scope0, Ctx0) ->
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_code_grant(Client, Code, RedirUri, Ctx0) ->
     case auth_client(Client, RedirUri, Ctx0) of
-        {error, _}      -> 
+        {error, _} -> 
 			{error, invalid_client};
         {ok, {Ctx1, C}} ->
             case verify_access_code(Code, C, Ctx1) of
-                {error, _}=E           -> 
+                {error, _}=E -> 
 					E;
                 {ok, {Ctx2, GrantCtx}} ->
 					?BACKEND:revoke_access_code(Code, Ctx2),
@@ -305,10 +311,11 @@ verify_access_code(AccessCode, _Client, Ctx0) ->
                             -> {ok, {appctx(), response()}} | {error, error()}.
 refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
     case auth_client(Client, no_redir, Ctx0) of
-        {error, _}      -> {error, invalid_client};
+        {error, _} -> 
+			{error, invalid_client};
         {ok, {Ctx1, C}} ->
             case ?BACKEND:resolve_refresh_token(RefreshToken, Ctx1) of
-                {error, _}             -> 
+                {error, _} -> 
 					{error, invalid_grant};
                 {ok, {Ctx2, GrantCtx}} ->
                     {ok, ExpiryAbsolute} = get(GrantCtx, <<"expiry_time">>),
@@ -343,21 +350,14 @@ refresh_access_token(Client, RefreshToken, Scope, Ctx0) ->
 -spec verify_access_token(token(), appctx()) -> {ok, {appctx(), context()}}
                                               | {error, error()}.
 verify_access_token(AccessToken, Ctx0) ->
-     io:format("verify_access_token 0.1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
-     io:format("AccessTpken >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[AccessToken]),
-     io:format("?BACKEND:resolve_access_token(AccessToken, Ctx0) >>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[?BACKEND:resolve_access_token(AccessToken, Ctx0)]),
     case ?BACKEND:resolve_access_token(AccessToken, Ctx0) of
         {error, _}             -> 
-            io:format("AccesToken and Ctx0 ?>>>>>>>>>>>> ~p~p~n",[AccessToken,Ctx0]),
             {error, access_denied};
         {ok, {Ctx1, GrantCtx}} ->
-            io:format("verify_access_token >>>>>>>>>>>>>>>>>>>>> ~n~n"),
             case get_(GrantCtx, <<"expiry_time">>) > seconds_since_epoch(0) of
                 true  -> 
-                    io:format("verify_access_token 1 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
                     {ok, {Ctx1, GrantCtx}};
                 false ->
-                    io:format("verify_access_token 2 >>>>>>>>>>>>>>>>>>>>> ~n~n"),
                     ?BACKEND:revoke_access_token(AccessToken, Ctx1),
                     {error, access_denied}
             end
@@ -383,12 +383,14 @@ auth_client(Client, no_redir, Ctx0) ->
     ?BACKEND:authenticate_client(Client, Ctx0);
 auth_client(Client, RedirUri, Ctx0) ->
     case auth_client(Client, no_redir, Ctx0) of
-        {error, _}=E    -> E;
+        {error, _} = E -> 
+			E;
         {ok, {Ctx1, C}} ->
             case ?BACKEND:verify_redirection_uri(C, RedirUri, Ctx1) of
                 {error, _} -> 
 					{error, invalid_grant};
-                {ok, Ctx2} -> {ok, {Ctx2, C}}
+                {ok, Ctx2} -> 
+					{ok, {Ctx2, C}}
             end
     end.
 

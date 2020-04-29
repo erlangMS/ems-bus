@@ -221,6 +221,7 @@ parse_cat_path_search_([{CatName, CatFilename}|T], Result) ->
 					parse_cat_path_search_(T, [{CatName, CatFilename3}|Result]);
 				_ ->
 					ems_logger:format_error("ems_config cannot load inexistent catalog \033[00;32m\"~s\"\033[0m\033[00;31m.", [CatFilename2]),
+					erlang:error(einvalid_configuration),
 					parse_cat_path_search_(T, Result)
 			end
 	end.
