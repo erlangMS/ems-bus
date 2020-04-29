@@ -807,8 +807,8 @@ to_resource_owner(User, ClientId) ->
 								
 		end
 	catch
-		_Exception:Reason -> 
-			ems_logger:warn("ems_user to_resource_owner failed to get ListaPerfilPermissionJson. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, Reason]),
+		_Exception:ReasonException -> 
+			ems_logger:warn("ems_user to_resource_owner exception to get ListaPerfilPermissionJson. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, ReasonException]),
 			to_resource_owner(User)
 			
 	end.
