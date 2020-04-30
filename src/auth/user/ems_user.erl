@@ -597,8 +597,10 @@ get_admim_user() ->
 
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
-to_resource_owner(User, ClientId) ->
+to_resource_owner(User, Client) ->
 	try
+		ClientId = Client#client.id,
+		State = Client#client.state,
 		OAuth2ResourceOwnerFields = ems_db:get_param(oauth2_resource_owner_fields),
 		ShowListaPerfilPermission = lists:member(<<"lista_perfil_permission">>, OAuth2ResourceOwnerFields),
 		case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
@@ -655,6 +657,7 @@ to_resource_owner(User, ClientId) ->
 									<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
 									<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 									<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
+									<<"\"state\":\""/utf8>>, State, <<"\","/utf8>>,
 									<<"\"lista_perfil\":"/utf8>>, ListaPerfilJson, <<","/utf8>>,
 									<<"\"lista_permission\":"/utf8>>, ListaPermissionJson, <<","/utf8>>, 
 									<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
@@ -800,6 +803,7 @@ to_resource_owner(User, ClientId) ->
 									<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
 									<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 									<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
+									<<"\"state\":\""/utf8>>, State, <<"\","/utf8>>,
 									<<"\"lista_perfil\":"/utf8>>, ListaPerfilJson, <<","/utf8>>,
 									<<"\"lista_permission\":"/utf8>>, ListaPermissionJson, <<","/utf8>>,
 									<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
@@ -808,7 +812,7 @@ to_resource_owner(User, ClientId) ->
 		end
 	catch
 		_Exception:ReasonException -> 
-			ems_logger:warn("ems_user to_resource_owner exception to get ListaPerfilPermissionJson. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, ReasonException]),
+			ems_logger:warn("ems_user to_resource_owner exception to get ListaPerfilPermissionJson. User: ~p  Client: ~p. Reason: ~p.\n", [User, Client, ReasonException]),
 			to_resource_owner(User)
 			
 	end.
@@ -830,7 +834,8 @@ to_resource_owner(User) ->
 								<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
 								<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
-								<<"\"lista_perfil\":[],"/utf8>>, 
+								<<"\"state\":[],"/utf8>>, 
+								<<"\"lista_perfil\":null,"/utf8>>, 
 								<<"\"lista_permission\":[],"/utf8>>, 
 								<<"\"lista_perfil_permission\":[]"/utf8>>,
 							<<"}"/utf8>>]);
@@ -846,6 +851,7 @@ to_resource_owner(User) ->
 								<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
 								<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
 								<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
+								<<"\"lista_perfil\":null,"/utf8>>, 
 								<<"\"lista_perfil\":[],"/utf8>>, 
 								<<"\"lista_permission\":[],"/utf8>>, 
 								<<"\"lista_perfil_permission\":[]"/utf8>>,

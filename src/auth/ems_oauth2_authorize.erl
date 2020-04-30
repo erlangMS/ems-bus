@@ -120,7 +120,7 @@ execute(Request = #request{type = Type,
 					case Client =/= undefined of
 						true ->
 							ClientJson = ems_client:to_json(Client),
-							ResourceOwner = ems_user:to_resource_owner(User, Client#client.id),
+							ResourceOwner = ems_user:to_resource_owner(User, Client),
 							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>];
 						false ->
 							ResourceOwner = ems_user:to_resource_owner(User),
