@@ -109,7 +109,11 @@ execute(Request = #request{type = Type,
 				 ], 
 				 Client
 			 } ->
-					% When it is authorization_code, we will record metrics for singlesignon
+					case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+						<<>> -> StateProp = <<>>;
+						undefined -> StateProp = <<>>;
+						StateValue -> StateProp = StateValue
+					end,
 					case User =/= undefined of
 						true -> 
 							UserAgentBin = ems_util:user_agent_atom_to_binary(UserAgent),
@@ -121,12 +125,10 @@ execute(Request = #request{type = Type,
 						true ->
 							ClientJson = ems_client:to_json(Client),
 							ResourceOwner = ems_user:to_resource_owner(User, Client#client.id),
-							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>],
-							StateProp = Client#client.state;
+							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>];
 						false ->
 							ResourceOwner = ems_user:to_resource_owner(User),
-							ClientProp = <<"\"client\": \"public\","/utf8>>,
-							StateProp = <<"">>
+							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
@@ -166,11 +168,21 @@ execute(Request = #request{type = Type,
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
+					case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+						<<>> -> StateProp = <<>>;
+						undefined -> StateProp = <<>>;
+						StateValue -> StateProp = StateValue
+					end,
+					case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+						<<>> -> ScopeProp = <<>>;
+						undefined -> ScopeProp = <<>>;
+						ScopeValue -> ScopeProp = ScopeValue
+					end,
 					case Config#config.rest_use_host_in_redirect of
 						true -> 
-							LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri]);
+							LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp, <<"&redirect_uri=">>, RedirectUri]);
 						false ->
-							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, Client#client.state, <<"&redirect_uri=">>, RedirectUri])
+							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp, <<"&redirect_uri=">>, RedirectUri])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
@@ -235,10 +247,19 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 				case ems_util:get_user_request_by_login_and_password(Request, Client) of
 					{ok, User} ->
 						RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
-						Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),
-						case get_code_by_user_and_client(User, Client, Scope) of
+						case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+							<<>> -> StateProp = <<>>;
+							undefined -> StateProp = <<>>;
+							StateValue -> StateProp = StateValue
+						end,
+						case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+							<<>> -> ScopeProp = <<>>;
+							undefined -> ScopeProp = <<>>;
+							ScopeValue -> ScopeProp = ScopeValue
+						end,
+						case get_code_by_user_and_client(User, Client, ScopeProp) of
 							{ok, Code} ->
-								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code]),
+								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp]),
 								Request2 = Request#request{code = 200, 
 														   reason = ok,
 														   operation = oauth2_authenticate,
