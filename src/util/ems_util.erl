@@ -3350,56 +3350,41 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 													   user_agent = UserAgent,
 													   ip_bin = Peer,
 													   forwarded_for = ForwardedFor}) ->
+
     try
-		case get_querystring(<<"client_id">>, <<>>, Request) of
-			<<>> -> ClientId = 0;
-			undefined -> ClientId = 0;
-			ClientIdValue -> ClientId = binary_to_integer(ClientIdValue)
-		end,
 		case get_querystring(<<"state">>, <<>>, Request) of
 			<<>> -> State = <<>>;
 			undefined -> State = <<>>;
 			StateValue -> State = StateValue
 		end,
-		case ClientId > 0 of
+
+		case Authorization =/= undefined of
 			true ->
-				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
-				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
-					{ok, Client} -> 
-						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+				case parse_basic_authorization_header(Authorization) of
+					{ok, ClientLogin, ClientSecret} ->
+						ClientId2 = list_to_integer(ClientLogin),
+						ClientSecret2 = list_to_binary(ClientSecret),
+						case ClientId2 > 0 of
+							true ->
+								case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
+									{ok, Client} -> 
+										Client2 = Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State},
+										{ok, Client2};
+									Error -> 
+										ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id_and_secret. client_id: ~p. Request: ~p Reason: ~p", [ClientId2, Request, Error]),
+										Error
+								end;
+							false -> 
+								ems_logger:error("ems_util get_client_request_by_id_and_secret invalid client_id ~p Authorization: ~p. Request: ~p.", [ClientId2, Authorization, Request]),
+								{error, access_denied, einvalid_client_id}
+						end;
 					Error -> 
-						ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id_and_secret. client_id: ~p. Reason: ~p", [ClientId, Error]),
+						ems_logger:error("ems_util get_client_request_by_id_and_secret failed on parse_basic_authorization_header. Authorization: ~p. Reason: ~p", [Authorization, Error]),
 						Error
 				end;
-			false ->
-				% O ClientId também pode ser passado via header Authorization
-				case Authorization =/= undefined of
-					true ->
-						case parse_basic_authorization_header(Authorization) of
-							{ok, ClientLogin, ClientSecret} ->
-								ClientId2 = list_to_integer(ClientLogin),
-								ClientSecret2 = list_to_binary(ClientSecret),
-								case ClientId2 > 0 of
-									true ->
-										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> 
-												Client2 = Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State},
-												{ok, Client2};
-											Error -> 
-												ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id_and_secret. client_id: ~p. Request: ~p Reason: ~p", [ClientId2, Request, Error]),
-												Error
-										end;
-									false -> 
-										ems_logger:error("ems_util get_client_request_by_id_and_secret invalid client_id ~p Authorization: ~p. Request: ~p.", [ClientId2, Authorization, Request]),
-										{error, access_denied, einvalid_client_id}
-								end;
-							Error -> 
-								ems_logger:error("ems_util get_client_request_by_id_and_secret failed on parse_basic_authorization_header. client_id: ~p  Authorization: ~p. Reason: ~p", [ClientId, Authorization, Error]),
-								Error
-						end;
-					false -> 
-						{error, access_denied, eauthorization_header_required}
-				end
+			false -> 
+				{error, access_denied, eauthorization_header_required}
+			
 		end
 	catch
 		_:ReasonException -> 
