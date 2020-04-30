@@ -120,11 +120,13 @@ execute(Request = #request{type = Type,
 					case Client =/= undefined of
 						true ->
 							ClientJson = ems_client:to_json(Client),
-							ResourceOwner = ems_user:to_resource_owner(User, Client),
-							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>];
+							ResourceOwner = ems_user:to_resource_owner(User, Client#client.id),
+							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>],
+							StateProp = Client#client.state;
 						false ->
 							ResourceOwner = ems_user:to_resource_owner(User),
-							ClientProp = <<"\"client\": \"public\","/utf8>>
+							ClientProp = <<"\"client\": \"public\","/utf8>>,
+							StateProp = <<"">>
 					end,
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
@@ -138,6 +140,7 @@ execute(Request = #request{type = Type,
 														   <<"\"expires_in\":"/utf8>>, integer_to_binary(ExpireIn), <<","/utf8>>,
 														   <<"\"resource_owner\":"/utf8>>, ResourceOwner, <<","/utf8>>,
 														   <<"\"scope\":\""/utf8>>, Scope, <<"\","/utf8>>,
+														   <<"\"state\":\""/utf8>>, StateProp, <<"\","/utf8>>,
 														   <<"\"refresh_token\":\""/utf8>>, case RefreshToken of
 																									undefined -> <<>>;
 																									_ -> RefreshToken
