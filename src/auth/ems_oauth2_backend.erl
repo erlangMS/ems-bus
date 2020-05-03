@@ -24,7 +24,7 @@
 
 -export([authenticate_user/2]).
 -export([authenticate_client/2]).
--export([authorize_refresh_token/3]).
+-export([authorize_refresh_token/4]).
 -export([get_client_identity/2]).
 -export([associate_access_code/3]).
 -export([associate_refresh_token/3]).
@@ -37,14 +37,11 @@
 -export([revoke_refresh_token/2]).
 -export([get_redirection_uri/2]).
 -export([verify_redirection_uri/3]).
--export([verify_client_scope/3]).
--export([verify_client_state/3]).
--export([verify_resowner_scope/3]).
--export([verify_scope/3]).
         
 -record(a, { client   = undefined    :: undefined | term()
            , resowner = undefined    :: undefined | term()
            , scope                   :: oauth2:scope()
+           , state                   :: oauth2:scope()
            , ttl      = 0            :: non_neg_integer()
            }).
 
@@ -555,36 +552,20 @@ verify_redirection_uri(#client{redirect_uri = _RedirUri}, _ClientUri, _) ->
 %   end.
 {ok, []}.
 
-verify_client_scope(#client{id = _ClientID}, Scope, _) ->
-	{ok, {[], Scope}}.
-
-verify_client_state(#client{id = _ClientID}, State, _) ->
-	{ok, {[], State}}.
-
-    
-verify_resowner_scope(_ResOwner, Scope, _) ->
-    {ok, {[], Scope}}.
-
-verify_scope(_RegScope, Scope, _) ->
-    {ok, {[], Scope}}.
 
     
 % função criada pois a biblioteca OAuth2 não trata refresh_tokens
-authorize_refresh_token(Client, RefreshToken, Scope) ->
+authorize_refresh_token(Client, RefreshToken, Scope, State) ->
 	try
 		case resolve_refresh_token(RefreshToken, []) of
 			{ok, {_, [_, {_, ResourceOwner}, _, _]}} -> 
-				case verify_client_scope(Client, Scope, []) of
-					{error, _} -> 
-						{error, invalid_scope};
-					{ok, {Ctx3, _}} ->
-						Result = {ok, {Ctx3, #a{client = Client,
-									   resowner = ResourceOwner,
-									   scope = Scope,
-									   ttl = oauth2_config:expiry_time(password_credentials)
-						}}},
-						Result
-				end;
+				Result = {ok, {[], #a{client = Client,
+							   resowner = ResourceOwner,
+							   scope = Scope,
+							   state = State,
+							   ttl = oauth2_config:expiry_time(password_credentials)
+				}}},
+				Result;
 			Error -> Error
 		end
 	catch

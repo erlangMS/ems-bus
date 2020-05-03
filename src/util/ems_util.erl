@@ -222,7 +222,8 @@
 		 file_writable/1,
 		 ensure_dir_writable/1,
 		 file_exists/1,
-		 is_production_server/0
+		 is_production_server/0,
+		 integer_to_binary_def/2
 		]).
 
 -spec version() -> string().
@@ -3352,6 +3353,11 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 													   forwarded_for = ForwardedFor}) ->
 
     try
+		case get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> State = <<>>;
+			undefined -> State = <<>>;
+			StateValue -> State = StateValue
+		end,
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
 			undefined -> ClientId = 0;
@@ -3361,9 +3367,10 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 			true ->
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
-					{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+					{ok, Client} -> 
+						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
 					Error -> 
-						io:format("emsutil:get_client_request_by_id_and_secret falhou ao localizar id %d", ClientId),
+						io:format("emsutil get_client_request_by_id_and_secret failed. ClientId: ~p.", [ClientId]),
 						Error
 				end;
 			false ->
@@ -3377,7 +3384,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 								case ClientId2 > 0 of
 									true ->
 										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
 											Error -> Error
 										end;
 									false -> {error, access_denied, einvalid_client_id}
@@ -4141,3 +4148,13 @@ file_exists(Filename) ->
 
 -spec is_production_server() -> boolean().
 is_production_server() -> ems_db:get_param(instance_type) == production.
+
+
+integer_to_binary_def(_, DefaultValue) when DefaultValue == undefined -> integer_to_binary(DefaultValue);
+integer_to_binary_def(Value, DefaultValue) ->
+	try
+		integer_to_binary(Value)
+	catch
+		_:_ -> integer_to_binary(DefaultValue)
+	end.
+	

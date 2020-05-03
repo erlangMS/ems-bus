@@ -100,8 +100,8 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 	case ems_util:allow_ip_address(Ip, AllowedAddress) of
 		true ->	
 			case ems_auth_user:authenticate(Service, Request) of
-				{ok, Client, User, AccessToken, Scope} -> 	
-					ems_logger:info("ems_dispatcher dispatch_request Ip: ~p Client: ~p, User: ~p, AccessToken: ~p, Scope: ~p.", [Ip, Client, User, AccessToken, Scope]),
+				{ok, Client, User, AccessToken, Scope, State} -> 	
+					ems_logger:info("ems_dispatcher dispatch_request Ip: ~p Client: ~p, User: ~p, AccessToken: ~p, Scope: ~p, State: ~p .", [Ip, Client, User, AccessToken, Scope, State]),
 					ems_db:inc_counter(ServiceExecMetricName),				
 					Latency = ems_util:get_milliseconds() - T1,
 					Request2 = Request#request{client = Client,
@@ -369,7 +369,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 	end,
 	case erlang:is_tuple(User) of
 		false -> 
-			UserJson = <<"{id:0, codigo:0, name:\"public\", login:null, email:null, type:null, subtype:null, cpf:null, active:true, lista_perfil:{}, lista_permission:{}}">>;
+			UserJson = <<"{id:0, codigo:0, name:\"public\", login:null, email:null, type:null, subtype:null, cpf:null, scope:"", state:"" active:true, lista_perfil:{}, lista_permission:{}}">>;
 		_ -> 
 			case erlang:is_tuple(Client) of
 				true -> UserJson = ems_user:to_resource_owner(User, Client#client.id);

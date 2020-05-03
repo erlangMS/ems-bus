@@ -7,6 +7,7 @@
 -include("include/ems_schema.hrl").
 
 
+
 execute(Request = #request{type = Type, 
 						   timestamp = Timestamp,
 						   user_agent = UserAgent, 
@@ -71,7 +72,7 @@ execute(Request = #request{type = Type,
 									Error
 							end;
 						<<"authorization_code">> ->	
-							case ems_util:get_client_request_by_id_and_secret(Request) of
+							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
 									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
 									access_token_request(Request, Client0);
@@ -98,22 +99,13 @@ execute(Request = #request{type = Type,
 				ems_db:inc_counter(ems_oauth2_passport),
 				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0)	
 		end,
+		io:format("resut is ~p\n", [Result]),
 		case Result of
-			{ok, [ {<<"access_token">>,AccessToken},
-				   {<<"expires_in">>, ExpireIn},
-				   {<<"resource_owner">>, User},
-				   {<<"scope">>, Scope},
-				   {<<"refresh_token">>, RefreshToken},
-				   {<<"refresh_token_expires_in">>, RefreshTokenExpireIn},
-				   {<<"token_type">>, TokenType}
-				 ], 
-				 Client
-			 } ->
-					case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-						<<>> -> StateProp = <<>>;
-						undefined -> StateProp = <<>>;
-						StateValue -> StateProp = StateValue
-					end,
+			{ok, Response = #response{client = Client, 
+									  resource_owner = User,
+									  access_token = AccessToken,
+									  refresh_token = RefreshToken}} ->
+					io:format("fim1\n"),
 					case User =/= undefined of
 						true -> 
 							UserAgentBin = ems_util:user_agent_atom_to_binary(UserAgent),
@@ -121,6 +113,7 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
+					io:format("fim2\n"),
 					case Client =/= undefined of
 						true ->
 							ClientJson = ems_client:to_json(Client),
@@ -130,29 +123,36 @@ execute(Request = #request{type = Type,
 							ResourceOwner = ems_user:to_resource_owner(User),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
+					io:format("fim3\n"),
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
-							persist_token_sgbd(Service, User, Client, AccessToken, Scope, UserAgent, UserAgentVersion);
+							persist_token_sgbd(Service, User, Client, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
+					io:format("fim4\n"),
+					
+					io:format("fim4 Response#response.access_token ~p \n", [Response#response.access_token]),
+					io:format("fim4 ems_util:integer_to_binary_def(Response#response.expires_in, 0) ~p \n", [ems_util:integer_to_binary_def(Response#response.expires_in, 0)]),
+					io:format("fim4 ResourceOwner ~p \n", [ResourceOwner]),
+					io:format("fim4 Response#response.scope ~p \n", [Response#response.scope]),
+					io:format("fim4 Response#response.state ~p \n", [Response#response.state]),
+					io:format("fim4 Response#response.refresh_token ~p \n", [Response#response.refresh_token]),
+					io:format("fim4 ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0) ~p \n", [ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0)]),
+					io:format("fim4 Response#response.token_type ~p \n", [Response#response.token_type]),
+					
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
-														   <<"\"access_token\":\""/utf8>>, AccessToken, <<"\","/utf8>>,
-														   <<"\"expires_in\":"/utf8>>, integer_to_binary(ExpireIn), <<","/utf8>>,
+														   <<"\"access_token\":\""/utf8>>, Response#response.access_token, <<"\","/utf8>>,
+														   <<"\"expires_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.expires_in, 0), <<","/utf8>>,
 														   <<"\"resource_owner\":"/utf8>>, ResourceOwner, <<","/utf8>>,
-														   <<"\"scope\":\""/utf8>>, Scope, <<"\","/utf8>>,
-														   <<"\"state\":\""/utf8>>, StateProp, <<"\","/utf8>>,
-														   <<"\"refresh_token\":\""/utf8>>, case RefreshToken of
-																									undefined -> <<>>;
-																									_ -> RefreshToken
-																							end, <<"\","/utf8>>, 
-															<<"\"refresh_token_in\":"/utf8>>, case RefreshTokenExpireIn of 
-																									undefined -> <<"0">>; 
-																									_ -> integer_to_binary(RefreshTokenExpireIn) 
-																							 end, <<","/utf8>>,
-														   <<"\"token_type\":\""/utf8>>, TokenType, <<"\""/utf8>>,
+														   <<"\"scope\":\""/utf8>>, Response#response.scope, <<"\","/utf8>>,
+														   <<"\"state\":\""/utf8>>, Response#response.state, <<"\","/utf8>>,
+														   <<"\"refresh_token\":\""/utf8>>, Response#response.refresh_token, <<"\","/utf8>>, 
+														   <<"\"refresh_token_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0), <<","/utf8>>,
+														   <<"\"token_type\":\""/utf8>>, Response#response.token_type, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
+					io:format("fim5\n"),
 					Request2 = Request#request{code = 200, 
 											    reason = ok,
 											    operation = oauth2_authenticate,
@@ -226,7 +226,7 @@ execute(Request = #request{type = Type,
 		end
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_oauth2_authorize execute exception. Request: ~p Reason: ~p.", [Request, ReasonException]),
+			ems_logger:error("ems_oauth2_authorize execute exception. Reason: ~p.", [ReasonException]),
 			Request3 = Request#request{code = 401, 
 									   reason = access_denied,
 									   reason_detail = eparse_oauth2_authorize_execute,
@@ -257,7 +257,7 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 							undefined -> ScopeProp = <<>>;
 							ScopeValue -> ScopeProp = ScopeValue
 						end,
-						case get_code_by_user_and_client(User, Client, ScopeProp) of
+						case get_code_by_user_and_client(User, Client, ScopeProp, StateProp) of
 							{ok, Code} ->
 								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp]),
 								Request2 = Request#request{code = 200, 
@@ -307,7 +307,7 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 		end
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_oauth2_authorize code_request exception. Request: ~p Reason: ~p.", [Request, ReasonException]),
+			ems_logger:error("ems_oauth2_authorize code_request exception. Reason: ~p.", [ReasonException]),
 			Request3 = Request#request{code = 401, 
 										reason = access_denied,
 										reason_detail = eparse_code_request_exception,
@@ -330,9 +330,18 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 -spec client_credentials_grant(#request{}, #client{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
 client_credentials_grant(Request, Client) ->
 	try
-		Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
-		Authz = oauth2:authorize_client_credentials(Client, Scope, []),
-		issue_token(Authz, Client)
+		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> StateProp = <<>>;
+			undefined -> StateProp = <<>>;
+			StateValue -> StateProp = StateValue
+		end,
+		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+			<<>> -> ScopeProp = <<>>;
+			undefined -> ScopeProp = <<>>;
+			ScopeValue -> ScopeProp = ScopeValue
+		end,
+		Authz = oauth2:authorize_client_credentials(Client, ScopeProp, StateProp, []),
+		issue_token(Authz)
 	catch
 		_:_ -> {error, access_denied, eparse_client_credentials_grant_exception}
 	end.
@@ -342,26 +351,36 @@ client_credentials_grant(Request, Client) ->
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=password&username=johndoe&password=A3ddj3w
 -spec password_grant(#request{}, #client{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
 password_grant(Request, Client) -> 
+	io:format("password_grant1\n"),
 	try
+		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> StateProp = <<>>;
+			undefined -> StateProp = <<>>;
+			StateValue -> StateProp = StateValue
+		end,
+		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+			<<>> -> ScopeProp = <<>>;
+			undefined -> ScopeProp = <<>>;
+			ScopeValue -> ScopeProp = ScopeValue
+		end,
+		io:format("password_grant2\n"),
 		case ems_util:get_user_request_by_login_and_password(Request, Client) of
 			{ok, User} ->
-				Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
 				case Client == undefined of
 					true -> 
-						Authz = oauth2:authorize_password(User, Scope, []);
+						io:format("password_grant3\n"),
+						Authz = oauth2:authorize_password(User, ScopeProp, StateProp, []);
 					false -> 
-						Authz = oauth2:authorize_password(User, Client, Scope, []),
-						Authz
-						
+						io:format("password_grant4\n"),
+						Authz = oauth2:authorize_password(User, Client, ScopeProp, StateProp, [])
 				end,
-				Token = issue_token(Authz, Client),
-				Token;
+				issue_token(Authz);
 			Error -> 
 				Error
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_util password_grant exception. Client: ~p Request: ~p. Reason: ~p.", [Client, Request, ReasonException]),
+			ems_logger:error("ems_util password_grant exception. Client: ~p. Reason: ~p.", [Client, ReasonException]),
 			{error, access_denied, eparse_password_grant_exception}
 	end.
 
@@ -369,19 +388,28 @@ password_grant(Request, Client) ->
 -spec password_grant_passport(#request{}, string(), non_neg_integer(), #client{}, #user{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
 password_grant_passport(Request, PassportCodeBase64, PassportCodeInt, Client, User) -> 
 	try
-		Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),	
+		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> StateProp = <<>>;
+			undefined -> StateProp = <<>>;
+			StateValue -> StateProp = StateValue
+		end,
+		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+			<<>> -> ScopeProp = <<>>;
+			undefined -> ScopeProp = <<>>;
+			ScopeValue -> ScopeProp = ScopeValue
+		end,
 		case Client == undefined of
 			true -> 
-				Authz = oauth2:authorize_password(User, Scope, []),
+				Authz = oauth2:authorize_password(User, ScopeProp, StateProp, []),
 				ems_logger:info("ems_oauth2_authorize autenticate passport ~s (~p) user ~p.", [PassportCodeBase64, PassportCodeInt,
 																						  integer_to_list(User#user.id) ++ " - " ++ User#user.name]);
 			false -> 
-				Authz = oauth2:authorize_password(User, Client, Scope, []),
+				Authz = oauth2:authorize_password(User, Client, ScopeProp, StateProp, []),
 				ems_logger:info("ems_oauth2_authorize autenticate passport ~s (~p) client ~p  user ~p.", [PassportCodeBase64, PassportCodeInt,
 																									 integer_to_list(Client#client.id) ++ " - " ++ Client#client.name, 
 																									 integer_to_list(User#user.id) ++ " - " ++ User#user.name])
 		end,
-		issue_token(Authz, Client)
+		issue_token(Authz)
 	catch
 		_:_ -> {error, access_denied, eparse_password_grant_pass_exception}
 	end.
@@ -411,12 +439,21 @@ authorization_request(Request, Client) ->
 -spec refresh_token_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
 refresh_token_request(Request, Client) ->
 	try
+		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+			<<>> -> StateProp = <<>>;
+			undefined -> StateProp = <<>>;
+			StateValue -> StateProp = StateValue
+		end,
+		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+			<<>> -> ScopeProp = <<>>;
+			undefined -> ScopeProp = <<>>;
+			ScopeValue -> ScopeProp = ScopeValue
+		end,
 		case ems_util:get_querystring(<<"refresh_token">>, <<>>, Request) of
 			<<>> -> {error, access_denied, erefresh_token_empty};
 			RefleshToken ->
-				Scope = ems_util:get_querystring(<<"scope">>, <<>>, Request),
-				Authz = ems_oauth2_backend:authorize_refresh_token(Client, RefleshToken, Scope),
-				issue_token(Authz, Client)
+				Authz = ems_oauth2_backend:authorize_refresh_token(Client, RefleshToken, ScopeProp, StateProp),
+				issue_token(Authz)
 		end
 	catch
 		_:_ -> {error, access_denied, eparse_refresh_token_request_exception}
@@ -434,63 +471,34 @@ access_token_request(Request, Client) ->
 			Code -> 
 				RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 				Authz = oauth2:authorize_code_grant(Client, Code, RedirectUri, []),
-				issue_token_and_refresh(Authz, Client)
+				issue_token_and_refresh(Authz)
 		end
 	catch
 		_:_ -> {error, access_denied, eparse_access_token_request}
 	end.
 	
 
-issue_token({ok, {_, Auth}}, Client) ->
+issue_token({ok, {_, Auth}}) ->
+	io:format("issue_token1  Auth ~p\n", [Auth]),
 	case oauth2:issue_token(Auth, []) of
-		{ok, {_, {response, AccessToken, 
-							undefined,
-							ExpiresIn,
-							User,
-							Scope, 
-							RefreshToken, 
-							RefreshTokenExpiresIn,
-							TokenType
-				 }
-			}} ->
-				{ok, [{<<"access_token">>, AccessToken},
-						{<<"expires_in">>, ExpiresIn},
-						{<<"resource_owner">>, User},
-						{<<"scope">>, Scope},
-						{<<"refresh_token">>, RefreshToken},
-						{<<"refresh_token_expires_in">>, RefreshTokenExpiresIn},
-						{<<"token_type">>, TokenType}], Client};
+		{ok, {_, Result}} -> 
+			io:format("issue_token2\n"),  
+			{ok, Result};
 		_ -> 
 			{error, access_denied, einvalid_issue_token}
 	end;
-issue_token(Result, Client) -> 
-	ems_logger:error("ems_oauth2_authorize issue_token failed. Result: ~p  Client: ~p.", [Result, Client]),
+issue_token(Result) -> 
+	ems_logger:error("ems_oauth2_authorize issue_token failed. Result: ~p.", [Result]),
 	{error, access_denied, einvalid_authorization}.
     
 
-issue_token_and_refresh({ok, {_, Auth}}, Client) ->
+issue_token_and_refresh({ok, {_, Auth}}) ->
 	case oauth2:issue_token_and_refresh(Auth, []) of
-		{ok, {_, {response, AccessToken, 
-							undefined,
-							ExpiresIn,
-							User,
-							Scope, 
-							RefreshToken, 
-							RefreshTokenExpiresIn,
-							TokenType
-				 }
-			}} ->
-				{ok, [{<<"access_token">>, AccessToken},
-						{<<"expires_in">>, ExpiresIn},
-						{<<"resource_owner">>, User},
-						{<<"scope">>, Scope},
-						{<<"refresh_token">>, RefreshToken},
-						{<<"refresh_token_expires_in">>, RefreshTokenExpiresIn},
-						{<<"token_type">>, TokenType}], Client};
+		{ok, {_, Result}} -> {ok, Result};
 		_ -> {error, access_denied, einvalid_issue_token_and_refresh}
 	end;
-issue_token_and_refresh(Result, Client) -> 
-	ems_logger:error("ems_oauth2_authorize issue_token_and_refresh failed. Result: ~p  Client: ~p.", [Result, Client]),
+issue_token_and_refresh(Result) -> 
+	ems_logger:error("ems_oauth2_authorize issue_token_and_refresh failed. Result: ~p.", [Result]),
 	{error, access_denied, einvalid_authorization}.
 
 
@@ -502,16 +510,23 @@ issue_code({ok, {_, Auth}}) ->
 	end;
 issue_code(_) -> {error, access_denied, eparse_issue_code_exception}.
 
--spec get_code_by_user_and_client(#user{}, #client{}, binary()) -> {ok, binary()} | {error, enoent}.
-get_code_by_user_and_client(User, Client = #client{redirect_uri = RedirectUri}, Scope) ->
-	Authz = oauth2:authorize_code_request(User, Client, RedirectUri, Scope, []),
+-spec get_code_by_user_and_client(#user{}, #client{}, binary(), binary()) -> {ok, binary()} | {error, enoent}.
+get_code_by_user_and_client(User, Client = #client{redirect_uri = RedirectUri}, Scope, State) ->
+	Authz = oauth2:authorize_code_request(User, Client, RedirectUri, Scope, State, []),
 	case issue_code(Authz) of
 		{ok, ResponseCode} -> {ok, element(2, lists:nth(1, ResponseCode))};
 		_ -> {ok, enoent}
 	end.
 
 
-persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, Client = #client{name = ClientNameBin}, AccessToken, Scope, UserAgentAtom, UserAgentVersionBin) ->
+persist_token_sgbd(#service{properties = Props}, 
+				  User = #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, 
+				  Client = #client{name = ClientNameBin}, 
+				  AccessToken, 
+				  Scope, 
+				  _State,
+				  UserAgentAtom, 
+				  UserAgentVersionBin) ->
 	SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
 	SqlFixClientName = maps:get(<<"sql_fix_client_name">>, Props, <<>>),
 	case SqlFixClientName of
@@ -524,7 +539,7 @@ persist_token_sgbd(#service{properties = Props}, User = #user{ id = IdUsuario, c
 			case ems_odbc_pool:get_connection(Ds) of
 				{ok, Ds2} ->
 					AccessToken2 = binary_to_list(AccessToken),
-					{ok, CodeBin} = get_code_by_user_and_client(User, Client, Scope),
+					{ok, CodeBin} = get_code_by_user_and_client(User, Client, Scope, <<>>),
 					Code = binary_to_list(CodeBin),
 					ParamsSql = [{{sql_varchar, 32}, [ClientName]},	% Client name
 								  {sql_integer, [IdPessoa]},

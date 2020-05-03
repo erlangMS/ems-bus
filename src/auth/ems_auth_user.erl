@@ -35,14 +35,14 @@ authenticate(Service = #service{authorization = AuthorizationMode,
 						case AuthorizationPublicCheckCredential of
 							true ->
 								case do_basic_authorization(Service, Request) of
-									{ok, Client, User, AccessToken, Scope} -> 
-										{ok, Client, User, AccessToken, Scope};
+									{ok, Client, User, AccessToken, Scope, State} -> 
+										{ok, Client, User, AccessToken, Scope, State};
 									_ -> 
-										{ok, public, public, <<>>, <<>>}
+										{ok, public, public, <<>>, <<>>, <<>>}
 								end;
 							false -> 
 								ems_db:inc_counter(ems_auth_user_public_success),
-								{ok, public, public, <<>>, <<>>}
+								{ok, public, public, <<>>, <<>>, <<>>}
 						end
 				end
 		end
@@ -77,7 +77,17 @@ do_basic_authorization(Service = #service{auth_allow_user_inative_credentials = 
 						case Active orelse AuthAllowUserInativeCredentials of
 							true -> 
 								ems_logger:info("ems_auth_user do_basic_authorization success for \033[0;32mlogin\033[0m: \033[01;34m~s\033[0m, \033[0;32mname\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization\033[0m: \033[01;34m~p\033[0m, \033[0;32mCtrlSourceTable\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m.", [Login, binary_to_list(User#user.name), binary_to_list(Authorization), Table, ClientName]),
-								do_check_grant_permission(Service, Request, Client, User, <<>>, atom_to_binary(Table, utf8), basic);
+								case ems_util:get_querystring(<<"state">>, <<>>, Request) of
+									<<>> -> StateProp = <<>>;
+									undefined -> StateProp = <<>>;
+									StateValue -> StateProp = StateValue
+								end,
+								case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
+									<<>> -> ScopeProp = <<>>;
+									undefined -> ScopeProp = <<>>;
+									ScopeValue -> ScopeProp = ScopeValue
+								end,
+								do_check_grant_permission(Service, Request, Client, User, ScopeProp, StateProp, atom_to_binary(Table, utf8), basic);
 							false -> 
 								ems_logger:error("ems_auth_user do_basic_authorization denied for \033[0;32minative_user\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization\033[0m: \033[01;34m~p\033[0m, \033[0;32mCtrlSourceTable\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m.", [Login, binary_to_list(Authorization), Table, ClientName]),
 								{error, access_denied, einative_user}
@@ -137,21 +147,22 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 					{ok, {[], [{<<"client">>, Client}, 
 							   {<<"resource_owner">>, User}, 
 							   {<<"expiry_time">>, _ExpityTime}, 
-							   {<<"scope">>, Scope}]}} -> 
+							   {<<"scope">>, Scope},
+							   {<<"state">>, State}]}} -> 
 						% Não é aceito um token gerado em um browser ser utilizado em outro browser
 						case Client =/= undefined of
 							true ->
 									case Client#client.user_agent =:= Req#request.user_agent  of 
 											true ->
-												%ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32m, user-agent\033[0m: \033[01;34m~s\033[0m, \033[0;32mforwarded-for\033[0m: \033[01;34m~s\033[0m \033[0;32mfor access token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mtoken forwarded-for\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
-												do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, oauth2);
+												ems_logger:info("ems_auth_user do_oauth2_check_access_token success \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32m, user-agent\033[0m: \033[01;34m~s\033[0m, \033[0;32mforwarded-for\033[0m: \033[01;34m~s\033[0m \033[0;32mfor access token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mtoken forwarded-for\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
+												do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
 											false ->
-												%ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32m, user-agent\033[0m: \033[01;34m~s\033[0m, \033[0;32mforwarded-for\033[0m: \033[01;34m~s\033[0m \033[0;32mfor access token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mtoken forwarded-for\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
+												ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32m, user-agent\033[0m: \033[01;34m~s\033[0m, \033[0;32mforwarded-for\033[0m: \033[01;34m~s\033[0m \033[0;32mfor access token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mtoken forwarded-for\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
 												ems_db:inc_counter(einvalid_peer_token),
 												{error, access_denied, einvalid_peer_token}
 									end;
 							false ->
-									do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, oauth2)
+									do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, State, oauth2)
 						end;
 				_ -> 
 					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
@@ -166,7 +177,7 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 	end.
 	
 
--spec do_check_grant_permission(#service{}, #request{}, #client{} | public, #user{}, binary(), binary(), atom()) -> {ok, #client{}, #user{}, binary(), binary()} | {error, access_denied}.
+-spec do_check_grant_permission(#service{}, #request{}, #client{} | public, #user{}, binary(), binary(), binary(), atom()) -> {ok, #client{}, #user{}, binary(), binary()} | {error, access_denied}.
 do_check_grant_permission(Service = #service{name = ServiceName, 
 											 restricted = RestrictedService, 
 											 owner = Owner}, 
@@ -175,6 +186,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 						  User = #user{admin = Admin}, 
 						  AccessToken, 
 						  Scope, 
+						  State, 
 						  AuthorizationMode) ->
 	try
 		case Client of
@@ -233,7 +245,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 							false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for\033[0;32m restricted service\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), ClientName, OwnerStr, AuthorizationOwnerStr])
 						end
 				end,
-				{ok, Client, User, AccessToken, Scope};
+				{ok, Client, User, AccessToken, Scope, State};
 			false -> 
 				case AuthorizationMode of
 					basic -> ems_db:inc_counter(ems_auth_user_basic_denied);

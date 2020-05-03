@@ -903,3 +903,15 @@
 									}).
 
 		
+-record(response, {
+          access_token              :: oauth2:token()
+          ,access_code              :: oauth2:token()
+          ,expires_in               :: oauth2:lifetime()
+          ,resource_owner           :: term()
+          ,client                   :: term()
+          ,scope                    :: oauth2:scope()
+          ,state                    :: oauth2:scope()
+          ,refresh_token            :: oauth2:token()
+          ,refresh_token_expires_in :: oauth2:lifetime()
+          ,token_type
+         }).

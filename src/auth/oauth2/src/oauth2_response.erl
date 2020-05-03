@@ -24,9 +24,9 @@
 %%%_ * API -------------------------------------------------------------
 -export([new/1]).
 -export([new/2]).
--export([new/4]).
 -export([new/6]).
--export([new/7]).
+-export([new/8]).
+-export([new/9]).
 -export([access_token/1]).
 -export([access_token/2]).
 -export([access_code/1]).
@@ -56,11 +56,13 @@
 -record(response, {
           access_token              :: oauth2:token()
           ,access_code              :: oauth2:token()
-          ,expires_in               :: oauth2:lifetime()
+          ,expires_in = 0           :: oauth2:lifetime()
           ,resource_owner           :: term()
-          ,scope                    :: oauth2:scope()
-          ,refresh_token            :: oauth2:token()
-          ,refresh_token_expires_in :: oauth2:lifetime()
+          ,client                   :: term()
+          ,scope = <<>>             :: oauth2:scope()
+          ,state = <<>>             :: oauth2:scope()
+          ,refresh_token = <<>>     :: oauth2:token()
+          ,refresh_token_expires_in = 0 :: oauth2:lifetime()
           ,token_type = ?TOKEN_TYPE :: binary()
          }).
 
@@ -79,30 +81,41 @@ new(AccessToken) ->
 new(AccessToken, ExpiresIn) ->
     #response{access_token = AccessToken, expires_in = ExpiresIn}.
 
--spec new(token(), lifetime(), term(), scope()) -> response().
-new(AccessToken, ExpiresIn, ResOwner, Scope) ->
+-spec new(token(), lifetime(), term(), term(), scope(), scope()) -> response().
+new(AccessToken, ExpiresIn, ResOwner, Client, Scope, State) ->
     #response{ access_token   = AccessToken
              , expires_in     = ExpiresIn
              , resource_owner = ResOwner
+             , client 		  = Client
              , scope          = Scope
+             , state          = State
+             , refresh_token_expires_in = 0
              }.
 
--spec new(token(), lifetime(), term(), scope(), token(), lifetime()) -> response().
-new(AccessToken, ExpiresIn, ResOwner, Scope, RefreshToken, RExpiresIn) ->
+-spec new(token(), lifetime(), term(), term(), scope(), scope(), token(), lifetime()) -> response().
+new(AccessToken, ExpiresIn, ResOwner, Client, Scope, State, RefreshToken, RExpiresIn) ->
     #response{ access_token             = AccessToken
              , expires_in               = ExpiresIn
              , resource_owner           = ResOwner
+             , client 					= Client
              , scope                    = Scope
+             , state                    = State
              , refresh_token            = RefreshToken
-             , refresh_token_expires_in = RExpiresIn
+             , refresh_token_expires_in = case RExpiresIn of	
+											  undefined -> 0;
+											_  -> RExpiresIn
+										  end
              }.
 
--spec new(_, lifetime(), term(), scope(), _, _, token()) -> response().
-new(_, ExpiresIn, ResOwner, Scope, _, _, AccessCode) ->
+-spec new(_, lifetime(), term(), term(), scope(), scope(), _, _, token()) -> response().
+new(_, ExpiresIn, ResOwner, Client, Scope, State,_ , _, AccessCode) ->
     #response{ access_code    = AccessCode
              , expires_in     = ExpiresIn
              , resource_owner = ResOwner
+             , client 		  = Client
              , scope          = Scope
+             , state          = State
+             , refresh_token_expires_in = 0
              }.
 
 -spec access_token(response()) -> {ok, token()} | {error, not_set}.
