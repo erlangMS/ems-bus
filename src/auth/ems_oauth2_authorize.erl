@@ -99,13 +99,11 @@ execute(Request = #request{type = Type,
 				ems_db:inc_counter(ems_oauth2_passport),
 				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0)	
 		end,
-		io:format("resut is ~p\n", [Result]),
 		case Result of
 			{ok, Response = #response{client = Client, 
 									  resource_owner = User,
 									  access_token = AccessToken,
 									  refresh_token = RefreshToken}} ->
-					io:format("fim1\n"),
 					case User =/= undefined of
 						true -> 
 							UserAgentBin = ems_util:user_agent_atom_to_binary(UserAgent),
@@ -113,7 +111,6 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
-					io:format("fim2\n"),
 					case Client =/= undefined of
 						true ->
 							ClientJson = ems_client:to_json(Client),
@@ -123,24 +120,12 @@ execute(Request = #request{type = Type,
 							ResourceOwner = ems_user:to_resource_owner(User),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
-					io:format("fim3\n"),
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
 							persist_token_sgbd(Service, User, Client, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
-					io:format("fim4\n"),
-					
-					io:format("fim4 Response#response.access_token ~p \n", [Response#response.access_token]),
-					io:format("fim4 ems_util:integer_to_binary_def(Response#response.expires_in, 0) ~p \n", [ems_util:integer_to_binary_def(Response#response.expires_in, 0)]),
-					io:format("fim4 ResourceOwner ~p \n", [ResourceOwner]),
-					io:format("fim4 Response#response.scope ~p \n", [Response#response.scope]),
-					io:format("fim4 Response#response.state ~p \n", [Response#response.state]),
-					io:format("fim4 Response#response.refresh_token ~p \n", [Response#response.refresh_token]),
-					io:format("fim4 ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0) ~p \n", [ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0)]),
-					io:format("fim4 Response#response.token_type ~p \n", [Response#response.token_type]),
-					
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, Response#response.access_token, <<"\","/utf8>>,
@@ -152,7 +137,6 @@ execute(Request = #request{type = Type,
 														   <<"\"refresh_token_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0), <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, Response#response.token_type, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
-					io:format("fim5\n"),
 					Request2 = Request#request{code = 200, 
 											    reason = ok,
 											    operation = oauth2_authenticate,
@@ -351,7 +335,6 @@ client_credentials_grant(Request, Client) ->
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=password&username=johndoe&password=A3ddj3w
 -spec password_grant(#request{}, #client{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
 password_grant(Request, Client) -> 
-	io:format("password_grant1\n"),
 	try
 		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
 			<<>> -> StateProp = <<>>;
@@ -363,15 +346,12 @@ password_grant(Request, Client) ->
 			undefined -> ScopeProp = <<>>;
 			ScopeValue -> ScopeProp = ScopeValue
 		end,
-		io:format("password_grant2\n"),
 		case ems_util:get_user_request_by_login_and_password(Request, Client) of
 			{ok, User} ->
 				case Client == undefined of
 					true -> 
-						io:format("password_grant3\n"),
 						Authz = oauth2:authorize_password(User, ScopeProp, StateProp, []);
 					false -> 
-						io:format("password_grant4\n"),
 						Authz = oauth2:authorize_password(User, Client, ScopeProp, StateProp, [])
 				end,
 				issue_token(Authz);
@@ -479,10 +459,8 @@ access_token_request(Request, Client) ->
 	
 
 issue_token({ok, {_, Auth}}) ->
-	io:format("issue_token1  Auth ~p\n", [Auth]),
 	case oauth2:issue_token(Auth, []) of
 		{ok, {_, Result}} -> 
-			io:format("issue_token2\n"),  
 			{ok, Result};
 		_ -> 
 			{error, access_denied, einvalid_issue_token}

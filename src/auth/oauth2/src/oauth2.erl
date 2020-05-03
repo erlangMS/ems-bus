@@ -101,16 +101,13 @@ authorize_password(User, Scope, State, Ctx0) ->
 -spec authorize_password(user(), client(), scope(), scope(), appctx())
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_password(User, Client, Scope, State, Ctx0) ->
-    io:format("authorize_password1\n"),
     case auth_client(Client, no_redir, Ctx0) of
         {error, _}      -> 
 			{error, invalid_client};
         {ok, {Ctx1, C}} ->
-            io:format("authorize_password2\n"),
             case auth_user(User, Scope, State, Ctx1) of
                 {error, _} = E     -> E;
                 {ok, {Ctx2, Auth}} -> 
-					io:format("authorize_password3\n"),
 					{ok, {Ctx2, Auth#a{client=C}}}
             end
     end.
