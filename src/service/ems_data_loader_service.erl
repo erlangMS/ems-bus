@@ -16,6 +16,7 @@
 sync(Request) -> 
 	case ems_util:get_param_url(<<"name">>, undefined, Request) of
 		<<"client">> ->
+			io:format("Chegou aqui sync_full >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 			ems_data_loader:sync(ems_client_loader_db),
 			ems_json_loader:sync(ems_client_loader_fs),
 			{ok, Request#request{code = 200, 
@@ -74,6 +75,7 @@ sync(Request) ->
 								 response_data = ?OK_JSON}
 			};
 		_ -> 
+			io:format("Deu erro >>>>>>>>>>>>>>>>>>>>c ~n~n"),
 			{error, Request#request{code = 400, 
 									response_data = ?EINVALID_DATA_LOADER}
 			}
@@ -141,6 +143,7 @@ sync_full(Request) ->
 								 response_data = ?OK_JSON}
 			};				
 		_ -> 
+			io:format("Deu erro >>>>>>>>>>>>>>>>>>>>c ~n~n"),
 			{error, Request#request{code = 400, 
 									response_data = ?EINVALID_DATA_LOADER}
 			}
