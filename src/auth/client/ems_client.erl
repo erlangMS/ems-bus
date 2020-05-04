@@ -136,7 +136,8 @@ insert(Client) ->
 update(Client) -> 
 	case valida(Client, update) of
 		ok -> ems_db:update(Client);
-		Error -> Error
+		Error -> 
+			Error
 	end.
 
 delete(Id) -> ems_db:delete(client, Id).

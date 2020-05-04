@@ -82,6 +82,7 @@ sync(Request) ->
 sync_full(Request) -> 
 	case ems_util:get_param_url(<<"name">>, undefined, Request) of
 		<<"client">> ->
+			io:format("Entrou no sync_full >>>>> ~n~n"),
 			ems_data_loader:sync_full(ems_client_loader_db),
 			ems_json_loader:sync_full(ems_client_loader_fs),
 			{ok, Request#request{code = 200, 
