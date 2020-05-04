@@ -384,6 +384,7 @@ do_check_count_checkpoint(State = #state{name = Name,
 	try
 		?DEBUG("~s do_check_count_checkpoint execute now.", [Name]),
 		ems_db:inc_counter(CheckCountCheckpointMetricName),
+		io:format("Chegou aqui >>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 		case ems_odbc_pool:get_connection(Datasource) of
 			{ok, Datasource2} -> 
 				Result = case ems_odbc_pool:param_query(Datasource2, SqlCount, []) of
