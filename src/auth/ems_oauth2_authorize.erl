@@ -20,6 +20,7 @@ execute(Request = #request{type = Type,
 		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
 		case parse_passport_code(PassportCodeBinBase64) of
 			{error, eno_passport_present} ->		
+				put(exec_step, oauth2_authorize_pass1),
 				case Type of
 					<<"GET">> -> 
 						GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request),
@@ -30,63 +31,98 @@ execute(Request = #request{type = Type,
 					_ -> 
 						GrantType = undefined
 				end,
+				put(exec_step, oauth2_authorize_pass2),
 				Result = case GrantType of
 						<<"password">> -> 
+							put(exec_step, oauth2_authorize_password_pass1),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
+									put(exec_step, oauth2_authorize_password_pass2),
 									ems_db:inc_counter(ems_oauth2_grant_type_password),
-									password_grant(Request, Client0);
+									PasswordGrantResult = password_grant(Request, Client0),
+									put(exec_step, oauth2_authorize_password_pass3),
+									PasswordGrantResult;
 								_ -> 
-									password_grant(Request, undefined) % cliente é opcional no grant_type password
+									put(exec_step, oauth2_authorize_password_pass4),
+									PasswordGrantResult = password_grant(Request, undefined), % cliente é opcional no grant_type password
+									put(exec_step, oauth2_authorize_password_pass5),
+									PasswordGrantResult
 							end;
 						<<"client_credentials">> ->
+							put(exec_step, oauth2_authorize_client_credential_pass1),
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} ->
+									put(exec_step, oauth2_authorize_client_credential_pass2),
 									case OAuth2AllowClientCredentials of
 										true ->
+											put(exec_step, oauth2_authorize_client_credential_pass3),
 											ems_db:inc_counter(ems_oauth2_grant_type_client_credentials),
-											client_credentials_grant(Request, Client0);
+											ClientCredentialResult = client_credentials_grant(Request, Client0),
+											put(exec_step, oauth2_authorize_client_credential_pass4),
+											ClientCredentialResult;
 										false ->
+											put(exec_step, oauth2_authorize_client_credential_pass5),
 											ems_db:inc_counter(ems_oauth2_client_credentials_denied),
 											{error, access_denied, eoauth2_client_credentials_denied}	
 									end;
 								{error, ReasonAuthorizationCode, ReasonDetailClientCredential} = Error -> 
+									put(exec_step, oauth2_authorize_client_credential_pass6),
 									ems_logger:error("ems_oauth2_authorize execute client_credentials failed in get_client_request_by_id_and_secret. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailClientCredential]),
 									Error
 							end;
 						<<"token">> -> 
+							put(exec_step, oauth2_authorize_token_pass1),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									put(exec_step, oauth2_authorize_token_pass2),	
 									ems_db:inc_counter(ems_oauth2_grant_type_token),
-									authorization_request(Request, Client0);
+									TokenResult = authorization_request(Request, Client0),
+									put(exec_step, oauth2_authorize_token_pass3),
+									TokenResult;
 								{error, ReasonAuthorizationCode, ReasonDetailToken} = Error -> 
+									put(exec_step, oauth2_authorize_token_pass4),
 									ems_logger:error("ems_oauth2_authorize execute token failed in get_client_request_by_id. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailToken]),
 									Error
 							end;
 						<<"code">> ->	
+							put(exec_step, oauth2_authorize_code_pass1),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									put(exec_step, oauth2_authorize_code_pass2),
 									ems_db:inc_counter(ems_oauth2_grant_type_code),
-									authorization_request(Request, Client0);	
+									CodeResult = authorization_request(Request, Client0),
+									put(exec_step, oauth2_authorize_code_pass3),
+									CodeResult;
 								{error, ReasonAuthorizationCode, ReasonDetailCode} = Error -> 
+									put(exec_step, oauth2_authorize_code_pass3),
 									ems_logger:error("ems_oauth2_authorize execute code failed in get_client_request_by_id. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailCode]),
 									Error
 							end;
 						<<"authorization_code">> ->	
+							put(exec_step, oauth2_authorize_authorization_code_pass1),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									put(exec_step, oauth2_authorize_authorization_code_pass2),
 									ems_db:inc_counter(ems_oauth2_grant_type_authorization_code),
-									access_token_request(Request, Client0);
+									AuthorizationCodeResult = access_token_request(Request, Client0),
+									put(exec_step, oauth2_authorize_authorization_code_pass3),
+									AuthorizationCodeResult;
 								{error, ReasonAuthorizationCode, ReasonDetailAuthorizationCode} = Error -> 
+									put(exec_step, oauth2_authorize_authorization_code_pass4),
 									ems_logger:error("ems_oauth2_authorize execute authorization_code failed in get_client_request_by_id_and_secret. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailAuthorizationCode]),
 									Error
 							end;
 						<<"refresh_token">> ->	
+							put(exec_step, oauth2_authorize_refresh_token_pass1),
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									put(exec_step, oauth2_authorize_refresh_token_pass2),
 									ems_db:inc_counter(ems_oauth2_grant_type_refresh_token),
-									refresh_token_request(Request, Client0);	
+									RefreshTokenResult = refresh_token_request(Request, Client0),
+									put(exec_step, oauth2_authorize_refresh_token_pass3),
+									RefreshTokenResult;
 								{error, ReasonAuthorizationCode, ReasonDetailRefreshToken} = Error -> 
+									put(exec_step, oauth2_authorize_refresh_token_pass4),
 									ems_logger:error("ems_oauth2_authorize execute refresh_token failed in get_client_request_by_id. Reason: ~p  ReasonDetail: ~p.", [ReasonAuthorizationCode, ReasonDetailRefreshToken]),
 									Error
 							end;
@@ -95,17 +131,22 @@ execute(Request = #request{type = Type,
 							{error, access_denied, einvalid_grant_type}
 				end;
 			{ok, PassportCodeInt, Client0, User0} ->
+				put(exec_step, oauth2_authorize_passport_pass1),
 				ems_logger:info("ems_oauth2_authorize autenticate by passport PassportCodeInt: ~p Client: ~p User: ~p.", [PassportCodeInt, Client0, User0]),
 				GrantType = <<"authorization_code">>,
 				ems_db:inc_counter(ems_oauth2_passport),
-				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0)	
+				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0),
+				put(exec_step, oauth2_authorize_passport_pass2),	
+				Result
 		end,
+		put(exec_step, oauth2_authorize_pass3),
 		case Result of
 			{ok, Response = #response{client = Client, 
 									  resource_owner = User,
 									  access_code = AccessCode,
 									  access_token = AccessToken,
 									  refresh_token = RefreshToken}} ->
+					put(exec_step, oauth2_authorize_response_pass1),
 					case User =/= undefined of
 						true -> 
 							UserAgentBin = ems_util:user_agent_atom_to_binary(UserAgent),
@@ -113,21 +154,26 @@ execute(Request = #request{type = Type,
 							ems_db:inc_counter(SingleSignonUserAgentMetricName);
 						false -> ok
 					end,
+					put(exec_step, oauth2_authorize_response_pass2),
 					case Client =/= undefined of
 						true ->
+							put(exec_step, oauth2_authorize_response_pass3),
 							ClientJson = ems_client:to_json(Client),
 							ResourceOwner = ems_user:to_resource_owner(User, Client#client.id),
 							ClientProp = [<<"\"client\":"/utf8>>, ClientJson, <<","/utf8>>];
 						false ->
+							put(exec_step, oauth2_authorize_response_pass4),
 							ResourceOwner = ems_user:to_resource_owner(User),
 							ClientProp = <<"\"client\": \"public\","/utf8>>
 					end,
+					put(exec_step, oauth2_authorize_response_pass5),
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
 							persist_token_sgbd(Service, User, Client, AccessCode, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
+					put(exec_step, oauth2_authorize_response_pass6),
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, Response#response.access_token, <<"\","/utf8>>,
@@ -139,6 +185,7 @@ execute(Request = #request{type = Type,
 														   <<"\"refresh_token_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0), <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, Response#response.token_type, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
+					put(exec_step, oauth2_authorize_response_pass7),
 					Request2 = Request#request{code = 200, 
 											    reason = ok,
 											    operation = oauth2_authenticate,
@@ -149,17 +196,21 @@ execute(Request = #request{type = Type,
 											    client = Client,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},		
+					put(exec_step, oauth2_authorize_response_pass8),
 					{ok, Request2};		
 			{redirect, Client = #client{id = ClientId, redirect_uri = RedirectUri0}} ->
+					put(exec_step, oauth2_authorize_redirect_pass1),
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
 					% Se passar a querystring redirect_uri  na url, pega este, senão o valor do atributo redirect_uri do #client
+					put(exec_step, oauth2_authorize_redirect_pass2),
 					case ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request) of
 						<<>> -> RedirectUri = iolist_to_binary([<<"&redirect_uri=">>, RedirectUri0]);
 						undefined -> RedirectUri = iolist_to_binary([<<"&redirect_uri=">>, RedirectUri0]);
 						_ -> RedirectUri = <<>>			% não precisa porque já vai estar na QuerystringBin
 					end,
+					put(exec_step, oauth2_authorize_redirect_pass3),
 					case Config#config.rest_use_host_in_redirect of
 						true -> 
 							LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?">>, QuerystringBin, RedirectUri]);
@@ -167,8 +218,10 @@ execute(Request = #request{type = Type,
 							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?">>, QuerystringBin, RedirectUri])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect to ~p.", [binary_to_list(LocationPath)]),
+					put(exec_step, oauth2_authorize_redirect_pass4),
 					case Config#config.instance_type == production of
 						true ->
+							put(exec_step, oauth2_authorize_redirect_pass5),
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
 							Expires = cowboy_clock:rfc1123(ExpireDate),
 							Request2 = Request#request{code = 302, 
@@ -181,6 +234,7 @@ execute(Request = #request{type = Type,
 																						 <<"expires">> => Expires}
 													};
 						false ->
+							put(exec_step, oauth2_authorize_redirect_pass6),
 							Request2 = Request#request{code = 302, 
 													   reason = ok,
 													   operation = oauth2_client_redirect,
@@ -190,13 +244,16 @@ execute(Request = #request{type = Type,
 																						 <<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}
 														}
 					end,
+					put(exec_step, oauth2_authorize_redirect_pass7),
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
+					put(exec_step, oauth2_authorize_err_pass1),
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 					case ems_util:get_user_request_by_login(Request) of
 						{ok, UserFound} -> User = UserFound;
 						_ -> User = undefined
 					end,
+					put(exec_step, oauth2_authorize_err_pass2),
 					Request2 = Request#request{code = 401, 
 											   reason = Reason,
 											   reason_detail = ReasonDetail,
@@ -208,7 +265,7 @@ execute(Request = #request{type = Type,
 		end
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_oauth2_authorize execute exception. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_authorize execute exception. Step: ~p. Reason: ~p.", [get(exec_step), ReasonException]),
 			Request3 = Request#request{code = 401, 
 									   reason = access_denied,
 									   reason_detail = eparse_oauth2_authorize_execute,
@@ -223,15 +280,20 @@ execute(Request = #request{type = Type,
 %% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
 code_request(Request = #request{response_header = ResponseHeader, querystring = QuerystringBin}) ->
+	put(exec_step, code_request_pass1),
     try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->
+				put(exec_step, code_request_pass2),
 				case ems_util:get_user_request_by_login_and_password(Request, Client) of
 					{ok, User} ->
+						put(exec_step, code_request_pass3),
 						RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 						case get_code_by_user_and_client(User, Client, Request) of
 							{ok, Code} ->
+								put(exec_step, code_request_pass4),
 								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&">>, QuerystringBin]),
+								put(exec_step, code_request_pass5),
 								Request2 = Request#request{code = 200, 
 														   reason = ok,
 														   operation = oauth2_authenticate,
@@ -240,8 +302,10 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 														   response_data = <<"{}">>,
 														   response_header = ResponseHeader#{<<"location">> => LocationPath}},
 								%ems_user:add_history(User, Client, Request2#request.service, Request2),
+								put(exec_step, code_request_pass6),
 								{ok, Request2};
 							{error, Reason} ->
+								put(exec_step, code_request_pass7),
 								Request2 = Request#request{code = 401, 
 														   reason = Reason,
 														   reason_detail = get_code_by_user_and_client_failed,
@@ -253,11 +317,13 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 								{error, Request2}
 						end;
 					{error, Reason, ReasonDetail} ->
+						put(exec_step, code_request_pass8),
 						% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 						case ems_util:get_user_request_by_login(Request) of
 							{ok, UserFound} -> User = UserFound;
 							_ -> User = undefined
 						end,
+						put(exec_step, code_request_pass9),
 						Request2 = Request#request{code = 401, 
 												   reason = Reason,
 												   reason_detail = ReasonDetail,
@@ -268,6 +334,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 						{error, Request2}
 				end;
 			{error, Reason, ReasonDetail} ->
+				put(exec_step, code_request_pass10),
 				Request2 = Request#request{code = 401, 
 											reason = Reason,
 											reason_detail = ReasonDetail,
@@ -279,7 +346,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 		end
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_oauth2_authorize code_request exception. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p. Reason: ~p.", [get(exec_step), ReasonException]),
 			Request3 = Request#request{code = 401, 
 										reason = access_denied,
 										reason_detail = eparse_code_request_exception,
@@ -477,33 +544,40 @@ persist_token_sgbd(
 				  _State,
 				  UserAgentAtom, 
 				  UserAgentVersionBin) ->
-	SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
-	SqlFixClientName = maps:get(<<"sql_fix_client_name">>, Props, <<>>),
-	case SqlFixClientName of
-		<<>> -> ClientName = binary_to_list(ClientNameBin);
-		_ -> ClientName = binary_to_list(SqlFixClientName)
-	end,
-	case SqlPersist =/= "" andalso CtrlSourceType =/= user_fs of
-		true ->
-			{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
-			case ems_odbc_pool:get_connection(Ds) of
-				{ok, Ds2} ->
-					AccessToken2 = binary_to_list(AccessToken),
-					AccessCode2 = binary_to_list(AccessCode),
-					ParamsSql = [{{sql_varchar, 32}, [ClientName]},	% Client name
-								  {sql_integer, [IdPessoa]},
-								  {sql_integer, [IdUsuario]},
-								  {{sql_varchar, 32}, [AccessToken2]},					% Token
-								  {{sql_varchar, 32}, [AccessCode2]},					% Device ID (Code) 
-								  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
-					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
-					ems_odbc_pool:release_connection(Ds2);
-				{error, Reason} ->
-					ems_logger:error("ems_oauth2_authorize persist_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
-			end;
-		false -> ok
-	end,
-	ok.
+	try
+		SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
+		SqlFixClientName = maps:get(<<"sql_fix_client_name">>, Props, <<>>),
+		case SqlFixClientName of
+			<<>> -> ClientName = binary_to_list(ClientNameBin);
+			_ -> ClientName = binary_to_list(SqlFixClientName)
+		end,
+		case SqlPersist =/= "" andalso CtrlSourceType =/= user_fs of
+			true ->
+				{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+				case ems_odbc_pool:get_connection(Ds) of
+					{ok, Ds2} ->
+						AccessToken2 = binary_to_list(AccessToken),
+						AccessCode2 = binary_to_list(AccessCode),
+						ParamsSql = [{{sql_varchar, 32}, [ClientName]},	% Client name
+									  {sql_integer, [IdPessoa]},
+									  {sql_integer, [IdUsuario]},
+									  {{sql_varchar, 32}, [AccessToken2]},					% Token
+									  {{sql_varchar, 32}, [AccessCode2]},					% Device ID (Code) 
+									  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
+						ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
+						ems_odbc_pool:release_connection(Ds2);
+					{error, Reason} ->
+						ems_logger:error("ems_oauth2_authorize persist_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+				end;
+			false -> ok
+		end,
+		ok
+	catch
+		_:ReasonException -> 
+			ems_logger:error("ems_oauth2_authorize persist_token_sgbd exception. Reason: ~p.", [ReasonException]),
+			% vai ignorar o erro 
+			ok
+	end.
 
 
 parse_passport_code(<<>>) -> {error, eno_passport_present};
