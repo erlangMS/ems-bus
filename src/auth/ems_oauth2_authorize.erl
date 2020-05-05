@@ -143,7 +143,6 @@ execute(Request = #request{type = Type,
 		case Result of
 			{ok, Response = #response{client = Client, 
 									  resource_owner = User,
-									  access_code = AccessCode,
 									  access_token = AccessToken,
 									  refresh_token = RefreshToken}} ->
 					put(exec_step, oauth2_authorize_response_pass1),
@@ -170,6 +169,7 @@ execute(Request = #request{type = Type,
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
+							{ok, AccessCode} = get_code_by_user_and_client(User, Client, Request),
 							persist_token_sgbd(Service, User, Client, AccessCode, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
@@ -580,7 +580,7 @@ persist_token_sgbd(
 						ok;
 					{error, Reason} ->
 						put(persist_token_sgbd_step, oauth2_authorize_persist_token_sgbd_pass12),
-						ems_logger:error("ems_oauth2_authorize persist_token_sgbd failed to get database connection. Reason: ~p.", [Reason])
+						ems_logger:error("ems_oauth2_authorize persist_token_sgbd failed to get database connection. AccessCode: ~p AccessToken: ~p. Reason: ~p.", [AccessCode, AccessToken, Reason])
 				end;
 			false -> 
 				ok
@@ -588,7 +588,7 @@ persist_token_sgbd(
 		ok
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_oauth2_authorize persist_token_sgbd exception. Step: ~p. Reason: ~p.", [get(persist_token_sgbd_step), ReasonException]),
+			ems_logger:error("ems_oauth2_authorize persist_token_sgbd exception. AccessCode: ~p AccessToken: ~p Step: ~p. Reason: ~p.", [AccessCode, AccessToken, get(persist_token_sgbd_step), ReasonException]),
 			% vai ignorar o erro 
 			ok
 	end.
