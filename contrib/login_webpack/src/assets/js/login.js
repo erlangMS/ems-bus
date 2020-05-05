@@ -169,12 +169,13 @@ class Login {
         if (window.location.port != "") {
             baseUrl = baseUrl + ':' + window.location.port;
         }
-        const querystring = this.getQs();
+        const querystring = this.getQuerystringStr();
         const qsState = querystring['state'] || '';
-        let url = baseUrl + '/dados/code_request?' +
-            'client_id=' + querystring['client_id'] +
-            '&state=' + qsState +
-            '&redirect_uri=' + querystring['redirect_uri'];
+        let url = baseUrl + '/code_request?'+ querystring; 
+        //let url = baseUrl + '/dados/code_request?' +
+        //    'client_id=' + querystring['client_id'] +
+        //    '&state=' + qsState +
+        //    '&redirect_uri=' + querystring['redirect_uri'];
         $.ajax({
             url: url,
             crossDomain: true,
@@ -206,13 +207,11 @@ class Login {
         });
     }
 
-    //erro na autenticação
     onErroSalvandoEstilo(obj) {
         this.onRemoveDiv();
         this.error.append('<div id="validate" class="alert alert-danger" role="alert">Usuário ou senha inválido(s).</div>');
     }
 
-    //sucesso na autenticado
     onEstiloSalvo(estilo) {
         this.error.append('<div class="alert alert-danger" role="alert">Ok.</div>');
     }
@@ -224,7 +223,18 @@ class Login {
         }
     }
 
-    getQs() {
+	getQuerystringStr(){
+		var href = window.location.href;
+		var posQuerystring = href.indexOf('?');
+		if (posQuerystring > 0){
+			return href.slice(posQuerystring + 1);
+		}
+		else{
+			return "";
+		}
+	}
+
+  /*  getQs() {
         let qs = [];
         const href = window.location.href;
         const posQuerystring = href.indexOf('?');
@@ -238,7 +248,7 @@ class Login {
             }
         }
         return qs;
-    }
+    } */
 };
 
 $(function() {

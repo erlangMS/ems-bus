@@ -4700,9 +4700,29 @@
 
 // CONCATENATED MODULE: ./src/assets/js/login.js
 
-//erro na autenticação
+//let url = baseUrl + '/dados/code_request?' +
 
-//sucesso na autenticado
+//    'client_id=' + querystring['client_id'] +
+
+//    '&state=' + qsState +
+
+//    '&redirect_uri=' + querystring['redirect_uri'];
+
+/*  getQs() {
+        let qs = [];
+        const href = window.location.href;
+        const posQuerystring = href.indexOf('?');
+        if (posQuerystring > 0) {
+            let hashes = href.slice(posQuerystring + 1).split('&');
+            for (let i = 0; i < hashes.length; i++) {
+                const params = hashes[i].split('=');
+                const paramName = params[0];
+                qs.push(paramName);
+                qs[paramName] = params[1];
+            }
+        }
+        return qs;
+    } */
 
 // EXTERNAL MODULE: ./src/assets/js/waves.min.js
 
