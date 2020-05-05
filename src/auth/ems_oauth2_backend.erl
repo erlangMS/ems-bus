@@ -381,41 +381,55 @@ resolve_refresh_token(RefreshToken, _AppContext) ->
 
 resolve_refresh_token_sgbd(RefreshToken) ->
 	try
+		put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass1),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 		case PersistTokenSGBDEnabled of
 			true ->
+				put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass2),
 				SqlSelect = ems_db:get_param(sql_select_refresh_token),
 				case SqlSelect =/= "" of
 					true ->
+						put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass3),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
+								put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass4),
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(RefreshToken)]}],
+								put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass5),
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
+										put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass6),
 										Context1 = base64:decode(list_to_binary(Context)),
+										put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass7),
 										Context2 = binary_to_term(Context1),
+										put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass8),
 										ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
 										AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
 										mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
+										put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass9),
 										Result = {ok, AuthOauth2RefreshToken};
 									_ ->
+										put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass10),
 										Result = {error, invalid_code} 
 								end,
+								put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass11),
 								ems_odbc_pool:release_connection(Ds2),
+								put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass12),
 								Result;
 							{error, Reason} ->
+								put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass13),	
 								ems_logger:error("ems_oauth2_backend resolve_refresh_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
 								{error, invalid_code} 
 						end;
 					false -> 
+						put(resolve_refresh_token_sgbd_step, resolve_refresh_token_sgbd_step_pass14),
 						{error, invalid_code} 
 				end;
 			false -> {error, invalid_code} 
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_oauth2_backend resolve_refresh_token_sgbd failed. RefreshToken: ~p Reason: ~p.", [RefreshToken, ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_refresh_token_sgbd failed. RefreshToken: ~p Step: ~p. Reason: ~p.", [RefreshToken, get(resolve_refresh_token_sgbd_step), ReasonException]),
 			{error, eparse_resolve_refresh_token_sgbd}
 	end.
 		
@@ -444,35 +458,50 @@ resolve_access_token(AccessToken, _) ->
 
 resolve_access_token_sgbd(AccessToken) ->
 	try
+		put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass1),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 		case PersistTokenSGBDEnabled of
 			true ->
+				put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass2),
 				SqlSelect = ems_db:get_param(sql_select_access_token),
 				case SqlSelect =/= "" of
 					true ->
+						put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass3),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass4),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
+								put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass5),
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessToken)]}],
+								put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass6),
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
+										put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass7),
 										Context1 = base64:decode(list_to_binary(Context)),
+										put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass8),
 										Context2 = binary_to_term(Context1),
+										put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass9),
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
 										AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
 										mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
+										put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass10),
 										Result = {ok, AuthOauth2AccessToken};
 									_ ->
 										ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed to access_token ~p.", [AccessToken]),
+										put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass11),
 										Result = {error, invalid_code} 
 								end,
+								put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass12),
 								ems_odbc_pool:release_connection(Ds2),
+								put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass13),
 								Result;
 							{error, Reason} ->
+								put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass14),
 								ems_logger:error("ems_oauth2_backend resolve_access_token_sgbd failed to get database connection. Reason: ~p.", [Reason]),
 								{error, invalid_code} 
 						end;
 					false -> 
+						put(resolve_access_token_sgbd_step, resolve_access_token_sgbd_step_pass15),
 						ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd failed. SqlSelect == "". Reason:_token ~p.", [AccessToken]),
 						{error, invalid_code} 
 				end;
@@ -482,7 +511,7 @@ resolve_access_token_sgbd(AccessToken) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_oauth2_backend resolve_access_token_sgbd failed. AccessToken: ~p Reason: ~p.", [AccessToken, ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_access_token_sgbd failed. AccessToken: ~p Step: ~p. Reason: ~p.", [AccessToken, get(resolve_access_token_sgbd_step), ReasonException]),
 			{error, eparse_resolve_access_token_sgbd}
 	end.
 		
