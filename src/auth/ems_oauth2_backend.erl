@@ -317,30 +317,44 @@ resolve_access_code(AccessCode, _) ->
 
 resolve_access_code_sgbd(AccessCode) ->
 	try
+		put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass1),
 		PersistTokenSGBDEnabled = ems_db:get_param(persist_token_sgbd_enabled),
 		case PersistTokenSGBDEnabled of
 			true ->
+				put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass2),
 				SqlSelect = ems_db:get_param(sql_select_access_code),
 				case SqlSelect =/= "" of
 					true ->
+						put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass3),
 						{ok, Ds} = ems_db:find_by_id(service_datasource, 1),
+						put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass4),
 						case ems_odbc_pool:get_connection(Ds) of
 							{ok, Ds2} ->
+								put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass5),
 								ParamsSql = [{{sql_varchar, 60}, [binary_to_list(AccessCode)]}],
+								put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass6),
 								case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 									{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
+										put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass7),
 										Context1 = base64:decode(list_to_binary(Context)),
+										put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass8),
 										Context2 = binary_to_term(Context1),
+										put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass9),
 										ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
 										AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context2},
 										mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
+										put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass10),
 										Result = {ok, AuthOAuth2AccessCode};
 									_ ->
+										put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass11),
 										Result = {error, invalid_code} 
 								end,
+								put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass12),
 								ems_odbc_pool:release_connection(Ds2),
+								put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass13),
 								Result;
 							{error, Reason} ->
+								put(resolve_access_code_sgbd_step, resolve_access_code_sgbd_pass14),
 								ems_logger:error("ems_oauth2_backend resolve_access_code_sgbd failed to get database connection. Reason: ~p.", [Reason]),
 								{error, invalid_code} 
 						end;
@@ -352,7 +366,7 @@ resolve_access_code_sgbd(AccessCode) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_oauth2_backend resolve_access_code_sgbd failed. AccessCode: ~p Reason: ~p.", [AccessCode, ReasonException]),
+			ems_logger:error("ems_oauth2_backend resolve_access_code_sgbd failed. AccessCode: ~p Step: ~p. Reason: ~p.", [AccessCode, get(resolve_access_code_sgbd_step), ReasonException]),
 			{error, eparse_resolve_access_code_sgbd}
 	end.
 	
