@@ -1962,9 +1962,16 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																   show_debug_response_headers = ShowDebugResponseHeaders,
 																   current_node = CurrentNode}) ->
 	try
+		io:format("encode_request_cowboy1\n"),
+		put(encode_request_cowboy_step, encode_request_cowboy_step_pass1),
+		io:format("encode_request_cowboy1.1\n"),
 		ems_logger:debug("CowboyReq ~p.", [CowboyReq]),
+		io:format("encode_request_cowboy1.2\n"),
 		Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
+		io:format("encode_request_cowboy1.3\n"),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
+		put(encode_request_cowboy_step, encode_request_cowboy_step_pass2),
+		io:format("encode_request_cowboy2\n"),
 		case Url of
 			"/dados/erl.ms/" ++ UrlEncoded -> 
 				UrlMasked = true,
@@ -2015,6 +2022,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 					_ -> QuerystringMap0 = parse_querystring([binary_to_list(QuerystringBin)])
 				end
 		end,
+		put(encode_request_cowboy_step, encode_request_cowboy_step_pass3),
 		RID = erlang:system_time(),
 		Timestamp = calendar:local_time(),
 		T1 = trunc(RID / 1.0e6), % optimized: same that get_milliseconds()
@@ -2025,6 +2033,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			undefined -> Host = cowboy_req:host(CowboyReq);
 			HostValue -> Host = HostValue
 		end,
+		io:format("encode_request_cowboy3\n"),
 		Version = cowboy_req:version(CowboyReq),
 		case cowboy_req:header(<<"content-type">>, CowboyReq) of
 			undefined -> ContentTypeIn = <<>>;
@@ -2070,7 +2079,9 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			undefined -> ForwardedFor = <<>>;
 			ForwardedForValue -> ForwardedFor = ForwardedForValue
 		end,
+		put(encode_request_cowboy_step, encode_request_cowboy_step_pass4),
 		{Rowid, Params_url} = hashsym_and_params(Url2),
+		io:format("encode_request_cowboy4\n"),
 		TypeLookup = case Type of
 					<<"OPTIONS">> -> 
 						ems_db:inc_counter(ems_dispatcher_options),
@@ -2140,6 +2151,8 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			status_text = <<>>,
 			forwarded_for = ForwardedFor
 		},	
+		put(encode_request_cowboy_step, encode_request_cowboy_step_pass5),
+		io:format("encode_request_cowboy5\n"),
 		case ems_catalog_lookup:lookup(Request) of
 			{Service = #service{name = ServiceName,
 								 service = ServiceService,	
@@ -2159,12 +2172,14 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								 result_cache_shared = ResultCacheSharedService}, 
 			 ParamsMap, 
 			 QuerystringMap} -> 
+		 		put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass1),
 				case cowboy_req:body_length(CowboyReq) of
 					undefined -> ContentLength = 0; %% The value returned will be undefined if the length couldn't be figured out from the request headers. 
 					ContentLengthValue -> ContentLength = ContentLengthValue
 				end,
 				case ContentLength > 0 of
 					true ->
+						put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass2),
 						case ContentLength > HttpMaxContentLengthService of
 							true ->	
 								ems_logger:error("ems_http_handler ehttp_max_content_length_error exception. HttpMaxContentLengthService of the request ~s ~s is ~p bytes.", [binary_to_list(Type), Url, HttpMaxContentLengthService]),
@@ -2172,6 +2187,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 							false -> ok
 						end,
 						ReadBodyOpts = #{length => HttpMaxContentLengthService + 8000, period => 190000, timeout => 180000},
+						put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass3),
 						case ContentTypeIn of
 							<<"application/json">> ->
 								ems_db:inc_counter(http_content_type_in_application_json),
@@ -2294,33 +2310,23 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap
-						end;
+						end,
+						put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass4);
 					false ->
+						put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass5),
 						ContentTypeIn2 = ContentTypeIn,						
 						Payload = <<>>,
 						PayloadMap = undefined,
 						QuerystringMap2 = QuerystringMap,
 						CowboyReq2 = CowboyReq
 				end,
+				put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass6),
 				case ResultCacheSharedService of
 					true ->	ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, Payload]);
 					false -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, AuthorizationService, IpBin, UserAgent, Payload])
 				end,
-				Request2 = Request#request{
-					type = Type, % use original verb of request
-					querystring_map = QuerystringMap2,
-					content_type_in = ContentTypeIn2,
-					content_type_out = 	case ContentTypeService of
-											undefined -> ContentTypeIn2;
-											_ -> ContentTypeService
-										end,
-					content_length = ContentLength,
-					payload = Payload, 
-					payload_map = PayloadMap,
-					params_url = ParamsMap,
-					req_hash = ReqHash,
-					service = Service,
-					response_header = case Type of
+				put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass7),
+				ResponseHeader = case Type of
 											<<"OPTIONS">> -> 
 												ExpireDate = date_add_minute(Timestamp, 1440),
 												Expires = cowboy_clock:rfc1123(ExpireDate),
@@ -2368,10 +2374,28 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																		   <<"X-ems-authorization">> => atom_to_binary(AuthorizationService, utf8),
    																		   <<"cache-control">> => CacheControlService}
 												end
-									  end
+									  end,
+				put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass8),
+				Request2 = Request#request{
+					type = Type, % use original verb of request
+					querystring_map = QuerystringMap2,
+					content_type_in = ContentTypeIn2,
+					content_type_out = 	case ContentTypeService of
+											undefined -> ContentTypeIn2;
+											_ -> ContentTypeService
+										end,
+					content_length = ContentLength,
+					payload = Payload, 
+					payload_map = PayloadMap,
+					params_url = ParamsMap,
+					req_hash = ReqHash,
+					service = Service,
+					response_header = ResponseHeader
 				},	
+				put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass9),
 				{ok, Request2, Service, CowboyReq2};
 			_ -> 
+				put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass1),
 				ReqHash = erlang:phash2([Url, QuerystringMap0, 0, ContentTypeIn]),
 				Latency = ems_util:get_milliseconds() - T1,
 				if 
@@ -2379,6 +2403,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 							StatusText = ems_util:format_rest_status(200, enoent_service_contract, undefined, undefined, Latency),
 							case ShowDebugResponseHeaders of
 								true ->
+									put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass2),
 									Request2 = Request#request{req_hash = ReqHash,
 																code = 200, 
 																reason = enoent_service_contract,
@@ -2388,6 +2413,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																latency = Latency,
 																status_text = StatusText};
 								false ->
+									put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass2),
 									Request2 = Request#request{req_hash = ReqHash,
 																code = 200, 
 																reason = enoent_service_contract,
@@ -2396,12 +2422,14 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																latency = Latency,
 																status_text = StatusText}
 							end,
+							put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass3),
 							{ok, request, Request2, CowboyReq};
 					true ->
 						ems_db:inc_counter(ems_dispatcher_lookup_enoent),								
 						StatusText = ems_util:format_rest_status(404, enoent_service_contract, undefined, undefined, Latency),
 						case ShowDebugResponseHeaders of
 							true ->
+								put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass4),
 								Request2 = Request#request{req_hash = ReqHash,
 															code = 404, 
 															reason = enoent_service_contract,
@@ -2411,6 +2439,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 															latency = Latency,
 															status_text = StatusText};
 							false ->
+								put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass5),
 								Request2 = Request#request{req_hash = ReqHash,
 															code = 404, 
 															reason = enoent_service_contract,
@@ -2420,12 +2449,13 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 															latency = Latency,
 															status_text = StatusText}
 						end,
+						put(encode_request_cowboy_step, encode_request_cowboy_nolookup_step_pass6),
 						{error, request, Request2, CowboyReq}
 				end			
 		end
 	catch
 		_Exception:ReasonException ->
-			ems_logger:error("ems_util encode_request_cowboy failed. Reason: ~p.", [ReasonException]),
+			ems_logger:error("ems_util encode_request_cowboy failed. Step: ~p. Reason: ~p.", [get(encode_request_cowboy_step), ReasonException]),
 			{error, ReasonException}
 	end.
 
@@ -3926,21 +3956,27 @@ get_environment_variable(ParanNameStr, DefaultValue) ->
 
 
 format_rest_status(Code, Reason, ReasonDetail, ReasonException, Latency) ->
-   iolist_to_binary([
-		integer_to_binary(Code), 
-		<<" <<">>, case is_atom(Reason) of
-						true -> 
-						   case ReasonDetail =/= undefined andalso is_atom(ReasonDetail) of
-								true ->
-								   case ReasonException =/= undefined andalso is_atom(ReasonException) of
-										true -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8), <<", ">>, atom_to_binary(ReasonException, utf8)];
-										false -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8)]
-								   end;
-								false -> atom_to_binary(Reason, utf8)
-						   end;
-						false -> <<"error">>
-				  end, <<">> (">>, integer_to_binary(Latency), 
-		<<"ms)">>]).
+   try
+	   iolist_to_binary([
+			integer_to_binary(Code), 
+			<<" <<">>, case is_atom(Reason) of
+							true -> 
+							   case ReasonDetail =/= undefined andalso is_atom(ReasonDetail) of
+									true ->
+									   case ReasonException =/= undefined andalso is_atom(ReasonException) of
+											true -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8), <<", ">>, atom_to_binary(ReasonException, utf8)];
+											false -> [atom_to_binary(Reason, utf8), <<", ">>, atom_to_binary(ReasonDetail, utf8)]
+									   end;
+									false -> atom_to_binary(Reason, utf8)
+							   end;
+							false -> <<"error">>
+					  end, <<">> (">>, integer_to_binary(Latency), 
+			<<"ms)">>])
+	catch
+		_:ReasonException ->
+			ems_logger:format_error("ems_util format_rest_status exception. Reason: ~p.", [ReasonException]),
+			<<>>
+	end.
 				  
 
 get_free_tcp_port() ->

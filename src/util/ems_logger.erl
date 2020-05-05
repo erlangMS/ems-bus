@@ -86,29 +86,104 @@ stop() ->
 %%====================================================================
  
 error(Msg) -> 
-	gen_server:cast(?SERVER, {write_msg, error, Msg}). 
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	write_msg(error, Msg, State).
 
 error(Msg, Params) -> 
-	gen_server:cast(?SERVER, {write_msg, error, Msg, Params}). 
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	write_msg(error, Msg, Params, State).
 
 error(Msg, Params, true) -> error(Msg, Params);
 error(_, _, false) -> ok.
 
 warn(Msg) -> 
-	gen_server:cast(?SERVER, {write_msg, warn, Msg}). 
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	write_msg(warn, Msg, State).
 
 warn(Msg, Params) -> 
-	gen_server:cast(?SERVER, {write_msg, warn, Msg, Params}). 
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	write_msg(warn, Msg, Params, State).
+
 	
 warn(Msg, Params, true) -> 	warn(Msg, Params);
 warn(_, _, false) -> ok.
 
 
 info(Msg) -> 
-	gen_server:cast(?SERVER, {write_msg, info, Msg}).
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	write_msg(info, Msg, State).
+
 
 info(Msg, Params) -> 
-	gen_server:cast(?SERVER, {write_msg, info, Msg, Params}). 
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	write_msg(info, Msg, Params, State).
+
 
 info(Msg, Params, true) -> info(Msg, Params);
 info(_, _, false) -> ok.
@@ -116,13 +191,39 @@ info(_, _, false) -> ok.
 
 debug(Msg) -> 
 	case in_debug() of
-		true -> gen_server:cast(?SERVER, {write_msg, debug, Msg});
+		true -> 
+			Conf = ems_config:getConfig(),
+			State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+						   log_file_max_size = Conf#config.log_file_max_size,
+						   log_show_response = Conf#config.log_show_response,
+						   log_show_payload = Conf#config.log_show_payload,
+						   log_show_response_max_length = Conf#config.log_show_response_max_length,
+						   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+						   log_file_name = undefined,
+						   log_file_handle = undefined,
+						   log_file_path = Conf#config.log_file_path,
+						   log_file_archive_path = Conf#config.log_file_archive_path,
+						   log_show_content_static_file = Conf#config.log_show_content_static_file},
+			write_msg(debug, Msg, State);
 		_ -> ok
 	end.
 
 debug(Msg, Params) -> 
 	case in_debug() of
-		true -> gen_server:cast(?SERVER, {write_msg, debug, Msg, Params});
+		true -> 
+			Conf = ems_config:getConfig(),
+			State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+						   log_file_max_size = Conf#config.log_file_max_size,
+						   log_show_response = Conf#config.log_show_response,
+						   log_show_payload = Conf#config.log_show_payload,
+						   log_show_response_max_length = Conf#config.log_show_response_max_length,
+						   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+						   log_file_name = undefined,
+						   log_file_handle = undefined,
+						   log_file_path = Conf#config.log_file_path,
+						   log_file_archive_path = Conf#config.log_file_archive_path,
+						   log_show_content_static_file = Conf#config.log_show_content_static_file},
+			write_msg(debug, Msg, Params, State);
 		_ -> ok
 	end.
 	
@@ -163,7 +264,19 @@ sync() ->
 	gen_server:cast(?SERVER, sync_log_buffer). 
 
 log_request(Request) -> 
-	gen_server:cast(?SERVER, {log_request, Request}).
+	Conf = ems_config:getConfig(),
+	State = #state{log_file_checkpoint = Conf#config.log_file_checkpoint,
+				   log_file_max_size = Conf#config.log_file_max_size,
+		 		   log_show_response = Conf#config.log_show_response,
+				   log_show_payload = Conf#config.log_show_payload,
+				   log_show_response_max_length = Conf#config.log_show_response_max_length,
+ 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
+ 				   log_file_name = undefined,
+ 				   log_file_handle = undefined,
+ 				   log_file_path = Conf#config.log_file_path,
+ 				   log_file_archive_path = Conf#config.log_file_archive_path,
+ 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
+	do_log_request(Request, State).
 
 set_level(Level) -> 
 	info("ems_logger set log_level ~p.", [Level]),
@@ -408,21 +521,23 @@ handle_call({log_file_tail, N}, _From, State) ->
 
 handle_info(checkpoint_tela, State) ->
    NewState = sync_log_buffer_screen(State),
-   {noreply, NewState#state{log_file_sync_log_buffer_tela_time_ref = undefined, log_ult_msg = undefined}};
+   {noreply, NewState};
 
 handle_info(checkpoint, State) ->
    NewState = sync_log_buffer(State),
-   {noreply, NewState#state{log_file_sync_log_buffer_time_ref = undefined, log_ult_msg = undefined}};
+   {noreply, NewState};
 
 handle_info(checkpoint_archive_log, State) ->
 	Reply = checkpoint_arquive_log(State, false),
 	erlang:send_after(?LOG_ARCHIVE_CHECKPOINT, self(), checkpoint_archive_log),
 	{noreply, Reply}.
 
-terminate(_Reason, #state{log_file_handle = undefined}) ->
+terminate(Reason, #state{log_file_handle = undefined}) ->
+    format_error("ems_logger terminate. Reason ~p.", [Reason]),
     ok;
 
-terminate(_Reason, #state{log_file_handle = IODevice}) ->
+terminate(Reason, #state{log_file_handle = IODevice}) ->
+    format_error("ems_logger terminate2. Reason ~p.", [Reason]),
     file:close(IODevice),
     ok.
  
@@ -525,7 +640,6 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 		State2
 	catch
 		_:Reason3 ->
-			io:format("checkpoint_arquive_log12\n"),
 			ems_db:inc_counter(ems_logger_archive_log_error),
 			ems_logger:error("ems_logger archive log file checkpoint exception. Reason: ~p.", [Reason3]),
 			State#state{log_file_name = undefined,
@@ -580,11 +694,9 @@ log_file_tail(#state{log_file_name = LogFilename}, N) ->
 	end.
 
 
-write_msg(Tipo, Msg, State = #state{log_level = Level, 
+write_msg(Tipo, Msg, State = #state{log_level = _Level, 
 									log_ult_msg = UltMsg, 
-									log_file_checkpoint = LogFileCheckpoint,
-									log_file_sync_log_buffer_time_ref = CurrentSyncLogBufferTimeRef,
-									log_file_sync_log_buffer_tela_time_ref = CurrentSyncLogBufferTelaTimeRef})  ->
+									log_file_checkpoint = _LogFileCheckpoint})  ->
 	%% discart overflow duplicated messages
 	case UltMsg == undefined orelse UltMsg =/= Msg of
 		true ->
@@ -598,64 +710,12 @@ write_msg(Tipo, Msg, State = #state{log_level = Level,
 				debug -> 
 					Msg1 = iolist_to_binary([?DEBUG_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Msg, ?WHITE_BRK_COLOR])
 			end,
-			case (Level == error andalso Tipo /= error) andalso (Tipo /= debug) of
-				true ->
-					case length(State#state.log_buffer) >= 120 of
-						true -> 
-							State2 = sync_log_buffer_screen(State),
-							case CurrentSyncLogBufferTelaTimeRef of
-								undefined -> SyncLogBufferTelaTimeRef = erlang:send_after(500, self(), checkpoint_tela);
-								_ -> SyncLogBufferTelaTimeRef = CurrentSyncLogBufferTelaTimeRef
-							end,
-							State2#state{log_buffer = [Msg1], 
-										 log_ult_msg = undefined,
-										 log_file_sync_log_buffer_tela_time_ref = SyncLogBufferTelaTimeRef};
-						false -> 
-							case CurrentSyncLogBufferTelaTimeRef of
-								undefined -> SyncLogBufferTelaTimeRef = erlang:send_after(500, self(), checkpoint_tela);
-								_ -> SyncLogBufferTelaTimeRef = CurrentSyncLogBufferTelaTimeRef
-							end,
-							State#state{log_buffer = [Msg1|State#state.log_buffer], 
-									    log_file_sync_log_buffer_tela_time_ref = SyncLogBufferTelaTimeRef}
-					end;
-				false ->
-					case length(State#state.log_buffer) >= 80 of
-						true -> 
-							State2 = sync_log_buffer_screen(State),
-							State3 = sync_log_buffer(State2),
-							case CurrentSyncLogBufferTelaTimeRef of
-								undefined -> SyncLogBufferTelaTimeRef = erlang:send_after(500, self(), checkpoint_tela);
-								_ -> SyncLogBufferTelaTimeRef = CurrentSyncLogBufferTelaTimeRef
-							end,
-							case CurrentSyncLogBufferTimeRef of
-								undefined -> SyncLogBufferTimeRef = erlang:send_after(LogFileCheckpoint, self(), checkpoint);
-								_ -> SyncLogBufferTimeRef = CurrentSyncLogBufferTimeRef
-							end,
-							State3#state{log_buffer = [Msg1], 
-										 log_log_buffer_screen = [Msg1],
-										 log_ult_msg = undefined,
-										 log_file_sync_log_buffer_time_ref = SyncLogBufferTimeRef,
-										 log_file_sync_log_buffer_tela_time_ref = SyncLogBufferTelaTimeRef};
-						false ->
-							case CurrentSyncLogBufferTelaTimeRef of
-								undefined -> 
-									SyncLogBufferTelaTimeRef = erlang:send_after(500, self(), checkpoint_tela);
-								_ -> 
-									SyncLogBufferTelaTimeRef = CurrentSyncLogBufferTelaTimeRef
-							end,
-							case CurrentSyncLogBufferTimeRef of
-								undefined -> SyncLogBufferTimeRef = erlang:send_after(LogFileCheckpoint, self(), checkpoint);
-								_ -> SyncLogBufferTimeRef = CurrentSyncLogBufferTimeRef
-							end,
-							State#state{log_buffer = [Msg1|State#state.log_buffer], 
-										log_log_buffer_screen = [Msg1|State#state.log_log_buffer_screen], 
-										log_ult_msg = Msg,
-										log_file_sync_log_buffer_time_ref = SyncLogBufferTimeRef,
-										log_file_sync_log_buffer_tela_time_ref = SyncLogBufferTelaTimeRef}
-					end
-			end;
+			%SyncLogBufferTelaTimeRef = erlang:send_after(500, self(), checkpoint_tela),
+			%SyncLogBufferTimeRef = erlang:send_after(LogFileCheckpoint, self(), checkpoint),
+			io:format(Msg1),
+			State#state{log_ult_msg = Msg1};
 		false -> 
-			State
+			State#state{log_ult_msg = undefined}
 	end.
 	
 write_msg(Tipo, Msg, Params, State) ->
@@ -663,11 +723,18 @@ write_msg(Tipo, Msg, Params, State) ->
 	write_msg(Tipo, Msg1, State).
 	
 	
-sync_log_buffer_screen(State = #state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined}) -> State;
+sync_log_buffer_screen(State = #state{log_log_buffer_screen = []}) -> 
+	State#state{log_ult_msg = undefined, log_ult_reqhash = undefined, log_file_sync_log_buffer_time_ref = undefined};
 sync_log_buffer_screen(State) ->
-	MsgList = lists:reverse(State#state.log_log_buffer_screen),
-	sync_log_buffer_screen_(MsgList),
-	State#state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined}.
+	try
+		MsgList = lists:reverse(State#state.log_log_buffer_screen),
+		sync_log_buffer_screen_(MsgList),
+		State#state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined, log_file_sync_log_buffer_time_ref = undefined}
+	catch 
+		_:ReasonException ->
+			format_error("ems_logger sync_log_buffer_screen exception. Reason: ~p.", [ReasonException]),
+			State#state{log_log_buffer_screen = [], log_ult_msg = undefined, log_ult_reqhash = undefined, log_file_sync_log_buffer_time_ref = undefined}
+	end.
 
 sync_log_buffer_screen_([]) -> ok;
 sync_log_buffer_screen_([H|T]) ->
@@ -677,10 +744,12 @@ sync_log_buffer_screen_([H|T]) ->
 	catch
 		_:_ -> 
 			% se ocorrer algum erro, imprime as demais mensagens
+			format_error("Erro ao imprimir msg: ~p\n", [H]),
 			sync_log_buffer_screen_(T)
 	end.
 
-sync_log_buffer(State = #state{log_buffer = []}) -> State;
+sync_log_buffer(State = #state{log_buffer = []}) -> 
+	State#state{log_file_sync_log_buffer_time_ref = undefined, log_ult_msg = undefined, log_ult_reqhash = undefined};
 sync_log_buffer(State = #state{log_buffer = Buffer,
 							   log_file_name = CurrentLogFilename,
 							   log_file_max_size = LogFileMaxSize,
@@ -694,13 +763,13 @@ sync_log_buffer(State = #state{log_buffer = Buffer,
 				case FileSize > LogFileMaxSize of 	% check limit log file max size
 					true -> 
 						ems_db:inc_counter(ems_logger_sync_log_buffer_file_size_exceeded),
-						ems_logger:info("ems_logger is writing to a log file that has already exceeded the allowed limit."),
+						format_error("ems_logger is writing to a log file that has already exceeded the allowed limit."),
 						State2 = checkpoint_arquive_log(State, true);
 					false ->
 						case filelib:is_regular(CurrentLogFilename) of % Check file deleted
 							false ->
 								ems_db:inc_counter(ems_logger_sync_buffer_file_deleted),
-								ems_logger:error("ems_logger is writing to a log file deleted."),
+								format_error("ems_logger is writing to a log file deleted."),
 								State2 = checkpoint_arquive_log(State, true);
 							true ->
 								State2 = State#state{log_buffer = [], log_ult_msg = undefined, log_ult_reqhash = undefined}
@@ -710,27 +779,29 @@ sync_log_buffer(State = #state{log_buffer = Buffer,
 		Msg = lists:reverse(Buffer),
 		case file:write(State2#state.log_file_handle, Msg) of
 			ok -> 
-				ok;
+				State2#state{log_file_sync_log_buffer_time_ref = undefined};
 			{error, enospc} -> 
 				ems_db:inc_counter(ems_logger_sync_log_buffer_enospc),
-				ems_logger:error("ems_logger does not have disk storage space to write to the log files.");
+				format_error("ems_logger does not have disk storage space to write to the log files."),
+				State2#state{log_file_sync_log_buffer_time_ref = undefined};				
 			{error, ebadf} ->
 				ems_db:inc_counter(ems_logger_sync_log_buffer_ebadf),
 				sync_log_buffer(State#state{log_file_name = undefined,
 											log_file_handle = undefined});
 			{error, Reason} ->
 				ems_db:inc_counter(ems_logger_sync_log_buffer_error),
-				ems_logger:error("ems_logger was unable to unload the log log_buffer cache. Reason: ~p.", [Reason]);
+				format_error("ems_logger was unable to unload the log log_buffer cache. Reason: ~p.", [Reason]),
+				State2#state{log_file_sync_log_buffer_time_ref = undefined};
 			Error ->
 				ems_db:inc_counter(ems_logger_sync_log_buffer_error),
-				ems_logger:error("ems_logger was unable to unload the log log_buffer cache. Reason: ~p.", [Error])
-		end,
-		State2
+				format_error("ems_logger was unable to unload the log log_buffer cache. Reason: ~p.", [Error]),
+				State2#state{log_file_sync_log_buffer_time_ref = undefined}
+		end
 	catch
 		_:Reason2 ->
 			ems_db:inc_counter(ems_logger_sync_buffer_failed),
-			ems_logger:error("ems_logger sync_log_buffer exception. Reason: ~p.", [Reason2]),
-			State#state{log_buffer = []}
+			format_error("ems_logger sync_log_buffer exception. Reason: ~p.", [Reason2]),
+			State#state{log_buffer = [], log_ult_reqhash = undefined, log_file_sync_log_buffer_time_ref = undefined}
 	end.
 
 	
@@ -988,11 +1059,10 @@ do_log_request(Request = #request{rid = RID,
 							_ -> <<>>
 						end,
 					   ?TAB_GREEN_COLOR, <<"Status">>, ?WHITE_PARAM_COLOR, StatusText, <<"\n}">>],
-					   
 				TextBin = iolist_to_binary(TextData),
 				NewState = case Code >= 400 of
-								true  -> write_msg(error, TextBin, State#state{log_ult_reqhash = ReqHash});
-								false -> write_msg(info,  TextBin, State#state{log_ult_reqhash = ReqHash})
+								true  -> write_msg(error, TextBin, State);
+								false -> write_msg(info,  TextBin, State)
 							end,
 				NewState;
 			false -> 
