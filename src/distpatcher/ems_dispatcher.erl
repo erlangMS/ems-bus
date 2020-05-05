@@ -100,13 +100,11 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 	case ems_util:allow_ip_address(Ip, AllowedAddress) of
 		true ->	
 			case ems_auth_user:authenticate(Service, Request) of
-				{ok, Client, User, AccessToken, Scope, State} -> 	
-					ems_logger:info("ems_dispatcher dispatch_request Ip: ~p Client: ~p, User: ~p, AccessToken: ~p, Scope: ~p, State: ~p .", [Ip, Client, User, AccessToken, Scope, State]),
+				{ok, Client, User, AccessToken, _Scope, _State} -> 	
 					ems_db:inc_counter(ServiceExecMetricName),				
 					Latency = ems_util:get_milliseconds() - T1,
 					Request2 = Request#request{client = Client,
 											   user = User,
-											   scope = Scope,
 											   access_token = AccessToken},
 					case Type of
 						<<"OPTIONS">> -> 

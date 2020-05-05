@@ -3353,11 +3353,6 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 													   forwarded_for = ForwardedFor}) ->
 
     try
-		case get_querystring(<<"state">>, <<>>, Request) of
-			<<>> -> State = <<>>;
-			undefined -> State = <<>>;
-			StateValue -> State = StateValue
-		end,
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
 			undefined -> ClientId = 0;
@@ -3368,7 +3363,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
 					{ok, Client} -> 
-						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 					Error -> 
 						io:format("emsutil get_client_request_by_id_and_secret failed. ClientId: ~p.", [ClientId]),
 						Error
@@ -3384,7 +3379,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 								case ClientId2 > 0 of
 									true ->
 										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 											Error -> Error
 										end;
 									false -> {error, access_denied, einvalid_client_id}
@@ -3412,16 +3407,11 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 			undefined -> ClientId = 0;
 			ClientIdValue -> ClientId = binary_to_integer(ClientIdValue)
 		end,
-		case get_querystring(<<"state">>, <<>>, Request) of
-			<<>> -> State = <<>>;
-			undefined -> State = <<>>;
-			StateValue -> State = StateValue
-		end,
 		case ClientId > 0 of
 			true ->
 				case ems_client:find_by_id(ClientId) of
 					{ok, Client} -> 
-						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 					Error -> 
 						ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 						{error, access_denied, enoent}
@@ -3437,7 +3427,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 									true ->
 										case ems_client:find_by_id(ClientId2) of
 											{ok, Client} -> 
-												{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor, state = State}};
+												{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 											Error -> 
 												ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 												{error, access_denied, enoent}

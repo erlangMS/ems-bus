@@ -174,11 +174,7 @@ Login.LoginSistemas = (function() {
 		if (window.location.port != ""){
 			baseUrl = baseUrl + ':' + window.location.port; 
 		}
-		var querystring = getQuerystring();
-		var url = baseUrl + '/dados/code_request?'+
-				 'client_id=' + querystring['client_id']+
-				 '&state=' + querystring['state']+
-				 '&redirect_uri=' + querystring['redirect_uri'];
+		var url = baseUrl + '/code_request?'+ getQuerystringStr(); 
 		$.ajax({
 			url: url,
 			crossDomain: true,
@@ -229,6 +225,17 @@ Login.LoginSistemas = (function() {
 		}
 	}
 	
+	function getQuerystringStr(){
+		var href = window.location.href;
+		var posQuerystring = href.indexOf('?');
+		if (posQuerystring > 0){
+			return href.slice(posQuerystring + 1);
+		}
+		else{
+			return "";
+		}
+	}
+
 	function getQuerystring(){
 		var vars = [], param;
 		var href = window.location.href;

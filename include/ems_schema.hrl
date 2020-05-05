@@ -686,7 +686,8 @@
 					metadata :: binary(),									%% 86 - metadata 								-> Representação em json do que será enviado para o web service /catalog
 					show_debug_response_headers = false :: boolean(),		%% 87 - show_debug_response_headers				-> Add debug headers in HTTP response headers
 					result_cache_shared = true :: boolean(),				%% 88 - result_cache_shared						-> true if resulta cache is shared between requests
-					log_show_response_header :: boolean()					%% 89 - result_cache_shared						-> true if show response header in logger
+					log_show_response_header = true :: boolean(),			%% 89 - result_cache_shared						-> true if show response header in logger
+					log_show = true :: boolean()							%% 90 - log_show								
 				}).
 
 
@@ -780,7 +781,8 @@
 			   binary_type,									%% 86 - metadata
 			   boolean_type,								%% 87 - show_debug_response_headers
 			   boolean_type,								%% 88 - result_cache_shared
-			   boolean_type									%% 89 - log_show_response_header
+			   boolean_type,								%% 89 - log_show_response_header
+			   boolean_type									%% 90 - log_show
 		}).
 
 

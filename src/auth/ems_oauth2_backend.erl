@@ -570,7 +570,7 @@ authorize_refresh_token(Client, RefreshToken, Scope, State) ->
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_oauth2_backend authorize_refresh_token exception. Client: ~p  RefreshToken: ~p Reason: ~p.", [Client, RefreshToken, ReasonException]),
+			ems_logger:error("ems_oauth2_backend authorize_refresh_token exception. Client: ~p  RefreshToken: ~p. Reason: ~p.", [Client, RefreshToken, ReasonException]),
 			{error, eparse_authorize_refresh_token}
 	end.
 		

@@ -768,7 +768,6 @@ do_log_request(Request = #request{rid = RID,
 								  filename = Filename,
 								  client = Client,
 								  user = User,
-								  scope = Scope,
 								  response_header = ResponseHeader,
 								  oauth2_grant_type = GrantType,
 								  oauth2_access_token = AccessToken,
@@ -782,7 +781,11 @@ do_log_request(Request = #request{rid = RID,
 							 log_show_payload_url_list = ShowPayloadUrlList,
 							 log_show_content_static_file = LogShowContentStaticFile}) ->
 	try
-		case UltReqHash == undefined orelse UltReqHash =/= ReqHash of
+		LogShow = case Service of
+						undefined -> true;
+						_ -> Service#service.log_show
+				  end,
+		case LogShow andalso (UltReqHash == undefined orelse UltReqHash =/= ReqHash) of
 			true ->
 				ems_user:add_history(Request),
 				case Service of
@@ -840,14 +843,10 @@ do_log_request(Request = #request{rid = RID,
 						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"group">>, ?WHITE_PARAM_COLOR, ServiceGroup,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
-						case ShowResponseHeaderService of
-							true -> [?TAB_GREEN_COLOR, <<"ResponseHeader">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [ResponseHeader]))];
-							false -> <<>>
-						end,
 						case (Reason =/= ok orelse 
 							   ShowPayloadService orelse 
 							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList)) 
-							  ) andalso ContentLength > 0 of
+							  ) of
 							true ->
 							   case ContentLength =< ShowPayloadMaxLength of
 									true ->
@@ -863,6 +862,10 @@ do_log_request(Request = #request{rid = RID,
 											 end]; 
 									false -> [?TAB_GREEN_COLOR, <<"Payload">>, ?WHITE_PARAM_COLOR, integer_to_list(ContentLength), <<" bytes">>, ?SPACE_GREEN_COLOR, <<"Content">>, ?WHITE_PARAM_COLOR, <<"large content">>]
 								end;
+							false -> <<>>
+						end,
+						case ShowResponseHeaderService of
+							true -> [?TAB_GREEN_COLOR, <<"ResponseHeader">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [ResponseHeader]))];
 							false -> <<>>
 						end,
 						case (Filename == undefined orelse LogShowContentStaticFile)  
@@ -958,10 +961,6 @@ do_log_request(Request = #request{rid = RID,
 					   case RefreshToken of
 							undefined -> <<>>;
 							_ ->  [?SPACE_GREEN_COLOR, <<"refresh token">>, ?WHITE_PARAM_COLOR, RefreshToken]
-					   end,
-					   case Scope of
-							undefined -> <<>>;
-							_ -> [?SPACE_GREEN_COLOR, <<"scope">>, ?WHITE_PARAM_COLOR, Scope]
 					   end,
 					  ?TAB_GREEN_COLOR, <<"Client">>, ?WHITE_PARAM_COLOR, 
 									  case Client of

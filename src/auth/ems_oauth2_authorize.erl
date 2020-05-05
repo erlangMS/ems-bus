@@ -14,6 +14,7 @@ execute(Request = #request{type = Type,
 						   user_agent_version = UserAgentVersion,
 						   response_header = ResponseHeader,
 						   host = Host,
+						   querystring = QuerystringBin,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
 	try
 		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
@@ -102,6 +103,7 @@ execute(Request = #request{type = Type,
 		case Result of
 			{ok, Response = #response{client = Client, 
 									  resource_owner = User,
+									  access_code = AccessCode,
 									  access_token = AccessToken,
 									  refresh_token = RefreshToken}} ->
 					case User =/= undefined of
@@ -123,7 +125,7 @@ execute(Request = #request{type = Type,
 					% Persiste os tokens somente quando um user e um cliente foi informado
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
-							persist_token_sgbd(Service, User, Client, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
+							persist_token_sgbd(Service, User, Client, AccessCode, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
@@ -131,8 +133,8 @@ execute(Request = #request{type = Type,
 														   <<"\"access_token\":\""/utf8>>, Response#response.access_token, <<"\","/utf8>>,
 														   <<"\"expires_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.expires_in, 0), <<","/utf8>>,
 														   <<"\"resource_owner\":"/utf8>>, ResourceOwner, <<","/utf8>>,
-														   <<"\"scope\":\""/utf8>>, Response#response.scope, <<"\","/utf8>>,
-														   <<"\"state\":\""/utf8>>, Response#response.state, <<"\","/utf8>>,
+														   <<"\"scope\":\""/utf8>>, maps:get(<<"scope">>, Response#response.state, <<>>), <<"\","/utf8>>,
+														   <<"\"state\":\""/utf8>>, maps:get(<<"state">>, Response#response.state, <<>>), <<"\","/utf8>>,
 														   <<"\"refresh_token\":\""/utf8>>, Response#response.refresh_token, <<"\","/utf8>>, 
 														   <<"\"refresh_token_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0), <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, Response#response.token_type, <<"\""/utf8>>,
@@ -148,27 +150,23 @@ execute(Request = #request{type = Type,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},		
 					{ok, Request2};		
-			{redirect, Client = #client{id = ClientId, name = Name, redirect_uri = RedirectUri}} ->
+			{redirect, Client = #client{id = ClientId, redirect_uri = RedirectUri0}} ->
 					ClientIdBin = integer_to_binary(ClientId),
 					ems_db:inc_counter(binary_to_atom(iolist_to_binary([<<"ems_oauth2_singlesignon_client_">>, ClientIdBin]), utf8)),
 					Config = ems_config:getConfig(),
-					case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-						<<>> -> StateProp = <<>>;
-						undefined -> StateProp = <<>>;
-						StateValue -> StateProp = StateValue
-					end,
-					case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
-						<<>> -> ScopeProp = <<>>;
-						undefined -> ScopeProp = <<>>;
-						ScopeValue -> ScopeProp = ScopeValue
+					% Se passar a querystring redirect_uri  na url, pega este, senão o valor do atributo redirect_uri do #client
+					case ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request) of
+						<<>> -> RedirectUri = iolist_to_binary([<<"&redirect_uri=">>, RedirectUri0]);
+						undefined -> RedirectUri = iolist_to_binary([<<"&redirect_uri=">>, RedirectUri0]);
+						_ -> RedirectUri = <<>>			% não precisa porque já vai estar na QuerystringBin
 					end,
 					case Config#config.rest_use_host_in_redirect of
 						true -> 
-							LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp, <<"&redirect_uri=">>, RedirectUri]);
+							LocationPath = iolist_to_binary([<<"http://"/utf8>>, Host, <<"/login/index.html?">>, QuerystringBin, RedirectUri]);
 						false ->
-							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?response_type=code&client_id=">>, ClientIdBin, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp, <<"&redirect_uri=">>, RedirectUri])
+							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?">>, QuerystringBin, RedirectUri])
 					end,
-					ems_logger:info("ems_oauth2_authorize redirect client ~p ~s to ~p.", [ClientId, binary_to_list(Name), binary_to_list(LocationPath)]),
+					ems_logger:info("ems_oauth2_authorize redirect to ~p.", [binary_to_list(LocationPath)]),
 					case Config#config.instance_type == production of
 						true ->
 							ExpireDate = ems_util:date_add_minute(Timestamp, 1 + 180), % add +120min (2h) para ser horário GMT
@@ -224,26 +222,16 @@ execute(Request = #request{type = Type,
 
 %% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
-code_request(Request = #request{response_header = ResponseHeader}) ->
+code_request(Request = #request{response_header = ResponseHeader, querystring = QuerystringBin}) ->
     try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->
 				case ems_util:get_user_request_by_login_and_password(Request, Client) of
 					{ok, User} ->
 						RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
-						case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-							<<>> -> StateProp = <<>>;
-							undefined -> StateProp = <<>>;
-							StateValue -> StateProp = StateValue
-						end,
-						case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
-							<<>> -> ScopeProp = <<>>;
-							undefined -> ScopeProp = <<>>;
-							ScopeValue -> ScopeProp = ScopeValue
-						end,
-						case get_code_by_user_and_client(User, Client, ScopeProp, StateProp) of
+						case get_code_by_user_and_client(User, Client, Request) of
 							{ok, Code} ->
-								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&state=">>, StateProp, <<"&scope=">>, ScopeProp]),
+								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&">>, QuerystringBin]),
 								Request2 = Request#request{code = 200, 
 														   reason = ok,
 														   operation = oauth2_authenticate,
@@ -312,13 +300,8 @@ code_request(Request = #request{response_header = ResponseHeader}) ->
 %% Cliente Credencial Grant- seção 4.4.1 do RFC 6749. 
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=client_credentials&client_id=s6BhdRkqt3&secret=qwer
 -spec client_credentials_grant(#request{}, #client{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
-client_credentials_grant(Request, Client) ->
+client_credentials_grant(Request = #request{querystring_map = StateProp}, Client) ->
 	try
-		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-			<<>> -> StateProp = <<>>;
-			undefined -> StateProp = <<>>;
-			StateValue -> StateProp = StateValue
-		end,
 		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
 			<<>> -> ScopeProp = <<>>;
 			undefined -> ScopeProp = <<>>;
@@ -334,13 +317,8 @@ client_credentials_grant(Request, Client) ->
 %% Resource Owner Password Credentials Grant - seção 4.3.1 do RFC 6749.
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=password&username=johndoe&password=A3ddj3w
 -spec password_grant(#request{}, #client{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
-password_grant(Request, Client) -> 
+password_grant(Request = #request{querystring_map = StateProp}, Client) -> 
 	try
-		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-			<<>> -> StateProp = <<>>;
-			undefined -> StateProp = <<>>;
-			StateValue -> StateProp = StateValue
-		end,
 		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
 			<<>> -> ScopeProp = <<>>;
 			undefined -> ScopeProp = <<>>;
@@ -366,13 +344,8 @@ password_grant(Request, Client) ->
 
 
 -spec password_grant_passport(#request{}, string(), non_neg_integer(), #client{}, #user{}) -> {ok, list(), #client{}} | {error, access_denied, atom()}.
-password_grant_passport(Request, PassportCodeBase64, PassportCodeInt, Client, User) -> 
+password_grant_passport(Request = #request{querystring_map = StateProp}, PassportCodeBase64, PassportCodeInt, Client, User) -> 
 	try
-		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-			<<>> -> StateProp = <<>>;
-			undefined -> StateProp = <<>>;
-			StateValue -> StateProp = StateValue
-		end,
 		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
 			<<>> -> ScopeProp = <<>>;
 			undefined -> ScopeProp = <<>>;
@@ -417,13 +390,8 @@ authorization_request(Request, Client) ->
 %% Requisita o código de autorização - seções 4.1.1 e 4.1.2 do RFC 6749.
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code2&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w
 -spec refresh_token_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
-refresh_token_request(Request, Client) ->
+refresh_token_request(Request = #request{querystring_map = StateProp}, Client) ->
 	try
-		case ems_util:get_querystring(<<"state">>, <<>>, Request) of
-			<<>> -> StateProp = <<>>;
-			undefined -> StateProp = <<>>;
-			StateValue -> StateProp = StateValue
-		end,
 		case ems_util:get_querystring(<<"scope">>, <<>>, Request) of
 			<<>> -> ScopeProp = <<>>;
 			undefined -> ScopeProp = <<>>;
@@ -488,20 +456,24 @@ issue_code({ok, {_, Auth}}) ->
 	end;
 issue_code(_) -> {error, access_denied, eparse_issue_code_exception}.
 
--spec get_code_by_user_and_client(#user{}, #client{}, binary(), binary()) -> {ok, binary()} | {error, enoent}.
-get_code_by_user_and_client(User, Client = #client{redirect_uri = RedirectUri}, Scope, State) ->
-	Authz = oauth2:authorize_code_request(User, Client, RedirectUri, Scope, State, []),
+
+-spec get_code_by_user_and_client(#user{}, #client{}, #request{}) -> {ok, binary()} | {error, enoent}.
+get_code_by_user_and_client(User, Client, Request = #request{querystring_map = QuerystringMap}) ->
+	RedirectUri = ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request),
+	Authz = oauth2:authorize_code_request(User, Client, RedirectUri, undefined, QuerystringMap, []),
 	case issue_code(Authz) of
 		{ok, ResponseCode} -> {ok, element(2, lists:nth(1, ResponseCode))};
 		_ -> {ok, enoent}
 	end.
 
 
-persist_token_sgbd(#service{properties = Props}, 
-				  User = #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, 
-				  Client = #client{name = ClientNameBin}, 
+persist_token_sgbd(
+				  #service{properties = Props}, 
+				  #user{ id = IdUsuario, codigo = IdPessoa, ctrl_source_type = CtrlSourceType }, 
+				  #client{name = ClientNameBin}, 
+				  AccessCode,
 				  AccessToken, 
-				  Scope, 
+				  _Scope, 
 				  _State,
 				  UserAgentAtom, 
 				  UserAgentVersionBin) ->
@@ -517,13 +489,12 @@ persist_token_sgbd(#service{properties = Props},
 			case ems_odbc_pool:get_connection(Ds) of
 				{ok, Ds2} ->
 					AccessToken2 = binary_to_list(AccessToken),
-					{ok, CodeBin} = get_code_by_user_and_client(User, Client, Scope, <<>>),
-					Code = binary_to_list(CodeBin),
+					AccessCode2 = binary_to_list(AccessCode),
 					ParamsSql = [{{sql_varchar, 32}, [ClientName]},	% Client name
 								  {sql_integer, [IdPessoa]},
 								  {sql_integer, [IdUsuario]},
 								  {{sql_varchar, 32}, [AccessToken2]},					% Token
-								  {{sql_varchar, 32}, [Code]},							% Device ID (Code) 
+								  {{sql_varchar, 32}, [AccessCode2]},					% Device ID (Code) 
 								  {{sql_varchar, 32}, [atom_to_list(UserAgentAtom) ++ " " ++ binary_to_list(UserAgentVersionBin)]}],	% Device Info
 					ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 					ems_odbc_pool:release_connection(Ds2);

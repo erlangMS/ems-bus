@@ -104,7 +104,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 			   AuthorizationPublicCheckCredential,
 			   HttpMaxContentLength, HttpHeaders, 
 			   LogShowResponse, LogShowResponseHeader, LogShowPayload, Restricted,
-			   ShowDebugResponseHeader) ->
+			   ShowDebugResponseHeader, LogShow) ->
 	PatternKey = ems_util:make_rowid_from_url(Url, Type),
 	{ok, Id_re_compiled} = re:compile(PatternKey),
 	Contract = #service{
@@ -188,6 +188,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					log_show_response = LogShowResponse,
 					log_show_response_header = LogShowResponseHeader,
 					log_show_payload = LogShowPayload,
+					log_show = LogShow,
 					restricted = Restricted,
 					show_debug_response_headers = ShowDebugResponseHeader
 				},
@@ -214,7 +215,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			AuthorizationPublicCheckCredential,
 			HttpMaxContentLength, HttpHeaders, 
 			LogShowResponse, LogShowResponseHeader, LogShowPayload, 
-			Restricted,	ShowDebugResponseHeader) ->
+			Restricted,	ShowDebugResponseHeader, LogShow) ->
 	Contract = #service{
 				id = Id,
 				rowid = Rowid,
@@ -294,6 +295,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 				log_show_response = LogShowResponse,
 				log_show_response_header = LogShowResponseHeader,
 				log_show_payload = LogShowPayload,
+				log_show = LogShow,
 				restricted = Restricted,
 				show_debug_response_headers = ShowDebugResponseHeader
 			},
@@ -682,6 +684,9 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				put(parse_step, log_show_payload),
 				LogShowPayload = ems_util:parse_bool(get_p(<<"log_show_payload">>, Map, LogShowPayloadDefault)),
 				
+				put(parse_step, log_show),
+				LogShow = ems_util:parse_bool(get_p(<<"log_show">>, Map, true)),
+
 				put(parse_step, tcp_ssl),
 				Ssl = get_p(<<"tcp_ssl">>, Map, undefined),
 				case Ssl of
@@ -762,7 +767,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												   AuthorizationPublicCheckCredential,
 												   HttpMaxContentLength, HttpHeaders, 
 												   LogShowResponse, LogShowResponseHeader, LogShowPayload,
-												   Restricted, ShowDebugResponseHeader);
+												   Restricted, ShowDebugResponseHeader, LogShow);
 					false -> 
 						put(parse_step, new_service),
 						Service = new_service(Rowid, Id, Name, Url2, 
@@ -793,7 +798,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												AuthorizationPublicCheckCredential,
 												HttpMaxContentLength, HttpHeaders, 
 												LogShowResponse, LogShowResponseHeader, LogShowPayload,
-												Restricted, ShowDebugResponseHeader)
+												Restricted, ShowDebugResponseHeader, LogShow)
 				end,
 				{ok, Service};
 			false -> 	
