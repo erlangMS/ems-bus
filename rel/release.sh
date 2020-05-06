@@ -185,6 +185,7 @@ make_release(){
 	# Get ErlangMS version in the file src/ems_bus.app.src
 	VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
 	[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in rebar.config"
+
 	echo "Please wait, generating the release $VERSION_RELEASE of the ems-bus, this may take a while!"
 
 
@@ -343,8 +344,12 @@ make_release(){
 				VERSION_PACK=$VERSION_RELEASE
 				DEB_CONTROL_FILE=$SKEL_DEB_PACKAGE/DEBIAN/control
 				SKEL_PACKAGE_SOURCES=$SKEL_DEB_PACKAGE
+
 				# Updates the version in the file SPEC/emsbus.spec
-				sed -ri "s/Version: [0.9]{1,2}.[0-9]{1,2}.[0-9]{1,3}(.*$)/Version: $VERSION_RELEASE\1/" $DEB_CONTROL_FILE
+				echo "Update version parameter in CONTROL file..."
+				sed -ri "s/Version: [0-9]{1,2}.[0-9]{1,2}.[0-9]{1,3}(.*$)/Version: $VERSION_RELEASE\1/" $DEB_CONTROL_FILE
+				echo "Version in $DEB_CONTROL_FILE: $(sed -rn "/Version:.*/p" $DEB_CONTROL_FILE)"
+
 				RELEASE_PACK=$(grep 'Version' $DEB_CONTROL_FILE | cut -d'-' -f2-)	
 				PACKAGE_NAME=ems-bus-$VERSION_RELEASE-$RELEASE_PACK.x86_64.deb
 				PACKAGE_FILE=$SKEL_DEB_PACKAGE/$PACKAGE_NAME

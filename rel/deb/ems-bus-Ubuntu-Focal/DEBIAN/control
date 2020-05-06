@@ -1,0 +1,21 @@
+Package: ems-bus
+Source: ems-bus
+Version: 2.0.10-ubuntu.17.10
+Architecture: amd64
+Depends: procps, libc6
+Maintainer: ErlangMS Team <evertonagilar@gmail.com>
+Section: contrib/misc
+Priority: extra
+Recommends:  
+Suggests: default-jre-headless | java2-runtime-headless | java1-runtime-headless | java2-runtime | java1-runtime
+Conflicts: ems-bus
+Replaces: ems-bus
+Provides: ems-bus
+Homepage: https://github.com/erlangMS
+Description: ErlangMS
+ ErlangMS is a platform developed in Erlang/OTP to facilitate the integration of systems through a service-oriented 
+ approach for the systems of the University of Brazilia. This work is the result of efforts made in the Master of
+  Applied Computing at the University of Brasilia by graduate student Everton Vargas Agilar.
+  .
+ The platform consists of a Enterprise Service Bus (ESB), called EmsBus, and a documented architecture to 
+ implement the services in Erlang, Java and future in .NET Framework languages.
