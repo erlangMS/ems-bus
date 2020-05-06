@@ -34,9 +34,12 @@
 		 show_response_url/3, show_payload_url/3,
 		 log_file_tail/0, log_file_tail/1, 
 		 log_file_head/0, log_file_head/1, log_file_name/0, 
-		 format_info/1, format_info/2, format_warn/1, format_warn/2, 
-		 format_error/1, format_error/2, format_debug/1, 
-		 format_debug/2, format_alert/1, format_alert/2, checkpoint/0
+		 format_info/1, format_info/2, format_info/3,
+		 format_warn/1, format_warn/2, format_warn/3,
+		 format_error/1, format_error/2, format_error/3, 
+		 format_debug/1, format_debug/2, format_debug/3,
+		 format_alert/1, format_alert/2, format_alert/3, 
+		 checkpoint/0
 ]).
 
 
@@ -92,7 +95,7 @@ error(Msg, Params) ->
 	write_msg(error, Msg, Params).
 
 error(Msg, Params, true) -> error(Msg, Params);
-error(_, _, false) -> ok.
+error(_, _, _) -> ok.
 
 warn(Msg) -> 
 	write_msg(warn, Msg).
@@ -102,7 +105,7 @@ warn(Msg, Params) ->
 
 	
 warn(Msg, Params, true) -> 	warn(Msg, Params);
-warn(_, _, false) -> ok.
+warn(_, _, _) -> ok.
 
 
 info(Msg) -> 
@@ -114,7 +117,7 @@ info(Msg, Params) ->
 
 
 info(Msg, Params, true) -> info(Msg, Params);
-info(_, _, false) -> ok.
+info(_, _, _) -> ok.
 
 
 debug(Msg) -> 
@@ -132,7 +135,7 @@ debug(Msg, Params) ->
 	end.
 	
 debug(Msg, Params, true) -> debug(Msg, Params);
-debug(_, _, false) ->  ok.
+debug(_, _, _) ->  ok.
 
 debug2(Msg) -> 
 	case in_debug() of
@@ -151,7 +154,7 @@ debug2(Msg, Params) ->
 	end.
 
 debug2(Msg, Params, true) -> debug2(Msg, Params);
-debug2(_, _, false) -> ok.
+debug2(_, _, _) -> ok.
 
 
 in_debug() -> ets:lookup(debug_ets, debug) =:= [{debug, true}].
@@ -159,7 +162,7 @@ in_debug() -> ets:lookup(debug_ets, debug) =:= [{debug, true}].
 mode_debug(true)  -> 
 	info("ems_logger debug mode enabled."),
 	ets:insert(debug_ets, {debug, true});
-mode_debug(false) -> 
+mode_debug(_) -> 
 	info("ems_logger debug mode disabled."),
 	ets:insert(debug_ets, {debug, false}).
 
@@ -264,6 +267,7 @@ checkpoint() ->
 
 
 % write direct messages to console
+
 format_info(Message) when is_list(Message) ->	
 	format_info(list_to_binary(Message));
 format_info(Message) ->	
@@ -274,6 +278,10 @@ format_info(Message, Params) ->
 	Message2 = io_lib:format(Message, Params),
 	Message3 = iolist_to_binary([?INFO_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message2, <<"\n">>]),
 	io:format(Message3).
+
+format_info(Msg, Params, true) -> format_info(Msg, Params);
+format_info(_, _, _) -> ok.
+
 
 format_warn(Message) when is_list(Message) ->	
 	format_warn(list_to_binary(Message));
@@ -286,6 +294,11 @@ format_warn(Message, Params) ->
 	Message3 = iolist_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Message2, ?WHITE_BRK_COLOR]),
 	io:format(Message3).
 
+
+format_warn(Msg, Params, true) -> format_warn(Msg, Params);
+format_warn(_, _, _) -> ok.
+
+
 format_error(Message) when is_list(Message) ->	
 	format_error(list_to_binary(Message));
 format_error(Message) ->	
@@ -296,6 +309,10 @@ format_error(Message, Params) ->
 	Message2 = io_lib:format(Message, Params),
 	Message3 = iolist_to_binary([?ERROR_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Message2, ?WHITE_BRK_COLOR]),
 	io:format(Message3).
+
+format_error(Msg, Params, true) -> format_error(Msg, Params);
+format_error(_, _, _) -> ok.
+
 
 format_debug(Message) when is_list(Message) ->	
 	format_debug(list_to_binary(Message));
@@ -308,6 +325,10 @@ format_debug(Message, Params) ->
 	Message3 = iolist_to_binary([?DEBUG_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Message2, ?WHITE_BRK_COLOR]),
 	io:format(Message3).
 
+format_debug(Msg, Params, true) -> format_debug(Msg, Params);
+format_debug(_, _, _) -> ok.
+
+
 format_alert(Message) when is_list(Message) ->	
 	format_alert(list_to_binary(Message));
 format_alert(Message) ->	
@@ -319,6 +340,8 @@ format_alert(Message, Params) ->
 	Message3 = iolist_to_binary([?ALERT_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message2, <<"\n">>]),
 	io:format(Message3).
 
+format_alert(Msg, Params, true) -> format_alert(Msg, Params);
+format_alert(_, _, _) -> ok.
 
 
 

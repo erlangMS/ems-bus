@@ -383,10 +383,10 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 						case ErrorDBCount > 5 of
 							true -> 
 								TimeoutOnError2 = TimeoutOnError * 3,
-								ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError, ErrorDBCount, Reason], LogShowDataLoaderActivity);
+								ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, Reason], LogShowDataLoaderActivity);
 							false -> 
 								TimeoutOnError2 = TimeoutOnError,
-								ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError, ErrorDBCount, Reason], LogShowDataLoaderActivity)
+								ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, Reason], LogShowDataLoaderActivity)
 						end,
 						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass12),
 						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError2}
