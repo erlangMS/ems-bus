@@ -51,16 +51,17 @@
 				disable_metric_name,
 				skip_metric_name,
 				source_type,
-				loading,
-				allow_clear_table_full_sync,
+				loading = false,
+				allow_clear_table_full_sync = false,
 				group,
-				wait_count,
-				insert_count,
-				update_count,
-				error_count,
-				disable_count,
-				skip_count,
-				log_show_data_loader_activity
+				wait_count = 0,
+				insert_count = 0,
+				update_count = 0,
+				error_count = 0,
+				disable_count = 0,
+				skip_count = 0,
+				error_db_count = 0,
+				log_show_data_loader_activity = false
 			}).
 
 -define(SERVER, ?MODULE).
@@ -149,7 +150,7 @@ init(#service{name = Name,
 	DisabledMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_disabled">>]), utf8),
 	SkipMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_skip">>]), utf8),
 	GroupDataLoader = lists:delete(NameStr, ems_util:binlist_to_list(maps:get(<<"group">>, Props, []))),
-	erlang:send_after(60000 * 60, self(), check_sync_full),
+	%erlang:send_after(60000 * 60, self(), check_sync_full),
 	case CheckRemoveRecords andalso CheckRemoveRecordsCheckpoint > 0 of
 		true -> erlang:send_after(CheckRemoveRecordsCheckpoint + 90000 + rand:uniform(10000), self(), check_count_records);
 		false -> ok
@@ -192,6 +193,7 @@ init(#service{name = Name,
 				   error_count = 0,
 				   disable_count = 0,
 				   skip_count = 0,
+				   error_db_count = 0,
 				   log_show_data_loader_activity = LogShowDataLoaderActivity
 	},
 	{ok, State, StartTimeout}.
@@ -336,36 +338,68 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 														 loading = Loading,
 														 group = DataLoaderGroup,
 														 wait_count = WaitCount,
+														 error_db_count = ErrorDBCount,
 														 log_show_data_loader_activity = LogShowDataLoaderActivity}) ->
-	?DEBUG("~s handle_do_check_load_or_update_checkpoint execute now.", [Name]),
-	case ems_data_loader_ctl:permission_to_execute(Name, DataLoaderGroup, check_load_or_update_checkpoint, WaitCount) of
-		true ->
-			case do_check_load_or_update_checkpoint(State) of
-				{ok, State2 = #state{insert_count = InsertCount, update_count = UpdateCount, error_count = ErrorCount, disable_count = DisableCount, skip_count = SkipCount}} ->
-					do_after_load_or_update_checkpoint(State2),
-					ems_data_loader_ctl:notify_finish_work(Name, check_load_or_update_checkpoint, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, undefined),
-					ems_util:flush_messages(),
-					case Loading of
-						true -> {noreply, State2#state{wait_count = 0}, UpdateCheckpoint + 60000};
-						false -> {noreply, State2#state{wait_count = 0}, UpdateCheckpoint}
-					end;
-				{error, eodbc_restricted_connection} -> 
-					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, eodbc_restricted_connection),
-					TimeoutOnError2 = TimeoutOnError * 5,
-					ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while database in backup or restricted connection. Reason: ~p.", [Name, TimeoutOnError2, eodbc_restricted_connection], LogShowDataLoaderActivity),
-					ems_util:flush_messages(),
-					{noreply, State#state{wait_count = 0}, TimeoutOnError2};
-				{error, Reason} -> 
-					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
-					ems_db:inc_counter(ErrorCheckpointMetricName),
-					ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. Reason: ~p.", [Name, TimeoutOnError, Reason], LogShowDataLoaderActivity),
-					ems_util:flush_messages(),
-					{noreply, State#state{wait_count = 0}, TimeoutOnError}
-			end;
-		false ->
-			TimeoutWait = get_timeout_wait(WaitCount),
-			?DEBUG("~s handle_do_check_load_or_update_checkpoint wait ~pms to execute.", [Name, TimeoutWait]),
-			{noreply, State#state{wait_count = WaitCount + 1}, TimeoutWait}
+	try
+		put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass1),
+		case ems_data_loader_ctl:permission_to_execute(Name, DataLoaderGroup, check_load_or_update_checkpoint, WaitCount) of
+			true ->
+				?DEBUG("~s handle_do_check_load_or_update_checkpoint execute now.", [Name]),
+				put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass2),
+				case do_check_load_or_update_checkpoint(State) of
+					{ok, State2 = #state{insert_count = InsertCount, update_count = UpdateCount, error_count = ErrorCount, disable_count = DisableCount, skip_count = SkipCount}} ->
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass3),
+						do_after_load_or_update_checkpoint(State2),
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass4),
+						ems_data_loader_ctl:notify_finish_work(Name, check_load_or_update_checkpoint, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, undefined),
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass5),
+						ems_util:flush_messages(),
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass6),
+						case Loading of
+							true -> {noreply, State2#state{wait_count = 0, error_db_count = 0}, UpdateCheckpoint + 90000};
+							false -> {noreply, State2#state{wait_count = 0, error_db_count = 0}, UpdateCheckpoint}
+						end;
+					{error, eodbc_restricted_connection} -> 
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass7),
+						ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, eodbc_restricted_connection),
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass8),
+						case ErrorDBCount > 5 of
+							true -> 
+								TimeoutOnError2 = TimeoutOnError * 6,
+								ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while database in backup or restricted connection. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, eodbc_restricted_connection], LogShowDataLoaderActivity);
+							false -> 
+								TimeoutOnError2 = TimeoutOnError,
+								ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while database in backup or restricted connection. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, eodbc_restricted_connection], LogShowDataLoaderActivity)
+						end,
+						ems_util:flush_messages(),
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass9),
+						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError2};
+					{error, Reason} -> 
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass10),
+						ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass11),
+						ems_db:inc_counter(ErrorCheckpointMetricName),
+						ems_util:flush_messages(),
+						case ErrorDBCount > 5 of
+							true -> 
+								ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError, ErrorDBCount, Reason], LogShowDataLoaderActivity),
+								TimeoutOnError2 = TimeoutOnError * 3;
+							false -> 
+								TimeoutOnError2 = TimeoutOnError,
+								ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError, ErrorDBCount, Reason], LogShowDataLoaderActivity)
+						end,
+						put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass12),
+						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError2}
+				end;
+			false ->
+				put(exec_step, handle_do_check_load_or_update_checkpoint_step_pass13),
+				TimeoutWait = get_timeout_wait(WaitCount),
+				{noreply, State#state{wait_count = WaitCount + 1}, TimeoutWait}
+		end
+	catch
+		_:ReasonException ->
+			ems_logger:error("ems_data_loader handle_do_check_load_or_update_checkpoint exception. Step: ~p. Reason: ~p.", [get(handle_do_check_load_or_update_checkpoint_step), ReasonException]),
+			{noreply, State, 60000}	% tenta se recuperar para não quebrar o processo
 	end.
 	
 
@@ -697,9 +731,8 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 												 error_count = ErrorCount,
 												 disable_count = DisabledCount,
 												 skip_count = SkipCount}};
-							{error, Reason2} = Error2 -> 
+							{error, _Reason2} = Error2 -> 
 								ems_odbc_pool:shutdown_connection(Datasource2), 
-								?DEBUG("~s do_update failed to execute sql ~p. Reason: ~p.", [Name, SqlUpdate, Reason2]),
 								Error2
 						end,
 						Result;

@@ -15,6 +15,7 @@
 		"result_cache" : 86400000,
 		"log_show_response" : false,
 		"log_show_payload" : false,
+		"log_show" : false,
 		"lang" : "erlang"
 	}
 ]

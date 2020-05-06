@@ -610,6 +610,7 @@ parse_passport_code(PassportCodeBinBase64) ->
 		case PassportCodeInt > 0 andalso PassportCodeInt =< 9999999999 of
 			true -> 
 				put(parse_passport_code_step, parse_passport_code_pass5),
+				ems_logger:info("ems_oauth2_authorize parse_passport_code finding passport code ~s (~s)...", [PassportCodeBinBase64Str, PassportCodeStr2]),
 				case select_passport_code_sgbd(PassportCodeBinBase64Str, PassportCodeInt) of
 					{ok, ClientId, UserId, _DtCreated, Escopo} ->
 						put(parse_passport_code_step, parse_passport_code_pass6),

@@ -38,21 +38,7 @@ stop() ->
     gen_server:cast(?SERVER, shutdown).
  
 
-permission_to_execute(DataLoader, _, Operation, 60) ->
-	?DEBUG("ems_data_loader_ctl ~s begin ~p now after 10 waits.", [DataLoader, Operation]),
-	ets:insert(ets_dataloader_working_ctl, {DataLoader, working, 
-											"timestamp", ems_util:timestamp_str(), 
-											"operation", Operation, 
-											"wait_count", 10,
-											"insert_count", 0,
-											"update_count", 0,
-											"error_count", 0,
-											"disable_count", 0,
-											"skip_count", 0,
-											"last_error", ""}),
-	true;
 permission_to_execute(DataLoader, [], Operation, WaitCount) -> 
-	?DEBUG("ems_data_loader_ctl ~s begin ~p now.", [DataLoader, Operation]),
 	ets:insert(ets_dataloader_working_ctl, {DataLoader, working, 
 											"timestamp", ems_util:timestamp_str(), 
 											"operation", Operation, 
@@ -83,7 +69,6 @@ permission_to_execute(DataLoader, [DataLoaderGroup|T], Operation, WaitCount) ->
 	end.
  
 notify_finish_work(DataLoader, Operation, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, LastError) ->
-	?DEBUG("ems_data_loader_ctl ~s finish ~p.", [DataLoader, Operation]),
 	ets:insert(ets_dataloader_working_ctl, {DataLoader, idle, 
 											"timestamp", ems_util:timestamp_str(), 
 											"operation", Operation, 
