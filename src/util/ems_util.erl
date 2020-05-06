@@ -1962,16 +1962,11 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																   show_debug_response_headers = ShowDebugResponseHeaders,
 																   current_node = CurrentNode}) ->
 	try
-		io:format("encode_request_cowboy1\n"),
 		put(encode_request_cowboy_step, encode_request_cowboy_step_pass1),
-		io:format("encode_request_cowboy1.1\n"),
 		ems_logger:debug("CowboyReq ~p.", [CowboyReq]),
-		io:format("encode_request_cowboy1.2\n"),
 		Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
-		io:format("encode_request_cowboy1.3\n"),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
 		put(encode_request_cowboy_step, encode_request_cowboy_step_pass2),
-		io:format("encode_request_cowboy2\n"),
 		case Url of
 			"/dados/erl.ms/" ++ UrlEncoded -> 
 				UrlMasked = true,
@@ -2033,7 +2028,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			undefined -> Host = cowboy_req:host(CowboyReq);
 			HostValue -> Host = HostValue
 		end,
-		io:format("encode_request_cowboy3\n"),
 		Version = cowboy_req:version(CowboyReq),
 		case cowboy_req:header(<<"content-type">>, CowboyReq) of
 			undefined -> ContentTypeIn = <<>>;
@@ -2081,7 +2075,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 		end,
 		put(encode_request_cowboy_step, encode_request_cowboy_step_pass4),
 		{Rowid, Params_url} = hashsym_and_params(Url2),
-		io:format("encode_request_cowboy4\n"),
 		TypeLookup = case Type of
 					<<"OPTIONS">> -> 
 						ems_db:inc_counter(ems_dispatcher_options),
@@ -2152,7 +2145,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			forwarded_for = ForwardedFor
 		},	
 		put(encode_request_cowboy_step, encode_request_cowboy_step_pass5),
-		io:format("encode_request_cowboy5\n"),
 		case ems_catalog_lookup:lookup(Request) of
 			{Service = #service{name = ServiceName,
 								 service = ServiceService,	
@@ -3395,8 +3387,25 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 					{ok, Client} -> 
 						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
 					Error -> 
-						io:format("emsutil get_client_request_by_id_and_secret failed. ClientId: ~p.", [ClientId]),
-						Error
+						% O ClientId também pode ser passado via header Authorization
+						case Authorization =/= undefined of
+							true ->
+								case parse_basic_authorization_header(Authorization) of
+									{ok, ClientLogin, ClientSecret} ->
+										ClientId2 = list_to_integer(ClientLogin),
+										ClientSecret2 = list_to_binary(ClientSecret),
+										case ClientId2 > 0 of
+											true ->
+												case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
+													{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+													Error -> Error
+												end;
+											false -> {error, access_denied, einvalid_client_id}
+										end;
+									Error -> Error
+								end;
+							false -> {error, access_denied, eauthorization_header_required}
+						end
 				end;
 			false ->
 				% O ClientId também pode ser passado via header Authorization
