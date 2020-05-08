@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <title>Login Integrado | UnB</title>
+</head>
+
+<body class="login-page">
+    <div class="login-box">
+        <div class="logo">
+            <a href="https://unb.br"><b>UnB</b></a>
+            <small>Autenticação de Usuário</small>
+        </div>
+        <div class="card">
+            <div class="body">
+                <form id="sign_in">
+                    <div class="msg">Informe os dados para autenticação</div>
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">person</i>
+                        </span>
+                        <div class="form-line">
+                            <input type="text" class="form-control" name="username" id="username" autocomplete="off" placeholder="Usuário" maxlength="32" required autofocus oninvalid="this.setCustomValidity('O campo Usuário é obrigatório!')">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <i class="material-icons">lock</i>
+                        </span>
+                        <div class="form-line">
+                            <input type="password" class="form-control" name="pass" id="pass" autocomplete="off" placeholder="Senha" maxlength="32" required oninvalid="this.setCustomValidity('O campo Senha é obrigatório!')">
+                        </div>
+                    </div>
+                    <span id="error"></span>
+                    <div class="row justify-content-end">
+                        <div class="col-md-6 align-self-end">
+                            <button class="btn btn-block bg-green waves-effect" id="enter">AUTENTICAR</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+
+</html>

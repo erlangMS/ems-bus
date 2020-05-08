@@ -1,7 +1,8 @@
 -module(ems_oauth2_authorize).
 
 -export([execute/1, 
-		 code_request/1]).
+		 code_request/1,
+		 user_info/1]).
 
 -include("include/ems_config.hrl").
 -include("include/ems_schema.hrl").
@@ -357,6 +358,55 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 										response_data = ?ACCESS_DENIED_JSON},
 			{error, Request3}
 	end.
+
+
+user_info(Request) ->
+	put(user_info, user_info_pass1),
+    try
+		case ems_util:get_client_request_by_id(Request) of
+			{ok, Client} ->
+				put(user_info, user_info_pass2),
+				case ems_util:get_user_request_by_login_and_password(Request, Client) of
+					{ok, User} ->
+						put(user_info, user_info_pass3),
+						case ems_user:to_resource_owner(User, Client#client.id) of
+							{ok, UserJson} ->
+								put(user_info, user_info_pass4),
+								{ok, UserJson};
+							_ ->
+								ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p.", [get(code_ser_info)]),
+								{error, eror_get-user_info}
+
+						end;
+					_ -> 
+						ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p.", [get(code_ser_info)]),
+						{error, enoent_request_login_password}
+				end;
+			{error, Reason, ReasonDetail} ->
+				put(get_user_request_step, code_request_pass10),
+				Request2 = Request#request{code = 401, 
+											reason = Reason,
+											reason_detail = ReasonDetail,
+											operation = oauth2_authenticate,
+											user = undefined,
+											client = undefined,
+											response_data = ?ACCESS_DENIED_JSON},
+				{error, Request2}
+		end
+	catch
+		_:ReasonException ->
+			ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p. Reason: ~p.", [get(code_request_step), ReasonException]),
+			Request3 = Request#request{code = 401, 
+										reason = access_denied,
+										reason_detail = eparse_code_request_exception,
+										reason_exception = ReasonException,
+										operation = oauth2_authenticate,
+										user = undefined,
+										client = undefined,
+										response_data = ?ACCESS_DENIED_JSON},
+			{error, Request3}
+	end.
+
 
 	
 %%%===================================================================

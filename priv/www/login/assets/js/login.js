@@ -193,7 +193,11 @@ Login.LoginSistemas = (function() {
 					var referrer = document.referrer;
 					if (referrer != undefined && referrer != ""){
 						baseUrlReferrer = referrer.split('/');
-						url = baseUrlReferrer[0] + '//' + baseUrlReferrer[2] + data.getResponseHeader("Location");
+						if(baseUrlReferrer[0] == "http" || baseUrlReferrer[0] == "https"){
+							url = data.getResponseHeader("location")
+						} else{
+							url = baseUrlReferrer[0] + '//' + baseUrlReferrer[2] + data.getResponseHeader("Location");
+						}				
 					}else{
 						if (baseUrl.startsWith("/")){
 							url = baseUrl + data.getResponseHeader("Location");

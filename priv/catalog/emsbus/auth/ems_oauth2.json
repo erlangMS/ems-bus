@@ -221,6 +221,57 @@
 		],
 		"lang" : "erlang"
 	},
+
+	{
+		"name" : "/userinfo",
+		"comment": "Oauth 2.0",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_authorize:user_info",
+		"url": "/userinfo",
+		"type": "GET",
+		"result_cache" : 0,
+		"authorization" : "public",
+		"restricted" : false,
+		"querystring": [
+			{
+				"name": "client_id",
+				"type": "string",
+				"comment": "The client identifier"
+			},
+			{
+				"name": "username",
+				"type": "string",
+				"comment": "Username"
+			},
+			{
+				"name": "password",
+				"type": "string",
+				"comment": "Password"
+			},			
+			{
+				"name": "redirect_uri",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "scope",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "code",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "state",
+				"type": "string",
+				"comment": ""
+			}
+		],
+		"lang" : "erlang"
+	},
 	
 	{
 		"name" : "/resource",
