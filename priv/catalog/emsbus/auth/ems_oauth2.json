@@ -10,20 +10,19 @@
 		"lang" : "erlang",
 		"pool_size" : 1,
 		"pool_max" : 1,
-		
-		"persist_token_sgbd_enabled" : true,
-		"datasource_persist_sgbd" : "db2",
-		"sql_persist_access_code" : "insert into dbsm.erlangms_oauth2_access_code(id, dt_registro, context) values (?,current_date,?)",
-		"sql_select_access_code" : "select id, dt_registro, context from dbsm.erlangms_oauth2_access_code where id = ?",
-		"sql_persist_refresh_token" : "insert into dbsm.erlangms_oauth2_refresh_token(id, dt_registro, context) values (?,current_date,?)",
-		"sql_select_refresh_token" : "select id, dt_registro, context from dbsm.erlangms_oauth2_refresh_token where id = ?",
-		"sql_persist_access_token" : "insert into dbsm.erlangms_oauth2_access_token(id, dt_registro, context) values (?,current_date,?)",
-		"sql_select_access_token" : "select id, dt_registro, context from dbsm.erlangms_oauth2_access_token where id = ?",
 
-		"passport_code_enabled" : true,
-		"datasource_passport_code" : "db2",
-		"sql_select_passport_code" : "select clientid, userid, dt_created, scope from dbsm.erlangms_passport where id =?  and active = 1",
-		"sql_disable_passport_code" : "update dbsm.erlangms_passport set active = 0, dt_disabled = current_timestamp where id = ?"
+		"persist_token_sgbd_enabled" : false,
+    	"datasource_persist_sgbd" : "ds_ems_user_loader",
+		"sql_persist_access_code" : "INSERT INTO BDBarramento.dbo.TB_OAuthAccessCode (OACId, OACDate, OACContext) VALUES(?,GETDATE(),?)",
+		"sql_select_access_code" : "SELECT OACId, OACDate, OACContext FROM BDBarramento.dbo.TB_OAuthAccessCode WHERE OACId = ?",
+		"sql_persist_refresh_token" : "INSERT INTO BDBarramento.dbo.TB_OAuthRefreshToken (ORTId, ORTDate, ORTContext) VALUES(?,GETDATE(),?)",
+		"sql_select_refresh_token" : "SELECT ORTId, ORTDate, ORTContext	FROM BDBarramento.dbo.TB_OAuthRefreshToken WHERE ORTId = ?",
+		"sql_persist_access_token" : "INSERT INTO BDBarramento.dbo.TB_OAuthAccessToken (OATId, OATDate, OATContext)	VALUES(?,GETDATE(),?)",
+		"sql_select_access_token" : "SELECT OATId, OATDate, OATContext FROM BDBarramento.dbo.TB_OAuthAccessToken WHERE OATId = ?",
+		"passport_code_enabled" : false,
+  		"datasource_passport_code" : "sig_unb",
+  		"sql_select_passport_code" : "select clientid, userid, dt_created, escopo from oauth.oauth_erlangms_passport where id =?  and active = 1",
+  		"sql_disable_passport_code" : "update oauth.oauth_erlangms_passport set active = 0, dt_disabled = current_timestamp where id = 1"
 	},
 	
 	{
@@ -36,7 +35,21 @@
 		"result_cache" : 0,
 		"type": "GET",
 		"authorization" : "public",
-		"restricted" : false,
+		"sql_persist" : "INSERT INTO BDBarramento.dbo.TB_TokenMetaData
+						(TMDClient, 
+						TMDPerson, 
+						TMDUser, 
+						TMDToken, 
+						TMDDeviceCode, 
+						TMDDeviceInfo, 
+						TMDDate)
+						VALUES (?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						GETDATE())",
 		"querystring": [
 			{
 				"name": "response_type",
@@ -74,7 +87,6 @@
 				"type": "string",
 				"comment": ""
 			},
-			
 			{
 				"name": "code",
 				"type": "string",
@@ -84,11 +96,6 @@
 				"name": "state",
 				"type": "string",
 				"comment": ""
-			},
-			{
-				"name": "passport",
-				"type": "string",
-				"comment": "The passport"
 			}
 		],
 		"lang" : "erlang"
@@ -104,7 +111,21 @@
 		"type": "POST",
 		"result_cache" : 0,
 		"authorization" : "public",
-		"restricted" : false,
+		"sql_persist" : "INSERT INTO BDBarramento.dbo.TB_TokenMetaData
+						(TMDClient, 
+						TMDPerson, 
+						TMDUser, 
+						TMDToken, 
+						TMDDeviceCode, 
+						TMDDeviceInfo, 
+						TMDDate)
+						VALUES (?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						GETDATE())",
 		"querystring": [
 			{
 				"name": "grant_type",
@@ -151,22 +172,17 @@
 				"name": "code",
 				"type": "string",
 				"comment": ""
-			},
+				},
 			{
 				"name": "state",
 				"type": "string",
 				"comment": ""
-			},
+				},
 			{
 				"name": "refresh_token",
 				"type": "string",
 				"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
-			},
-			{
-				"name": "passport",
-				"type": "string",
-				"comment": "The passport"
-			}
+				}
 		],
 		"lang" : "erlang"
 	},
@@ -181,7 +197,6 @@
 		"type": "GET",
 		"result_cache" : 0,
 		"authorization" : "basic",
-		"restricted" : false,
 		"querystring": [
 			{
 				"name": "client_id",
@@ -212,7 +227,7 @@
 				"name": "code",
 				"type": "string",
 				"comment": ""
-			},
+				},
 			{
 				"name": "state",
 				"type": "string",
@@ -274,8 +289,27 @@
 	},
 	
 	{
+		"name" : "/callback",
+		"comment": "Simulção de recurso",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_client:callback",
+		"url": "/callback",
+		"type": "GET",
+		"result_cache" : 0,
+		"querystring": [
+			{
+				"name": "code",
+				"type": "string",
+				"comment": "Token de acesso"
+			}
+		],
+		"lang" : "erlang"
+	},
+	
+	{
 		"name" : "/resource",
-		"comment": "Get resource",
+		"comment": "Get resourge",
 		"owner": "auth",
 		"version": "1.0.0",
 		"service" : "ems_oauth2_recurso:execute",
@@ -283,7 +317,26 @@
 		"type": "POST",
 		"result_cache" : 0,
 		"authorization": "oauth2",
-		"restricted" : false,
+		"querystring": [
+			{
+				"name": "token",
+				"type": "string",
+				"comment": "Token de acesso"
+			}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name" : "/recurso",
+		"comment": "Obter o recurso",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_recurso:execute",
+		"url": "/recurso",
+		"type": "POST",
+		"result_cache" : 0,
+		"authorization": "oauth2",
 		"querystring": [
 			{
 				"name": "token",
