@@ -360,57 +360,30 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 	end.
 
 
-user_info(Request) ->
-	put(user_info, user_info_pass1),
+user_info(Request = #request{user = User, client = Client}) ->
+	put(user_info_step, user_info_pass1),
     try
-		case ems_util:get_client_request_by_id(Request) of
-			{ok, Client} ->
-				io:format("Aqui 1c >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-				put(user_info, user_info_pass2),
-				case ems_util:get_user_request_by_login_and_password(Request, Client) of
-					{ok, User} ->
-						io:format("Aqui 2c >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-						put(user_info, user_info_pass3),
-						case ems_user:to_resource_owner(User, Client#client.id) of
-							{ok, UserJson} ->
-								io:format("Aqui 3c >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
-								put(user_info, user_info_pass4),
-								Request2 = Request#request{code = 200, 
-														   reason = ok,
-														   operation = oauth2_authenticate,
-														   user = User,
-														   client = Client,
-														   response_data = UserJson},
-								put(user_info, user_info_pass5),
-								{ok, Request2};
-							_ ->
-								ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p.", [get(code_ser_info)]),
-								{error, eror_get-user_info}
-
-						end;
-					_ -> 
-						ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p.", [get(code_ser_info)]),
-						{error, enoent_request_login_password}
-				end;
-			{error, Reason, ReasonDetail} ->
-				put(get_user_request_step, code_request_pass10),
-				Request2 = Request#request{code = 401, 
-											reason = Reason,
-											reason_detail = ReasonDetail,
-											operation = oauth2_authenticate,
-											user = undefined,
-											client = undefined,
-											response_data = ?ACCESS_DENIED_JSON},
-				{error, Request2}
-		end
+		io:format("Client#client.id: ~p\n", [Client#client.id]),
+		put(user_info_step, user_info_pass2),
+		% não vai ser to_resource_owner aqui!!! o json com certeza é diferente
+		UserJson = ems_user:to_resource_owner(User, Client#client.id),
+		io:format("UserJson is ~p\n", [UserJson]),
+		put(user_info_step, user_info_pass3),
+		Request2 = Request#request{code = 200, 
+								   reason = ok,
+								   operation = user_info,
+								   response_data = UserJson,
+								   content_type_out = ?CONTENT_TYPE_JSON},
+		put(user_info_step, user_info_pass4),
+		{ok, Request2}
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p. Reason: ~p.", [get(code_request_step), ReasonException]),
+			ems_logger:error("ems_oauth2_authorize user_info exception. Step: ~p. Reason: ~p.", [get(user_info_step), ReasonException]),
 			Request3 = Request#request{code = 401, 
 										reason = access_denied,
-										reason_detail = eparse_code_request_exception,
+										reason_detail = eparse_user_info_exception,
 										reason_exception = ReasonException,
-										operation = oauth2_authenticate,
+										operation = user_info,
 										user = undefined,
 										client = undefined,
 										response_data = ?ACCESS_DENIED_JSON},

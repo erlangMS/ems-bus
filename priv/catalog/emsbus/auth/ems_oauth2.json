@@ -196,7 +196,7 @@
 		"url": "/code_request",
 		"type": "GET",
 		"result_cache" : 0,
-		"authorization" : "basic",
+		"authorization" : "oauth2",
 		"querystring": [
 			{
 				"name": "client_id",
