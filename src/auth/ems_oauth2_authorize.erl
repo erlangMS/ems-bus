@@ -378,6 +378,8 @@ user_info(Request) ->
 								Request2 = Request#request{code = 200, 
 														   reason = ok,
 														   operation = oauth2_authenticate,
+														   user = User,
+														   client = Client,
 														   response_data = UserJson},
 								put(user_info, user_info_pass5),
 								{ok, Request2};
