@@ -365,18 +365,19 @@ user_info(Request) ->
     try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->
+				io:format("Aqui 1c >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 				put(user_info, user_info_pass2),
 				case ems_util:get_user_request_by_login_and_password(Request, Client) of
 					{ok, User} ->
+						io:format("Aqui 2c >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 						put(user_info, user_info_pass3),
 						case ems_user:to_resource_owner(User, Client#client.id) of
 							{ok, UserJson} ->
+								io:format("Aqui 3c >>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
 								put(user_info, user_info_pass4),
 								Request2 = Request#request{code = 200, 
 														   reason = ok,
 														   operation = oauth2_authenticate,
-														   user = User,
-														   client = Client,
 														   response_data = UserJson},
 								put(user_info, user_info_pass5),
 								{ok, Request2};
