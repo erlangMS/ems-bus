@@ -372,7 +372,14 @@ user_info(Request) ->
 						case ems_user:to_resource_owner(User, Client#client.id) of
 							{ok, UserJson} ->
 								put(user_info, user_info_pass4),
-								{ok, UserJson};
+								Request2 = Request#request{code = 200, 
+														   reason = ok,
+														   operation = oauth2_authenticate,
+														   user = User,
+														   client = Client,
+														   response_data = UserJson},
+								put(user_info, user_info_pass5),
+								{ok, Request2};
 							_ ->
 								ems_logger:error("ems_oauth2_authorize code_request exception. Step: ~p.", [get(code_ser_info)]),
 								{error, eror_get-user_info}
