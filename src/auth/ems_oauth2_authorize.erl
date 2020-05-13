@@ -366,7 +366,7 @@ user_info(Request = #request{user = User, client = Client}) ->
 		io:format("Client#client.id: ~p\n", [Client#client.id]),
 		put(user_info_step, user_info_pass2),
 		% não vai ser to_resource_owner aqui!!! o json com certeza é diferente
-		UserJson = ems_user:to_resource_owner(User, Client#client.id),
+		UserJson = ems_user:get_user_info(User, Client#client.id),
 		io:format("UserJson is ~p\n", [UserJson]),
 		put(user_info_step, user_info_pass3),
 		Request2 = Request#request{code = 200, 

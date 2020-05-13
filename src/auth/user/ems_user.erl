@@ -24,6 +24,7 @@
 		 find_by_codigo_pessoa/2,
 		 find_by_filter/2,
 		 find_by_filter_and_scope/3,
+		 get_user_info/2,
 		 to_resource_owner/1,
 		 to_resource_owner/2,
  		 new_from_map/2,
@@ -593,6 +594,38 @@ get_admim_user() ->
 		{ok, Record} -> {ok, Record};
 		_ -> {error, enoent}
 	end.
+
+
+get_user_info(User, ClientId) ->
+	try
+		put(get_user_info, get_user_info_pass1),
+		{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
+		put(get_user_info, get_user_info_pass2),
+		ListaPerfilJson = ems_schema:to_json(ListaPerfil),
+		ListaNomeCompleto = re:split(User#user.name, <<" ">>),
+		FirstName = lists:nth(1,ListaNomeCompleto),
+		ListaSobrenome =  lists:delete(FirstName, ListaNomeCompleto),
+		ListaSobrenomeSpace = ems_util:add_spaces_all_elements_list(ListaSobrenome, <<" ">>),
+		put(get_user_info, get_user_info_pass3),
+				iolist_to_binary([<<"{"/utf8>>,
+									<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
+									<<"\"remap_user_id\":null,"/utf8>>, 
+									<<"\"codigo\":"/utf8>>, integer_to_binary(User#user.codigo), <<","/utf8>>,
+									<<"\"login\":\""/utf8>>, User#user.login, <<"\","/utf8>>, 
+									<<"\"given_name\":\""/utf8>>, FirstName , <<"\","/utf8>>,
+									<<"\"family_name\":\""/utf8>>,ListaSobrenomeSpace, <<"\","/utf8>>,
+									<<"\"email\":\""/utf8>>, User#user.email, <<"\","/utf8>>,
+									<<"\"type\":"/utf8>>, integer_to_binary(User#user.type), <<","/utf8>>,
+									<<"\"subtype\":"/utf8>>, integer_to_binary(User#user.subtype), <<","/utf8>>,
+									<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(User#user.active), <<","/utf8>>,
+									<<"\"cpf\":\""/utf8>>, User#user.cpf, <<"\","/utf8>>,
+									<<"\"lista_perfil\":"/utf8>>, ListaPerfilJson, <<","/utf8>>,
+								<<"}"/utf8>>])
+	catch
+		_Exception:ReasonException -> 
+			ems_logger:warn("ems_user get_user_info exception to get ListaPerfilJson. User: ~p  Clientid: ~p Step: ~p. Reason: ~p.\n", [User, ClientId, get(get_user_info), ReasonException])			
+	end.
+	
 
 
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().

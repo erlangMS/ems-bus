@@ -223,7 +223,8 @@
 		 ensure_dir_writable/1,
 		 file_exists/1,
 		 is_production_server/0,
-		 integer_to_binary_def/2
+		 integer_to_binary_def/2,
+		 add_spaces_all_elements_list/2
 		]).
 
 -spec version() -> string().
@@ -4192,4 +4193,17 @@ integer_to_binary_def(Value, DefaultValue) ->
 	catch
 		_:_ -> integer_to_binary(DefaultValue)
 	end.
-	
+
+add_spaces_all_elements_list(List, Space) ->
+	add_spaces_all_elements_list(List,Space, []).
+
+add_spaces_all_elements_list([], Space, Acc) ->
+	Acc;
+add_spaces_all_elements_list([H|T], Space, Acc) ->
+     H2 = binary_to_list(H),
+	 Acc2 = lists:append(Acc, H2),
+	 Space2 = binary_to_list(Space),
+	 Acc3 = lists:append(Acc2, Space2),
+	add_spaces_all_elements_list(T, Space, Acc3).
+
+

@@ -196,7 +196,7 @@
 		"url": "/code_request",
 		"type": "GET",
 		"result_cache" : 0,
-		"authorization" : "oauth2",
+		"authorization" : "basic",
 		"querystring": [
 			{
 				"name": "client_id",
@@ -246,8 +246,7 @@
 		"url": "/userinfo",
 		"type": "GET",
 		"result_cache" : 0,
-		"authorization" : "public",
-		"restricted" : false,
+		"authorization" : "oauth2",
 		"querystring": [
 			{
 				"name": "client_id",
