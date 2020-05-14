@@ -224,7 +224,8 @@
 		 file_exists/1,
 		 is_production_server/0,
 		 integer_to_binary_def/2,
-		 add_spaces_all_elements_list/2
+		 add_spaces_all_elements_list/2,
+		 get_timestamp/0
 		]).
 
 -spec version() -> string().
@@ -4205,5 +4206,9 @@ add_spaces_all_elements_list([H|T], Space, Acc) ->
 	 Space2 = binary_to_list(Space),
 	 Acc3 = lists:append(Acc2, Space2),
 	add_spaces_all_elements_list(T, Space, Acc3).
+
+get_timestamp() ->
+  {Mega, Sec, Micro} = os:timestamp(),
+  (Mega*1000000 + Sec)*1000 + round(Micro/1000).
 
 
