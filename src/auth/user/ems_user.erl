@@ -596,6 +596,8 @@ get_admim_user() ->
 	end.
 
 
+
+
 get_user_info(User, ClientId) ->
 	try
 		put(get_user_info, get_user_info_pass1),
@@ -604,40 +606,58 @@ get_user_info(User, ClientId) ->
 		FirstName = lists:nth(1,ListaNomeCompleto),
 		ListaSobrenome =  lists:delete(FirstName, ListaNomeCompleto),
 		ListaSobrenomeSpace = ems_util:add_spaces_all_elements_list(ListaSobrenome, <<" ">>),
+
+		UserId = format_user_field(User#user.id),
+		Name =  format_user_field(User#user.name),
+		Codigo =  format_user_field(User#user.codigo),
+		GivenName =  format_user_field(FirstName),
+		FamilyName = format_user_field(ListaSobrenomeSpace),
+		MiddleName = format_user_field(lists:nth(2, ListaNomeCompleto)),
+		PreferredUsername = format_user_field(User#user.login),
+		Email = format_user_field(User#user.email),
+		Gender = format_user_field(User#user.sexo),
+		Birthdate = format_user_field(User#user.data_nascimento),
+		PhoneNumber = format_user_field(User#user.telefone),
+		CPF= format_user_field(User#user.cpf),
+		StreetAddress = format_user_field(User#user.endereco),
+		Locality = format_user_field(User#user.cidade),
+		Region = format_user_field(User#user.uf),
+		PostalCode = format_user_field(User#user.cep),
+		Timestamp = ems_util:get_timestamp(),
 		put(get_user_info, get_user_info_pass3),
 				iolist_to_binary([<<"{"/utf8>>,
-									<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
-									<<"\"sub\":\""/utf8>>, User#user.name, <<"\","/utf8>>,
-									<<"\"name\":\""/utf8>>, User#user.name, <<"\","/utf8>>,
-									<<"\"codigo\":"/utf8>>, integer_to_binary(User#user.codigo), <<","/utf8>>,
-									<<"\"given_name\":\""/utf8>>, FirstName , <<"\","/utf8>>,
-									<<"\"family_name\":\""/utf8>>,ListaSobrenomeSpace, <<"\","/utf8>>,
-									<<"\"middle_name\":\""/utf8>>,lists:nth(2,ListaNomeCompleto), <<"\","/utf8>>,
+									<<"\"id\":"/utf8>>, UserId, <<","/utf8>>,
+									<<"\"sub\":\""/utf8>>, Name, <<"\","/utf8>>,
+									<<"\"name\":\""/utf8>>, Name, <<"\","/utf8>>,
+									<<"\"codigo\":"/utf8>>, Codigo, <<","/utf8>>,
+									<<"\"given_name\":\""/utf8>>, GivenName, <<"\","/utf8>>,
+									<<"\"family_name\":\""/utf8>>,FamilyName, <<"\","/utf8>>,
+									<<"\"middle_name\":\""/utf8>>,MiddleName, <<"\","/utf8>>,
 									<<"\"nickname\":\""/utf8>>, <<" "/utf8>>, <<"\","/utf8>>,
-									<<"\"preferred_username\":\""/utf8>>, User#user.login, <<"\","/utf8>>,
+									<<"\"preferred_username\":\""/utf8>>, PreferredUsername, <<"\","/utf8>>,
 									<<"\"profile\":\""/utf8>>, <<" "/utf8>>, <<"\","/utf8>>, 
 									<<"\"picture\":\""/utf8>>, <<" "/utf8>>, <<"\","/utf8>>,
 									<<"\"website\":\""/utf8>>, <<" "/utf8>>, <<"\","/utf8>>,
-									<<"\"email\":\""/utf8>>, User#user.email, <<"\","/utf8>>,
-									<<"\"email_verified\":\""/utf8>>, <<"true"/utf8>>, <<"\","/utf8>>,
-									<<"\"gender\":"/utf8>>, <<"\""/utf8>>,User#user.sexo, <<"\""/utf8>>, <<","/utf8>>,
-									<<"\"birthdate\":"/utf8>>, User#user.data_nascimento, <<","/utf8>>,
+									<<"\"email\":\""/utf8>>, Email, <<"\","/utf8>>,
+									<<"\"email_verified\":"/utf8>>, <<"true"/utf8>>, <<","/utf8>>,
+									<<"\"gender\":"/utf8>>, Gender,  <<","/utf8>>,
+									<<"\"birthdate\":\""/utf8>>, Birthdate, <<"\","/utf8>>,
 									<<"\"zoneinfo\":"/utf8>>,<<"\" \""/utf8>>, <<","/utf8>>,
 									<<"\"locale\":"/utf8>>,<<"\" \""/utf8>>, <<","/utf8>>,
 									<<"\"zoneinfo\":"/utf8>>,<<"\" \""/utf8>>, <<","/utf8>>,
-									<<"\"phone_number\":"/utf8>>,<<"\""/utf8>>, User#user.telefone,<<"\""/utf8>>, <<","/utf8>>,
+									<<"\"phone_number\":\""/utf8>>, PhoneNumber, <<"\","/utf8>>,
 									<<"\"phone_number_verified\":"/utf8>>,<<"true"/utf8>>, <<","/utf8>>,
-									<<"\"cpf\":\""/utf8>>, User#user.cpf,<<"\","/utf8>>,
+									<<"\"cpf\":\""/utf8>>, CPF,<<"\","/utf8>>,
 									<<"\"address\":"/utf8>>, <<"{"/utf8>>, 
 												<<"\"formated\":"/utf8>>,<<"\" \""/utf8>>, <<","/utf8>>,
-												<<"\"street_address\":"/utf8>>,<<"\""/utf8>>,User#user.endereco,<<"\""/utf8>>, <<","/utf8>>,
-												<<"\"locality\":"/utf8>>,<<"\""/utf8>>,User#user.cidade,<<"\""/utf8>>, <<","/utf8>>,
-												<<"\"region\":"/utf8>>,<<"\""/utf8>>,User#user.uf,<<"\""/utf8>>, <<","/utf8>>,
-												<<"\"postal_code\":"/utf8>>,<<"\""/utf8>>,User#user.cep, <<"\""/utf8>>,<<","/utf8>>,
+												<<"\"street_address\":\""/utf8>>,StreetAddress, <<"\","/utf8>>,
+												<<"\"locality\":\""/utf8>>,Locality, <<"\","/utf8>>,
+												<<"\"region\":\""/utf8>>,Region, <<"\","/utf8>>,
+												<<"\"postal_code\":\""/utf8>>,PostalCode, <<"\","/utf8>>,
 												<<"\"country\":"/utf8>>,<<"\"Brasil\""/utf8>>,
-											<<"}"/utf8>>
-										, <<","/utf8>>,
-									<<"\"update_at\":"/utf8>>, integer_to_binary(ems_util:get_timestamp()),
+											<<"}"/utf8>>,
+										 <<","/utf8>>,
+									<<"\"update_at\":"/utf8>>, integer_to_binary(Timestamp),
 								<<"}"/utf8>>])
 	catch
 		_Exception:ReasonException -> 
@@ -1381,4 +1401,23 @@ add_history(#user{id = UserId,
 			ems_logger:format_error("ems_user add_history failed. Reason ~p.", [Reason]),
 			ok
 	end.
+
+%%%===================================================================
+%%% Funções internas
+%%%===================================================================
+
+format_user_field(undefined) -> <<"">>;
+format_user_field(null) -> <<"">>;
+format_user_field([]) -> <<"">>;
+format_user_field(Value) when is_integer(Value) -> 
+	integer_to_binary(Value);
+format_user_field(Value) when is_boolean(Value) -> 
+	ems_util:boolean_to_binary(Value);
+format_user_field(Value) when is_list(Value) -> 
+	list_to_binary(Value);
+format_user_field(Value) when is_binary(Value) -> 
+	Value;
+format_user_field(Value) when is_atom(Value) -> 
+	atom_to_binary(Value, utf8).
+	
 
