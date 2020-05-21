@@ -1416,8 +1416,53 @@ format_user_field(Value) when is_boolean(Value) ->
 format_user_field(Value) when is_list(Value) -> 
 	list_to_binary(Value);
 format_user_field(Value) when is_binary(Value) -> 
-	Value;
-format_user_field(Value) when is_atom(Value) -> 
+	change_accests(unicode:characters_to_list(Value, utf8));
+	format_user_field(Value) when is_atom(Value) -> 
 	atom_to_binary(Value, utf8).
+
+
+change_accests(Value) ->
+	case lists:member(hd("í"),Value) of
+		true ->
+			Result = re:replace(Value,"\\í","i", [global, {return, list}]);
+		false ->
+			case lists:member(hd("é"),Value) of
+			true ->
+				Result = re:replace(Value,"\\é","e", [global, {return, list}]);
+			false ->
+				case lists:member(hd("ó"),Value) of
+				true ->
+					Result = re:replace(Value,"\\ó","o", [global, {return, list}]);
+				false ->
+					case lists:member(hd("ú"),Value) of
+						true ->
+						Result = re:replace(Value,"\\ú","u", [global, {return, list}]);
+						false ->
+							case lists:member(hd("ã"),Value) of
+								true ->
+									Result = re:replace(Value,"\\ã","a", [global, {return, list}]);
+								false ->
+									case lists:member(hd("õ"),Value) of
+										true ->
+											Result = re:replace(Value,"\\õ","o", [global, {return, list}]);
+										false ->
+											case lists:member(hd("ẽ"),Value) of
+												true ->
+													Result = re:replace(Value,"\\ẽ","e", [global, {return, list}]);
+												false ->
+													case lists:member(hd("ç"),Value) of
+												true ->
+													Result = re:replace(Value,"\\ç","c", [global, {return, list}]);
+												false ->
+													Result = Value
+												end
+											end
+										end
+									end
+								end
+							end
+						end
+					end,
+ 	Result.
 	
 
