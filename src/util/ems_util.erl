@@ -1024,11 +1024,15 @@ utf8_string_linux(Text) when is_list(Text) ->
 utf8_string_linux(Text) when erlang:is_number(Text) -> integer_to_binary(Text);
 utf8_string_linux(Text) ->
 	try
-		normalize_field_utf8(Text)
+		case check_encoding_bin(Text) of
+			utf8 -> normalize_field_utf8(Text);
+			latin1 -> normalize_field_utf8(Text);
+			_ -> Text
+		end
 	catch
 		_Exception:Reason -> 
 			?DEBUG("utf8_string_linux convert ~p error: ~p\n", [Text, Reason]),
-			normalize_field_utf8(Text)
+			Text
 	end.
 	
 
