@@ -95,12 +95,57 @@ execute(Request = #request{timestamp = Timestamp,
 									end
 							end;
 						{error, Reason} -> 						
+							% se a chama ao ws der erro, tenta obter os dados localmente
 							ems_logger:error("ems_barramento_service call url \033[01;34m~p\033[0m failed.\nReason: \033[01;34m~p\033[0m, ClientPayload: \033[01;34m~p\033[0m.", [UriClient, Reason, ClientPayload]),
-							{error, Request#request{code = 400, 
-													reason = einvalid_decode_client_json,
-													operation = json_decode_as_map,
-													response_data = <<"{\"error\": \"eget_client_error\"}"/utf8>>}
-							}
+							ems_logger:info("ems_barramento_service get data local."),
+							case ems_client:find_by_name(AppName) of
+								{error, {error, enoent}} ->
+									{error, Request#request{code = 400, 
+															reason = einvalid_decode_client_json,
+															operation = json_decode_as_map,
+															response_data = <<"{\"error\": \"eget_client_error\"}"/utf8>>}
+									};
+								{ok, ClientLocal} ->
+									ClientId = ClientLocal#client.id,
+									ClientVersion = ClientLocal#client.version,
+									case ClientLocal#client.rest_base_url == <<>> of
+										true -> BaseUrl = Conf#config.rest_base_url;
+										false -> BaseUrl = ClientLocal#client.rest_base_url
+									end,
+									case ClientLocal#client.rest_auth_url == <<>> of
+										true -> AuthUrl = Conf#config.rest_auth_url;
+										false -> AuthUrl = ClientLocal#client.rest_auth_url
+									end,
+									ContentData = iolist_to_binary([<<"{"/utf8>>,
+										<<"\"base_url\":\""/utf8>>, BaseUrl, <<"\","/utf8>>,
+										<<"\"auth_url\":\""/utf8>>, AuthUrl, <<"\","/utf8>>,
+										<<"\"auth_protocol\":\""/utf8>>, atom_to_binary(Conf#config.authorization, utf8), <<"\","/utf8>>,
+										<<"\"app_id\":"/utf8>>, integer_to_binary(ClientId), <<","/utf8>>,
+										<<"\"app_name\":\""/utf8>>, AppName, <<"\","/utf8>>,
+										<<"\"app_version\":\""/utf8>>, ClientVersion, <<"\","/utf8>>,
+										<<"\"server_name\":\""/utf8>>, Conf#config.ems_hostname, <<"\","/utf8>>,
+										<<"\"environment\":\""/utf8>>, Conf#config.rest_environment, <<"\","/utf8>>,
+										<<"\"url_mask\":"/utf8>>, ems_util:boolean_to_binary(Conf#config.rest_url_mask), <<","/utf8>>,
+										<<"\"erlangms_version\":\""/utf8>>, list_to_binary(ems_util:version()), <<"\""/utf8>>,
+										<<"}"/utf8>>]),
+									ems_logger:info("ems_barramento_service call \033[01;34m~p\033[0m success.\nContent: \033[01;34m~p\033[0m.", [UriClient, ContentData]),
+									case Conf#config.instance_type of
+										production ->
+											ExpireDate = ems_util:date_add_minute(Timestamp, ExpiresMinute + 180),
+											Expires = cowboy_clock:rfc1123(ExpireDate),
+											{ok, Request#request{code = 200,
+																 response_header = ResponseHeader#{<<"cache-control">> => CacheControlService,
+																								   <<"expires">> => Expires},
+																 response_data = ContentData}
+											};
+										_ ->
+											{ok, Request#request{code = 200,
+																 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
+																 response_data = ContentData}
+											}
+									end
+							end
+
 					end;
 				{error, Reason2} -> 
 					ems_logger:error("ems_barramento_service call \033[01;34m~p\033[0m failed.\nReason: \033[01;34m~p\033[0m.", [UriClient, Reason2]),
