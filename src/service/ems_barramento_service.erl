@@ -13,10 +13,7 @@
 
 -export([execute/1]).
   
-execute(Request = #request{timestamp = Timestamp,
-						   response_header = ResponseHeader,
-						   service = #service{cache_control = CacheControlService,
-											  expires = ExpiresMinute}}) -> 
+execute(Request = #request{response_header = ResponseHeader}) -> 
 	Conf = ems_config:getConfig(),
 	case ems_util:get_param_url(<<"name">>, undefined, Request) of
 		undefined ->
@@ -78,21 +75,10 @@ execute(Request = #request{timestamp = Timestamp,
 										<<"\"erlangms_version\":\""/utf8>>, list_to_binary(ems_util:version()), <<"\""/utf8>>,
 										<<"}"/utf8>>]),
 									ems_logger:info("ems_barramento_service call \033[01;34m~p\033[0m success.\nContent: \033[01;34m~p\033[0m.", [UriClient, ContentData]),
-									case Conf#config.instance_type of
-										production ->
-											ExpireDate = ems_util:date_add_minute(Timestamp, ExpiresMinute + 180),
-											Expires = cowboy_clock:rfc1123(ExpireDate),
-											{ok, Request#request{code = 200,
-																 response_header = ResponseHeader#{<<"cache-control">> => CacheControlService,
-																								   <<"expires">> => Expires},
-																 response_data = ContentData}
-											};
-										_ ->
-											{ok, Request#request{code = 200,
-																 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
-																 response_data = ContentData}
-											}
-									end
+									{ok, Request#request{code = 200,
+														 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
+														 response_data = ContentData}
+									}
 							end;
 						{error, Reason} -> 						
 							% se a chama ao ws der erro, tenta obter os dados localmente
@@ -129,21 +115,10 @@ execute(Request = #request{timestamp = Timestamp,
 										<<"\"erlangms_version\":\""/utf8>>, list_to_binary(ems_util:version()), <<"\""/utf8>>,
 										<<"}"/utf8>>]),
 									ems_logger:info("ems_barramento_service call \033[01;34m~p\033[0m success.\nContent: \033[01;34m~p\033[0m.", [UriClient, ContentData]),
-									case Conf#config.instance_type of
-										production ->
-											ExpireDate = ems_util:date_add_minute(Timestamp, ExpiresMinute + 180),
-											Expires = cowboy_clock:rfc1123(ExpireDate),
-											{ok, Request#request{code = 200,
-																 response_header = ResponseHeader#{<<"cache-control">> => CacheControlService,
-																								   <<"expires">> => Expires},
-																 response_data = ContentData}
-											};
-										_ ->
-											{ok, Request#request{code = 200,
-																 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
-																 response_data = ContentData}
-											}
-									end
+									{ok, Request#request{code = 200,
+														 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
+														 response_data = ContentData}
+									}
 							end
 
 					end;
