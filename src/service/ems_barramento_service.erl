@@ -30,11 +30,13 @@ execute(Request = #request{timestamp = Timestamp,
 		AppName ->
 			AuthorizationHeader = [],
 			RestBaseAuthUrl = binary_to_list(Conf#config.rest_base_auth_url),
-			UrlClient = binary_to_list(erlang:iolist_to_binary([<<"/auth/client?filter={\"name\":\"">>, AppName, <<"\"}&limit=1">>])),
+			UrlClient = binary_to_list(erlang:iolist_to_binary([<<"/auth/client?fields=id,version,rest_base_url,rest_auth_url&filter={\"name\":\"">>, AppName, <<"\"}&limit=1">>])),
 			UriClient = RestBaseAuthUrl ++ UrlClient,
 			UriClientMask = RestBaseAuthUrl ++ ems_util:url_mask_str(UrlClient),
+			ems_logger:info("ems_barramento_service call url: ~p  urlMask: ~p.", [UrlClient, UriClientMask]),
 			case httpc:request(get, {UriClientMask, AuthorizationHeader}, [],[]) of
 				{ok,{_, _, ClientPayload}} ->
+					ems_logger:info("ems_barramento_service call ClientPayload: ~p.", [ClientPayload]),
 					case ems_util:json_decode_as_map(list_to_binary(ClientPayload)) of
 						{ok, []} ->
 							ems_logger:error("ems_barramento_service call \033[01;34m~p\033[0m failed.\nReason: eunknow_client.", [UriClient]),
@@ -93,7 +95,7 @@ execute(Request = #request{timestamp = Timestamp,
 									end
 							end;
 						{error, Reason} -> 						
-							ems_logger:error("ems_barramento_service call \033[01;34m~p\033[0m failed.\nReason: \033[01;34m~p\033[0m.", [UriClient, Reason]),
+							ems_logger:error("ems_barramento_service call url \033[01;34m~p\033[0m failed.\nReason: \033[01;34m~p\033[0m, ClientPayload: \033[01;34m~p\033[0m.", [UriClient, Reason, ClientPayload]),
 							{error, Request#request{code = 400, 
 													reason = einvalid_decode_client_json,
 													operation = json_decode_as_map,
