@@ -231,7 +231,7 @@ handle_info(Msg, State) ->
 
 terminate(Reason, State) ->
     do_disconnect(State),
-	?DEBUG("ems_odbc_pool_worker terminate. Reason: ~p.", [Reason]),   
+	?DEBUG("ems_odbc_pool_worker terminate ~p.", [Reason]),   
     ok.
  
 code_change(_OldVsn, State, _Extra) ->
@@ -302,7 +302,6 @@ do_param_query(Sql, Params, #state{datasource = Datasource = #service_datasource
 																				 conn_ref = ConnRef,
 																				 timeout = Timeout}}) ->
 	try
-		%io:format("do_param_query1: sql-> ~s\n", [Sql]),
 		case odbc:param_query(ConnRef, Sql, Params, Timeout) of
 			{error, Reason} ->
 				ems_logger:error("ems_odbc_pool_worker param_query failed (Ds: ~p Reason: ~p)\n\tSQL: ~s", [Id, Reason, Sql]),
@@ -311,7 +310,8 @@ do_param_query(Sql, Params, #state{datasource = Datasource = #service_datasource
 					false -> {error, eodbc_connection_closed}
 				end;
 			{selected, Fields1, Result1} -> 
-				{ok, {selected, [?UTF8_STRING(F) || F <- Fields1], Result1}, Datasource}
+				{ok, {selected, [?UTF8_STRING(F) || F <- Fields1], Result1}, Datasource};
+			{updated, _RowCount} = Result -> {ok, Result, Datasource}
 		end
 	catch
 		_:timeout -> 

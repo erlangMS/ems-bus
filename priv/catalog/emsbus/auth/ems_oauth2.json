@@ -9,7 +9,20 @@
 		"type": "KERNEL",
 		"lang" : "erlang",
 		"pool_size" : 1,
-		"pool_max" : 1
+		"pool_max" : 1,
+		
+		"persist_token_sgbd_enabled" : false,
+		"datasource_persist_sgbd" : "db2",
+		"sql_persist_access_code" : "insert into dbsm.erlangms_oauth2_access_code(id, dt_registro, context) values (?,current_date,?)",
+		"sql_select_access_code" : "select id, dt_registro, context from dbsm.erlangms_oauth2_access_code where id = ?",
+		"sql_persist_refresh_token" : "insert into dbsm.erlangms_oauth2_refresh_token(id, dt_registro, context) values (?,current_date,?)",
+		"sql_select_refresh_token" : "select id, dt_registro, context from dbsm.erlangms_refresh_token where id = ?",
+		"sql_persist_access_token" : "insert into dbsm.erlangms_oauth2_access_token(id, dt_registro, context) values (?,current_date,?)",
+		"sql_select_access_token" : "select id, dt_registro, context from dbsm.erlangms_access_token where id = ?",
+		"passport_code_enabled" : true,
+		"datasource_passport_code" : "sig_unb",
+		"sql_select_passport_code" : "select clientid, userid, dt_created, escopo from oauth.oauth_erlangms_passport where id =?  and active = 1",
+		"sql_disable_passport_code" : "update oauth.oauth_erlangms_passport set active = 0, dt_disabled = current_timestamp where id = ?"
 	},
 	
 	{
@@ -58,16 +71,22 @@
 				"name": "secret",
 				"type": "string",
 				"comment": ""
-				},
+			},
+			
 			{
 				"name": "code",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "state",
 				"type": "string",
 				"comment": ""
+			},
+			{
+				"name": "passport",
+				"type": "string",
+				"comment": "The passport"
 			}
 		],
 		"lang" : "erlang"
@@ -129,17 +148,22 @@
 				"name": "code",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "state",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "refresh_token",
 				"type": "string",
 				"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
-				}
+			},
+			{
+				"name": "passport",
+				"type": "string",
+				"comment": "The passport"
+			}
 		],
 		"lang" : "erlang"
 	},
@@ -184,7 +208,7 @@
 				"name": "code",
 				"type": "string",
 				"comment": ""
-				},
+			},
 			{
 				"name": "state",
 				"type": "string",
@@ -215,7 +239,7 @@
 	
 	{
 		"name" : "/resource",
-		"comment": "Get resourge",
+		"comment": "Get resource",
 		"owner": "auth",
 		"version": "1.0.0",
 		"service" : "ems_oauth2_recurso:execute",

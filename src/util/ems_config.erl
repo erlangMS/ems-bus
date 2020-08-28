@@ -134,7 +134,7 @@ get_config_data() ->
 								{ok, [[ConfigFileCommandLine]]} -> ConfigFileCommandLine;
 								_ -> "emsbus.conf"
 							end,
-		Filename = select_config_file(ConfigFile, ?CONF_FILE_PATH),
+		Filename = select_config_file(ConfigFile, ?CONF_FILE_PATH_DEFAULT),
 		case file:read_file(Filename) of 
 			{ok, Arq} -> {ok, Arq, Filename};
 			_ -> {error, enofile_config}
@@ -235,27 +235,41 @@ parse_cat_path_search(CatPathSearch, StaticFilePath, StaticFilePathProbing) ->
 		false ->
 			CatPathSearch2 = CatPathSearch
 	end,
-	% Processar as entradas da lista. Pode ser um .zip
+
+	% Processar as entradas da lista. Pode ser um arquivo .zip
 	CatPathSearch3 = parse_cat_path_search_(CatPathSearch2, []),
-	% Adiciona o catálogo do barramento
-	[{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch3].
+
+	% Adiciona o catálogo do barramento se necessário
+	case lists:keymember(<<"ems-bus">>, 1, CatPathSearch3) orelse 
+		 lists:keymember(<<"ems_bus">>, 1, CatPathSearch3) orelse 
+		 lists:keymember(<<"emsbus">>, 1, CatPathSearch3) of
+			true -> CatPathSearch3;
+			false -> [{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch3]
+	end.
 
 
 -spec parse_static_file_path(map()) -> list().
 parse_static_file_path(StaticFilePathMap) ->
 	StaticFilePathList = maps:to_list(StaticFilePathMap),
-	StaticFilePathList2 = [{<<"login_path">>, list_to_binary(filename:join(?STATIC_FILE_PATH, "login"))} | StaticFilePathList],
-	StaticFilePathList3 = case lists:member(<<"www_path">>, StaticFilePathList2) of
-						     true -> StaticFilePathList2;
-							 false -> [{<<"www_path">>, list_to_binary(?STATIC_FILE_PATH)} | StaticFilePathList2]
+	StaticFilePathList2 = case lists:keymember(<<"www_path">>, 1, StaticFilePathList) of
+						     true -> 
+								{_, WWWPathBin} = lists:keyfind(<<"www_path">>, 1, StaticFilePathList),
+								WWWPathStr = binary_to_list(WWWPathBin),
+								StaticFilePathList;
+							 false -> 
+								WWWPathStr = filename:join(ems_db:get_param(priv_path), "www"),
+								WWWPathBin = list_to_binary(WWWPathStr),
+								[{<<"www_path">>, WWWPathBin} | StaticFilePathList]
 						  end,
-	[{K, ems_util:remove_ult_backslash_url(binary_to_list(V))} || {K, V} <- StaticFilePathList3].
+	ems_db:set_param(www_path, WWWPathStr),
+	StaticFilePathList3 = [{<<"login_path">>, list_to_binary(filename:join(WWWPathStr, "login"))} | StaticFilePathList2],
+	[{K, ems_util:parse_file_name_path(V)} || {K, V} <- StaticFilePathList3].
 	
 
 parse_datasources_([], _, _, Result) -> maps:from_list(Result);
 parse_datasources_([DsName|T], Datasources, Conf, Result) ->
 	M = maps:get(DsName, Datasources),
-	Ds = ems_db:create_datasource_from_map(M, undefined, Conf),
+	Ds = ems_db:create_datasource_from_map(M, undefined, Conf, DsName),
 	parse_datasources_(T, Datasources, Conf, [{DsName, Ds} | Result]).
 								
 parse_datasources(DatasourcesMap, Variables) ->
@@ -292,21 +306,10 @@ parse_http_headers_([{Key, _} = Item|T], ShowDebugResponseHeaders, Hostname, Res
 			erlang:error(einvalid_http_response_header)
 	end.
 	
-parse_jar_path(<<>>) -> <<>>;
-parse_jar_path(undefined) -> <<>>;
-parse_jar_path(Path) ->
-	Path2 = ems_util:replace_all_vars_and_custom_variables(Path, [{<<"PRIV_PATH">>, ?PRIV_PATH}]),
-	case Path2 =:= <<>> of
-		true -> <<>>;
-		false ->
-			case filelib:is_dir(Path2) of
-				true -> 
-					Path2;
-				false -> 
-					ems_logger:format_warn("ems_config detect inexistent java_jar_path \033[01;34m\"~s\"\033[0m.", [Path2]),
-					Path2
-			end
-	end.
+parse_jar_path("") -> "";
+parse_jar_path(<<>>) -> "";
+parse_jar_path(undefined) -> "";
+parse_jar_path(Path) ->	ems_util:replace_all_vars_and_custom_variables(Path, [{<<"PRIV_PATH">>, ?PRIV_PATH}]).
 
 parse_java_home(<<>>) -> ems_util:get_java_home();
 parse_java_home(undefined) -> ems_util:get_java_home();
@@ -342,6 +345,114 @@ parse_config(Json, Filename) ->
 	try
 		{ok, InetHostname} = inet:gethostname(),
 		
+		put(parse_step, instance_type),
+		InstanceType =  binary_to_atom(maps:get(<<"instance_type">>, Json, <<"production">>), utf8),
+
+		
+		put(parse_step, priv_path),
+		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
+		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
+		
+		case filelib:is_dir(PrivPath) of
+			true -> ems_logger:format_info("ems_config using priv_path \033[01;34m\"~s\"\033[0m.", [PrivPath]);
+			false ->
+				ems_logger:format_error("ems_config cannot found priv_path \033[01;34m\"~s\"\033[0m.", [PrivPath]),
+				erlang:error(ecannot_found_priv_path)
+		end,
+		
+		put(parse_step, database_path),
+		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
+		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
+
+		put(parse_step, database_path_check),
+		case ems_util:ensure_dir_writable(DatabasePath) == ok of
+			true -> ems_logger:format_info("ems_config using database_path \033[01;34m\"~s\"\033[0m.", [DatabasePath]);
+			false ->
+				ems_logger:format_error("ems_config cannot initialize read-only database path \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
+				erlang:error(ecannot_use_read_only_database_path)
+		end,
+
+		put(parse_step, log_file_path),
+		LogFilePath0 = binary_to_list(maps:get(<<"log_file_path">>, Json, list_to_binary(filename:join(PrivPath, "log")))),
+		LogFilePath = ems_util:parse_file_name_path(LogFilePath0, [], undefined),
+		
+		put(parse_step, log_file_path_check),
+		case ems_util:ensure_dir_writable(LogFilePath) == ok of
+			true -> ems_logger:format_info("ems_config using log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]);
+			false ->
+				ems_logger:format_error("ems_config cannot initialize read-only log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]),
+				erlang:error(ecannot_use_read_only_log_file_path)
+		end,
+		
+
+		put(parse_step, log_file_archive_path),
+		LogFileArchivePath0 = binary_to_list(maps:get(<<"log_file_archive_path">>, Json, list_to_binary(filename:join(PrivPath, "archive_log")))),
+		LogFileArchivePath = ems_util:parse_file_name_path(LogFileArchivePath0, [], undefined),
+		ems_util:ensure_dir_writable(LogFileArchivePath),
+	
+		
+		put(parse_step, log_file_archive_path_check),
+		case ems_util:ensure_dir_writable(LogFileArchivePath) == ok of
+			true -> ems_logger:format_info("ems_config using log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]);
+			false ->
+				ems_logger:format_error("ems_config cannot initialize read-only log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]),
+				erlang:error(ecannot_use_read_only_log_file_archive_path)
+		end,
+		
+		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
+		put(parse_step, start_db),
+		ems_db:start(PrivPath, DatabasePath),  
+		
+		ems_db:set_param(log_file_path, LogFilePath),
+		ems_db:set_param(log_file_archive_path, LogFileArchivePath),
+		ems_db:set_param(instance_type, InstanceType),
+		
+		% Instala o módulo de criptografia blowfish se necessário
+		put(parse_step, blowfish_crypto_modpath),
+		BlowfishCryptoModPath = ems_util:parse_file_name_path(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>)),		
+
+		put(parse_step, use_blowfish),
+		UseBlowfish = BlowfishCryptoModPath =/= <<>>,
+		case UseBlowfish of
+			true ->
+				put(parse_step, blowfish_crypto_modfilename),
+				BlowfishCryptoModFileName = filename:basename(BlowfishCryptoModPath),
+				
+				put(parse_step, blowfish_crypto_module_ebin),
+				BlowfishCryptoModuleEBin = filename:join(filename:join(ems_util:get_working_dir(), "ebin"), BlowfishCryptoModFileName),
+				
+				put(parse_step, blowfish_crypto_copy),
+				
+				ems_logger:format_info("ems_config initialize the blowfish encryption module."),
+				case file:copy(BlowfishCryptoModPath, BlowfishCryptoModuleEBin) of
+					{ok, _BytesCopied} ->
+						ems_db:set_param(use_blowfish_crypto, true),
+						ems_logger:format_info("ems_config blowfish encryption module initialized.");
+					{error, ReasonBlowfish} ->
+						ems_db:set_param(use_blowfish_crypto, false),
+						ems_logger:format_error("ems_config failed to initialize blowfish encryption module ~p. Reason ~p.", [BlowfishCryptoModPath, ReasonBlowfish]),
+						erlang:error(einvalid_crypto_blowfish_module_path)
+				end;
+			false -> 
+				ems_db:set_param(use_blowfish_crypto, false),
+				ok
+		end,
+		
+		put(parse_step, static_file_path_probing),
+		StaticFilePathProbing = ems_util:parse_bool(get_p(<<"static_file_path_probing">>, Json, ?STATIC_FILE_PATH_PROBING)),
+
+		put(parse_step, static_file_path),
+		StaticFilePath = parse_static_file_path(get_p(<<"static_file_path">>, Json, #{})),
+		StaticFilePathMap = maps:from_list(StaticFilePath),
+
+		put(parse_step, auth_default_scopes),
+		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
+		ems_db:set_param(auth_default_scope, AuthDefaultScopesAtom),
+
+		put(parse_step, auth_password_check_between_scopes),
+		AuthPasswordCheckBetweenScope = ems_util:parse_bool(maps:get(<<"auth_password_check_between_scope">>, Json, true)),
+		ems_db:set_param(auth_password_check_between_scope, AuthPasswordCheckBetweenScope),
+
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),
 		CustomVariables = parse_variables(maps:get(<<"custom_variables">>, Json, #{})),
@@ -389,13 +500,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, rest_default_querystring),
 		{Querystring, _QtdQuerystringRequired} = ems_util:parse_querystring_def(get_p(<<"rest_default_querystring">>, Json, []), []),
 
-		put(parse_step, static_file_path_probing),
-		StaticFilePathProbing = ems_util:parse_bool(get_p(<<"static_file_path_probing">>, Json, ?STATIC_FILE_PATH_PROBING)),
-
-		put(parse_step, static_file_path),
-		StaticFilePath = parse_static_file_path(get_p(<<"static_file_path">>, Json, #{})),
-		StaticFilePathMap = maps:from_list(StaticFilePath),
-
 		put(parse_step, catalog_path),
 		CatPathSearch = parse_cat_path_search(maps:to_list(get_p(<<"catalog_path">>, Json, #{})), StaticFilePath, StaticFilePathProbing),
 
@@ -421,11 +525,14 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, rest_login_url),
 		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, <<>>) of
-			<<>> ->	RestLoginUrl = iolist_to_binary([RestBaseUrl, <<"/login/index.html"/utf8>>]);
+			<<>> ->	RestLoginUrl = RestLoginUrl = iolist_to_binary([RestBaseUrl, <<"/login/index.html"/utf8>>]);
 			RestLoginUrlValue -> RestLoginUrl = ems_util:remove_ult_backslash_url_binary(RestLoginUrlValue)
 		end,
  		put(parse_step, rest_url_mask),
 		RestUrlMask = ems_util:parse_bool(get_p(<<"rest_url_mask">>, Json, false)),
+
+		put(parse_step, debug),
+		RestUseHostInRedirect = ems_util:parse_bool(get_p(<<"rest_use_host_in_redirect">>, Json, false)),
 
 		put(parse_step, rest_user),
 		RestUser = binary_to_list(get_p(<<"rest_user">>, Json, <<"erlangms">>)),
@@ -484,12 +591,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_file_max_size),
 		LogFileMaxSize = get_p(<<"log_file_max_size">>, Json, ?LOG_FILE_MAX_SIZE),
 		
-		put(parse_step, log_file_path),
-		LogFilePath = get_p(<<"log_file_path">>, Json, ?LOG_FILE_PATH),
-
-		put(parse_step, log_file_archive_path),
-		LogFileArchivePath = get_p(<<"log_file_archive_path">>, Json, ?LOG_FILE_ARCHIVE_PATH),
-
 		put(parse_step, log_show_odbc_pool_activity),
 		LogShowOdbcPoolActivity = ems_util:parse_bool(get_p(<<"log_show_odbc_pool_activity">>, Json, ?LOG_SHOW_ODBC_POOL_ACTIVITY)),
 
@@ -500,7 +601,12 @@ parse_config(Json, Filename) ->
 		RestEnvironment = ems_util:get_param_or_variable(<<"rest_environment">>, Json, HostnameBin),
 		
 		put(parse_step, sufixo_email_institucional),
-		SufixoEmailInstitucional = binary_to_list(get_p(<<"sufixo_email_institucional">>, Json, ?SUFIXO_EMAIL_INSTITUCIONAL)),
+		SufixoEmailInstitucional0 = binary_to_list(get_p(<<"sufixo_email_institucional">>, Json, ?SUFIXO_EMAIL_INSTITUCIONAL)),
+		case string:trim(SufixoEmailInstitucional0) of
+			"" -> SufixoEmailInstitucional = ?SUFIXO_EMAIL_INSTITUCIONAL;
+			SufixoEmailInstitucionalValue -> SufixoEmailInstitucional = string:to_lower(SufixoEmailInstitucionalValue)
+		end,
+		ems_db:set_param(sufixo_email_institucional, SufixoEmailInstitucional),
 		
 		put(parse_step, disable_services),
 		DisableServices = get_p(<<"disable_services">>, Json, []),
@@ -559,7 +665,7 @@ parse_config(Json, Filename) ->
 		JavaServiceUserNotifyRequiredFields = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_required_fields">>, Json, [<<"name">>, <<"login">>, <<"email">>, <<"cpf">>, <<"nome_mae">>])),
 
 		put(parse_step, java_service_user_notify_source_types),
-		JavaServiceUserNotifySourcesTypes = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_source_types">>, Json, ?CLIENT_DEFAULT_SCOPE_BIN)),
+		JavaServiceUserNotifySourcesTypes = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_source_types">>, Json, ems_util:atomlist_to_binlist(?CLIENT_DEFAULT_SCOPE))),
 
 		put(parse_step, log_show_user_notify_activity),
 		LogShowUserNotifyActivity = ems_util:parse_bool(get_p(<<"log_show_user_notify_activity">>, Json, true)),
@@ -596,13 +702,52 @@ parse_config(Json, Filename) ->
 								_ -> ems_util:criptografia_sha1(LdapPasswordAdmin0)
 							end,
 
-		put(parse_step, config_0),
+		put(parse_step, client_path_search),
+		ClientPathSearch = select_config_file(<<"clients.json">>, get_p(<<"client_path_search">>, Json, ?CLIENT_PATH)),
+
+		put(parse_step, user_path_search),
+		UserPathSearch = select_config_file(<<"users.json">>, get_p(<<"user_path_search">>, Json, ?USER_PATH)),
+
+		put(parse_step, dados_funcionais_path_search),
+		DadosFuncionaisPathSearch = select_config_file(<<"user_dados_funcionais.json">>, get_p(<<"user_dados_funcionais_path">>, Json, ?USER_DADOS_FUNCIONAIS_PATH)),
+
+		put(parse_step, user_perfil_path_search),
+		UserPerfilPathSearch = select_config_file(<<"user_perfil.json">>, get_p(<<"user_perfil_path_search">>, Json, ?USER_PERFIL_PATH)),
+
+		put(parse_step, user_permission_path_search),
+		UserPermissionPathSearch = select_config_file(<<"user_permission.json">>, get_p(<<"user_permission_path_search">>, Json, ?USER_PERMISSION_PATH)),
+
+		put(parse_step, user_endereco_path_search),
+		UserEnderecoPathSearch = select_config_file(<<"user_endereco.json">>, get_p(<<"user_endereco_path_search">>, Json, ?USER_ENDERECO_PATH)),
+
+		put(parse_step, user_telefone_path_search),
+		UserTelefonePathSearch = select_config_file(<<"user_telefone.json">>, get_p(<<"user_telefone_path_search">>, Json, ?USER_TELEFONE_PATH)),
+
+		put(parse_step, user_email_path_search),
+		UserEmailPathSearch = select_config_file(<<"user_email.json">>, get_p(<<"user_email_path_search">>, Json, ?USER_EMAIL_PATH)),
+
+		put(parse_step, ssl_cacertfile),
+		SslCaCertfile = get_p(<<"ssl_cacertfile">>, Json, undefined),
+
+		put(parse_step, ssl_certfile),
+		SslCertfile = get_p(<<"ssl_certfile">>, Json, undefined),
+
+		put(parse_step, ssl_keyfile),
+		SslKeyfile = get_p(<<"ssl_keyfile">>, Json, undefined),
+
+		put(parse_step, host_search),
+		HostSearch = get_p(<<"host_search">>, Json, <<>>),	
 		
-		
+		put(parse_step, node_search),
+		NodeSearch = get_p(<<"node_search">>, Json, <<>>),		
+
+		WWWPath = ems_db:get_param(www_path),
+
+		put(parse_step, new_config),
 		Conf0 = #config{ 
 				 cat_host_alias = HostAlias,
-				 cat_host_search = get_p(<<"host_search">>, Json, <<>>),							
-				 cat_node_search = get_p(<<"node_search">>, Json, <<>>),
+				 cat_host_search = HostSearch, 
+				 cat_node_search = NodeSearch,
 				 cat_path_search = CatPathSearch,
 				 static_file_path = StaticFilePath,
 				 static_file_path_map = StaticFilePathMap,
@@ -642,19 +787,20 @@ parse_config(Json, Filename) ->
 				 rest_user = RestUser,
 				 rest_passwd = RestPasswd,
 				 rest_base_url_defined = RestBaseUrlDefined,
+				 rest_use_host_in_redirect = RestUseHostInRedirect,
 				 config_file = Filename,
 				 params = Json,
-				 client_path_search = select_config_file(<<"clients.json">>, get_p(<<"client_path_search">>, Json, ?CLIENT_PATH)),
-				 user_path_search = select_config_file(<<"users.json">>, get_p(<<"user_path_search">>, Json, ?USER_PATH)),
-				 user_dados_funcionais_path_search = select_config_file(<<"user_dados_funcionais.json">>, get_p(<<"user_dados_funcionais_path">>, Json, ?USER_DADOS_FUNCIONAIS_PATH)),
-				 user_perfil_path_search = select_config_file(<<"user_perfil.json">>, get_p(<<"user_perfil_path_search">>, Json, ?USER_PERFIL_PATH)),
-				 user_permission_path_search = select_config_file(<<"user_permission.json">>, get_p(<<"user_permission_path_search">>, Json, ?USER_PERMISSION_PATH)),
-				 user_endereco_path_search = select_config_file(<<"user_endereco.json">>, get_p(<<"user_endereco_path_search">>, Json, ?USER_ENDERECO_PATH)),
-				 user_telefone_path_search = select_config_file(<<"user_telefone.json">>, get_p(<<"user_telefone_path_search">>, Json, ?USER_TELEFONE_PATH)),
-				 user_email_path_search	= select_config_file(<<"user_email.json">>, get_p(<<"user_email_path_search">>, Json, ?USER_EMAIL_PATH)),
-				 ssl_cacertfile = get_p(<<"ssl_cacertfile">>, Json, undefined),
-				 ssl_certfile = get_p(<<"ssl_certfile">>, Json, undefined),
-				 ssl_keyfile = get_p(<<"ssl_keyfile">>, Json, undefined),
+				 client_path_search = ClientPathSearch,
+				 user_path_search = UserPathSearch,
+				 user_dados_funcionais_path_search = DadosFuncionaisPathSearch,
+				 user_perfil_path_search = UserPerfilPathSearch,
+				 user_permission_path_search = UserPermissionPathSearch,
+				 user_endereco_path_search = UserEnderecoPathSearch, 
+				 user_telefone_path_search = UserTelefonePathSearch, 
+				 user_email_path_search	= UserEmailPathSearch, 
+				 ssl_cacertfile = SslCaCertfile, 
+				 ssl_certfile = SslCertfile, 
+				 ssl_keyfile = SslKeyfile, 
 				 sufixo_email_institucional = SufixoEmailInstitucional,
 				 log_show_response = LogShowResponse,
 				 log_show_payload = LogShowPayload,
@@ -690,7 +836,14 @@ parse_config(Json, Filename) ->
 				 ldap_password_admin = LdapPasswordAdmin,
 				 ldap_password_admin_crypto = <<"SHA1">>,
 				 ldap_base_search = LdapBaseSearch,
-				 custom_variables = CustomVariables
+				 custom_variables = CustomVariables,
+				 www_path = WWWPath,
+				 database_path = DatabasePath,
+				 priv_path = PrivPath,
+				 auth_default_scope = AuthDefaultScopesAtom,
+				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
+				 crypto_blowfish_module_path = BlowfishCryptoModPath,
+				 instance_type = InstanceType
 			},
 
 		put(parse_step, datasources),
@@ -703,8 +856,9 @@ parse_config(Json, Filename) ->
 		{ok, Conf1}
 	catch
 		_:Reason -> 
-			ems_logger:format_error("ems_config cannot parse ~p in configuration file ~p. Reason: ~p.", [get(parse_step), Filename, Reason]),
-			erlang:error(einvalid_configuration)
+			ems_logger:format_error("ems_config cannot parse ~p in configuration file \033[01;34m~p\033[0m. Reason: ~p.", [get(parse_step), Filename, Reason]),
+			io:format("\033[06;31m~p\033[0m\n", [Json]),
+			erlang:error(Reason)
 	end.
 
 -spec select_config_file(binary() | string(), binary() | string()) -> {ok, string()} | {error, enofile_config}.
@@ -738,7 +892,7 @@ select_config_file(ConfigFile, ConfigFileDefault) ->
 							ConfigFileDefault2;
 						_ -> 
 							?DEBUG("ems_config checking if global file configuration ~p exist: No", [ConfigFileDefault2]),
-							erlang:error({error, enofile_config})
+							undefined
 					end
 			end
 	end.

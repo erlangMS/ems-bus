@@ -8,7 +8,7 @@
 
 -module(ems_db).
 
--export([start/0]).
+-export([start/2]).
 -export([get/2, exist/2, all/1, 
 		 insert/1, insert/2, update/1, delete/2, delete/1, 
 		 match/2, 
@@ -18,7 +18,8 @@
 		 sort/2, field_position/3]).
 -export([init_sequence/2, sequence/1, sequence/2, current_sequence/1]).
 -export([init_counter/2, counter/2, current_counter/1, inc_counter/1, dec_counter/1]).
--export([get_connection/1, release_connection/1, get_sqlite_connection_from_csv_file/1, create_datasource_from_map/3, command/2, select_count/2, is_database_in_restricted_mode/1]).
+-export([get_connection/1, release_connection/1, get_sqlite_connection_from_csv_file/1, create_datasource_from_map/3, create_datasource_from_map/4, 
+		 command/2, select_count/2, is_database_in_restricted_mode/1]).
 -export([get_param/1, get_param/2, set_param/2, get_re_param/2]).
 -export([get_transient_param/1, get_transient_param/2, set_transient_param/2, get_re_transient_param/2]).
 
@@ -33,17 +34,13 @@
 
 %% *********** Database schema creation ************
 
-start() ->
-	create_database([node()]),
-	ems_cache:new(ems_db_parsed_query_cache).
-	
--spec create_database(list()) -> ok.	
-create_database(Nodes) ->
-	ems_logger:format_info("ems_db initializing ErlangMS database, please wait..."),
+start(PrivPath, DatabasePath) ->
+	Nodes = [node()],
 
 	% Define a pasta de armazenamento dos databases
-	filelib:ensure_dir(?DATABASE_PATH),
-	application:set_env(mnesia, dir, ?DATABASE_PATH),
+	application:set_env(mnesia, dir, DatabasePath),
+
+	ems_logger:format_info("ems_db initialize database storage \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
 	
 	mnesia:create_schema(Nodes),
 	mnesia:start(),
@@ -97,6 +94,12 @@ create_database(Nodes) ->
 								  {record_name, user}]),
 
     mnesia:create_table(user2_db, [{type, set},
+								  {disc_copies, Nodes},
+								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {attributes, record_info(fields, user)},
+								  {record_name, user}]),
+
+    mnesia:create_table(user3_db, [{type, set},
 								  {disc_copies, Nodes},
 								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
 								  {attributes, record_info(fields, user)},
@@ -309,6 +312,7 @@ create_database(Nodes) ->
 							user_fs, 
 							user_db,
 							user2_db,
+							user3_db,
 							user_history,
 							user_aluno_ativo_db,
 							user_aluno_inativo_db,
@@ -349,6 +353,12 @@ create_database(Nodes) ->
 							auth_oauth2_access_code_table,
 							auth_oauth2_refresh_token_table
 							], 120000),
+	ems_logger:format_info("ems_db database storage initialized."),
+							
+	set_param(priv_path, PrivPath),
+	set_param(database_path, DatabasePath),
+	ems_cache:new(ems_db_parsed_query_cache),
+							
 	ok.
 
 
@@ -1253,6 +1263,7 @@ parse_datasource_type(<<"mnesia">>) -> mnesia;
 parse_datasource_type(<<"sqlserver">>) -> sqlserver;
 parse_datasource_type(<<"postgresql">>) -> postgresql;
 parse_datasource_type(<<"csvfile">>) -> csvfile;
+parse_datasource_type(<<"db2">>) -> db2;
 parse_datasource_type(_) -> erlang:error(einvalid_datasource_type_property).
 
 -spec parse_data_source_driver(atom(), binary()) -> atom().
@@ -1364,15 +1375,19 @@ parse_extends_datasource(Map, GlobalDatasources) ->
 					maps:merge(BaseDsMap, Map)
 			end
 	end.
-
+	
 -spec create_datasource_from_map(map(), non_neg_integer(), #config{}) -> #service_datasource{} | undefined.
+create_datasource_from_map(Map, Rowid, Config) ->
+	create_datasource_from_map(Map, Rowid, Config, undefined).
+
+-spec create_datasource_from_map(map(), non_neg_integer(), #config{}, binary()) -> #service_datasource{} | undefined.
 create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasources, 
 											   custom_variables = Variables, 
-											   log_show_odbc_pool_activity = LogShowOdbcPoolActivityConfig}) ->
+											   log_show_odbc_pool_activity = LogShowOdbcPoolActivityConfig}, DsName) ->
 	try
 		put(parse_step, parse_extends_datasource),
 		M = parse_extends_datasource(Map, GlobalDatasources),
-
+		
 		put(parse_step, type),
 		Type = parse_datasource_type(maps:get(<<"type">>, M, undefined)),
 
@@ -1456,6 +1471,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 					
 					put(parse_step, new_service_datasource),
 					NewDs = #service_datasource{id = Id,
+												ds_name = DsName,
 												rowid = Rowid,
 												type = Type,
 												driver = Driver,
@@ -1550,8 +1566,6 @@ select_count(Datasource, Sql) when is_tuple(Datasource) ->
 
 
 is_database_in_restricted_mode(Reason) when is_list(Reason) ->
-	io:format("Reason is ~p\n", [Reason]),
 	string:str(Reason, "security context") > 0;
-is_database_in_restricted_mode(X) -> 
-	io:format("x is ~p\n", [X]),
+is_database_in_restricted_mode(_) -> 
 	false.

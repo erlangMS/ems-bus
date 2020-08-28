@@ -31,6 +31,8 @@
 		 binlist_to_atomlist_with_trim/1,
 		 list_to_atomlist_with_trim/1,
 		 list_to_binlist/1,
+		 atomlist_to_binlist/1,
+		 atomlist_to_list/1,
 		 mes_extenso/1,
 		 binlist_to_list/1,
 		 join_binlist/2,
@@ -55,6 +57,7 @@
 		 get_params_from_url/1,
 		 get_rowid_and_params_from_url/2,
 		 get_priv_dir/0,
+		 get_priv_dir_default/0,
 		 get_working_dir/0,
 		 get_home_dir/0,
  		 get_milliseconds/0,
@@ -69,6 +72,11 @@
          get_user_request_by_login/1,
          get_param_or_variable/3,
          get_java_home/0,
+         get_www_path/0,
+ 		 get_log_file_path/0,
+ 		 get_log_file_archive_path/0,
+         get_auth_default_scope/0,
+         get_auth_password_check_between_scope/0,
          date_add_minute/2,
          date_dec_minute/2,
          date_add_second/2,
@@ -127,6 +135,7 @@
 		 parse_service_service/1,
 		 parse_querystring_def/2,
 		 parse_file_name_path/3,
+		 parse_file_name_path/1,
  		 parse_bool/1,
 		 parse_authorization_type/1,
 		 parse_bearer_authorization_header/1,
@@ -139,6 +148,7 @@
 		 parse_range/4,
 		 parse_email/1,
 		 parse_ldap_name/1,
+		 parse_to_integer/1,
 		 match_ip_address/2,
  		 allow_ip_address/2,
 		 mask_ipaddress_to_tuple/1,
@@ -169,6 +179,7 @@
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 criptografia_md5/1,
+		 criptografia_blowfish/1,
 		 head_file/2,
 		 replace_all_vars_binary/2,
 		 replace_all_vars/2,
@@ -206,7 +217,12 @@
 		 str_trim/1,
 		 binary_to_hex/1,
 		 str_contains/2,
-		 oauth2_authenticate_rest_server/3
+		 oauth2_authenticate_rest_server/3,
+		 path_writable/1,
+		 file_writable/1,
+		 ensure_dir_writable/1,
+		 file_exists/1,
+		 is_production_server/0
 		]).
 
 -spec version() -> string().
@@ -280,10 +296,31 @@ make_rowid_id([H|T]) when H == 47 -> T;
 make_rowid_id([_|T]) -> make_rowid_id(T).
 
 
--spec get_priv_dir() -> string().
-get_priv_dir() ->
+-spec get_priv_dir_default() -> string().
+get_priv_dir_default() ->
 	{ok, Path} = file:get_cwd(),
 	Path ++ "/priv".
+
+-spec get_priv_dir() -> string().
+get_priv_dir() ->
+	ems_db:get_param(priv_path, get_priv_dir_default()).
+
+get_www_path() ->
+	ems_db:get_param(www_path, filename:join(get_priv_dir_default(), "www")).
+
+get_log_file_path() ->
+	ems_db:get_param(log_file_path, filename:join(get_priv_dir_default(), "log")).
+
+get_log_file_archive_path() ->
+	ems_db:get_param(log_file_archive_path, filename:join(get_priv_dir_default(), "archive_log")).
+
+	
+get_auth_default_scope() ->	
+	ems_db:get_param(auth_default_scope, ?AUTH_DEFAULT_SCOPE).
+	
+get_auth_password_check_between_scope() ->	
+	ems_db:get_param(auth_password_check_between_scope, true).
+	
 
 -spec get_working_dir() -> string().
 get_working_dir() ->
@@ -617,7 +654,8 @@ remove_quoted_str("\"" ++ Str) ->
 	case lists:reverse(Str) of
 		"\"" ++ Str2 -> lists:reverse(Str2);
 		_ -> Str
-	end.
+	end;
+remove_quoted_str(Str) -> Str.
 
 
 %% @doc Boolean indicando se DateTime ocorreu no período (min, hour, day, week, year)
@@ -1125,10 +1163,15 @@ parse_oauth2_scope(ScopeBin) ->
 	end.
 
 
+-spec parse_file_name_path(string() | binary()) -> string().
+parse_file_name_path(Path) ->
+	parse_file_name_path(Path, [], undefined).
+
 % Process the path "~" and "." wildcards and variable path. Return path
 -spec parse_file_name_path(string() | binary(), list(tuple()) | undefined, binary() | undefined) -> string().
 parse_file_name_path(undefined, _, _) -> <<>>;
 parse_file_name_path(<<>>, _, _) -> <<>>;
+parse_file_name_path("", _, _) -> <<>>;
 parse_file_name_path(Path, StaticFilePathList, RootPath) when is_binary(Path) ->
 	parse_file_name_path(binary_to_list(Path), StaticFilePathList, RootPath);
 parse_file_name_path(Path, StaticFilePathList, RootPath) ->
@@ -1879,6 +1922,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																   show_debug_response_headers = ShowDebugResponseHeaders,
 																   current_node = CurrentNode}) ->
 	try
+		ems_logger:debug("CowboyReq ~p.", [CowboyReq]),
 		Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
 		case Url of
@@ -1937,7 +1981,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 		Type = cowboy_req:method(CowboyReq),
 		{Ip, _} = cowboy_req:peer(CowboyReq),
 		IpBin = list_to_binary(inet_parse:ntoa(Ip)),
-		Host = cowboy_req:host(CowboyReq),
+		case cowboy_req:header(<<"host">>, CowboyReq) of
+			undefined -> Host = cowboy_req:host(CowboyReq);
+			HostValue -> Host = HostValue
+		end,
 		Version = cowboy_req:version(CowboyReq),
 		case cowboy_req:header(<<"content-type">>, CowboyReq) of
 			undefined -> ContentTypeIn = <<>>;
@@ -2819,13 +2866,13 @@ load_from_file_req(Request = #request{url = Url,
 														 path = Path,
 														 filename = FilenameService,
 														 show_debug_response_headers = ShowDebugResponseHeaders}}) ->
-	case FilenameService == <<>> orelse FilenameService == undefined of
+	case FilenameService == undefined  orelse FilenameService == <<>> of
 		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
 		false -> Filename = FilenameService
 	end,
+	ems_logger:info("ems_static_file_service reading file \033[01;34m~p\033[0m to url \033[01;34m~p\033[0m.", [Filename, Url]),
 	case file:read_file_info(Filename, [{time, universal}]) of
 		{ok,{file_info, FSize, _Type, _Access, _ATime, MTime, _CTime, _Mode,_,_,_,_,_,_}} -> 
-			?DEBUG("ems_static_file_service loading file ~p.", [Filename]),
 			MimeType = mime_type(filename:extension(Filename)),
 			ETag = integer_to_binary(erlang:phash2({FSize, MTime}, 16#ffffffff)),
 			LastModified = cowboy_clock:rfc1123(MTime),
@@ -2867,7 +2914,7 @@ load_from_file_req(Request = #request{url = Url,
 											      response_header = ResponseHeader2}
 							};
 						{error, Reason} = Error -> 
-							?DEBUG("ems_static_file_service read_file ~p failed. Reason: ~p.", [Filename, Reason]),
+							ems_logger:error("ems_static_file_service read file ~p failed to url ~p. Reason: ~p.", [Filename, Url, Reason]),
 							{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 												     reason = Reason,
 												     content_type_out = ?CONTENT_TYPE_JSON,
@@ -2876,7 +2923,7 @@ load_from_file_req(Request = #request{url = Url,
 					end
 			end;
 		{error, Reason} = Error -> 
-			ems_logger:error("ems_static_file_service read_file_info ~p failed. Reason: ~p.", [Filename, Reason]),
+			ems_logger:error("ems_static_file_service read file ~p failed to url ~p. Reason: ~p.", [Filename, Url, Reason]),
 			{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
 									 reason = Reason,	
 									 response_data = ems_schema:to_json(Error)}
@@ -3099,9 +3146,31 @@ binlist_to_atomlist(Value) when is_list(Value) ->
 binlist_to_atomlist(Value)  ->
 	binary_to_atom(Value, utf8).
 
-binlist_to_atomlist_([], Result) -> Result;
+binlist_to_atomlist_([], Result) -> lists:reverse(Result);
 binlist_to_atomlist_([H|T], Result) ->
 	binlist_to_atomlist_(T, [binary_to_atom(H, utf8)|Result]).
+	
+	
+atomlist_to_binlist([])  -> [];
+atomlist_to_binlist(undefined)  -> [];
+atomlist_to_binlist(<<>>)  -> [];
+atomlist_to_binlist(Value) ->
+	atomlist_to_binlist_(Value, []).
+
+atomlist_to_binlist_([], Result) -> lists:reverse(Result);
+atomlist_to_binlist_([H|T], Result) ->
+	atomlist_to_binlist_(T, [atom_to_binary(H, utf8)|Result]).
+	
+atomlist_to_list([])  -> [];
+atomlist_to_list(undefined)  -> [];
+atomlist_to_list(<<>>)  -> [];
+atomlist_to_list(Value) ->
+	atomlist_to_list_(Value, []).
+
+atomlist_to_list_([], Result) -> lists:reverse(Result);
+atomlist_to_list_([H|T], Result) ->
+	atomlist_to_list_(T, [atom_to_list(H)|Result]).
+	
 
 -spec json_field_strip_and_escape(string() | binary()) -> iolist().
 json_field_strip_and_escape([]) ->	<<"null"/utf8>>;
@@ -3883,6 +3952,8 @@ criptografia_md5(Password) when is_binary(Password) ->
 	criptografia_md5(binary_to_list(Password));
 criptografia_md5(Password) -> binary_to_hex(crypto:hash(md5, Password)).
 
+criptografia_blowfish(Password) -> ems_blowfish:criptografia(Password).
+
 
 -spec flush_messages() -> ok.
 flush_messages() ->
@@ -3936,3 +4007,57 @@ binary_to_list_def(Value, Default) ->
 	catch
 		_:_ -> Default
 	end.
+
+-spec parse_to_integer(any()) -> integer().
+parse_to_integer(undefined) -> undefined;
+parse_to_integer(V) when is_binary(V) -> binary_to_integer(V);
+parse_to_integer(V) when is_list(V) -> list_to_integer(V);
+parse_to_integer(V) when is_integer(V) -> V;
+parse_to_integer(_) -> erlang:error(einvalid_integer).
+
+-spec file_writable(string() | binary()) -> boolean().
+file_writable(Filename) when is_binary(Filename) ->
+	file_writable(binary_to_list(Filename));
+file_writable(Filename) ->
+	case file:read_file_info(Filename) of
+		{ok,{file_info,_,regular,read_write,
+               _,
+               _,
+               _,
+               _,_,_,_,_,_,_}} -> true;
+         _ -> false
+     end.
+
+-spec path_writable(string() | binary()) -> boolean().
+path_writable(Pathname) when is_binary(Pathname) ->
+	path_writable(binary_to_list(Pathname));
+path_writable(Pathname) ->
+	case file:read_file_info(Pathname) of
+		{ok,{file_info,_,directory,read_write,
+               _,
+               _,
+               _,
+               _,_,_,_,_,_,_}} -> true;
+         _ -> false
+     end.
+
+-spec ensure_dir_writable(string()) -> ok  | {error, atom()}.
+ensure_dir_writable(Path) ->
+	case file:make_dir(Path) of
+		ok -> ok;
+		{error, eexist} -> ok;
+		_ -> filelib:ensure_dir(Path)
+	end,
+	case path_writable(Path) of
+		true -> ok;
+		false -> {error, denied}
+	end.
+
+-spec file_exists(string()) -> boolean().
+file_exists(undefined) -> false;
+file_exists("") -> false;
+file_exists(Filename) ->
+	file:read_file_info(Filename) =/= {error,enoent}.
+
+-spec is_production_server() -> boolean().
+is_production_server() -> ems_db:get_param(instance_type) == production.

@@ -261,7 +261,6 @@ handle_info(check_sync_full, State = #state{name = Name,
 								ems_logger:info("~s sync full checkpoint successfully", [Name], LogShowDataLoaderActivity),
 								ems_util:flush_messages(),
 								erlang:send_after(3600000, self(), check_sync_full),
-								erlang:garbage_collect(self(), [{async, undefined}]),
 								{noreply, State3#state{wait_count = 0}, UpdateCheckpoint + 180000};  % adiciona 180 segundos para priorizar os demais loaders
 							{error, Reason} -> 
 								ems_data_loader_ctl:notify_finish_work(Name, check_sync_full, WaitCount, 0, 0, 0, 0, 0, Reason),
@@ -301,7 +300,6 @@ handle_info(check_count_records, State = #state{name = Name,
 					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, undefined),
 					ems_util:flush_messages(),
 					erlang:send_after(CheckRemoveRecordsCheckpoint, self(), check_count_records),
-					erlang:garbage_collect(self(), [{async, undefined}]),
 					{noreply, State2#state{wait_count = 0}, UpdateCheckpoint};
 				{error, Reason} -> 
 					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
@@ -347,7 +345,6 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 					do_after_load_or_update_checkpoint(State2),
 					ems_data_loader_ctl:notify_finish_work(Name, check_load_or_update_checkpoint, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, undefined),
 					ems_util:flush_messages(),
-					erlang:garbage_collect(self(), [{async, undefined}]),
 					case Loading of
 						true -> {noreply, State2#state{wait_count = 0}, UpdateCheckpoint + 60000};
 						false -> {noreply, State2#state{wait_count = 0}, UpdateCheckpoint}
@@ -611,7 +608,12 @@ do_load_data_pump(CtrlInsert,
 						Params = [{sql_integer, [Offset]},
 								  {sql_integer, [Offset+SqlLoadPacketLength-1]}
 								 ],
-						SqlLoad2 = io_lib:format("select ~s from ( select ~s, row_number() over (order by id) AS _RowNumber from ( ~s ) _t_sql ) _t where _t._RowNumber between ? and ?", [SqlFields, SqlFields, SqlLoad])
+						SqlLoad2 = io_lib:format("select ~s from ( select ~s, row_number() over (order by id) AS _RowNumber from ( ~s ) _t_sql ) _t where _t._RowNumber between ? and ?", [SqlFields, SqlFields, SqlLoad]);
+					db2 ->
+						Params = [{sql_integer, [Offset]},
+								  {sql_integer, [Offset+SqlLoadPacketLength-1]}
+								 ],
+						SqlLoad2 = io_lib:format("select ~s from ( select ~s, row_number() over (order by id) AS RowNumber from ( ~s ) t_sql ) t where t.RowNumber between ? and ?", ["*", "*", SqlLoad])
 				end
 		end,
 		SqlLoad3 = re:replace(SqlLoad2, "\\s+", " ", [global,{return,list}]),

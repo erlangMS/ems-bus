@@ -107,5 +107,11 @@
 	{
 		"catalog": "/emsbus/loaders/ems_user_aluno_inativo_loader_db", 
 		"file": "ems_user_aluno_inativo_loader_db.json"
+	},
+
+	{
+		"catalog": "/emsbus/loaders/ems_user3_loader_db", 
+		"file": "ems_user3_loader_db.json"
 	}
+
 ]
