@@ -1,0 +1,10 @@
+<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="???Id">
+<ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments">
+</ds:CanonicalizationMethod><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">
+</ds:SignatureMethod><ds:Reference URI="">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116">
+<ds:XPath>not(ancestor-or-self::ds:Signature)</ds:XPath>
+</ds:Transform></ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>
+<ds:DigestValue>???Digest</ds:DigestValue>

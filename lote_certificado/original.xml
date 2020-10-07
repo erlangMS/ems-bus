@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diploma ID="941ce80d-a2ff-4896-a900-8f44fdb905d8">
+   <aluMatricula>201163675</aluMatricula>
+   <aluRa>140063978</aluRa>
+   <curCurso>1635</curCurso>
+   <curNivel>2</curNivel>
+   <curPerIni>20082</curPerIni>
+   <curPerFim>99999</curPerFim>
+   <dadForSaidOpc>1</dadForSaidOpc>
+   <dadPerSaidOpc>20182</dadPerSaidOpc>
+   <dadPerCur>20141</dadPerCur>
+   <livPerPeriodo>20182</livPerPeriodo>
+   <aluNome>Mateus Manuel Rodrigues Bezerra</aluNome>
+   <nacionalidade>brasileira,</nacionalidade>
+   <nascimento>Distrito Federal,</nascimento>
+   <diaNasc>21</diaNasc>
+   <aluDocumento>CPF 052.871.771-51,</aluDocumento>
+   <aluDocumentoAnverso>CPF 052.871.771-51</aluDocumentoAnverso>
+   <tratamento>o</tratamento>
+   <mesNasc>junho</mesNasc>
+   <anoNasc>1996</anoNasc>
+   <aluIdentidade>2591677,</aluIdentidade>
+   <opcDenomGrau>Bacharel</opcDenomGrau>
+   <curDenominacao>Engenharia de Software,</curDenominacao>
+   <cursoAnverso>Engenharia de Software</cursoAnverso>
+   <livDtFormat>13/12/2018</livDtFormat>
+   <livDtExped>28/02/2019</livDtExped>
+   <regDtRegistroLbl>Data de Registro:</regDtRegistroLbl>
+   <regDtRegistro>28/02/2019</regDtRegistro>
+   <nroProcessoLbl>Processo n:</nroProcessoLbl>
+   <nroProcesso>___________</nroProcesso>
+   <livReitor>Marcia Abrahao Moura</livReitor>
+   <livLivro>Livro n: 118</livLivro>
+   <regNroRegistro>Registro n:1515</regNroRegistro>
+   <regFolha>Folha n: 379</regFolha>
+   <opcOpcao>6360</opcOpcao>
+   <opcGrau>1</opcGrau>
+   <nacionalNatural>de nacionalidade brasileira, nascido no Distrito Federal,</nacionalNatural>
+   <nascimentoIdentidade>no dia 21 de junho de 1996, CPF 052.871.771-51,</nascimentoIdentidade>
+   <nomeCurso>tendo em vista a conclusao do Curso de Engenharia de Software</nomeCurso>
+   <dataFormatura>no dia 13 de dezembro de 2018</dataFormatura>
+   <dataExpedicao>28 de fevereiro de 2019.</dataExpedicao>
+   <matricula>140063978</matricula>
+   <matriculaLst>14/0063978</matriculaLst>
+   <opcLabel>O diplomado concluiu a seguinte habilitacao: Engenharia de Software</opcLabel>
+   <opcDenominacao>Engenharia de Software</opcDenominacao>
+   <OpcDenomProf>Mestrado Profissionalizante em: Engenharia de Software</OpcDenomProf>
+   <codigoValidacao>F912CD0C42DCA3D655DD0258EC9D0AE7</codigoValidacao>
+   <nomeReitor>Marcia Abrahao Moura</nomeReitor>
+   <regDtFormatura>13/12/2018</regDtFormatura>
+   <pesNomeSocial>${pesNomeSocial}</pesNomeSocial>
+   <dataColacao>e colacao de grau no dia 26 de fevereiro de 2019</dataColacao>
+   <dataExpedicaoReduzida>28/02/2019</dataExpedicaoReduzida>
+</Diploma>

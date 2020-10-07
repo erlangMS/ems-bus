@@ -2281,6 +2281,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								io:format("multipart/form-data headers is ~p\n", [Headers]),
 								{ok, Payload, CowboyReq2} = cowboy_req:read_part_body(CowboyReq1),								
 								{file, <<"inputfile">>, Filename, ContentType} = cow_multipart:form_data(Headers),
+							
 
 								io:format("Received file ~p of content-type ~p as follow:~n~p~n~n",
 									[Filename, ContentType, Payload]),
