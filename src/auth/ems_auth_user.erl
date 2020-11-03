@@ -18,22 +18,26 @@ authenticate(Service = #service{authorization = AuthorizationMode,
 							     authorization_public_check_credential = AuthorizationPublicCheckCredential}, 
 			 Request = #request{type = Type}) ->
 	try
+		put(authenticate, authenticate_step_pass1),
 		case Type of
 			<<"OPTIONS">> -> 
 				ems_db:inc_counter(ems_auth_user_public_success),
-				{ok, public, public, <<>>, <<>>};
+				{ok, public, public, <<>>, <<>>, <<>>};
 			"HEAD" -> 
 				ems_db:inc_counter(ems_auth_user_public_success),
-				{ok, public, public, <<>>, <<>>};
+				{ok, public, public, <<>>, <<>>, <<>>};
 			_ -> 
+				put(authenticate, authenticate_step_pass2),
 				case AuthorizationMode of
 					basic -> 
 						do_basic_authorization(Service, Request);
 					oauth2 -> 
 						do_bearer_authorization(Service, Request);
 					_ -> 	% public
+						put(authenticate, authenticate_step_pass3),
 						case AuthorizationPublicCheckCredential of
 							true ->
+								put(authenticate, authenticate_step_pass4),
 								case do_basic_authorization(Service, Request) of
 									{ok, Client, User, AccessToken, Scope, State} -> 
 										{ok, Client, User, AccessToken, Scope, State};
@@ -41,6 +45,7 @@ authenticate(Service = #service{authorization = AuthorizationMode,
 										{ok, public, public, <<>>, <<>>, <<>>}
 								end;
 							false -> 
+								put(authenticate, authenticate_step_pass5),
 								ems_db:inc_counter(ems_auth_user_public_success),
 								{ok, public, public, <<>>, <<>>, <<>>}
 						end
