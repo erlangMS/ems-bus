@@ -51,8 +51,8 @@ execute(Request = #request{rid = Rid,
     Key = read_private_key("private_key.pem"),
     io:format("Key >>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Key]),
     CertBin = read_certificate("publicCert.pem"),  
-    io:format("CertBin >>>>>>>>>>>>>>>>>>>>> ~p~n~n",[CertBin]),
-    io:format("Payload >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Payload]),                          
+    io:format("CertBin >>>>>>>>>>>>>>>>>>>>> ~n~n"),
+    io:format("Payload >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),                          
     {ok, ListFileUnziped} = zip:unzip(Payload),
     io:format("ListFileUnziped >>>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[ListFileUnziped]),
     recursion_file_sign(length(ListFileUnziped),ListFileUnziped, Key, CertBin),
@@ -110,12 +110,16 @@ strip(#xmlElement{content = Kids} = Elem) ->
 %% Don't use "ds" as a namespace prefix in the envelope document, or things will go baaaad.
 sign(ElementIn, PrivateKey, SigMethod, CertChain) ->
     [H|T] = CertChain,
+    io:format("Aqui cert 1 >>>>>>>>>>>>>>>> ~n~n"),
     CertBin = element(2,H),
+    io:format("Aqui cert 2 >>>>>>>>>>>>>>>> ~n~n"),
     %%ID = xmerl_xs:select("@ID", ElementIn),
     %%io:format("Element >>>>>>>>>>>>>> ~p~n~n",[element(9,lists:nth(1,ID))]),
         
     RandomNumberConcat = lists:flatten(io_lib:format("~p", [rand:uniform(10000)])),
+    io:format("Aqui cert 3 >>>>>>>>>>>>>>>> ~n~n"),
     SignedProperties =  string:concat("SIG_PROPERTIES_",RandomNumberConcat),
+    io:format("Aqui cert 4 >>>>>>>>>>>>>>>> ~n~n"),
     %ElementStrip = strip(ElementIn),
     % make sure the root element has an ID... if it doesn't yet, add one
     {Element, Id} = case lists:keyfind('ID', 2, ElementIn#xmlElement.attributes) of
@@ -133,20 +137,28 @@ sign(ElementIn, PrivateKey, SigMethod, CertChain) ->
                     {Elem, NewId}
             end
     end,
-
+    io:format("Aqui cert 5 >>>>>>>>>>>>>>>> ~n~n"),
     % create a id for element ds:signature
     Target = binary_to_list(base64:encode(crypto:strong_rand_bytes(20))),
+    io:format("Aqui cert 6 >>>>>>>>>>>>>>>> ~n~n"),
     % start create de signature elements in xades pattern
     {HashFunction, DigestMethod, SignatureMethodAlgorithm} = signature_props(SigMethod),
+    io:format("Aqui cert 7 >>>>>>>>>>>>>>>> ~n~n"),
     % create a ds with url signature
     Ns = #xmlNamespace{nodes = [{"ds", 'http://www.w3.org/2000/09/xmldsig#'}]},
+    io:format("Aqui cert 8 >>>>>>>>>>>>>>>> ~n~n"),
     % first we need the digest, to generate our SignedInfo element
     SigInfo = generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, DigestMethod, Ns, Id, SignedProperties, PrivateKey),
+    io:format("Aqui cert 9 >>>>>>>>>>>>>>>> ~n~n"),
     SigInfoCanon = xmerl_c14n:c14n(SigInfo),
+    io:format("Aqui cert 10 >>>>>>>>>>>>>>>> ~n~n"),
     SigElemObject =  generate_xades_sing_element(HashFunction, SigInfoCanon, Ns, Target, CertChain, SignedProperties),
+    io:format("Aqui cert 11 >>>>>>>>>>>>>>>> ~n~n"),
     % now we sign the SignedInfo element...  
     Data = unicode:characters_to_binary(SigInfoCanon),
+    io:format("Aqui cert 12 >>>>>>>>>>>>>>>> ~n~n"),
     Signature = public_key:sign(Data, HashFunction, PrivateKey),
+    io:format("Aqui cert 13 >>>>>>>>>>>>>>>> ~n~n"),
     %change bin sign in base 64 sign
     Sig64 = base64:encode_to_string(Signature),
     Cert64 = base64:encode_to_string(CertBin),
