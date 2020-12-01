@@ -173,8 +173,8 @@ generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, Dige
     % create a digest value. 
     DigestValue = base64:encode_to_string(digest(Element, sha256)),
     %  openssl rsa -in /home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/private_key.pem -pubin -outform der | openssl dgst -sha256
-    DigestPrivateKey = os:cmd("openssl rsa -in /home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/private_key.pem -pubin -outform der | openssl dgst -sha256"),
-    {_Header,Key,_Footer} = read_private_key_encoded("/home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/private_key.pem"),
+    DigestPrivateKey = os:cmd("openssl rsa -in private_key.pem -pubin -outform der | openssl dgst -sha256"),
+    {_Header,Key,_Footer} = read_private_key_encoded("private_key.pem"),
     TempDigest =  get_sha_from_key(sha256,Key),
     % Generate Structure for SignedInfo and retur this
     Result = esaml_util:build_nsinfo(Ns, #xmlElement{
