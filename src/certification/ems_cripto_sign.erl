@@ -72,6 +72,7 @@ recursion_file_sign(N, [H|T], Key, CertBin) when N > 0 ->
     SignedXml = sign(Docs, Key, rsa_sha256, CertBin),
     XmlFormater = transform_tuple_in_xml(SignedXml),
     %Path = "/home/renato/Downloads/desenvolvimento/cpd/git/certificado/test_signed/signed_xml" ++ lists:flatten(io_lib:format("~p", [N])),
+    io:format("Salvar arquivo chegou aqui >>>>>>>>>>>>>>>>>>>> ~n~n"),
     Path = "/var/opt/erlangms/certificados/signed_xml" ++ lists:flatten(io_lib:format("~p", [N])),
     Path1 = string:concat(Path,".xml"),
     create_file_signed(Path1,XmlFormater),
