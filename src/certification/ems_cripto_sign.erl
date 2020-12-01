@@ -222,12 +222,12 @@ generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, Dige
 generate_xades_sing_element(HashFunction, SigInfoCanon, Ns, Target, CertBinList, SignedProperties) ->
     DigestValueSingInfo = base64:encode_to_string(
        crypto:hash(HashFunction, unicode:characters_to_binary(SigInfoCanon))),
-    SubjectCertificate = os:cmd("openssl x509 -noout -in /home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/publicCert.pem -subject"),
-    SerialX509NumberHex = os:cmd("openssl x509 -in /home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/publicCert.pem -serial -noout"),
+    SubjectCertificate = os:cmd("openssl x509 -noout -in publicCert.pem -subject"),
+    SerialX509NumberHex = os:cmd("openssl x509 -in publicCert.pem -serial -noout"),
     % openssl x509 -noout -subject -in ca.pem
     % openssl x509 -in publicCert.pem -serial -issuer
     % openssl x509 -noout -serial -in publicCert.pem
-    ChainCertificate = esaml_util:load_certificate_chain("/home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/publicCert.pem"),
+    ChainCertificate = esaml_util:load_certificate_chain("publicCert.pem"),
     Serialx509NumberList = re:split(lists:nth(2,re:split(SerialX509NumberHex, "=")),"\n"),
     SerialX509NumberDecimal = binary_to_integer(lists:nth(1,Serialx509NumberList), 16),
     SerialX509String = lists:flatten(io_lib:format("~p", [SerialX509NumberDecimal])),
