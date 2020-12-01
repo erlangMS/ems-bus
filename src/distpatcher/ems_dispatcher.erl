@@ -391,6 +391,8 @@ dispatch_service_work(Request = #request{type = Type,
 		%% {error, request, #request{}}
 		%% {error, atom()}
 		put(dispatch_service_work_step, dispatch_service_work_local__pass1_1),
+		io:format("Module >>>>>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Module]),
+		io:format("Function >>>>>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Function]),
 		case apply(Module, Function, [Request]) of
 			{Reason, Request2} ->
 				put(dispatch_service_work_step, dispatch_service_work_local__pass2),
