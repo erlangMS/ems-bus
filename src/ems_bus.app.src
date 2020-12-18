@@ -19,9 +19,7 @@
 					cowlib,
 					cowboy,
 					json_rec,
-					jsx,
 					jiffy,
-					jesse,
 					poolboy,
 					mochiweb
                  ]},

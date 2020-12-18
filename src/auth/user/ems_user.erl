@@ -613,7 +613,6 @@ get_user_info(User, ClientId) ->
 		GivenName =  format_user_field(FirstName),
 		FamilyName = format_user_field(ListaSobrenomeSpace),
 		MiddleName = format_user_field(lists:nth(2, ListaNomeCompleto)),
-		PreferredUsername = format_user_field(User#user.login),
 		Email = format_user_field(User#user.email),
 		Gender = format_user_field(User#user.sexo),
 		Birthdate = format_user_field(User#user.data_nascimento),
