@@ -23,6 +23,7 @@
 # 23/09/2017  Everton Agilar     New: --push
 # 28/09/2017  Everton Agilar     New: --clean
 # 25/10/2018  Everto Agilar		 Faz build somente do SO ativo usando o template deste SO
+# 18/12/2020  Everto Agilar		 Revisão do script para distros atuais
 #
 #
 #
@@ -194,7 +195,7 @@ make_release(){
 	cd ..
 	if [ "$SKIP_BUILD" = "false" ]; then
 		echo 'Recompiling the fonts with rebar...'
-		./build.sh
+		./build.sh --skip-deps
 	fi
 
 
@@ -212,20 +213,16 @@ make_release(){
 	cd rel
 	../tools/rebar/rebar generate || die 'Failed to generate release with rebar compile generate!'
 
-	# Esta lib dá erro no com "tools/rebar/rebar compile generate", portando é copiado manualmente
-	if [ -d ems_bus/lib/sd_notify ]; then
-		mkdir ems_bus/lib/sd_notify
-		cp -r ../deps/sd_notify/ebin ems_bus/lib/sd_notify
-		cp -r ../deps/sd_notify/priv ems_bus/lib/sd_notify
-	fi
-	
 	mv ems_bus ems-bus
 	mv ems-bus/bin/ems_bus ems-bus/bin/ems-bus
 
 
 	#Creates the symlink of the priv folder for the project lib ems_bus-$VERSION/priv
+
 	cd ems-bus
+	echo "Criando link priv para lib/ems_bus-$VERSION_RELEASE/priv/"
 	ln -sf lib/ems_bus-$VERSION_RELEASE/priv/ priv || die "The symbolic priv link could not be created for lib/ems_bus-$VERSION_RELEASE/priv!"
+
 	# Faz algumas limpezas para não ir lixo no pacote
 	rm -rf log || die 'Could not remove log folder in cleanup!'
 	rm -rf priv/db || die 'Unable to remove db folder in cleanup!'

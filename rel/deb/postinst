@@ -31,7 +31,9 @@ if [ "$1" = "configure" ]; then
       echo "User erlangms created with admin passwd. Change after installation!"
       USER_CREATED="true"
   fi
-  
+
+  mkdir -p "$HOME_EMS_BUS"
+
   # The starters need to be Suid root.
   chmod 4777 /usr/lib/ems-bus/bin/ems-bus > /dev/null 2>&1
   # The starters need to be Suid root para Erts.
@@ -39,32 +41,13 @@ if [ "$1" = "configure" ]; then
       chmod 4511 $ExecutableErts > /dev/null 2>&1
   done
   
-
-  # Configure home user (/var/opt/erlangms)
-  mkdir -p $HOME_EMS_BUS/.erlangms > /dev/null 2>&1
-
-  # Creates the configuration file only if it does not exist
-  if [ ! -f /var/opt/erlangms/.erlangms/emsbus.conf ]; then
-	cp /usr/lib/ems-bus/priv/conf/emsbus.conf $HOME_EMS_BUS/.erlangms/ > /dev/null 2>&1
-  fi
-  ln -s /usr/lib/ems-bus $HOME_EMS_BUS/ems-bus > /dev/null 2>&1 || true
-  #ln -s /usr/lib/ems-bus/priv/ $HOME_EMS_BUS/ems-bus/priv > /dev/null 2>&1 || true
-  ln -s /usr/lib/ems-bus/priv $HOME_EMS_BUS/priv > /dev/null 2>&1 || true
-  ln -s /usr/lib/ems-bus/priv/log /var/log/ems-bus > /dev/null 2>&1
  
-
-  # It only changes the $ HOME_EMS_BUS/.odbc.ini file when the user was created
-  if [ "$USER_CREATED" = "true" ]; then
-	  rm -f $HOME_EMS_BUS/.odbc.ini
-	  cp /usr/lib/ems-bus/priv/conf/odbc.ini $HOME_EMS_BUS/.odbc.ini
-  fi
-  
   chown -Rf $USER_EMS_BUS:$GROUP_EMS_BUS /var/opt/erlangms > /dev/null 2>&1	
   chown -Rf $USER_EMS_BUS:$GROUP_EMS_BUS /var/opt/erlangms/.erlangms > /dev/null 2>&1	
 
   # Create .hosts.erlang if it not exist
   if [ ! -f $HOME_EMS_BUS/.hosts.erlang ]; then
-	echo \'$(hostname | cut -d. -f1)\'. > $HOME_EMS_BUS/.hosts.erlang 
+    	echo \'$(hostname | cut -d. -f1)\'. > $HOME_EMS_BUS/.hosts.erlang 
   fi
   
   # Iptables firewall
@@ -86,33 +69,17 @@ if [ "$1" = "configure" ]; then
   chown -Rf root:root /etc/systemd/system/ems-bus.service.d > /dev/null 2>&1
 
 
-  # Config /etc/odbcinst.ini if necessary for FreeTDS SQL-server driver
-  JTDS_ENTRY_CONF=$(sed -rn '/\[FreeTDS\]/, /(^$|^#)/p' /etc/odbcinst.ini 2> /dev/null)
-  if [ -z "$JTDS_ENTRY_CONF" ]; then
-	updatedb
-	LIB_TDODBC_PATH=$(locate libtdsodbc.so | sed -n '1p')
-	if [ ! -z "$LIB_TDODBC_PATH" ]; then
-		echo " " >> /etc/odbcinst.ini 
-		echo "# Driver for SQL-server" >> /etc/odbcinst.ini 
-		echo "# Setup from the ems-bus package" >> /etc/odbcinst.ini 
-		echo "[FreeTDS]" >> /etc/odbcinst.ini 
-		echo "Description=FreeTDS Driver" >> /etc/odbcinst.ini 
-		echo "Driver=$LIB_TDODBC_PATH" >> /etc/odbcinst.ini 
-		echo " " >> /etc/odbcinst.ini 
-	fi
-  fi
-
   # Config /etc/security/limits.conf if necessary for erlangms group
   if ! grep -q '@erlangms' /etc/security/limits.conf ; then
-	echo " " >> /etc/security/limits.conf
-	echo "# Security for ERLANGMS ESB" >> /etc/security/limits.conf
-	echo "@erlangms         hard    nofile      500000" >> /etc/security/limits.conf
-	echo "@erlangms         soft    nofile      500000" >> /etc/security/limits.conf
-	echo "@erlangms         hard    nproc       500000" >> /etc/security/limits.conf
-	echo "@erlangms         soft    nproc       500000" >> /etc/security/limits.conf
-	echo "" >> /etc/security/limits.conf
-	sed -ri '/^# *End of file$/d;' /etc/security/limits.conf
-	sed -i '$ a # End of file' /etc/security/limits.conf	 
+      echo " " >> /etc/security/limits.conf
+      echo "# Security for ERLANGMS ESB" >> /etc/security/limits.conf
+      echo "@erlangms         hard    nofile      500000" >> /etc/security/limits.conf
+      echo "@erlangms         soft    nofile      500000" >> /etc/security/limits.conf
+      echo "@erlangms         hard    nproc       500000" >> /etc/security/limits.conf
+      echo "@erlangms         soft    nproc       500000" >> /etc/security/limits.conf
+      echo "" >> /etc/security/limits.conf
+      sed -ri '/^# *End of file$/d;' /etc/security/limits.conf
+      sed -i '$ a # End of file' /etc/security/limits.conf	 
   fi
 
   # Tunning fs.file-max. At least it should be 1000000
@@ -133,6 +100,7 @@ if [ "$1" = "configure" ]; then
   # database backup
   mv /usr/lib/ems-bus/priv/db /usr/lib/ems-bus/priv/db_`date '+%d%m%Y_%H%M%S'`  > /dev/null 2>&1 || true
 
+
   # ldconfig
   /sbin/ldconfig  > /dev/null 2>&1 || true
 
@@ -142,7 +110,7 @@ if [ "$1" = "configure" ]; then
   systemctl daemon-reload  > /dev/null 2>&1 || true
 fi
 
-sleep 2
+sleep 3
 systemctl start ems-bus.service  > /dev/null 2>&1 || true
 
 exit 0
