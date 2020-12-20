@@ -1,0 +1,36 @@
+type: app
+name: emsbus
+summary: ErlangMS
+description: ErlangMS is a platform developed in Erlang/OTP to facilitate the integration of systems
+version: '3.0'
+confinement: devmode
+base: snapcraft:core18 
+
+apps:
+  emsbus-command:
+    command: bin/ems-bus foreground
+
+parts:
+  odbc-config:
+    plugin: dump
+    organize:
+      'odbcinst.ini' : /etc/odbcinst.ini
+
+  emsbus:              
+    after: [odbc-config]
+    plugin: dump
+    source: .
+    stage-packages:
+      - unixodbc
+      - unixodbc-dev
+      - odbc-postgresql
+    build-packages:
+      - gcc
+      - make
+      - build-essential
+
+plugs:
+  emsbus-home:
+    interface: home
+  emsbus-network:
+    interface: network    

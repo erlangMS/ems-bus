@@ -1,0 +1,30 @@
+type: app
+name: emsbus
+summary: ErlangMS
+description: ErlangMS is a platform developed in Erlang/OTP to facilitate the integration of systems
+version: '3.0.0'
+base: core20
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: strict  # devmode # use 'strict' once you have the right plugs and slots
+
+apps:
+  emsbus-command:
+    command: 'start.sh'
+
+parts:
+  emsbus:              
+    plugin: dump
+    source: .
+    stage-packages:
+      - unixodbc
+      - unixodbc-dev
+      - odbc-postgresql
+      - ncurses-base
+    stage-snaps:
+      - erlang/23/stable
+
+plugs:
+  emsbus-home:
+    interface: home
+  emsbus-network:
+    interface: network    
