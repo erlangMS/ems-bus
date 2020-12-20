@@ -61,6 +61,17 @@ BUILD_RPM_FLAG="false"
 SKIP_BUILD="true"
 PUSH="false"
 
+
+cd $WORKING_DIR
+
+# Get ErlangMS version in the file src/ems_bus.app.src
+VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
+[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in rebar.config"
+
+echo "Release: $VERSION_RELEASE"
+echo "Working dir: $WORKING_DIR"
+
+
 # Imprime uma mensagem e termina o script
 # Parâmetros:
 #  $1  - Mensagem que será impressa 
@@ -86,10 +97,10 @@ config_release_path(){
 
 # ***** Clean ******
 clean(){
-	echo "Clean release build..."
+	echo "Clean release build."
 	cd $WORKING_DIR
-	rm -Rf ems-bus
-	rm -Rf ems_bus
+	sudo rm -Rf ems-bus
+	sudo rm -Rf ems_bus
 	#rm -f *.tar.gz
 	rm -f *.tar
 	rm -f ../priv/scripts/*.log
@@ -99,7 +110,9 @@ clean(){
 	rm -rf ../priv/log
 	rm -rf ../priv/tmp
 	rm -rf ../priv/archive
-	
+
+	sudo rm -rf snap/ems-bus-$VERSION_RELEASE
+
 	# Loop pelas pastas de templates dos pacotes rpm
 	for SKEL_RPM_PACKAGE in `find ./rpm/* -maxdepth 0 -type d`; do
 		# remove old
@@ -130,6 +143,7 @@ clean(){
 		mkdir -p $SKEL_DEB_PACKAGE/usr
 		mkdir -p $SKEL_DEB_PACKAGE/etc
 	done
+	cd $WORKING_DIR 
 }
 
 
@@ -181,18 +195,11 @@ push_release(){
 
 # make release for each distro
 make_release(){
+
 	cd $WORKING_DIR
-
-	# Get ErlangMS version in the file src/ems_bus.app.src
-	VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
-	[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in rebar.config"
-
-	echo "Please wait, generating the release $VERSION_RELEASE of the ems-bus, this may take a while!"
-
 
 	# ########## Recompile the project before generating the release ########## 
 	
-	cd ..
 	if [ "$SKIP_BUILD" = "false" ]; then
 		echo 'Recompiling the fonts with rebar...'
 		./build.sh --skip-deps
@@ -209,17 +216,18 @@ make_release(){
 
 
 	# ******** Gera o release na pasta rel *********
-	echo 'Begin generate release with rebar now...'
-	cd rel
+	echo 'Compilando com rebar generate...'
+	pwd
 	../tools/rebar/rebar generate || die 'Failed to generate release with rebar compile generate!'
 
 	mv ems_bus ems-bus
-	mv ems-bus/bin/ems_bus ems-bus/bin/ems-bus
+	cp ems-bus/bin/ems_bus ems-bus/bin/ems-bus
+	cp ems-bus/bin/ems_bus ems-bus/bin/erlangms
 
-
-	#Creates the symlink of the priv folder for the project lib ems_bus-$VERSION/priv
 
 	cd ems-bus
+
+	#Creates the symlink of the priv folder for the project lib ems_bus-$VERSION/priv
 	echo "Criando link priv para lib/ems_bus-$VERSION_RELEASE/priv/"
 	ln -sf lib/ems_bus-$VERSION_RELEASE/priv/ priv || die "The symbolic priv link could not be created for lib/ems_bus-$VERSION_RELEASE/priv!"
 
@@ -234,9 +242,55 @@ make_release(){
 
 	# ####### Create the package ems-bus-x.x.x.tar.gz #######
 
-	# Create the package file gz
+	# Gera um standalone da instalação
 	echo "Begin create compress file ems-bus-$VERSION_RELEASE.gz now..."
 	tar -czf ems-bus-$VERSION_RELEASE.tar.gz ems-bus/ 
+
+	# Build pacote em snap
+	rm -rf snap/ems-bus-$VERSION_RELEASE
+
+	mkdir -p snap/ems-bus-$VERSION_RELEASE
+	cd ..
+
+	cp -R ebin/ start.sh rel/snap/ems-bus-$VERSION_RELEASE/
+
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/cowboy
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/cowlib
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/jiffy
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/json_rec
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/mochiweb
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/parse_trans
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/poolboy
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/deps/ranch
+
+
+	cp -R deps/cowboy/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/cowboy/
+	cp -R deps/cowlib/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/cowlib/
+	cp -R deps/jiffy/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/jiffy/
+	cp -R deps/json_rec/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/json_rec/
+	cp -R deps/mochiweb/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/mochiweb/
+	cp -R deps/parse_trans/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/parse_trans/
+	cp -R deps/poolboy/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/poolboy/
+	cp -R deps/ranch/ebin rel/snap/ems-bus-$VERSION_RELEASE/deps/ranch/
+
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/priv
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/priv/catalog
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/priv/conf
+	mkdir -p rel/snap/ems-bus-$VERSION_RELEASE/priv/www
+
+	cp -R priv/catalog rel/snap/ems-bus-$VERSION_RELEASE/priv/catalog/
+	cp -R priv/conf rel/snap/ems-bus-$VERSION_RELEASE/priv/conf/
+	cp -R priv/www rel/snap/ems-bus-$VERSION_RELEASE/priv/www/
+
+
+	cd rel
+	cp snapcraft.yaml snap/ems-bus-$VERSION_RELEASE
+	cd snap/ems-bus-$VERSION_RELEASE
+	snapcraft clean
+	snapcraft snap --debug
+	cd ../../
+	cp  snap/ems-bus-$VERSION_RELEASE/emsbus_${VERSION_RELEASE}_amd64.snap .
+	
 
 	# build rpm packages
 	if [ "$BUILD_RPM_FLAG" = "true" ]; then
@@ -455,10 +509,10 @@ fi
 
 echo "Build deb packages is $BUILD_DEB_FLAG."
 echo "Build rpm packages is $BUILD_RPM_FLAG."
+
 config_release_path
 make_release
 push_release
-clean
 cd $WORKING_DIR
 echo "Ok!"
 

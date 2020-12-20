@@ -22,6 +22,7 @@ start_link(Args) ->
 %% ===================================================================
 
 init([]) ->
+	ems_logger:info("ems_bus_sup loading modules..."),
 	KernelServices = ems_catalog_lookup:list_kernel_catalog(),
     PoolSpecs = lists:map(
 		fun(S = #service{name = WorkerName, 

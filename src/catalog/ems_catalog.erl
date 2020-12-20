@@ -425,6 +425,8 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 	try
 		put(parse_step, name),
 		Name = ems_util:parse_name_service(get_p(<<"name">>, Map, <<>>)),
+		NameAtom = binary_to_atom(Name, utf8),
+		NameStr = binary_to_list(Name),
 		
 		put(parse_step, owner),
 		Owner = get_p(<<"owner">>, Map, <<>>),
@@ -444,14 +446,41 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 			true -> Enable3 = false;
 			false -> Enable3 = Enable2
 		end,
+
+		put(parse_step, type),
+		Type = ems_util:parse_type_service(get_p(<<"type">>, Map, <<"GET">>)),
+
 		case lists:member(Name, DisableServices) of
-			true -> Enable = false;
-			false -> Enable = Enable3
+			true -> Enable4 = false;
+			false -> Enable4 = Enable3
+		end,
+
+		put(parse_step, service),
+		ServiceImpl = get_p(<<"service">>, Map, <<>>),
+		{ModuleName, ModuleNameCanonical, FunctionName} = ems_util:parse_service_service(ServiceImpl),
+
+		% Só carregar o módulo tipo kernel se existe e exporta a função FuncionName
+		case Type of
+			<<"KERNEL">> ->
+				case code:ensure_loaded(list_to_atom(ModuleName)) of
+					{error, nofile} -> 
+						ems_logger:info("ems_catalog does not load module inexistent ~s from catalog ~s.", [ModuleName, NameStr]),
+						Enable = false;
+					_ ->
+						case erlang:function_exported(list_to_atom(ModuleName), list_to_atom(FunctionName), 1) of
+							false -> 
+								ems_logger:info("ems_catalog does not load invalid module ~s from catalog ~s.", [ModuleName, NameStr]),
+								Enable = false;
+							true -> Enable = Enable4
+						end
+				end;
+			_ ->
+				Enable = Enable3
 		end,
 
 		case Enable of
 			true ->
-				ems_logger:debug("ems_catalog loading catalog ~p of owner ~p.", [binary_to_list(Name), binary_to_list(Owner)]),
+				ems_logger:debug("ems_catalog loading catalog ~p of owner ~p.", [NameStr, binary_to_list(Owner)]),
 				
 				put(parse_step, ctrl_path),
 				CtrlPath = get_p(<<"ctrl_path">>, Map, <<>>),
@@ -497,13 +526,8 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				%	true -> ok
 				%end,
 
-				put(parse_step, type),
-				Type = ems_util:parse_type_service(get_p(<<"type">>, Map, <<"GET">>)),
-				
-				put(parse_step, service),
-				ServiceImpl = get_p(<<"service">>, Map, <<>>),
-				{ModuleName, ModuleNameCanonical, FunctionName} = ems_util:parse_service_service(ServiceImpl),
-				
+			
+		
 				put(parse_step, comment),
 				case CtrlFile =:= <<>> of
 					true ->  Comment = ?UTF8_STRING(get_p(<<"comment">>, Map, <<>>));
