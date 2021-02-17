@@ -1,0 +1,15 @@
+{
+	"name" : "/buscacep",
+	"comment": "Web service para buscar cep dos correios",
+	"owner": "emsbus",
+	"version": "1.0.0",
+	"service" : "ems_web_service_correios:busca_cep",
+	"url": "/buscacep/(?<cep>[0-9]+)",
+	"use_re":true,
+	"timeout" : 30000,
+	"type": "GET",
+	"enable" : false,
+	"lang" : "erlang"
+}
+
+

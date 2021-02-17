@@ -1,0 +1,46 @@
+{
+    "name": "ems_user_telefone_loader_db",
+	"comment": "Catalog for ems_user_telefone_loader_db",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_data_loader:start",
+	"url": "/emsbus/ems_user_telefone_loader_db",
+	"async": false,
+	"type": "KERNEL",
+	"lang" : "erlang",    
+	"update_checkpoint" : 3600000,
+	"check_remove_records" : true,
+	"check_remove_records_checkpoint" : 14400000,
+	"datasource" : "ds_ems_user_loader",
+	"start_timeout" : 2400000,
+	"middleware" : "ems_user_telefone_loader_middleware",
+	"group" : [],
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : false,
+	"sql_load_packet_length" : 25000,
+	"sql_load" : 
+				"select 
+				   t.TelCodigo as id,
+				   pft.PFTPesCodigoPessoa as codigo,
+				   t.TelNumero as numero,
+				   t.TelRamal as ramal,
+				   t.TelDDD as ddd,
+				   t.TelTipo as type 
+				from BDPessoa.dbo.TB_PessoaFisicaTelefone pft with (nolock) 
+					join BDPessoa.dbo.TB_Telefone t with (nolock) 
+					   on pft.PFTTelCodigo = t.TelCodigo",
+	"sql_update" : 
+				"select 
+				   t.TelCodigo as id,
+				   pft.PFTPesCodigoPessoa as codigo,
+				   t.TelNumero as numero,
+				   t.TelRamal as ramal,
+				   t.TelDDD as ddd,
+				   t.TelTipo as type 
+				from BDPessoa.dbo.TB_PessoaFisicaTelefone pft with (nolock) 
+					join BDPessoa.dbo.TB_Telefone t with (nolock) 
+					   on pft.PFTTelCodigo = t.TelCodigo",
+
+	"fields" : ["id", "codigo", "numero", "ramal", "ddd", "type"]
+}

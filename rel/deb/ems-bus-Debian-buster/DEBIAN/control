@@ -1,6 +1,6 @@
 Package: ems-bus
 Source: ems-bus
-Version: 2.0.2-debian.10
+Version: 2.0.9-debian.10
 Architecture: amd64
 Depends: procps, libc6  
 Maintainer: ErlangMS Team <evertonagilar@gmail.com>

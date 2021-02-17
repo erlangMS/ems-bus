@@ -1,0 +1,17 @@
+{
+    "name": "ems_catalog_loader_fs",
+	"comment": "Catalog for ems_catalog_loader_fs",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_json_loader:start",
+	"url": "/emsbus/ems_catalog_loader_fs",
+	"async": "false",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"update_checkpoint" : 2628000000,
+	"start_timeout" : 1500,
+	"middleware" : "ems_catalog_loader_middleware",
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : true
+}

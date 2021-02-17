@@ -1,0 +1,13 @@
+{
+    "name": "ems_clock",
+	"comment": "Catalog for ems_clock",
+	"owner": "emsbus",
+	"version": "1.0.0",
+	"service" : "ems_clock:start",
+	"url": "/emsbus/ems_clock",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"pool_size" : 1,
+	"pool_max" : 1
+}
+

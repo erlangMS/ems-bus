@@ -1,0 +1,25 @@
+{
+	"name": "produto",
+	"description": "schema para produto.",
+	"json_schema": {
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"type": "object",
+		"title": "schema para produto",
+		"properties": {
+			"name": {
+				"type": "string",
+				"description": "preço do produto"
+			},
+			"price": {
+				"type": "integer",
+				"minimum": 1,
+				"maximum": 9999,
+				"default": 100
+
+			}
+		},
+		"required": [
+			"name", "price"
+		]
+	}
+}

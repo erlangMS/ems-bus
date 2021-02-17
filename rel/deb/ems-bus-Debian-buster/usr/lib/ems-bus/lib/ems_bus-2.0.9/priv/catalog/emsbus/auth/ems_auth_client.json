@@ -1,0 +1,145 @@
+[
+
+	{
+		"name": "/auth/client/:id",
+		"comment": "Get client by id",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/auth/client/:id",
+		"type": "GET",
+		"result_cache" : 0,
+		"authorization" : "public",
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["client_db", "client_fs"],
+			"fields" : ["id", "name", "description", "active", "group", "redirect_uri", "glyphicon", "rest_base_url", "rest_auth_url", "version"]
+		},
+		"schema_in" : "client",
+		"schema_out" : "client",
+		"lang" : "erlang"
+	},
+
+	{	
+		"name": "/auth/client",
+		"comment": "List all clients",
+		"owner": "auth",
+		"service" : "ems_api_query_service:find",
+		"url": "/auth/client",
+		"type": "GET",
+		"lang" : "erlang",
+		"result_cache" : 0,
+		"authorization" : "public",
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["client_db", "client_fs"],
+			"fields" : ["id", "name", "description", "active", "group", "glyphicon", "redirect_uri", "rest_base_url", "rest_auth_url", "version"]
+		},
+		"schema_in" : "client",
+		"schema_out" : "client",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+	
+	{
+		"name": "/auth/client/fs/:id",
+		"comment": "Get client by id",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/auth/client/fs/:id",
+		"type": "GET",
+		"result_cache" : 0,
+		"authorization" : "public",
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["client_fs"],
+			"fields" : ["id", "name", "description", "active", "group", "glyphicon", "redirect_uri", "rest_base_url", "rest_auth_url", "version"]
+		},
+		"schema_in" : "client",
+		"schema_out" : "client",
+		"lang" : "erlang"
+	},
+
+	{	
+		"name": "/auth/client/fs",
+		"comment": "List all clients",
+		"owner": "auth",
+		"service" : "ems_api_query_service:find",
+		"url": "/auth/client/fs",
+		"type": "GET",
+		"lang" : "erlang",
+		"result_cache" : 0,
+		"authorization" : "public",
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : ["client_fs"],
+			"fields" : ["id", "name", "description", "active", "group", "glyphicon", "redirect_uri", "rest_base_url", "rest_auth_url", "version"]
+		},
+		"schema_in" : "client",
+		"schema_out" : "client",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	}
+	
+]

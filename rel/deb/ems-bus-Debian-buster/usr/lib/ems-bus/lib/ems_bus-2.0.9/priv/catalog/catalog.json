@@ -1,0 +1,13 @@
+[
+
+	{
+		"catalog": "emsbus", 
+		"file": "emsbus/ems_main.json"
+	},
+
+	{
+		"catalog": "samples", 
+		"file": "samples/catalogo_samples.json"
+	}
+
+]

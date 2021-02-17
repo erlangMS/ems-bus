@@ -1,0 +1,21 @@
+[
+	{
+		"name": "/auth_login",
+		"comment": "Pagina de login ErlangMS",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_static_file_service:execute",
+		"url": "/login/",
+		"use_re" : true,
+		"path" : "{{ login_path }}",
+		"type": "GET",
+		"authorization" : "public",
+		"cache_control" : "max-age=60, public",
+		"expires_minute" : 1,
+		"result_cache" : 86400000,
+		"log_show_response" : false,
+		"log_show_payload" : false,
+		"log_show" : false,
+		"lang" : "erlang"
+	}
+]

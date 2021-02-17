@@ -1,0 +1,59 @@
+{
+    "name": "ems_user_endereco_loader_db",
+	"comment": "Catalog for ems_user_endereco_loader_db",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_data_loader:start",
+	"url": "/emsbus/ems_user_endereco_loader_db",
+	"type": "KERNEL",
+	"lang" : "erlang",    
+	"update_checkpoint" : 128000,
+	"check_remove_records" : true,
+	"check_remove_records_checkpoint" : 14400000,
+	"datasource" : "ds_ems_user_loader",
+	"start_timeout" : 160000,
+	"middleware" : "ems_user_endereco_loader_middleware",
+	"group" : [],
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : false,
+	"sql_load_packet_length" : 1000,
+	"sql_load" : 
+				"select 
+				   e.EndCodigo as id,
+				   pfe.PFePesCodigoPessoa as codigo,
+				   e.EndLogradouro as endereco,
+				   e.EndComplemento as complemento,
+				   e.EndBairro as bairro,
+				   e.EndUf as uf,
+				   mu.MunDenominacao as cidade,
+				   e.EndCep as cep,
+				   e.EndTipo as type 
+				from BDPessoa.dbo.TB_PessoaFisicaEndereco pfe  with (nolock) 
+					join BDPessoa.dbo.TB_Endereco e with (nolock) 
+					   on pfe.PFeEndCodigo = e.EndCodigo 
+					join BDTabelaApoio.dbo.TB_Municipio mu with (nolock) 
+					   on e.EndLocalidade = mu.MunCodigo",
+
+	"sql_update" : 
+				"select 
+				   e.EndCodigo as id,
+				   pfe.PFePesCodigoPessoa as codigo,
+				   e.EndLogradouro as endereco,
+				   e.EndComplemento as complemento,
+				   e.EndBairro as bairro,
+				   e.EndUf as uf,
+				   mu.MunDenominacao as cidade,
+				   e.EndCep as cep,
+				   e.EndTipo as type 
+				from BDPessoa.dbo.TB_PessoaFisicaEndereco pfe with (nolock)  
+					join BDPessoa.dbo.TB_Endereco e with (nolock) 
+					   on pfe.PFeEndCodigo = e.EndCodigo 
+					join BDTabelaApoio.dbo.TB_Municipio mu with (nolock) 
+					   on e.EndLocalidade = mu.MunCodigo 
+				where e.EndDataAlteracao >= ? or e.EndDataCadastramento >= ?",
+
+			
+	"fields" : ["id", "codigo", "endereco", "complemento", "bairro", "uf", "cidade", "cep", "type"]
+				
+}

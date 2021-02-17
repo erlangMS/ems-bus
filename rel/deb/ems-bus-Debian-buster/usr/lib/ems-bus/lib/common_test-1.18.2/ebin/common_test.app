@@ -1,0 +1,28 @@
+%% coding: utf-8
+%% app generated at {2021,2,17} {15,10,52}
+{application,common_test,
+             [{description,"The OTP Common Test application"},
+              {vsn,"1.18.2"},
+              {id,[]},
+              {modules,[ct,ct_config,ct_config_plain,ct_config_xml,
+                        ct_conn_log_h,ct_cover,ct_default_gl,ct_event,
+                        ct_framework,ct_ftp,ct_gen_conn,ct_groups,ct_hooks,
+                        ct_hooks_lock,ct_logs,ct_make,ct_master,
+                        ct_master_event,ct_master_logs,ct_master_status,
+                        ct_netconfc,ct_property_test,ct_release_test,
+                        ct_repeat,ct_rpc,ct_run,ct_slave,ct_snmp,ct_ssh,
+                        ct_telnet,ct_telnet_client,ct_testspec,ct_util,
+                        cth_conn_log,cth_log_redirect,cth_surefire,erl2html2,
+                        test_server,test_server_ctrl,test_server_gl,
+                        test_server_io,test_server_node,test_server_sup,
+                        unix_telnet]},
+              {registered,[ct_logs,ct_util_server,ct_config_server,
+                           ct_make_ref,ct_master,ct_master_logs,
+                           test_server_ctrl,test_server,
+                           test_server_break_process]},
+              {applications,[kernel,stdlib]},
+              {included_applications,[]},
+              {env,[]},
+              {maxT,infinity},
+              {maxP,infinity}]}.
+

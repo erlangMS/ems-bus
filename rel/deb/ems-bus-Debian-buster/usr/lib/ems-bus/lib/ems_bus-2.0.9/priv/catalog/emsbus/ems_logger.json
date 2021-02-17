@@ -1,0 +1,240 @@
+[
+	{
+		"name": "ems_logger",
+		"comment": "Catalog for ems_logger",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger:start",
+		"url": "/emsbus/ems_logger",
+		"type": "KERNEL",
+		"debug" : false,
+		"lang" : "erlang",
+		"pool_size" : 1,
+		"pool_max" : 1
+	},
+
+	{
+		"name": "/logger/filename",
+		"comment": "Get current filename logger",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:log_file_name",
+		"url": "/logger/filename",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/logger/head",
+		"comment": "Return first lines of current logfile",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:log_file_head",
+		"url": "/logger/head",
+		"content_type" : "text/plain",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/logger/head/:id",
+		"comment": "Return first lines of current logfile",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:log_file_head",
+		"url": "/logger/head/:id",
+		"content_type" : "text/plain",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/logger/tail",
+		"comment": "Return last lines of current logfile",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:log_file_tail",
+		"url": "/logger/tail",
+		"content_type" : "text/plain",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/tail/:id",
+		"comment": "Return last lines of current logfile",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:log_file_tail",
+		"url": "/logger/tail/:id",
+		"content_type" : "text/plain",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/logger/debug",
+		"comment": "Check debug mode",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:check_debug_mode",
+		"url": "/logger/debug",
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/logger/debug/true",
+		"comment": "Set debug mode",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:set_debug_mode",
+		"url": "/logger/debug/true",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/debug/false",
+		"comment": "Unset debug mode",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:unset_debug_mode",
+		"url": "/logger/debug/false",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/sync",
+		"comment": "sync buffer of logger",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:sync",
+		"url": "/logger/sync",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/level/info",
+		"comment": "Set debug mode",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:set_level_info",
+		"url": "/logger/level/info",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/level/error",
+		"comment": "Unset debug mode",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:set_level_error",
+		"url": "/logger/level/error",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/checkpoint",
+		"comment": "Manual checkpoint",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:checkpoint",
+		"url": "/logger/checkpoint",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/response/true",
+		"comment": "Show response in log. Default is false.",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:show_response",
+		"url": "logger/response/true",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/response/false",
+		"comment": "Hide response in log.",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:hide_response",
+		"url": "logger/response/false",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/logger/print/info",
+		"comment": "Print info in log",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:print_info_log",
+		"url": "/logger/print/info",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/print/warn",
+		"comment": "Print warn in log",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:print_warn_log",
+		"url": "/logger/print/warn",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/print/error",
+		"comment": "Print error in log",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:print_error_log",
+		"url": "/logger/print/error",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/logger/print/debug",
+		"comment": "Print debug in log",
+		"owner": "logger",
+		"version": "1.0.0",
+		"service" : "ems_logger_service:print_debug_log",
+		"url": "/logger/print/debug",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	}
+]

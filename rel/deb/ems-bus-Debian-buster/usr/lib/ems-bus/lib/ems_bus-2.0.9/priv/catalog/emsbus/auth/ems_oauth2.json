@@ -1,0 +1,348 @@
+[
+	{
+		"name": "ems_oauth2_backend",
+		"comment": "ems_oauth2_backend",
+		"owner": "ems_bus",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_backend:start",
+		"url": "/emsbus/ems_oauth2_backend",
+		"type": "KERNEL",
+		"lang" : "erlang",
+		"pool_size" : 1,
+		"pool_max" : 1,
+
+		"persist_token_sgbd_enabled" : false,
+    	"datasource_persist_sgbd" : "ds_ems_user_loader",
+		"sql_persist_access_code" : "INSERT INTO BDBarramento.dbo.TB_OAuthAccessCode (OACId, OACDate, OACContext) VALUES(?,GETDATE(),?)",
+		"sql_select_access_code" : "SELECT OACId, OACDate, OACContext FROM BDBarramento.dbo.TB_OAuthAccessCode WHERE OACId = ?",
+		"sql_persist_refresh_token" : "INSERT INTO BDBarramento.dbo.TB_OAuthRefreshToken (ORTId, ORTDate, ORTContext) VALUES(?,GETDATE(),?)",
+		"sql_select_refresh_token" : "SELECT ORTId, ORTDate, ORTContext	FROM BDBarramento.dbo.TB_OAuthRefreshToken WHERE ORTId = ?",
+		"sql_persist_access_token" : "INSERT INTO BDBarramento.dbo.TB_OAuthAccessToken (OATId, OATDate, OATContext)	VALUES(?,GETDATE(),?)",
+		"sql_select_access_token" : "SELECT OATId, OATDate, OATContext FROM BDBarramento.dbo.TB_OAuthAccessToken WHERE OATId = ?",
+		"passport_code_enabled" : false,
+  		"datasource_passport_code" : "sig_unb",
+  		"sql_select_passport_code" : "select clientid, userid, dt_created, escopo from oauth.oauth_erlangms_passport where id =?  and active = 1",
+  		"sql_disable_passport_code" : "update oauth.oauth_erlangms_passport set active = 0, dt_disabled = current_timestamp where id = 1"
+	},
+	
+	{
+		"name" : "/authorize",
+		"comment": "Oauth 2.0",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_authorize:execute",
+		"url": "/authorize",
+		"result_cache" : 0,
+		"type": "GET",
+		"authorization" : "public",
+		"sql_persist" : "INSERT INTO BDBarramento.dbo.TB_TokenMetaData
+						(TMDClient, 
+						TMDPerson, 
+						TMDUser, 
+						TMDToken, 
+						TMDDeviceCode, 
+						TMDDeviceInfo, 
+						TMDDate)
+						VALUES (?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						GETDATE())",
+		"querystring": [
+			{
+				"name": "response_type",
+				"type": "string",
+				"default" : "0",
+				"comment": ""
+			},
+			{
+				"name": "client_id",
+				"type": "string",
+				"comment": "The client identifier"
+			},
+			{
+				"name": "username",
+				"type": "string",
+				"comment": "Username"
+			},
+			{
+				"name": "password",
+				"type": "string",
+				"comment": "Password"
+			},
+			{
+				"name": "redirect_uri",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "scope",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "secret",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "code",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "state",
+				"type": "string",
+				"comment": ""
+			}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name" : "/authorize",
+		"comment": "Oauth 2.0",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_authorize:execute",
+		"url": "/authorize",
+		"type": "POST",
+		"result_cache" : 0,
+		"authorization" : "public",
+		"sql_persist" : "INSERT INTO BDBarramento.dbo.TB_TokenMetaData
+						(TMDClient, 
+						TMDPerson, 
+						TMDUser, 
+						TMDToken, 
+						TMDDeviceCode, 
+						TMDDeviceInfo, 
+						TMDDate)
+						VALUES (?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						?, 
+						GETDATE())",
+		"querystring": [
+			{
+				"name": "grant_type",
+				"type": "string",
+				"default" : "0",
+				"comment": ""
+			},
+			{
+				"name": "client_id",
+				"type": "string",
+				"comment": "The client identifier"
+			},
+			{
+				"name": "username",
+				"type": "string",
+				"comment": "Username"
+			},
+			{
+				"name": "password",
+				"type": "string",
+				"comment": "Password"
+			},
+			{
+				"name": "redirect_uri",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "scope",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "client_secret",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "secret",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "code",
+				"type": "string",
+				"comment": ""
+				},
+			{
+				"name": "state",
+				"type": "string",
+				"comment": ""
+				},
+			{
+				"name": "refresh_token",
+				"type": "string",
+				"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
+				}
+		],
+		"lang" : "erlang"
+	},
+	
+	{
+		"name" : "/code_request",
+		"comment": "Oauth 2.0",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_authorize:code_request",
+		"url": "/code_request",
+		"type": "GET",
+		"result_cache" : 0,
+		"authorization" : "basic",
+		"querystring": [
+			{
+				"name": "client_id",
+				"type": "string",
+				"comment": "The client identifier"
+			},
+			{
+				"name": "username",
+				"type": "string",
+				"comment": "Username"
+			},
+			{
+				"name": "password",
+				"type": "string",
+				"comment": "Password"
+			},			
+			{
+				"name": "redirect_uri",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "scope",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "code",
+				"type": "string",
+				"comment": ""
+				},
+			{
+				"name": "state",
+				"type": "string",
+				"comment": ""
+			}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name" : "/userinfo",
+		"comment": "Oauth 2.0",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_authorize:user_info",
+		"url": "/userinfo",
+		"type": "GET",
+		"result_cache" : 0,
+		"authorization" : "oauth2",
+		"querystring": [
+			{
+				"name": "client_id",
+				"type": "string",
+				"comment": "The client identifier"
+			},
+			{
+				"name": "username",
+				"type": "string",
+				"comment": "Username"
+			},
+			{
+				"name": "password",
+				"type": "string",
+				"comment": "Password"
+			},			
+			{
+				"name": "redirect_uri",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "scope",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "code",
+				"type": "string",
+				"comment": ""
+			},
+			{
+				"name": "state",
+				"type": "string",
+				"comment": ""
+			}
+		],
+		"lang" : "erlang"
+	},
+	
+	{
+		"name" : "/callback",
+		"comment": "Simulção de recurso",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_client:callback",
+		"url": "/callback",
+		"type": "GET",
+		"result_cache" : 0,
+		"querystring": [
+			{
+				"name": "code",
+				"type": "string",
+				"comment": "Token de acesso"
+			}
+		],
+		"lang" : "erlang"
+	},
+	
+	{
+		"name" : "/resource",
+		"comment": "Get resourge",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_recurso:execute",
+		"url": "/resource",
+		"type": "POST",
+		"result_cache" : 0,
+		"authorization": "oauth2",
+		"querystring": [
+			{
+				"name": "token",
+				"type": "string",
+				"comment": "Token de acesso"
+			}
+		],
+		"lang" : "erlang"
+	},
+
+	{
+		"name" : "/recurso",
+		"comment": "Obter o recurso",
+		"owner": "auth",
+		"version": "1.0.0",
+		"service" : "ems_oauth2_recurso:execute",
+		"url": "/recurso",
+		"type": "POST",
+		"result_cache" : 0,
+		"authorization": "oauth2",
+		"querystring": [
+			{
+				"name": "token",
+				"type": "string",
+				"comment": "Token de acesso"
+			}
+		],
+		"lang" : "erlang"
+	}
+]

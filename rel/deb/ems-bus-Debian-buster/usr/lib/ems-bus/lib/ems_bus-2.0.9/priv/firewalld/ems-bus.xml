@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>ERLANGMS firewall</short>
+  <description>A service-oriented bus developed in Erlang/OTP by Everton de Vargas Agilar</description>
+  <port protocol="tcp" port="2301"/>
+  <port protocol="tcp" port="2302"/>
+  <port protocol="tcp" port="2389"/>
+  <port protocol="tcp" port="4369"/>
+</service>

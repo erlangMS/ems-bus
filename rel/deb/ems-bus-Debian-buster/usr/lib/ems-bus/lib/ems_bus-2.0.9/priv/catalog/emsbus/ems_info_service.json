@@ -1,0 +1,14 @@
+[
+	{
+		"name": "/",
+		"comment": "Show Its works!!!",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service" : "ems_info_service:info",
+		"url": "/",
+		"async": "false",
+		"type": "GET",
+		"authorization" : "public",
+		"lang" : "erlang"
+	}
+]

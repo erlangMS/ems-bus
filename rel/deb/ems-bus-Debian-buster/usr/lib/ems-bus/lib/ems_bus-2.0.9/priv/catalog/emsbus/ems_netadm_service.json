@@ -1,0 +1,458 @@
+[
+	{
+		"name": "/netadm/info",
+		"comment": "Gets information about the major network services of ErlangMS",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:info",
+		"url": "/netadm/info",
+		"result_cache" : 0,
+		"restricted" : true,
+		"async": "false",
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/restart",
+		"comment": "Restart ErlangMS",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:restart",
+		"url": "/netadm/restart",
+		"async": "false",
+		"restricted" : true,
+		"type": "POST",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/pid",
+		"comment": "Get main pid of ems-bus.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:pid",
+		"url": "/netadm/pid",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/avgcpu",
+		"comment": "Get average cpu usage.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:avgcpu",
+		"url": "/netadm/avgcpu",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/cpus",
+		"comment": "Get cpus usage.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:cpus",
+		"url": "/netadm/cpus",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/cpudetailed",
+		"comment": "Get cpus usage.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:cpudetailed",
+		"url": "/netadm/cpudetailed",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/tasks",
+		"comment": "Get total tasks running.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:tasks",
+		"url": "/netadm/tasks",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/uptime",
+		"comment": "Get ems-bus uptime.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:uptime",
+		"url": "/netadm/uptime",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/names",
+		"comment": "List cluster services and port.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:names",
+		"url": "/netadm/names",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/world",
+		"comment": "List cluster services.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:world",
+		"url": "/netadm/world",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/hostfile",
+		"comment": "List content of Erlang hostfile.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:hostfile",
+		"url": "/netadm/hostfile",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/hostname",
+		"comment": "Get ems-bus hostname.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:hostname",
+		"url": "/netadm/hostname",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/localhost",
+		"comment": "Get ems-bus localhost.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:localhost",
+		"url": "/netadm/localhost",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/memory",
+		"comment": "Get ems-bus memory.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:memory",
+		"url": "/netadm/memory",
+		"async": "false",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/timestamp",
+		"comment": "Get ems-bus timestamp.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:timestamp",
+		"url": "/netadm/timestamp",
+		"result_cache" : 0,
+		"async": "false",
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/threads",
+		"comment": "Get ems-bus threads count.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:threads",
+		"url": "/netadm/threads",
+		"result_cache" : 0,
+		"async": "false",
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/config",
+		"comment": "Get config.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:config",
+		"url": "/netadm/config",
+		"result_cache" : 0,
+		"restricted" : true,
+		"async": "false",
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/version",
+		"comment": "Get version of ErlangMS.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:version",
+		"url": "/netadm/version",
+		"result_cache" : 0,
+		"restricted" : true,
+		"async": "false",
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/servername",
+		"comment": "Get server name of ErlangMS.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:servername",
+		"url": "/netadm/servername",
+		"result_cache" : 0,
+		"restricted" : true,
+		"async": "false",
+		"type": "GET",
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/datasource/:id",
+		"comment": "Get datasource by id",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find_by_id",
+		"url": "/netadm/datasource/:id",
+		"type": "GET",
+		"result_cache" : 0,
+		"restricted" : true,
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : "service_datasource",
+			"fields" : ["id", "rowid", "type", "driver", "table_name", "fields", "show_remap_fields", 
+						"primary_key", "foreign_key", "foreign_table_name", "csv_delimiter", "sql", "timeout", "max_pool_size"]
+		},
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/datasource",
+		"comment": "Get datasources",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/netadm/datasource",
+		"type": "GET",
+		"result_cache" : 0,
+		"restricted" : true,
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : "service_datasource",
+			"fields" : ["id", "rowid", "type", "driver", "table_name", "fields", "show_remap_fields", 
+						"primary_key", "foreign_key", "foreign_table_name", "csv_delimiter", "sql", "timeout", "max_pool_size"]
+		},
+		"lang" : "erlang",
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	},
+	
+	{
+		"name": "/netadm/loader/stat",
+		"comment": "Get ets_dataloader_working_ctl table",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:stat_dataloader",
+		"url": "/netadm/loader/stat",
+		"type": "GET",
+		"result_cache" : 0,
+		"restricted" : true,
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/loader/client/sync",
+		"comment": "Sync data loader table",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_data_loader_service:sync",
+		"url": "/netadm/loader/(?<name>client|user|user/perfil|user/permission|user/email|user/telefone|user/dados_funcionais|aluno|aluno/ativo|aluno/inativo)/sync",
+		"use_re" : true,
+		"async": "false",
+		"type": "POST",
+		"restricted" : true,
+		"lang" : "erlang",
+		"pool_size" : 1,
+		"pool_max" : 1,
+		"enable" : true
+	},
+	
+	{
+		"name": "/netadm/loader/client/sync/full",
+		"comment": "Sync data loader table",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_data_loader_service:sync_full",
+		"url": "/netadm/loader/(?<name>client|user|user/perfil|user/permission|user/email|user/telefone|user/dados_funcionais|aluno|aluno/ativo|aluno/inativo)/sync/full",
+		"use_re" : true,
+		"async": "false",
+		"type": "POST",
+		"restricted" : true,
+		"lang" : "erlang",
+		"pool_size" : 1,
+		"pool_max" : 1,
+		"enable" : true
+	},
+	
+	{
+		"name": "/netadm/stat/counter",
+		"comment": "Get counter table",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:stat_counter",
+		"url": "/netadm/stat/counter",
+		"result_cache" : 0,
+		"restricted" : true,
+		"type": "GET",
+		"lang" : "erlang"
+	},
+	
+	{
+		"name": "/netadm/stat/collect",
+		"comment": "Collect stats from ems-bus.",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_netadm_service:stat_collect",
+		"url": "/netadm/stat/collect",
+		"type": "POST",
+		"restricted" : true,
+		"lang" : "erlang"
+	},
+
+	{
+		"name": "/netadm/stat/history",
+		"comment": "Get counter history table",
+		"owner": "netadm",
+		"version": "1.0.0",
+		"service" : "ems_api_query_service:find",
+		"url": "/netadm/stat/history",
+		"type": "GET",
+		"lang" : "erlang",
+		"result_cache" : 0,
+		"restricted" : true,
+		"datasource" : {
+			"type" : "mnesia",
+			"table_name" : "stat_counter_hist"
+		},
+		"querystring": [
+				{
+					"name": "filter",
+					"type": "string",
+					"default" : "",
+					"comment": "Filtro principal da pesquisa"
+				},
+				{
+					"name": "fields",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser retornados na pesquisa"
+				},
+				{
+					"name": "limit",
+					"type": "int",
+					"default" : "100",
+					"comment": "Quantidade máxima de registros retornados"
+				},
+				{
+					"name": "offset",
+					"type": "int",
+					"default" : "1",
+					"comment": "Offset retornado da consulta"
+				},
+				{
+					"name": "sort",
+					"type": "string",
+					"default" : "",
+					"comment": "Campos que devem ser ordenados"
+				}
+			]	
+	}
+	
+]

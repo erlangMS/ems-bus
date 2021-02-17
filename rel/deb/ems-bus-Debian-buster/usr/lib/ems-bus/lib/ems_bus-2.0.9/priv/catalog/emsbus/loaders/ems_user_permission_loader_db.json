@@ -1,0 +1,70 @@
+{
+    "name": "ems_user_permission_loader_db",
+	"comment": "Catalog for ems_user_permission_loader_db",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_data_loader:start",
+	"url": "/emsbus/ems_user_permission_loader_db",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"update_checkpoint" : 65000,
+	"check_remove_records" : true,
+	"check_remove_records_checkpoint" : 3600000,
+	"group" : [],
+	"datasource" : "ds_ems_user_loader",
+	"start_timeout" : 16000,
+	"middleware" : "ems_user_permission_loader_middleware",
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : false,
+	"sql_load_packet_length" : 8000,
+	"sql_load" :
+			"select  cast(up.APeid as varchar) + cast(t.TraId as varchar) + cast(u.UsuId as varchar) + cast(pt.PTrId as varchar) as id,
+					u.UsuId as user_id,
+					s.SisId as client_id,
+					pt.PTrVisualizar as grant_get,
+					pt.PTrIncluir as grant_post, 
+					pt.PTrAlterar as grant_put, 
+					pt.PTrExcluir as grant_delete,
+					t.TraNomeFrm as url,
+					t.TraNomeMenu as name,
+					up.APePerId as perfil_id,
+					t.TraOrdem as position,
+					t.TraGlyphicon as glyphicon 
+			from BDAcesso.dbo.TB_Usuario u join BDAcesso.dbo.TB_Acessos_Perfil up  with (nolock) 
+							  on u.UsuId = up.APeUsuId 
+					join BDAcesso.dbo.TB_Perfil_Transacao pt with (nolock) 
+							  on up.APePerId = pt.PTrPerId 
+					join BDAcesso.dbo.TB_Transacao t with (nolock) 
+							  on pt.PTrTraId = t.TraId 
+					join BDAcesso.dbo.TB_Sistemas s with (nolock) 
+							  on s.SisId = t.TraSisId 
+			where t.TraNomeFrm is not null and t.TraNomeFrm <> '' 
+			",
+	"sql_update" :
+			"select  cast(up.APeid as varchar) + cast(t.TraId as varchar) + cast(u.UsuId as varchar) + cast(pt.PTrId as varchar) as id,
+					u.UsuId as user_id, 
+					s.SisId as client_id, 
+					pt.PTrVisualizar as grant_get, 
+					pt.PTrIncluir as grant_post,  
+					pt.PTrAlterar as grant_put,  
+					pt.PTrExcluir as grant_delete, 
+					t.TraNomeFrm as url, 
+					t.TraNomeMenu as name,
+					up.APePerId as perfil_id,
+					t.TraOrdem as position,
+					t.TraGlyphicon as glyphicon  
+			from BDAcesso.dbo.TB_Usuario u join BDAcesso.dbo.TB_Acessos_Perfil up  with (nolock) 
+							  on u.UsuId = up.APeUsuId 
+					join BDAcesso.dbo.TB_Perfil_Transacao pt with (nolock) 
+							  on up.APePerId = pt.PTrPerId 
+					join BDAcesso.dbo.TB_Transacao t with (nolock) 
+							  on pt.PTrTraId = t.TraId 
+					join BDAcesso.dbo.TB_Sistemas s with (nolock) 
+							  on s.SisId = t.TraSisId 
+			where up.APeDataAlteracao >= ? or up.APeDataCadastramento >= ? or 
+				  pt.PTrDataAlteracao >= ? or pt.PTrDataCadastramento >= ? or 
+				  t.TraDataAlteracao >= ? or t.TraDataCadastramento >= ?
+			",
+	"fields" : ["id", "user_id", "client_id", "grant_get", "grant_post", "grant_put", "grant_delete", "url", "name", "perfil_id", "position", "glyphicon"]
+}

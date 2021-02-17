@@ -1,0 +1,45 @@
+{
+    "name": "ems_user_perfil_loader_db",
+	"comment": "Catalog for ems_user_perfil_loader_db",
+	"owner": "data_loader",
+	"version": "1.0.0",
+	"service" : "ems_data_loader:start",
+	"url": "/emsbus/ems_user_perfil_loader_db",
+	"type": "KERNEL",
+	"lang" : "erlang",
+	"update_checkpoint" : 60000,
+	"check_remove_records" : true,
+	"check_remove_records_checkpoint" : 3600000,
+	"group" : [],
+	"datasource" : "ds_ems_user_loader",
+	"start_timeout" : 9000,
+	"middleware" : "ems_user_perfil_loader_middleware",
+	"pool_size" : 1,
+	"pool_max" : 1,
+	"enable" : false,
+	"sql_load_packet_length" : 7000,
+	"sql_load" :
+			"select up.APeid as id, 
+				p.PerId as perfil_id,
+				u.UsuId as user_id, 
+					p.PerSisId as client_id, 
+					p.PerNome as name  
+			from BDAcesso.dbo.TB_Usuario u with (nolock) join BDAcesso.dbo.TB_Acessos_Perfil up with (nolock) 
+					 on u.UsuId = up.APeUsuId  
+				 join BDAcesso.dbo.TB_Perfil p with (nolock) 
+					 on up.APePerId = p.PerId 
+		   ",
+	"sql_update" :
+			"select up.APeid as id, 
+				p.PerId as perfil_id,
+				u.UsuId as user_id, 
+				p.PerSisId as client_id, 
+				p.PerNome as name  
+			from BDAcesso.dbo.TB_Usuario u with (nolock) join BDAcesso.dbo.TB_Acessos_Perfil up with (nolock) 
+					 on u.UsuId = up.APeUsuId  
+				 join BDAcesso.dbo.TB_Perfil p with (nolock) 
+					 on up.APePerId = p.PerId  
+			where up.APeDataAlteracao >= ? or up.APeDataCadastramento >= ?
+		   ",
+	"fields" : ["id","perfil_id", "user_id", "client_id", "name"]
+}
