@@ -18,7 +18,7 @@ execute(Request = #request{service = #service{properties = Properties, content_t
 	Result = execute_script(Script, []),
 	try
 		case ContentTypeOut of
-			<<"application/json; charset=utf-8">> ->
+			<<"application/json">> ->
 				{ok, Request#request{code = 200, 
 									 response_data = ems_schema:to_json({ok, Result})}
 				};

@@ -1735,8 +1735,8 @@ mime_type(_) -> <<"application/octet-stream">>.
 -spec is_valid_content_type(binary()) -> boolean().
 is_valid_content_type(<<"text/html">>) -> true;
 is_valid_content_type(<<"application/json">>) -> true;
-is_valid_content_type(<<"application/json;charset=utf-8">>) -> true;
-is_valid_content_type(<<"application/json; charset=utf-8">>) -> true;
+is_valid_content_type(<<"application/json">>) -> true;
+is_valid_content_type(<<"application/json">>) -> true;
 is_valid_content_type(<<"application/xhtml+xml">>) -> true;
 is_valid_content_type(<<"text/css">>) -> true;
 is_valid_content_type(<<"application/x-javascript">>) -> true;
@@ -2189,13 +2189,13 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = decode_payload_as_json(Payload),
 								QuerystringMap2 = QuerystringMap;
-							<<"application/json; charset=utf-8">> ->
+							<<"application/json">> ->
 								ems_db:inc_counter(http_content_type_in_application_json),
 								ContentTypeIn2 = <<"application/json">>,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = decode_payload_as_json(Payload),
 								QuerystringMap2 = QuerystringMap;
-							<<"application/json;charset=utf-8">> -> 
+							<<"application/json">> -> 
 								ems_db:inc_counter(http_content_type_in_application_json),
 								ContentTypeIn2 = <<"application/json">>,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
@@ -2207,13 +2207,13 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								{ok, Payload, CowboyReq2} = cowboy_req:read_urlencoded_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = maps:from_list(Payload),
 								QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap);
-							<<"application/x-www-form-urlencoded; charset=UTF-8">> ->
+							<<"application/x-www-form-urlencoded">> ->
 								ems_db:inc_counter(http_content_type_in_form_urlencode),
 								ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_urlencoded_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = maps:from_list(Payload),
 								QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap);
-							<<"application/x-www-form-urlencoded;charset=UTF-8">> ->
+							<<"application/x-www-form-urlencoded">> ->
 								ems_db:inc_counter(http_content_type_in_form_urlencode),
 								ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_urlencoded_body(CowboyReq, ReadBodyOpts),

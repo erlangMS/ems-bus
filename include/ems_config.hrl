@@ -213,7 +213,7 @@
 -define(DEFAULT_PASSWD, <<"fEqNCco3Yq9h5ZUglD3CZJT4lBs=">>).
 
 % Mensagens de saída json comuns
--define(CONTENT_TYPE_JSON, <<"application/json; charset=utf-8"/utf8>>).
+-define(CONTENT_TYPE_JSON, <<"application/json">>).
 
 
 -define(CACHE_CONTROL_1_MIN, <<"max-age=60, public"/utf8>>).

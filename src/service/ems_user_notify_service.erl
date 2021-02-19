@@ -69,7 +69,7 @@ notifica_users_message(Conf, Buffer) ->
 		UserListJson = ems_schema:to_json(Buffer),
 		MsgService = {{0, "/netadm/dataloader/user/notify", "POST", #{}, #{}, 
 						UserListJson, % Payload
-						<<"application/json; charset=utf-8">>,  
+						<<"application/json">>,  
 						atom_to_list(Conf#config.java_service_user_notify_module),
 						Conf#config.java_service_user_notify_function,  	% FunctionName
 						<<>>,  		 	% ClientJson
