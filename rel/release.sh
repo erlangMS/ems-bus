@@ -212,13 +212,6 @@ make_release(){
 	cd rel
 	../tools/rebar/rebar generate || die 'Failed to generate release with rebar compile generate!'
 
-	# Esta lib dá erro no com "tools/rebar/rebar compile generate", portando é copiado manualmente
-	if [ -d ems_bus/lib/sd_notify ]; then
-		mkdir ems_bus/lib/sd_notify
-		cp -r ../deps/sd_notify/ebin ems_bus/lib/sd_notify
-		cp -r ../deps/sd_notify/priv ems_bus/lib/sd_notify
-	fi
-	
 	mv ems_bus ems-bus
 	mv ems-bus/bin/ems_bus ems-bus/bin/ems-bus
 

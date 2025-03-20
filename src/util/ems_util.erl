@@ -4198,7 +4198,7 @@ integer_to_binary_def(Value, DefaultValue) ->
 add_spaces_all_elements_list(List, Space) ->
 	add_spaces_all_elements_list(List,Space, []).
 
-add_spaces_all_elements_list([], Space, Acc) ->
+add_spaces_all_elements_list([], _Space, Acc) ->
 	Acc;
 add_spaces_all_elements_list([H|T], Space, Acc) ->
      H2 = binary_to_list(H),

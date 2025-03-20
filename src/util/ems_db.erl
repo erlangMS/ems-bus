@@ -18,7 +18,7 @@
 		 sort/2, field_position/3]).
 -export([init_sequence/2, sequence/1, sequence/2, current_sequence/1]).
 -export([init_counter/2, counter/2, current_counter/1, inc_counter/1, dec_counter/1]).
--export([get_connection/1, release_connection/1, get_sqlite_connection_from_csv_file/1, create_datasource_from_map/3, create_datasource_from_map/4, 
+-export([get_connection/1, release_connection/1, create_datasource_from_map/3, create_datasource_from_map/4, 
 		 command/2, select_count/2, is_database_in_restricted_mode/1]).
 -export([get_param/1, get_param/2, set_param/2, get_re_param/2]).
 -export([get_transient_param/1, get_transient_param/2, set_transient_param/2, get_re_transient_param/2]).
@@ -62,9 +62,6 @@ start(PrivPath, DatabasePath) ->
 								   {disc_copies, Nodes},
 								   {attributes, record_info(fields, sequence)}]),
 
-    mnesia:create_table(ctrl_sqlite_table, [{type, set},
-											{disc_copies, Nodes},
-											{attributes, record_info(fields, ctrl_sqlite_table)}]),
 
     mnesia:create_table(ctrl_params, [{type, set},
 									  {disc_copies, Nodes},
@@ -331,7 +328,6 @@ start(PrivPath, DatabasePath) ->
 							user_permission_db,
 							client_db,
 							client_fs,
-							ctrl_sqlite_table,
 							catalog_schema,
 							service_owner,
 							catalog_get_fs,
@@ -521,13 +517,11 @@ set_transient_param(ParamName, ParamValue) ->
 
 %% Funções para get and release connection
 
-% Get the connection from a datasource (postgresql, sqlserver, sqlite, ou mnesia)
+% Get the connection from a datasource (postgresql, sqlserver ou mnesia)
 get_connection(Datasource = #service_datasource{type = postgresql}) ->
 	get_odbc_connection(Datasource);
 get_connection(Datasource = #service_datasource{type = sqlserver}) ->
 	get_odbc_connection(Datasource);
-get_connection(Datasource = #service_datasource{type = csvfile}) ->
-	get_sqlite_connection_from_csv_file(Datasource);
 get_connection(Datasource = #service_datasource{type = mnesia}) ->
 	{ok, Datasource}.
 
@@ -537,57 +531,6 @@ release_connection(Datasource) -> ems_odbc_pool:release_connection(Datasource).
 
 get_odbc_connection(Datasource) -> ems_odbc_pool:get_connection(Datasource).
 
-create_sqlite_from_csv(#service_datasource{connection = Filename,
-										   table_name = TableName,
-										   csv_delimiter = Delimiter}) -> 
-	FilenamePath = ?CSV_FILE_PATH ++ "/" ++ Filename,
-	case filelib:last_modified(FilenamePath) of
-		0 -> {error, ecsvfile_not_exist};
-		LastModified ->
-			SqliteFile = ?DATABASE_PATH ++ "/sqlite3_" ++ TableName,
-			DatabaseExist = filelib:is_file(SqliteFile), 
-			F = fun() ->
-				Ctrl = ems_util:hd_or_empty(mnesia:read(ctrl_sqlite_table, Filename)),
-				case Ctrl =:= [] orelse not DatabaseExist orelse Ctrl#ctrl_sqlite_table.last_modified =/= LastModified of
-					true ->
-						Csv2SqliteCmd = lists:flatten(io_lib:format('~s "~s" "~s" "~s" "~s"',
-																	 [?CSV2SQLITE_PATH,
-																	  SqliteFile, 
-																	  TableName, 
-																	  FilenamePath, 
-																	  Delimiter])),
-						ems_logger:info("ems_db execute \033[0;32mOS Command\033[0m: ~p.", [Csv2SqliteCmd]),
-						os:cmd(Csv2SqliteCmd),
-						mnesia:write(#ctrl_sqlite_table{file_name = Filename, last_modified = LastModified});
-					false -> 
-						% Não foi necessário criar o arquivo csv. Não houve mudança no arquivo csv
-						ok
-				end
-			end,
-			mnesia:activity(transaction, F),
-			SqliteFile
-	end.
-
-
-get_sqlite_connection_from_csv_file(Datasource = #service_datasource{driver = Driver}) -> 
-	SqliteFile = create_sqlite_from_csv(Datasource),
-	case Driver of
-		odbc ->
-			StringConnection = lists:flatten(io_lib:format("DRIVER=SQLite;Version=3;Database=~s;", [SqliteFile])),
-			ems_odbc_pool:get_connection(Datasource#service_datasource{type = sqlite, connection = StringConnection});
-		sqlite3 ->
-			ems_odbc_pool:get_connection(Datasource#service_datasource{type = sqlite, connection = SqliteFile});
-		_ -> erlang:error(einvalid_driver_datasource)
-	end.
-
-
-%create_sqlite_virtual_table_from_csv_file(Filename, TableName, _PrimaryKey) -> 
-%	{ok, Conn} = ems_db:get_odbc_connection("DRIVER=SQLite;Version=3;New=True;"),
-%	odbc:sql_query(Conn, "select load_extension(\"/usr/lib/x86_64-linux-gnu/libsqlite3_mod_csvtable.so\")"),
-%	CreateTableDDL = lists:flatten(io_lib:format("create virtual table ~s using csvtable(\"~s\")", [TableName, Filename])),
-%	odbc:sql_query(Conn, CreateTableDDL),
-%	odbc:commit(Conn, commit),
-%	{ok, Conn}.
 
 
 %% ************* Funções para pesquisa *************
@@ -1274,7 +1217,6 @@ parse_datasource_type(<<"db2">>) -> db2;
 parse_datasource_type(_) -> sqlserver.
 
 -spec parse_data_source_driver(atom(), binary()) -> atom().
-parse_data_source_driver(csvfile, <<"sqlite3">>) -> sqlite3;
 parse_data_source_driver(csvfile, <<"odbc">>) -> odbc;
 parse_data_source_driver(csvfile, _) -> erlang:error(einvalid_datasource_driver_property);
 parse_data_source_driver(_, _) -> undefined.

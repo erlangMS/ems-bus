@@ -21,16 +21,6 @@
 	},
 
 	{
-		"catalog": "/emsbus/ems_file_watcher", 
-		"file": "ems_file_watcher.json"
-	},
-
-	{
-		"catalog": "/emsbus/ems_user_notify_service", 
-		"file": "ems_user_notify_service.json"
-	},
-
-	{
 		"catalog": "/emsbus/loaders", 
 		"file": "loaders/ems_loaders.json"
 	},
@@ -78,11 +68,6 @@
 	{
 		"catalog": "/emsbus/ems_barramento_service", 
 		"file": "ems_barramento_service.json"
-	},
-	
-	{
-		"catalog": "/emsbus/ems_correios_service", 
-		"file": "ems_correios_service.json"
-	}	
+	}
 	
 ]

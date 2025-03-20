@@ -246,11 +246,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%====================================================================
 
 
-do_connect(Datasource = #service_datasource{connection = Connection, type = sqlite, driver = sqlite3}) -> 
-	{ok, ConnRef} = esqlite3:open(Connection),
-	Datasource2 = Datasource#service_datasource{owner = self(), 
-												conn_ref = ConnRef},
-	{ok, Datasource2};
+
 do_connect(Datasource = #service_datasource{connection = Connection}) -> 
 	try
 		case odbc:connect(Connection, [{scrollable_cursors, off}, {timeout, 30000}, {trace_driver, off}, {extended_errors, off}]) of
@@ -268,16 +264,7 @@ do_connect(Datasource = #service_datasource{connection = Connection}) ->
 			{error, Reason2}
 	end.
 
-do_disconnect(#state{datasource = #service_datasource{id = Id, conn_ref = ConnRef, type = sqlite, driver = sqlite3}, 
-					 query_count = QueryCount}) -> 
-	try
-		?DEBUG("ems_odbc_pool_worker do_disconnect worker (Ds: ~p QueryCount: ~p).", [Id, QueryCount]),
-		esqlite3:close(ConnRef)
-	catch
-		_:Reason ->	
-			?DEBUG("ems_odbc_pool_worker do_disconnect worker exception (Ds: ~p QueryCount: ~p Reason: ~p).", [Id, QueryCount, Reason]),
-			ok
-	end;
+
 do_disconnect(#state{datasource = #service_datasource{id = Id, conn_ref = ConnRef}, 
 					 query_count = QueryCount}) -> 
 	try
@@ -289,20 +276,7 @@ do_disconnect(#state{datasource = #service_datasource{id = Id, conn_ref = ConnRe
 			ok
 	end.
 
-do_param_query(Sql, Params, #state{datasource = Datasource = #service_datasource{conn_ref = ConnRef,
-																			     type = sqlite,
-																				 driver = sqlite3}}) ->
-	Params2 = [hd(V) || {_, V} <- Params],
-	case esqlite3:prepare(Sql, ConnRef) of
-        {ok, Statement} ->
-            ok = esqlite3:bind(Statement, Params2),
-            Records = esqlite3:fetchall(Statement),
-			Fields = tuple_to_list(esqlite3:column_names(Statement)),
-			Fields2 = [?UTF8_STRING(erlang:atom_to_binary(F, utf8)) || F <- Fields],
-			%?DEBUG("Sqlite resultset query: ~p.", [Records]),
-			{ok, {selected, Fields2, Records}, Datasource};
-        Error -> Error
-    end;
+
 do_param_query(Sql, Params, #state{datasource = Datasource = #service_datasource{id = Id,
 																				 conn_ref = ConnRef,
 																				 timeout = Timeout}}) ->

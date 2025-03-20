@@ -86,21 +86,17 @@ find_by_owner(FilterJson, Fields, Limit, Offset, Sort, IdOwner, Datasource = #se
 
 
 insert(Payload, Service = #service{schema_in = Schema}, #service_datasource{table_name = TableName}) -> 
-	case ems_api_query_validator:validate(Payload, Schema) of
-		ok -> 
-			Record = ems_schema:to_record(Payload, list_to_atom(TableName)),
-			case onvalidate(insert, Record, Service) of
-				ok ->
-					case ems_db:insert(Record) of
-						{ok, Result} -> 
-							ResultJson = ems_schema:to_json(Result),
-							{ok, ResultJson};
-						Error -> Error
-					end;
-				Error2 -> 
-					Error2
+	Record = ems_schema:to_record(Payload, list_to_atom(TableName)),
+	case onvalidate(insert, Record, Service) of
+		ok ->
+			case ems_db:insert(Record) of
+				{ok, Result} -> 
+					ResultJson = ems_schema:to_json(Result),
+					{ok, ResultJson};
+				Error -> Error
 			end;
-		Error -> Error
+		Error2 -> 
+			Error2
 	end.
 
 
@@ -109,19 +105,15 @@ update(Id, Payload, Service = #service{schema_in = Schema}, #service_datasource{
 	case ems_db:get(TableName, Id) of
 		{ok, Record} ->
 			Record2 = ems_schema:to_record(Payload, Record),  %% copia os dados do payload para o Record
-			case ems_api_query_validator:validate(Record2, Schema) of
-				ok -> 
-					case onvalidate(update, Record2, Service) of
-						ok ->
-							case ems_db:update(Record2) of
-								ok -> 
-									ResultJson = ems_schema:to_json(Record2),
-									{ok, ResultJson};
-								Error -> Error
-							end;
-						Error2 -> Error2
+			case onvalidate(update, Record2, Service) of
+				ok ->
+					case ems_db:update(Record2) of
+						ok -> 
+							ResultJson = ems_schema:to_json(Record2),
+							{ok, ResultJson};
+						Error -> Error
 					end;
-				Error -> Error
+				Error2 -> Error2
 			end;
 		Error -> Error
 	end.

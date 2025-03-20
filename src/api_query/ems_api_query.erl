@@ -19,7 +19,6 @@ find(FilterJson, Fields, Limit, Offset, Sort, Datasource = #service_datasource{t
 			db2 -> ems_api_query_db2:find(FilterJson, Fields, Limit, Offset, Sort, Datasource); 
 			postgresql -> ems_api_query_postgresql:find(FilterJson, Fields, Limit, Offset, Sort, Datasource); 
 			sqlserver -> ems_api_query_sqlserver:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
-			sqlite -> ems_api_query_sqlite:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
 			mnesia -> ems_api_query_mnesia:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
 			_ -> erlang:error(einvalid_datasource_type)
 		end
@@ -34,7 +33,6 @@ find_by_owner(FilterJson, Fields, Limit, Offset, Sort, IdOwner, Datasource = #se
 			db2 -> ems_api_query_db2:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
 			postgresql -> ems_api_query_postgresql:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
 			sqlserver -> ems_api_query_sqlserver:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
-			sqlite -> ems_api_query_sqlite:find(FilterJson, Fields, Limit, Offset, Sort, Datasource);
 			mnesia -> ems_api_query_mnesia:find_by_owner(FilterJson, Fields, Limit, Offset, Sort, IdOwner, Datasource);
 			_ -> erlang:error(einvalid_datasource_type)
 		end
@@ -49,7 +47,6 @@ find_by_id(Id, Fields, Datasource =  #service_datasource{type = ConnType}) ->
 			db2 -> ems_api_query_db2:find_by_id(Id, Fields, Datasource);
 			postgresql -> ems_api_query_postgresql:find_by_id(Id, Fields, Datasource);
 			sqlserver -> ems_api_query_sqlserver:find_by_id(Id, Fields, Datasource);
-			sqlite -> ems_api_query_sqlite:find_by_id(Id, Fields, Datasource);
 			mnesia -> ems_api_query_mnesia:find_by_id(Id, Fields, Datasource);
 			_ -> erlang:error(einvalid_datasource_type)
 		end
@@ -64,7 +61,6 @@ insert(Payload, Service, Datasource = #service_datasource{type = ConnType}) ->
 			db2 -> ok;
 			postgresql -> ok;
 			sqlserver -> ok;
-			sqlite -> ok;
 			mnesia -> ems_api_query_mnesia:insert(Payload, Service, Datasource);
 			_ -> erlang:error(einvalid_datasource_type)
 		end
@@ -82,7 +78,6 @@ update(Id, Payload, Service, Datasource = #service_datasource{type = ConnType}) 
 					db2 -> ok;
 					postgresql -> ok;
 					sqlserver -> ok;
-					sqlite -> ok;
 					mnesia -> ems_api_query_mnesia:update(Id, Payload, Service, Datasource);
 					_ -> erlang:error(einvalid_datasource_type)
 				end
@@ -98,7 +93,6 @@ delete(Id, Service, Datasource = #service_datasource{type = ConnType}) ->
 			db2 -> ems_api_query_db2:delete(Id, Datasource); 
 			postgresql -> ems_api_query_postgresql:delete(Id, Datasource); 
 			sqlserver -> ems_api_query_sqlserver:delete(Id, Datasource);
-			sqlite -> ok;
 			mnesia -> ems_api_query_mnesia:delete(Id, Service, Datasource);
 			_ -> erlang:error(einvalid_datasource_type)
 		end
