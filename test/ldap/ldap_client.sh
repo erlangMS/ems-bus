@@ -1,1 +1,0 @@
-../../priv/scripts/ldap_client.sh

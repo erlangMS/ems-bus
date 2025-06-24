@@ -1,8 +1,0 @@
-# Realiza um auditoria dos los do proxy ERLANGMS de hora em hora
-0 * * * * /usr/lib/ems-bus/priv/scripts/audit_ldap_log.sh 60 --sendemail
-
-# Realiza um teste para verificar se o serviço ldap está operando normalmente (reinicia em 5 tentativas)
-*/5 * * * * /usr/lib/ems-bus/priv/scripts/ldap_client.sh 1 localhost:2389 erlangms 123456 --sendemail --auto_restart --email_only_error --retry=5
-
-# Envia um relatório de acesso diário para auditoria
-0 22 * * * /usr/lib/ems-bus/priv/scripts/audit_ldap_log.sh 1440 --sendemail --email_to=evertonagilar@unb.br

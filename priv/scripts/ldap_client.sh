@@ -63,11 +63,11 @@ RETRY=1
 mkdir -p $TMP_DIR && cd $TMP_DIR
 
 # SMTP parameter
-SMTP_SERVER="mail.unb.br"
+SMTP_SERVER=""
 SMTP_PORT=587
-SMTP_DE="erlangms@unb.br"
-SMTP_TO="evertonagilar@unb.br"
-SMTP_PASSWD=erl1523
+SMTP_DE=""
+SMTP_TO=""
+SMTP_PASSWD=
 
 
 # print header (only one time)

@@ -582,7 +582,7 @@ get_work_node(_, _, _, _) ->
 -else.
 get_work_node('', _, _, _) -> {ok, node()};
 get_work_node([], _, _, _) -> {error, eunavailable_service};
-get_work_node([H|_], HostList, HostNames, ModuleName) -> 
+get_work_node([H|_], _HostList, _HostNames, _ModuleName) -> 
 	{ok, H}.
 -endif.	
 

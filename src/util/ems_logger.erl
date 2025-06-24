@@ -486,60 +486,9 @@ checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice,
 				ems_logger:info("ems_logger starting archive of current log file \033[01;34m~p\033[0m with size: \033[01;34m~p\033[0m bytes.", [CurrentLogFilename, FileSize]),
 				case FileSize > 0 of
 					true ->
-						% Primeira vamos verificar se a pasta onde será arquivado pode ser criada ou já existe
-						ems_util:ensure_dir_writable(LogFileArchivePath),
-						case ems_util:ensure_dir_writable(LogFileArchivePath) of
-							ok -> 
-								MakeDir = true;
-							{error, ReasonMakeDir} -> 
-								MakeDir = false,
-								ems_logger:error("ems_logger archive log file failed on create archive path \033[01;34m~p\033[0m. Reason: ~p.", [LogFileArchivePath, ReasonMakeDir])
-						end,
-						
-						case MakeDir of
-							true ->
-								% Cria um nome de arquivo para arquivamento
-								{{Ano,Mes,Dia},{Hora,Min,_}} = calendar:local_time(),
-								MesAbrev = ems_util:mes_abreviado(Mes),
-								ArchiveLogFilename = lists:flatten(io_lib:format("~s/~p/~s/~s_~s_~2..0w~2..0w~4..0w_~2..0w~2..0w.log", [LogFileArchivePath, Ano, MesAbrev, "server", MesAbrev, Dia, Mes, Ano, Hora, Min])),
-
-								% Vamos ver se consegue criar os subdiretórios da pasta de arquivamento
-								case ems_util:ensure_dir_writable(filename:dirname(ArchiveLogFilename)) of
-									ok -> 
-										MakeSubDir = true;
-									{error, ReasonMakeSubDir} -> 
-										ems_logger:error("ems_logger archive current log file failed on create archive path \033[01;34m~p\033[0m. Reason: ~p.", [LogFileArchivePath, ReasonMakeSubDir]),
-										MakeSubDir = false
-								end,
-
-								case MakeSubDir of
-									true ->
-										case file:copy(CurrentLogFilename, ArchiveLogFilename) of
-											{ok, _BytesCopied} ->
-												ems_logger:info("ems_logger close current log file \033[01;34m~p\033[0m.", [CurrentLogFilename]),
-												file:close(CurrentIODevice),
-												file:delete(CurrentLogFilename),
-												case Immediate of
-													true -> 
-														ems_logger:info("ems_logger immediate archive current log file to \033[01;34m~p\033[0m.", [ArchiveLogFilename]);
-													false -> 
-														ems_logger:info("ems_logger archive current log file to \033[01;34m~p\033[0m.", [ArchiveLogFilename])
-												end,
-												State2 = create_new_logfile(State);
-											{error, Reason2} ->
-												State2 = State#state{log_file_name = undefined,
-																	 log_file_handle = undefined},
-												ems_logger:error("ems_logger archive current log file failed on rename file \033[01;34m~p\033[0m to \033[01;34m~p\033[0m. Reason: ~p.", [CurrentLogFilename, ArchiveLogFilename, Reason2])
-										end;
-									false ->
-										State2 = State#state{log_file_name = undefined,
-															 log_file_handle = undefined}
-								end;
-							false ->
-								ems_logger:error("ems_logger archive current log file failed to archive."),
-								State2 = State#state{log_file_name = undefined,
-													 log_file_handle = undefined}
-						end;
+						file:close(CurrentIODevice),
+						file:delete(CurrentLogFilename),
+						State2 = create_new_logfile(State);
 					false ->
 						ems_logger:info("ems_logger archive current log skip, there's nothing to archive now."),
 						State2 = State
