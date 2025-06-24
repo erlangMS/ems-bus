@@ -1,4 +1,5 @@
 ebin/**
+priv/
 priv/db/**
 priv/log/**
 *.beam

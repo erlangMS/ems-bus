@@ -668,10 +668,12 @@ to_resource_owner(User, ClientId) ->
 		put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass2),
 		case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
 			true ->
+				io:format("aqui1"),
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass3),
 				OAuth2ResourceOwnerFindPermissionWithCPF = ems_db:get_param(oauth2_resource_owner_find_permission_with_cpf),
 				case User#user.cpf == <<>> orelse not OAuth2ResourceOwnerFindPermissionWithCPF of
 					true ->
+							io:format("aqui2"),
 							put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass4),
 							{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
 							put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass5),
@@ -693,6 +695,7 @@ to_resource_owner(User, ClientId) ->
 							end;
 			
 					false ->
+						io:format("aqui3"),
 						put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass12),
 						{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 						put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass13),
@@ -728,6 +731,7 @@ to_resource_owner(User, ClientId) ->
 								ListaPerfilPermissionJson = <<"[]">>
 						end
 				end,
+				io:format("aqui4"),
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass22),
 				iolist_to_binary([<<"{"/utf8>>,
 									<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
@@ -745,6 +749,7 @@ to_resource_owner(User, ClientId) ->
 									<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 								<<"}"/utf8>>]);
 			false ->
+				io:format("aqui5"),
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass23),
 				ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [perfil_id, name]) of
 										{ok, ListaPerfil} -> 
@@ -839,6 +844,7 @@ to_resource_owner(User, ClientId) ->
 				ListaPermissionJson = ems_schema:to_json(ListaPermissionFinal),
 				case ShowListaPerfilPermission of
 					true -> 
+						io:format("aqui6"),
 						ListaPerfilPermissionFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 													{ok, ListaPerfilPermission} ->
 														case User#user.cpf of
@@ -892,6 +898,7 @@ to_resource_owner(User, ClientId) ->
 						ListaPerfilPermissionJson = <<"[]">>
 				end,
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass41),
+				io:format("aqui7"),
 				iolist_to_binary([<<"{"/utf8>>,
 									<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
 									<<"\"remap_user_id\":"/utf8>>, integer_to_binary(User#user.remap_user_id), <<","/utf8>>,

@@ -490,6 +490,7 @@ dispatch_service_work_send(Request = #request{type = Type,
 						   ShowDebugResponseHeaders,
 						   Msg,
 						   Count) ->
+	ems_logger:info("get_work_node Host ~p  HostName: ~p  ModuleName: ~p", [Host, HostName, ModuleName]),	
 	case get_work_node(Host, Host, HostName, ModuleName) of
 		{ok, Node} ->
 			{Module, Node} ! Msg,
@@ -581,40 +582,8 @@ get_work_node(_, _, _, _) ->
 -else.
 get_work_node('', _, _, _) -> {ok, node()};
 get_work_node([], _, _, _) -> {error, eunavailable_service};
-get_work_node([_|T], HostList, HostNames, ModuleName) -> 
-	QtdHosts = length(HostList),
-	case QtdHosts == 1 of
-		true -> Node = hd(HostList);
-		false ->
-			% ========= faz round robin ===========
-			%% Localiza a entrada do módulo na tabela hash
-			case ets:lookup(ctrl_node_dispatch, ModuleName) of
-				[] -> 
-					% não encontrou, vamos selecionar o primeiro host mas o próximo será o segundo
-					Index = 2,
-					Node = hd(HostList);
-				[{_, Idx}] -> 
-					% Se o idx não existe pega o primeiro e o próximo será o segundo
-					case Idx > QtdHosts of
-						true -> 
-							Index = 2,
-							Node = hd(HostList);
-						false -> 
-							Node = lists:nth(Idx, HostList),
-							Index = Idx + 1
-					end
-			end,
-			% Inserimos na tabela hash os dados de controle
-			ets:insert(ctrl_node_dispatch, {ModuleName, Index})
-	end,
-
-	
-	% Este node está vivo? Temos que rotear para um node existente
-	Ping = net_adm:ping(Node),
-	case Ping of
-		pong -> {ok, Node};
-		pang -> get_work_node(T, HostList, HostNames, ModuleName)
-	end.
+get_work_node([H|_], HostList, HostNames, ModuleName) -> 
+	{ok, H}.
 -endif.	
 
 
