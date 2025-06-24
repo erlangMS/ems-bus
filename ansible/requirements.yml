@@ -1,0 +1,7 @@
+#
+# Define roles que devem ser instaladas
+# Autor: Everton de Vargas Agilar
+# Data: 01/06/2025
+#
+- src: geerlingguy.docker
+- src: geerlingguy.apache

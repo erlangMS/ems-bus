@@ -1,0 +1,14 @@
+---
+- name: Instalar Docker e subir container via docker-compose
+  hosts: all
+  become: true
+
+  pre_tasks:
+    - name: Verificar se o Docker já está instalado
+      ansible.builtin.command: docker --version 2>&1 /dev/null
+      register: docker_check
+      ignore_errors: true
+
+  roles:
+    - role: geerlingguy.docker
+      when: docker_check.rc != 0

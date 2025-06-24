@@ -1,0 +1,53 @@
+---
+- name: Instala Erlang 24.2.1 e dependências
+  hosts: all
+  become: true
+  vars:
+    erlang_packages:
+      - erlang-asn1
+      - erlang-base
+      - erlang-crypto
+      - erlang-dev
+      - erlang-dialyzer
+      - erlang-diameter
+      - erlang-edoc
+      - erlang-eunit
+      - erlang-ftp
+      - erlang-inets
+      - erlang-jiffy
+      - erlang-mnesia
+      - erlang-odbc
+      - erlang-proper
+      - erlang-public-key
+      - erlang-reltool
+      - erlang-runtime-tools
+      - erlang-snmp
+      - erlang-ssl
+      - erlang-syntax-tools
+      - erlang-tftp
+      - erlang-tools
+      - erlang-wx
+      - erlang-xmerl
+      - rebar
+
+  tasks:
+
+    - name: Garante que o sistema está atualizado
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Instala os pacotes Erlang 24.2.1
+      apt:
+        name: "{{ erlang_packages }}"
+        state: present
+        allow_unauthenticated: no
+
+    - name: Verifica a versão instalada do Erlang
+      command: erl -version
+      register: erl_version
+      ignore_errors: yes
+
+    - name: Exibe a versão do Erlang instalada
+      debug:
+        msg: "Versão do Erlang instalada: {{ erl_version.stdout }}"
