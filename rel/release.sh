@@ -20,7 +20,6 @@
 # 28/11/2016  Everton Agilar     Release inicial do script de release
 # 05/03/2017  Everton Agilar     Improve release to deb and rpm
 # 06/07/2017  Everton Agilar     New: --skip_build
-# 23/09/2017  Everton Agilar     New: --push
 # 28/09/2017  Everton Agilar     New: --clean
 # 25/10/2018  Everto Agilar		 Faz build somente do SO ativo usando o template deste SO
 #
@@ -54,10 +53,8 @@ echo "Linux: $LINUX_DESCRIPTION  Version: $LINUX_VERSION_ID"
 # Parameters
 WORKING_DIR=$(pwd)
 RELEASE_PATH=$WORKING_DIR
-GIT_RELEASE_REPO=https://github.com/erlangms/releases
-SKIP_BUILD="true"
+SKIP_BUILD="false"
 SKIP_BUILD_IMAGE="false"
-PUSH="false"
 
 # Get ErlangMS version in the file src/ems_bus.app.src
 VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
@@ -183,9 +180,6 @@ for P in $*; do
 			SKIP_BUILD="true"
 		elif [[ "$P" =~ --skip[_-]build[_-]image? ]]; then
 			SKIP_BUILD_IMAGE="true"
-		elif [[ "$P" =~ --push ]]; then
-			echo "Push release after build to repository..."
-			PUSH="true"
 		else
 			echo "Invalid parameter: $P"
 			help

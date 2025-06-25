@@ -8,7 +8,6 @@ services:
     ports:
       - 2301:2301
       - 2389:2389
-      - 4368:4369
     networks:
       - network_ems_bus
     stdin_open: true
