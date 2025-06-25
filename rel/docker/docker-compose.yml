@@ -1,6 +1,6 @@
 services:
-  emsbus:
-    image: emsbus-2.0.11
+  erlangms:
+    image: erlangms/emsbus:v2.0.11
     container_name: emsbus
     build:
       context: .
@@ -9,12 +9,12 @@ services:
       - 2301:2301
       - 2389:2389
     networks:
-      - network_ems_bus
+      - network_emsbus
     stdin_open: true
     tty: true
     volumes:
       - ./config:/app/priv/conf
 
 networks:
-  network_ems_bus:
+  network_emsbus:
     driver: bridge
