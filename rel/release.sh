@@ -55,10 +55,15 @@ echo "Linux: $LINUX_DESCRIPTION  Version: $LINUX_VERSION_ID"
 WORKING_DIR=$(pwd)
 RELEASE_PATH=$WORKING_DIR
 GIT_RELEASE_REPO=https://github.com/erlangms/releases
-BUILD_DEB_FLAG="false"  
-BUILD_RPM_FLAG="false"  
 SKIP_BUILD="true"
+SKIP_BUILD_IMAGE="false"
 PUSH="false"
+
+# Get ErlangMS version in the file src/ems_bus.app.src
+VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
+[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in rebar.config"
+
+RELEASE_FILE=ems-bus-$VERSION_RELEASE.tar.gz
 
 # Imprime uma mensagem e termina o script
 # Parâmetros:
@@ -94,9 +99,9 @@ help(){
 	echo "How to use: ./release.sh"
 	echo
 	echo "Additional parameters:"
-	echo "  --skip-build=true|false		-> skip build with rebar. Default is true."
-	echo "  --clean          			-> clean build release."
-	echo "  --distro_name=name    		-> define the distro name."
+	echo "  --skip-build		-> skip build with rebar. Default is true."
+	echo "  --skip-build_image	-> skip build with rebar. Default is true."
+	echo "  --clean          	-> clean build release."
 	exit 1
 }
 
@@ -106,10 +111,6 @@ help(){
 # make release for each distro
 make_release(){
 	cd $WORKING_DIR
-
-	# Get ErlangMS version in the file src/ems_bus.app.src
-	VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
-	[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in rebar.config"
 
 	echo "Please wait, generating the release $VERSION_RELEASE of the ems-bus, this may take a while!"
 
@@ -157,10 +158,16 @@ make_release(){
 
 	# Create the package file gz
 	echo "Begin create compress file ems-bus-$VERSION_RELEASE.gz now..."
-	tar -czf ems-bus-$VERSION_RELEASE.tar.gz ems-bus/ 
+	tar -czf $RELEASE_FILE ems-bus/ 
 
 }
 
+
+make_imagem(){
+	cd $WORKING_DIR/docker
+	cp ../$RELEASE_FILE . 
+	sudo docker compose build
+}
 
 # *************** main ***************
 
@@ -172,17 +179,13 @@ for P in $*; do
 		elif [[ "$P" = "--clean" ]]; then
 			clean
 			exit 1
-		elif [[ "$P" =~ ^--skip[_-]build=.+$ ]]; then
-			SKIP_BUILD="$(echo $P | cut -d= -f2)"
-			echo "Skip build is $SKIP_BUILD..."
 		elif [[ "$P" =~ --skip[_-]build ]]; then
-			echo "Skip build uildis true..."
 			SKIP_BUILD="true"
+		elif [[ "$P" =~ --skip[_-]build[_-]image? ]]; then
+			SKIP_BUILD_IMAGE="true"
 		elif [[ "$P" =~ --push ]]; then
 			echo "Push release after build to repository..."
 			PUSH="true"
-		elif [[ "$P" =~ ^--distro_name=.+$ ]]; then
-			LINUX_DISTRO="$(echo $P | cut -d= -f2)"
 		else
 			echo "Invalid parameter: $P"
 			help
@@ -193,6 +196,9 @@ for P in $*; do
 	fi
 done
 
+echo "Skip build is $SKIP_BUILD..."
+echo "Skip build image is $SKIP_BUILD_IMAGE..."
+
 clean
 
 # check remove link to fix Unable to generate spec: read file info
@@ -201,7 +207,13 @@ if [ -L /usr/lib/erlang/man ]; then
 	sudo rm  /usr/lib/erlang/man
 fi	
 
-make_release
+if [ "$SKIP_BUILD" = "false" ]; then
+	make_release
+fi
+
+if [ "$SKIP_BUILD_IMAGE" = "false" ]; then
+	make_imagem
+fi
 clean
 cd $WORKING_DIR
 echo "Ok!"

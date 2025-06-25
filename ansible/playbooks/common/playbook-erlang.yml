@@ -4,6 +4,8 @@
   become: true
   vars:
     erlang_packages:
+      - build-essential
+      - ldap-utils
       - erlang-asn1
       - erlang-base
       - erlang-crypto
@@ -43,11 +45,3 @@
         state: present
         allow_unauthenticated: no
 
-    - name: Verifica a versão instalada do Erlang
-      command: erl -version
-      register: erl_version
-      ignore_errors: yes
-
-    - name: Exibe a versão do Erlang instalada
-      debug:
-        msg: "Versão do Erlang instalada: {{ erl_version.stdout }}"

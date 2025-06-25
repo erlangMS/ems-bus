@@ -151,16 +151,16 @@ EOF
 ldap_search(){
 	if [ "$COUNTER" = "1" ]; then
 		echo "Performing LDAP request on $TYPE_SERVER server $LDAP_SERVER with user $USER using ldapsearch"
-		echo ldapsearch -xLLL -h "$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "xxxxxxx"
+		echo ldapsearch -xLLL -H "ldap://$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "xxxxxxx"
 		echo ""
-		ldapsearch -xLLL -h "$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "$ADMIN_PASSWD"
+		ldapsearch -xLLL -H "ldap://$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "$ADMIN_PASSWD"
 	else
 		echo "Performing $COUNTER LDAP request on $TYPE_SERVER server $LDAP_SERVER with user $USER using ldapsearch"
-		echo ldapsearch -xLLL -h "$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "xxxxxxx"
+		echo ldapsearch -xLLL -H "ldap://$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "xxxxxxx"
 		until [  $COUNTER -lt 1 ]; do
 			echo ""
 			let COUNTER-=1
-			ldapsearch -xLLL -h "$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "$ADMIN_PASSWD"
+			ldapsearch -xLLL -H "ldap://$LDAP_SERVER" -b 'dc=unb,dc=br' -D 'cn=admin,dc=unb,dc=br' uid="$USER" -w "$ADMIN_PASSWD"
 		done
 	fi
 }
