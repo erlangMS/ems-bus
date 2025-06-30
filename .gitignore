@@ -1,3 +1,5 @@
+rel/*.tar.gz
+rel/docker/config*
 ebin/**
 priv/
 priv/db/**
@@ -31,6 +33,4 @@ rel/deb/*/control
 contrib/login_webpack/dist/**
 contrib/login_webpack/node_modules/**
 .vagrant/
-rel/*.tar.gz
-rel/docker/config
 .vscode/
