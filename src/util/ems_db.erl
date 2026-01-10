@@ -435,42 +435,67 @@ counter(Name, Inc) -> mnesia:dirty_update_counter(counter, Name, Inc).
 
 -spec get_param(atom()) -> any().
 get_param(ParamName) -> 
-	case mnesia:dirty_read(ctrl_params, ParamName) of
-		[] -> undefined;
-		[#ctrl_params{value = Value}] -> Value
+	try
+		case mnesia:dirty_read(ctrl_params, ParamName) of
+			[] -> undefined;
+			[#ctrl_params{value = Value}] -> Value;
+			{aborted, _} -> undefined
+		end
+	catch
+		_:_ -> undefined
 	end.
 
 -spec get_param(atom(), function() | any()) -> any().
 get_param(ParamName, Fun) when is_function(Fun) -> 
-	case mnesia:dirty_read(ctrl_params, ParamName) of
-		[] -> 
-			Value = Fun(),
-			set_param(ParamName, Value),
-			Value;
-		[#ctrl_params{value = Value}] -> Value
+	try
+		case mnesia:dirty_read(ctrl_params, ParamName) of
+			[] -> 
+				Value = Fun(),
+				set_param(ParamName, Value),
+				Value;
+			[#ctrl_params{value = Value}] -> Value;
+			{aborted, _} -> Fun()
+		end
+	catch
+		_:_ -> Fun()
 	end;
 get_param(ParamName, DefaultValue) -> 
-	case mnesia:dirty_read(ctrl_params, ParamName) of
-		[] -> 
-			set_param(ParamName, DefaultValue),
-			DefaultValue;
-		[#ctrl_params{value = Value}] -> Value
+	try
+		case mnesia:dirty_read(ctrl_params, ParamName) of
+			[] -> 
+				set_param(ParamName, DefaultValue),
+				DefaultValue;
+			[#ctrl_params{value = Value}] -> Value;
+			{aborted, _} -> DefaultValue
+		end
+	catch
+		_:_ -> DefaultValue
 	end.
 	
 -spec get_re_param(atom(), string()) -> {re_pattern, term(), term(), term(), term()}.	
 get_re_param(ParamName, DefaultREPattern) -> 
-	case mnesia:dirty_read(ctrl_params, ParamName) of
-		[] -> 
-			{ok, Value} = re:compile(DefaultREPattern),
-			set_param(ParamName, Value),
-			Value;
-		[#ctrl_params{value = Value}] -> Value
+	try
+		case mnesia:dirty_read(ctrl_params, ParamName) of
+			[#ctrl_params{value = Value}] -> Value;
+			_ -> 
+				{ok, Compiled} = re:compile(DefaultREPattern),
+				set_param(ParamName, Compiled),
+				Compiled
+		end
+	catch
+		_:_ -> 
+			{ok, Compiled2} = re:compile(DefaultREPattern),
+			Compiled2
 	end.
 
 -spec set_param(atom(), any()) -> ok.
 set_param(ParamName, ParamValue) -> 
-	P = #ctrl_params{name = ParamName, value = ParamValue},
-	mnesia:dirty_write(ctrl_params, P).
+	try
+		P = #ctrl_params{name = ParamName, value = ParamValue},
+		mnesia:dirty_write(ctrl_params, P)
+	catch
+		_:_ -> ok
+	end.
 
 
 %% ************* Funções para armazenar parâmetros em crtl_transient_params *************

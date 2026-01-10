@@ -71,12 +71,12 @@ done
 if [ "$PROFILE" = "local" ]; then
 	current_dir=$(dirname $0)
 	cd $current_dir
-	deps=$(ls -d deps/*/ebin)
+	deps=$(ls -d _build/default/lib/*/ebin)
 	odbcinst -i -s -f ~/.odbc.ini  2> /dev/null
 	
 	if [ "$OBSERVER" = "true" ]; then
 		echo "Start with observer daemon..."
-		erl -pa $current_dir/ebin $deps \
+		erl -pa $deps \
 			-sname emsbus -setcookie erlangms \
 			-env ERL_MAX_PORTS 100000 \
 			-eval "ems_bus:start()" \
@@ -84,7 +84,7 @@ if [ "$PROFILE" = "local" ]; then
 			-config $current_dir/priv/conf/elog
 			--enable-dirty-schedulers
 	else
-		erl -pa $current_dir/ebin $deps \
+		erl -pa $deps \
 			-sname emsbus -setcookie erlangms \
 			-env ERL_MAX_PORTS 100000 \
 			-eval "ems_bus:start()" \

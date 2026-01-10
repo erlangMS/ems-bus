@@ -74,28 +74,36 @@
 -define(STATIC_FILE_PATH_PROBING, false).
 
 % Caminho do arquivo de clientes
--define(CLIENT_PATH, filename:join(?CONF_PATH, "clients.json")).
+-define(CLIENT_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "clients.json")).
+-define(CLIENT_PATH, ems_db:get_param(client_path, ?CLIENT_PATH_DEFAULT)).
 
 % Caminho do arquivo de usuários
--define(USER_PATH, filename:join(?CONF_PATH, "users.json")).
+-define(USER_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "users.json")).
+-define(USER_PATH, ems_db:get_param(user_path, ?USER_PATH_DEFAULT)).
 
 % Caminho do arquivo de dados funcionais dos usuários
--define(USER_DADOS_FUNCIONAIS_PATH, filename:join(?CONF_PATH, "user_dados_funcionais.json")).
+-define(USER_DADOS_FUNCIONAIS_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "user_dados_funcionais.json")).
+-define(USER_DADOS_FUNCIONAIS_PATH, ems_db:get_param(user_dados_funcionais_path, ?USER_DADOS_FUNCIONAIS_PATH_DEFAULT)).
 
 % Caminho do arquivo de dados funcionais dos usuários
--define(USER_EMAIL_PATH, filename:join(?CONF_PATH, "user_email.json")).
+-define(USER_EMAIL_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "user_email.json")).
+-define(USER_EMAIL_PATH, ems_db:get_param(user_email_path, ?USER_EMAIL_PATH_DEFAULT)).
 
 % Caminho do arquivo de perfis dos usuários
--define(USER_PERFIL_PATH, filename:join(?CONF_PATH, "user_perfil.json")).
+-define(USER_PERFIL_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "user_perfil.json")).
+-define(USER_PERFIL_PATH, ems_db:get_param(user_perfil_path, ?USER_PERFIL_PATH_DEFAULT)).
 
 % Caminho do arquivo de permissões dos usuários
--define(USER_PERMISSION_PATH, filename:join(?CONF_PATH, "user_permission.json")).
+-define(USER_PERMISSION_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "user_permission.json")).
+-define(USER_PERMISSION_PATH, ems_db:get_param(user_permission_path, ?USER_PERMISSION_PATH_DEFAULT)).
 
 % Caminho do arquivo de endereços dos usuários
--define(USER_ENDERECO_PATH, filename:join(?CONF_PATH, "user_endereco.json")).
+-define(USER_ENDERECO_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "user_endereco.json")).
+-define(USER_ENDERECO_PATH, ems_db:get_param(user_endereco_path, ?USER_ENDERECO_PATH_DEFAULT)).
 
 % Caminho do arquivo de telefones dos usuários
--define(USER_TELEFONE_PATH, filename:join(?CONF_PATH, "user_telefone.json")).
+-define(USER_TELEFONE_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "user_telefone.json")).
+-define(USER_TELEFONE_PATH, ems_db:get_param(user_telefone_path, ?USER_TELEFONE_PATH_DEFAULT)).
 
 % Caminho inicial para os arquivos estáticos
 -define(WEBAPPS_PATH, filename:join(?PRIV_PATH, "www")).

@@ -12,6 +12,7 @@
 
 -include("include/ems_config.hrl").
 -include("include/ems_schema.hrl").
+-include("include/ems_config_defaults.hrl").
 
 %% Server API
 -export([start/0, stop/0]).
@@ -316,10 +317,31 @@ parse_variables(V) when is_map(V) -> maps:to_list(V);
 parse_variables(_) -> erlang:error(einvalid_variables).
 
 get_p(ParamName, Map, DefaultValue) ->
-	Result = maps:get(ParamName, Map, DefaultValue),
-	case is_binary(Result) of
-		true -> ems_util:replace_custom_variables_binary(Result);
-		false -> Result
+	ResultDefault = maps:get(ParamName, ?CONFIG_DEFAULTS, DefaultValue),
+	case maps:find(ParamName, Map) of
+		{ok, Result} -> 
+			IsEqual = (Result == ResultDefault),
+			case IsEqual of
+				true ->
+					ems_logger:format_info("ems_config param ~s: ~p [DEFAULT]", [ParamName, ResultDefault]),
+					case is_binary(ResultDefault) of
+						true -> ems_util:replace_custom_variables_binary(ResultDefault);
+						false -> ResultDefault
+					end;
+				false ->
+					file:write_file("/tmp/ems_debug_get_p.log", io_lib:format("DEBUG_VAL: ~p | ~p | ~p | ~p\n", [ParamName, Result, ResultDefault, IsEqual]), [append]),
+					ems_logger:format_info("ems_config param ~s: ~p [CUSTOM]", [ParamName, Result]),
+					case is_binary(Result) of
+						true -> ems_util:replace_custom_variables_binary(Result);
+						false -> Result
+					end
+			end;
+		error ->
+			ems_logger:format_info("ems_config param ~s: ~p [DEFAULT]", [ParamName, ResultDefault]),
+			case is_binary(ResultDefault) of
+				true -> ems_util:replace_custom_variables_binary(ResultDefault);
+				false -> ResultDefault
+			end
 	end.
 
 -spec parse_config(map(), string()) -> #config{}.
@@ -328,11 +350,11 @@ parse_config(Json, Filename) ->
 		{ok, InetHostname} = inet:gethostname(),
 		
 		put(parse_step, instance_type),
-		InstanceType =  binary_to_atom(maps:get(<<"instance_type">>, Json, <<"production">>), utf8),
+		InstanceType =  binary_to_atom(get_p(<<"instance_type">>, Json, <<"production">>), utf8),
 
 		
 		put(parse_step, priv_path),
-		PrivPath0 = binary_to_list(maps:get(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
+		PrivPath0 = binary_to_list(get_p(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
 		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
 		
 		case filelib:is_dir(PrivPath) of
@@ -343,7 +365,7 @@ parse_config(Json, Filename) ->
 		end,
 		
 		put(parse_step, database_path),
-		DatabasePath0 = binary_to_list(maps:get(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
+		DatabasePath0 = binary_to_list(get_p(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
 		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
 
 		put(parse_step, database_path_check),
@@ -355,7 +377,7 @@ parse_config(Json, Filename) ->
 		end,
 
 		put(parse_step, log_file_path),
-		LogFilePath0 = binary_to_list(maps:get(<<"log_file_path">>, Json, list_to_binary(filename:join(PrivPath, "log")))),
+		LogFilePath0 = binary_to_list(get_p(<<"log_file_path">>, Json, list_to_binary(filename:join(PrivPath, "log")))),
 		LogFilePath = ems_util:parse_file_name_path(LogFilePath0, [], undefined),
 		
 		put(parse_step, log_file_path_check),
@@ -368,7 +390,7 @@ parse_config(Json, Filename) ->
 		
 
 		put(parse_step, log_file_archive_path),
-		LogFileArchivePath0 = binary_to_list(maps:get(<<"log_file_archive_path">>, Json, list_to_binary(filename:join(PrivPath, "archive_log")))),
+		LogFileArchivePath0 = binary_to_list(get_p(<<"log_file_archive_path">>, Json, list_to_binary(filename:join(PrivPath, "archive_log")))),
 		LogFileArchivePath = ems_util:parse_file_name_path(LogFileArchivePath0, [], undefined),
 		ems_util:ensure_dir_writable(LogFileArchivePath),
 	
@@ -391,7 +413,7 @@ parse_config(Json, Filename) ->
 		
 		% Instala o módulo de criptografia blowfish se necessário
 		put(parse_step, blowfish_crypto_modpath),
-		BlowfishCryptoModPath = ems_util:parse_file_name_path(maps:get(<<"crypto_blowfish_module_path">>, Json, <<>>)),		
+		BlowfishCryptoModPath = ems_util:parse_file_name_path(get_p(<<"crypto_blowfish_module_path">>, Json, <<>>)),		
 
 		put(parse_step, use_blowfish),
 		UseBlowfish = BlowfishCryptoModPath =/= <<>>,
@@ -428,20 +450,20 @@ parse_config(Json, Filename) ->
 		StaticFilePathMap = maps:from_list(StaticFilePath),
 
 		put(parse_step, auth_default_scopes),
-		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(maps:get(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
+		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(get_p(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
 		ems_db:set_param(auth_default_scope, AuthDefaultScopesAtom),
 
 		put(parse_step, auth_password_check_between_scopes),
-		AuthPasswordCheckBetweenScope = ems_util:parse_bool(maps:get(<<"auth_password_check_between_scope">>, Json, true)),
+		AuthPasswordCheckBetweenScope = ems_util:parse_bool(get_p(<<"auth_password_check_between_scope">>, Json, true)),
 		ems_db:set_param(auth_password_check_between_scope, AuthPasswordCheckBetweenScope),
 
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),
-		CustomVariables = parse_variables(maps:get(<<"custom_variables">>, Json, #{})),
+		CustomVariables = parse_variables(get_p(<<"custom_variables">>, Json, #{})),
 		ems_db:set_param(custom_variables, CustomVariables),
 
 		put(parse_step, hostname),
-		Hostname0 = ems_util:get_param_or_variable(<<"hostname">>, Json, <<>>),
+		Hostname0 = ems_util:get_param_or_variable(<<"hostname">>, Json, get_p(<<"hostname">>, Json, <<>>)),
 		% permite setar o hostname no arquivo de configuração ou obter o nome da máquina pelo inet
 		case Hostname0 of
 			<<>> -> 
@@ -456,7 +478,7 @@ parse_config(Json, Filename) ->
 		TcpListenPrefixInterfaceNames = ems_util:binlist_to_list(get_p(<<"tcp_listen_prefix_interface_names">>, Json, ?TCP_LISTEN_PREFIX_INTERFACE_NAMES)),
 
 		put(parse_step, tcp_listen_address),
-		TcpListenAddress = ems_util:get_param_or_variable(<<"tcp_listen_address">>, Json, [<<"0.0.0.0">>]),
+		TcpListenAddress = ems_util:get_param_or_variable(<<"tcp_listen_address">>, Json, get_p(<<"tcp_listen_address">>, Json, [<<"0.0.0.0">>])),
 
 		put(parse_step, parse_tcp_listen_address),
 		TcpListenAddress_t = ems_util:parse_tcp_listen_address(TcpListenAddress, TcpListenPrefixInterfaceNames),
@@ -486,7 +508,7 @@ parse_config(Json, Filename) ->
 		CatPathSearch = parse_cat_path_search(maps:to_list(get_p(<<"catalog_path">>, Json, #{})), StaticFilePath, StaticFilePathProbing),
 
 		put(parse_step, rest_base_url),
-		case ems_util:get_param_or_variable(<<"rest_base_url">>, Json, <<>>) of
+		case ems_util:get_param_or_variable(<<"rest_base_url">>, Json, get_p(<<"rest_base_url">>, Json, <<>>)) of
 			<<>> ->	
 				RestBaseUrlDefined = false,
 				RestBaseUrl = iolist_to_binary([<<"http://"/utf8>>, TcpListenMainIp, <<":2301"/utf8>>]);
@@ -496,9 +518,9 @@ parse_config(Json, Filename) ->
 		end,
 
 		put(parse_step, rest_auth_url),
-		case ems_util:get_param_or_variable(<<"rest_auth_url">>, Json, <<>>) of
+		case ems_util:get_param_or_variable(<<"rest_auth_url">>, Json, get_p(<<"rest_auth_url">>, Json, <<>>)) of
 			<<>> ->	
-				case ems_util:get_param_or_variable(<<"rest_base_url">>, Json, <<>>) of		
+				case ems_util:get_param_or_variable(<<"rest_base_url">>, Json, get_p(<<"rest_base_url">>, Json, <<>>)) of		
 					<<>> -> RestAuthUrl0 = iolist_to_binary([<<"http://"/utf8>>, TcpListenMainIp, <<":2301/authorize"/utf8>>]);
 					_ -> RestAuthUrl0 = iolist_to_binary([RestBaseUrl, <<"/authorize"/utf8>>])
 				end;
@@ -512,7 +534,7 @@ parse_config(Json, Filename) ->
 		RestAuthUrl = list_to_binary(RestBaseAuthUrlStr ++ "/authorize"),
 
 		put(parse_step, rest_login_url),
-		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, <<>>) of
+		case ems_util:get_param_or_variable(<<"rest_login_url">>, Json, get_p(<<"rest_login_url">>, Json, <<>>)) of
 			<<>> ->	RestLoginUrl = RestBaseAuthUrlStr ++ "/login/index.html";
 			RestLoginUrlValue -> RestLoginUrl = ems_util:remove_ult_backslash_url_binary(RestLoginUrlValue)
 		end,
@@ -597,7 +619,7 @@ parse_config(Json, Filename) ->
 		LogShowDataLoaderActivity = ems_util:parse_bool(get_p(<<"log_show_data_loader_activity">>, Json, ?LOG_SHOW_DATA_LOADER_ACTIVITY)),
 
 		put(parse_step, rest_environment),
-		RestEnvironment = ems_util:get_param_or_variable(<<"rest_environment">>, Json, HostnameBin),
+		RestEnvironment = ems_util:get_param_or_variable(<<"rest_environment">>, Json, get_p(<<"rest_environment">>, Json, HostnameBin)),
 		
 		put(parse_step, sufixo_email_institucional),
 		SufixoEmailInstitucional0 = binary_to_list(get_p(<<"sufixo_email_institucional">>, Json, ?SUFIXO_EMAIL_INSTITUCIONAL)),
