@@ -36,17 +36,17 @@
 %-type sig_method_uri() :: string().
 -type fingerprint() :: binary() | {sha | sha256, binary()}.
 
-execute(Request = #request{rid = Rid,
-							type = Type,
-						    url = Url,
+execute(Request = #request{rid = _Rid,
+							type = _Type,
+						    url = _Url,
 							payload = Payload,
-							client = Client,
-							user = User,
-							scope = Scope,
-							access_token = AccessToken,
-							content_type_out = ContentType,  
-							params_url = ParamsMap,
-							querystring_map = QuerystringMap}) -> 
+							client = _Client,
+							user = _User,
+							scope = _Scope,
+							access_token = _AccessToken,
+							content_type_out = _ContentType,  
+							params_url = _ParamsMap,
+							querystring_map = _QuerystringMap}) -> 
     io:format("Entrou no Certificate >>>>>>>>>>>>>>>>>>>>> ~n~n"),
     Key = read_private_key("private_key.pem"),
     io:format("Key >>>>>>>>>>>>>>>>>>>>> ~p~n~n",[Key]),
@@ -65,7 +65,7 @@ execute(Request = #request{rid = Rid,
 	}.
 
 
-recursion_file_sign(0, FileUnziped, Key, CertBin) ->
+recursion_file_sign(0, _FileUnziped, _Key, _CertBin) ->
     io:format("");
 recursion_file_sign(N, [H|T], Key, CertBin) when N > 0 ->
     io:format("Entrou aqui >>>>>>>>>>>>>>>>>>>>>>>>> ~n~n"),
@@ -87,11 +87,11 @@ recursion_file_sign(N, [H|T], Key, CertBin) when N > 0 ->
     recursion_file_sign(N-1, T, Key, CertBin).
 
 %% @doc Returns an xmlelement without any ds:Signature elements that are inside it.
-strip(Doc) ->
-    #xmlDocument{content = Kids} = Doc,
+strip(Doc = #xmlDocument{content = Kids}) ->
     NewKids = [if (element(1,K) =:= xmlElement) -> 
         strip(K); true -> K end || K <- Kids],
     Doc#xmlDocument{content = NewKids};
+
 
 strip(#xmlElement{content = Kids} = Elem) ->
     NewKids = lists:filter(fun(Kid) ->
@@ -109,7 +109,7 @@ strip(#xmlElement{content = Kids} = Elem) ->
 %%
 %% Don't use "ds" as a namespace prefix in the envelope document, or things will go baaaad.
 sign(ElementIn, PrivateKey, SigMethod, CertChain) ->
-    [H|T] = CertChain,
+    [H|_T] = CertChain,
     io:format("Aqui cert 1 >>>>>>>>>>>>>>>> ~n~n"),
     CertBin = element(2,H),
     io:format("Aqui cert 2 >>>>>>>>>>>>>>>> ~n~n"),
@@ -168,14 +168,14 @@ sign(ElementIn, PrivateKey, SigMethod, CertChain) ->
 
 
 
-generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, DigestMethod, Ns, Id, SignedProperties, PrivateKey) ->
+generate_sing_info_element(Element, _HashFunction, _SignatureMethodAlgorithm, DigestMethod, Ns, Id, SignedProperties, _PrivateKey) ->
     % CanonXml = xmerl_c14n:c14n(Element),
     % create a digest value. 
     DigestValue = base64:encode_to_string(digest(Element, sha256)),
     %  openssl rsa -in /home/renato/Downloads/desenvolvimento/cpd/git/certificado/certificado_fabiano/private_key.pem -pubin -outform der | openssl dgst -sha256
     DigestPrivateKey = os:cmd("openssl rsa -in private_key.pem -pubin -outform der | openssl dgst -sha256"),
     {_Header,Key,_Footer} = read_private_key_encoded("private_key.pem"),
-    TempDigest =  get_sha_from_key(sha256,Key),
+    _TempDigest =  get_sha_from_key(sha256,Key),
     % Generate Structure for SignedInfo and retur this
     Result = esaml_util:build_nsinfo(Ns, #xmlElement{
         name = 'ds:SignedInfo',
@@ -219,7 +219,7 @@ generate_sing_info_element(Element, HashFunction, SignatureMethodAlgorithm, Dige
      Result.
 
 
-generate_xades_sing_element(HashFunction, SigInfoCanon, Ns, Target, CertBinList, SignedProperties) ->
+generate_xades_sing_element(HashFunction, SigInfoCanon, Ns, Target, _CertBinList, SignedProperties) ->
     DigestValueSingInfo = base64:encode_to_string(
        crypto:hash(HashFunction, unicode:characters_to_binary(SigInfoCanon))),
     SubjectCertificate = os:cmd("openssl x509 -noout -in publicCert.pem -subject"),

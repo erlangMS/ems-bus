@@ -463,7 +463,7 @@ code_change(_OldVsn, State, _Extra) ->
 -spec checkpoint_arquive_log(#state{}, boolean()) -> #state{} | {error, atom()}.
 checkpoint_arquive_log(State = #state{log_file_handle = CurrentIODevice, 
 									  log_file_name = CurrentLogFilename,
-									  log_file_archive_path = LogFileArchivePath}, Immediate) ->
+									  log_file_archive_path = _LogFileArchivePath}, _Immediate) ->
 	try
 		% Precisamos ver se o arquivo atual ainda existe para arquivar
 		case ems_util:file_exists(CurrentLogFilename) of

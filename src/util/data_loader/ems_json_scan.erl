@@ -37,7 +37,7 @@ scan_with_filter(Filename, RootPath, Conf, FilterKey, FilterValue) ->
 -spec scan_files(list(tuple()), list(), #config{}, binary(), any()) -> list().
 scan_files([], Result, _, _, _) -> Result;
 scan_files([{_NodeName, JsonFilename}|Rest], Result, Conf, FilterKey, FilterValue) ->
-	RootPath = filename:dirname(JsonFilename),
+
 	case parse_filename_path(JsonFilename, undefined, Conf) of
 		{ok, <<>>} ->
 			scan_files(Rest, Result, Conf, FilterKey, FilterValue);

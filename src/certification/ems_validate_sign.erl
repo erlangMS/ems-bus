@@ -20,7 +20,7 @@ execute(Request) ->
 	}.
 
 
-validate(FileXml) ->
+validate(_FileXml) ->
     XsdDir = filename:dirname("/home/renato/Downloads/desenvolvimento/cpd/git/certificado/test_signed/leiauteDiplomaDigital.xsd"),
     {ok, State} = erlsom:compile_xsd_file("/home/renato/Downloads/desenvolvimento/cpd/git/certificado/test_signed/leiauteDiplomaDigital.xsd", 
         [{include_dirs, [XsdDir]}]),

@@ -558,29 +558,7 @@ parse_variables(Str, #state{daemon_id = DaemonId,
 						    daemon_params_encode = DaemonParamsEncode}) ->
 	Conf = ems_config:getConfig(),
 	
-	% Eh muito importante este path, vamos validar a cada uso e se definido e não existir, mostrar um warning
-	JavaHome0 = Conf#config.java_home,
-	JavaHome = case JavaHome0 =:= "" of
-					true -> "";
-					false ->
-						case filelib:is_dir(JavaHome0) of
-							true -> JavaHome0;
-							false -> ems_logger:warn("ems_daemon_service detect inexistent java_home \033[01;34m\"~s\"\033[0m.", [JavaHome0])
-						end
-				end,
 
-	% Eh muito importante este path, vamos validar a cada uso e se definido e não existir, mostrar um warning
-	JavaJarPath0 = Conf#config.java_jar_path,
-	JavaJarPath = case JavaJarPath0 =:= "" of
-					true -> "";
-					false ->
-						case filelib:is_dir(JavaJarPath0) of
-							true -> JavaJarPath0;
-							false -> ems_logger:warn("ems_daemon_service detect inexistent java_jar_path \033[01;34m\"~s\"\033[0m.", [JavaJarPath0])
-						end
-				end,
-				
-	JavaServiceScan = Conf#config.java_service_scan,
 	
     DaemonParams2 = ems_util:replace_all_vars_and_custom_variables(DaemonParams, 
     		[{<<"PORT">>, integer_to_list(Port)},
@@ -591,10 +569,6 @@ parse_variables(Str, #state{daemon_id = DaemonId,
 			 {<<"LOGFILE">>, Logfile},
 			 {<<"PIDFILE_WATCHDOG_TIMER">>, integer_to_list(PidfileWatchdogTimer)},
 			 {<<"PIDFILE">>, Pidfile},
-			 {<<"JAVA_HOME">>, JavaHome},
-			 {<<"JAVA_THREAD_POOL">>, Conf#config.java_thread_pool},
-			 {<<"JAVA_JAR_PATH">>, JavaJarPath},
-			 {<<"JAVA_SERVICE_SCAN">>, JavaServiceScan},
 			 {<<"REST_BASE_URL">>, binary_to_list(Conf#config.rest_base_url)},
 			 {<<"REST_ENVIRONMENT">>, Conf#config.rest_environment},
 			 {<<"REST_USER">>, Conf#config.rest_user},
@@ -623,10 +597,6 @@ parse_variables(Str, #state{daemon_id = DaemonId,
 		 {<<"LOGFILE">>, Logfile},
 		 {<<"PIDFILE_WATCHDOG_TIMER">>, integer_to_list(PidfileWatchdogTimer)},
 		 {<<"PIDFILE">>, Pidfile},
-		 {<<"JAVA_HOME">>, JavaHome},
-		 {<<"JAVA_THREAD_POOL">>, Conf#config.java_thread_pool},
-		 {<<"JAVA_JAR_PATH">>, JavaJarPath},
-		 {<<"JAVA_SERVICE_SCAN">>, JavaServiceScan},
 		 {<<"REST_BASE_URL">>, binary_to_list(Conf#config.rest_base_url)},
 		 {<<"REST_ENVIRONMENT">>, Conf#config.rest_environment},
 		 {<<"REST_USER">>, Conf#config.rest_user},

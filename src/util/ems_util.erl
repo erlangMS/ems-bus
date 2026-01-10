@@ -37,16 +37,12 @@
 		 binlist_to_list/1,
 		 join_binlist/2,
 		 list_to_ets/3,
-		 profile/0,
 		 make_rowid_from_url/2,
-		 string_is_integer/1,
 		 read_file_as_map/1,
 		 read_file_as_list/1,
- 		 read_file_as_string/1,
 		 tail_file/2,
 		 load_from_file_req/1,
 		 save_from_file_req/1,
-		 node_is_live/1,
  		 node_binary/0,
  		 get_environment_variable/1,
  		 get_environment_variable/2,
@@ -55,7 +51,6 @@
  		 get_host_list/0,
 		 get_node_name/0,
 		 get_params_from_url/1,
-		 get_rowid_and_params_from_url/2,
 		 get_priv_dir/0,
 		 get_priv_dir_default/0,
 		 get_working_dir/0,
@@ -71,7 +66,6 @@
          get_user_request_by_login_and_password/2,
          get_user_request_by_login/1,
          get_param_or_variable/3,
-         get_java_home/0,
          get_www_path/0,
  		 get_log_file_path/0,
  		 get_log_file_archive_path/0,
@@ -79,15 +73,9 @@
          get_auth_password_check_between_scope/0,
          date_add_minute/2,
          date_dec_minute/2,
-         date_add_second/2,
-         date_dec_second/2,
-		 date_add_day/2,
 		 date_to_string/1,
 		 date_to_binary/1,
-		 date_diff_seconds/2,
 		 time_to_binary/1,
- 		 no_periodo/2,
- 		 seconds_since_epoch/1,
  		 timestamp_str/0,
 		 timestamp_str/1,
 		 timestamp_binary/0,
@@ -99,8 +87,6 @@
 		 replace/3,
 		 replace_all/2,
 		 replace_vars_with/2,
-		 encrypt_public_key/2,
-		 decrypt_private_key/2,
 		 open_file/1,
 		 file_last_modified/1,
 		 is_number/1,
@@ -158,7 +144,6 @@
 		 hashsym_and_params/1,
 		 hashsym_and_params/4,
 		 hashsym_and_params_id/2,
-		 hashsym/1,
 		 make_rowid/1,
 		 make_rowid/2,
 		 make_rowid_id/1,
@@ -170,7 +155,6 @@
 		 modernize/1,
 		 mes_abreviado/1,
 		 new_rowid_service/2,
-		 json_encode_table2/2,
 		 utf8_list_to_string/1,
 		 utf8_list_to_binary/1,
 		 utf8_binary_to_list/1,
@@ -190,7 +174,6 @@
 		 replace_config_and_custom_variables_binary/1,
 		 replace_config_and_custom_variables/1,
 		 to_utf8/1,
-		 load_erlang_module/1,
 		 mime_type/1,
 		 rid_to_string/1,
 		 method_to_string/1,
@@ -198,8 +181,6 @@
 		 decode_http_request/1,
 		 tuple_to_maps_with_keys/2,
 		 compile_modulo_erlang/2,
-		 print_int_map/1,
-		 print_str_map/1,
 		 parse_user_agent/1,
 		 user_agent_atom_to_binary/1,
 		 to_lower_and_remove_backslash/1,
@@ -217,12 +198,9 @@
 		 str_trim/1,
 		 binary_to_hex/1,
 		 str_contains/2,
-		 oauth2_authenticate_rest_server/3,
 		 path_writable/1,
-		 file_writable/1,
 		 ensure_dir_writable/1,
 		 file_exists/1,
-		 is_production_server/0,
 		 integer_to_binary_def/2,
 		 add_spaces_all_elements_list/2,
 		 get_timestamp/0
@@ -275,12 +253,6 @@ hashsym_and_params_id([], P) ->
 hashsym_and_params_id([H|T], P) when H == 47 -> {T, P};
 hashsym_and_params_id([H|T], P) when (H >= 48 andalso H =< 57) -> hashsym_and_params_id(T, P * 10 + H - $0);
 hashsym_and_params_id(L, _) -> throw({einvalid_id_object, L}).
-
-
-%% Retorna o hash da url (uso em tempo de execução)
-hashsym(S) -> 
-	{Hash, _} = hashsym_and_params(S),
-	Hash.
 
 
 %% Retorna o hash da url (uso no carregamento dos catálogos)	
@@ -532,9 +504,6 @@ date_to_binary({{Ano,Mes,Dia},{_Hora,_Min,_Seg}}) ->
     iolist_to_binary(io_lib:format("~2..0B/~2..0B/~4..0B", [Dia, Mes, Ano]));
 date_to_binary(_) -> <<>>.
     
-date_diff_seconds(Date1, Date2) ->    
-	calendar:datetime_to_gregorian_seconds(Date1) - calendar:datetime_to_gregorian_seconds(Date2).    
-    
 -spec time_to_binary(tuple()) -> binary().
 time_to_binary({{_Ano,_Mes,_Dia},{Hora,Min,Seg}}) ->
     iolist_to_binary(io_lib:format("~2..0B:~2..0B:~2..0B", [Hora, Min, Seg]));
@@ -661,21 +630,6 @@ remove_quoted_str("\"" ++ Str) ->
 remove_quoted_str(Str) -> Str.
 
 
-%% @doc Boolean indicando se DateTime ocorreu no período (min, hour, day, week, year)
-no_periodo(DateTime, Periodo) ->
-	S1 = calendar:datetime_to_gregorian_seconds(DateTime),
-	S2 = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
-	case Periodo of
-		"min"   ->  (S2 - S1) =< 60;
-		"hour"  ->  (S2 - S1) =< 3600;
-		"day"   ->  (S2 - S1) =< 86400;
-		"week"  ->  (S2 - S1) =< 604800;
-		"month" ->  (S2 - S1) =< 2629800;
-		"year"  ->  (S2 - S1) =< 31557600;
-		_ -> erlang:error(badarg)
-	end.
-
-
 %% @doc Obtém a hora atual em milisegundos
 -spec get_milliseconds() -> integer().
 get_milliseconds() ->
@@ -746,11 +700,6 @@ list_to_ets(List, Name, Options) ->
 	lists:foreach(fun(X) -> ets:insert(Ets, X) end, List),
 	Ets.
 	
-profile() ->
-	fprof:trace([stop]),
-	fprof:profile(),
-	fprof:analyse([totals, {dest, "fprof.txt"}]).
-
 new_rowid_service(<<Url/binary>>, <<Type/binary>>) ->	
 	[PrefixUrl|Url2] = binary_to_list(Url),
 	case PrefixUrl of
@@ -773,20 +722,6 @@ make_rowid_from_url(Url, Type) ->
 	Ret2 = lists:map(fun({U, _}) -> U end, Ret1),
 	Ret3 = string:join(Ret2, "/"),
 	iolist_to_binary([Type, <<"#/">>, Ret3]).
-
-get_rowid_and_params_from_url(<<Url/binary>>, <<Type/binary>>) ->	
-	get_rowid_and_params_from_url(binary_to_list(Url), binary_to_list(Type));
-
-get_rowid_and_params_from_url(Url, Type) ->
-	UrlParsed = parse_url(Url),
-	UrlParsed2 = lists:map(fun({U, _}) -> U end, UrlParsed),
-	UrlParsed3 = string:join(UrlParsed2, "/"),
-	Rowid = iolist_to_binary([Type, <<"#/">>, UrlParsed3]),
-	ParamsUrl = [{list_to_binary(U), P} || {[_|U], P} <- UrlParsed, P /= [] ],
-	ParamsUrlMap = maps:from_list(ParamsUrl),
-	{Rowid, ParamsUrlMap}.
-	
-
 get_params_from_url(Url) -> [X || {_, P} = X <- parse_url(Url), P /= [] ].
 
 
@@ -817,20 +752,6 @@ parse_parte_url([H|_] = UrlParte, SeqId) ->
 		true -> {UrlParte, [], SeqId}
 	end.
 
-
-string_is_integer(S) ->
-    try
-        _ = list_to_integer(S),
-        true
-    catch error:badarg ->
-        false
-    end.
-
-node_is_live(Node) -> 
-	case net_adm:ping(Node) of
-		pong -> 1;
-		_ -> 0
-	end.
 
 % Retorna somente a parte do name do node sem a parte do hostname após @
 get_node_name() -> hd(string:tokens(atom_to_list(node()), "@")).
@@ -871,20 +792,6 @@ json_encode_table(Fields, Records) ->
 	Result = json_encode_table(Fields, Records, []),
 	Result.
 
-json_encode_table2(Fields, Records) ->
-	Objects = lists:map(fun(T) -> 
-							   lists:zipwith(fun(Fld, Value) -> 
-													io_lib:format(<<"\"~s\":~p"/utf8>>, [Fld, json_field_format_table(Value)]) 
-											 end,  Fields, tuple_to_list(T))
-					end, Records), 
-	Objects2 = lists:map(fun(Obj) -> 
-									[<<"{"/utf8>>, string:join(Obj, ", "), <<"}"/utf8>>] 
-						 end, Objects),
-	Objects3 = string:join(Objects2, ", "),
-	Result = unicode:characters_to_binary([<<"["/utf8>>, Objects3, <<"]"/utf8>>], utf8),
-	Result.
-
-
 utf8_list_to_string(null) -> "";
 utf8_list_to_string(Value) ->
 	try
@@ -914,14 +821,6 @@ date_add_minute(Timestamp, Minutes) ->
 date_dec_minute(Timestamp, Minutes) ->
     calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(Timestamp) - (Minutes * 60)).
 
-date_add_second(Timestamp, Seconds) ->
-    calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(Timestamp) + Seconds).
-
-date_dec_second(Timestamp, Seconds) ->
-    calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(Timestamp) - Seconds).
-
-date_add_day(Timestamp, Days) ->
-    calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(Timestamp) + (Days * 86400)).
 
 boolean_to_binary(true) -> <<"true"/utf8>>;
 boolean_to_binary(1) -> <<"true"/utf8>>;
@@ -1154,9 +1053,6 @@ replace_config_and_custom_variables(Str) ->
 	Conf = ems_config:getConfig(),
 	Result = ems_util:replace_all_vars_and_custom_variables(Str, 
 		[{<<"HOSTNAME">>, binary_to_list(Conf#config.ems_hostname)},
-		 {<<"JAVA_HOME">>, Conf#config.java_home},
-		 {<<"JAVA_THREAD_POOL">>, Conf#config.java_thread_pool},
-		 {<<"JAVA_JAR_PATH">>, Conf#config.java_jar_path},
 		 {<<"REST_BASE_URL">>, binary_to_list(Conf#config.rest_base_url)},
 		 {<<"REST_ENVIRONMENT">>, Conf#config.rest_environment},
 		 {<<"REST_USER">>, Conf#config.rest_user},
@@ -1274,24 +1170,6 @@ parse_file_name_path(Path, StaticFilePathList, RootPath) ->
 	end.
 
 
-read_file_as_string(Filename) -> 	
-	case file:read_file(Filename) of
-		{ok, Arq} -> Arq;
-		Error -> throw(Error)
-	end.
-	
-
-encrypt_public_key(PlainText, PublicKey) ->
-	[ RSAEntry2 ] = public_key:pem_decode(PublicKey),
-	PubKey = public_key:pem_entry_decode( RSAEntry2 ),
-	public_key:encrypt_public(PlainText, PubKey).
-	
-decrypt_private_key(CryptText,PrivateKey) ->
-    [ RSAEntry2 ] = public_key:pem_decode(PrivateKey),
-	PrivKey = public_key:pem_entry_decode( RSAEntry2 ),
-	Result =  public_key:decrypt_private(CryptText, PrivKey ),
-	Result.
-   
 
 open_file(FilePath) ->
    {ok, PemBin2 } = file:read_file(FilePath),
@@ -1374,33 +1252,6 @@ is_cnpj_valid(S) when is_binary(S) ->
 	is_cnpj_valid(binary_to_list(S));
 is_cnpj_valid(S) -> string:len(S) =:= 13.
 
-
-load_erlang_module(Filename) ->
-	ModuleName = filename:rootname(filename:basename(Filename)),
-	ModuleNameAtom = list_to_atom(ModuleName),
-	FilenameMod = filename:rootname(Filename) ++ ".erl",
-	case filelib:file_size(FilenameMod) > 0 of
-		true ->
-			case code:ensure_loaded(ModuleNameAtom) of
-				{module, _} -> {ok, ModuleNameAtom};
-				_Error -> 
-					FilenamePath = filename:dirname(Filename), 
-					code:add_path(FilenamePath), 
-					case compile:file(FilenameMod, [{outdir, FilenamePath ++ "/"}]) of
-						error -> 
-							io:format("[ ERROR ]\n"),
-							{error, einvalid_module_sintax};
-						{error, Errors, _Warnings} -> 
-							io:format("[ ERROR ]\n"),
-							io:format_error("~p\n", [Errors]),
-							{error, einvalid_module_sintax};
-						_ -> 
-							io:format("[ OK ]\n"),
-							{ok, ModuleNameAtom}
-					end
-			end;
-		false -> {error, enoent}
-	end.
 
 
 replacenth(Index,Value,List) ->
@@ -3188,23 +3039,6 @@ compile_modulo_erlang(Path, ModuleNameCanonical) ->
 		false -> {error, einvalid_dir}
 	end.
 
--spec print_int_map(map()) -> binary().
-print_int_map(Map) -> print_int_map(Map, maps:keys(Map), maps:values(Map), <<>>, []).
-
--spec print_int_map(map(), list(), list(), binary(), list()) -> binary().
-print_int_map(_, [], _, _, Result) -> iolist_to_binary(lists:reverse(Result));
-print_int_map(Map, [Key|TKey], [Value|TValue], Sep, Result) ->
-	print_int_map(Map, TKey, TValue, <<", ">>, [[Sep, Key, <<"=">>, integer_to_binary(Value)] | Result]).
-	
-
--spec print_str_map(map()) -> binary().
-print_str_map(Map) -> print_str_map(Map, maps:keys(Map), maps:values(Map), <<>>, []).
-
--spec print_str_map(map(), list(), list(), binary(), list()) -> binary().
-print_str_map(_, [], _, _, Result) -> iolist_to_binary(lists:reverse(Result));
-print_str_map(Map, [Key|TKey], [Value|TValue], Sep, Result) ->
-	print_str_map(Map, TKey, TValue, <<", ">>, [[Sep, Key, <<"=\"">>, Value, <<"\"">>] | Result]).
-
 
 list_to_atomlist_with_trim([], Result) -> lists:reverse(Result);
 list_to_atomlist_with_trim([H|T], Result) ->
@@ -3589,10 +3423,6 @@ get_user_request_by_login(Request = #request{authorization = Authorization}) ->
 	catch
 		_:_ -> {error, access_denied, eparse_get_user_request_by_login_exception}
 	end.
-
-seconds_since_epoch(Diff) ->
-    {Mega, Secs, _} = os:timestamp(),
-    Mega * 1000000 + Secs + Diff.
 
 
 list_map_to_list_tuple(List) -> list_map_to_list_tuple(List, []).
@@ -4048,8 +3878,6 @@ os_command(Cmd, Options) ->
 			{error, einvalid_command}
 	end.
 
--spec get_java_home() -> string().
-get_java_home() -> remove_ult_backslash_url(binary_to_list(ems_util:get_environment_variable(<<"JAVA_HOME">>))).
 
 -spec integer_to_list_def(string(), string()) -> string().
 integer_to_list_def(Value, Default) ->
@@ -4112,29 +3940,6 @@ str_contains(Str, [H|T]) ->
 	end.
 	
 
-oauth2_authenticate_rest_server(RestAuthUrl, RestUser, RestPasswd) ->
-	GrantQuery = binary_to_list(iolist_to_binary([<<"grant_type=password&username=">>, RestUser, <<"&password=">>, RestPasswd])),
-	case httpc:request(post, {[RestAuthUrl], [], "application/x-www-form-urlencoded", GrantQuery}, [], []) of
-		{ok, {_, _, ResultAuthPayload}} -> 
-			case ems_util:json_decode_as_map(list_to_binary(ResultAuthPayload)) of
-				{ok, ResultAuthPayloadMap} -> 
-					case maps:is_key(<<"error">>, ResultAuthPayloadMap) of
-						true -> 
-							{ok, <<>>};
-						false -> 
-							AccessToken = maps:get(<<"access_token">>, ResultAuthPayloadMap, undefined),
-							case AccessToken of
-								undefined -> {ok, <<>>};
-								_ -> {ok, AccessToken}
-							end
-					end;
-				_ ->
-					{error, eunavailable_rest_server}
-			end;
-		_ -> 
-			{error, eunavailable_rest_server}
-	end.
-
 
 -spec binary_to_list_def(binary(), string()) -> string().
 binary_to_list_def(undefined, Default) -> Default;
@@ -4154,18 +3959,6 @@ parse_to_integer(V) when is_list(V) -> list_to_integer(V);
 parse_to_integer(V) when is_integer(V) -> V;
 parse_to_integer(_) -> erlang:error(einvalid_integer).
 
--spec file_writable(string() | binary()) -> boolean().
-file_writable(Filename) when is_binary(Filename) ->
-	file_writable(binary_to_list(Filename));
-file_writable(Filename) ->
-	case file:read_file_info(Filename) of
-		{ok,{file_info,_,regular,read_write,
-               _,
-               _,
-               _,
-               _,_,_,_,_,_,_}} -> true;
-         _ -> false
-     end.
 
 -spec path_writable(string() | binary()) -> boolean().
 path_writable(Pathname) when is_binary(Pathname) ->
@@ -4197,9 +3990,6 @@ file_exists(undefined) -> false;
 file_exists("") -> false;
 file_exists(Filename) ->
 	file:read_file_info(Filename) =/= {error,enoent}.
-
--spec is_production_server() -> boolean().
-is_production_server() -> ems_db:get_param(instance_type) == production.
 
 
 integer_to_binary_def(_, DefaultValue) when DefaultValue == undefined -> integer_to_binary(DefaultValue);

@@ -60,10 +60,6 @@
 % Caminho da pasta de databases
 -define(DATABASE_PATH, ems_db:get_param(database_path)).
 
-% Caminho da pasta de databases
--define(JAVA_JAR_PATH, filename:join(?PRIV_PATH, "jar")).
-
--define(JAVA_SERVICE_SCAN, "br.unb").
 
 % Caminho do arquivo de configuração padrão (Pode ser incluído também na pasta ~/.erlangms do usuário)
 -define(CONF_FILE_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "emsbus.conf")).
@@ -397,20 +393,7 @@
 				 user_email_path_search :: string(),
 				 user_endereco_path_search :: string(),
 				 user_telefone_path_search :: string(),
-				 java_jar_path :: string(),
-				 java_home :: string(),
- 				 java_thread_pool :: non_neg_integer(),
- 				 java_service_scan :: string(),
- 				 java_service_user_notify :: string(),
- 				 java_service_user_notify_module :: atom(),
- 				 java_service_user_notify_node :: atom(),
- 				 java_service_user_notify_function :: string(),
- 				 java_service_user_notify_on_load_enabled :: boolean(),    %% vai sincronizar no evento load
- 				 java_service_user_notify_on_update_enabled :: boolean(),  %% vai sincronizar no evento update
- 				 java_service_user_notify_full_sync_enabled :: boolean(),  %% vai sincronizar no evento full sync (chamada manual do ws)
- 				 log_show_user_notify_activity :: boolean(),
- 				 java_service_user_notify_required_fields :: list(binary()),   %% lista de campos requeridos para invocar o ws java_service_user_notify
- 				 java_service_user_notify_source_types :: list(atom()),		   %% lista de fontes de dados para invocar o ws java_service_user_notify
+
 				 ssl_cacertfile :: binary(),
 				 ssl_certfile :: binary(),
 				 ssl_keyfile :: binary(),

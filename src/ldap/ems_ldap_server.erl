@@ -81,10 +81,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %%====================================================================
 
-start_listeners([], _Service, _ServerName, _Service, _ListenerNo, State) -> {ok, State};
-start_listeners([H|T], Service, ServerName, Service, ListenerNo, State) ->
+start_listeners([], _, _, _, _, State) -> {ok, State};
+start_listeners([H|T], Service, ServerName, Service2, ListenerNo, State) ->
 	ListenerName = list_to_atom(ServerName ++ "_listener_" ++ integer_to_list(ListenerNo)),
-	case do_start_listener(H, Service, ListenerName, ServerName, Service, State) of
+	case do_start_listener(H, Service, ListenerName, ServerName, Service2, State) of
 		{ok, NewState} -> start_listeners(T, Service, ServerName, Service, ListenerNo+1, NewState);
 		{{error, Reason}, NewState} -> {error, Reason, NewState}
 	end.

@@ -165,10 +165,10 @@ for P in "$@"; do
 		elif [[ "$P" = "--clean" ]]; then
 			clean
 			exit 0
-		elif [[ "$P" =~ --skip[_-]build ]]; then
-			SKIP_BUILD="true"
 		elif [[ "$P" =~ --skip[_-]build[_-]image ]]; then
 			SKIP_BUILD_IMAGE="true"
+		elif [[ "$P" =~ --skip[_-]build ]]; then
+			SKIP_BUILD="true"
 		else
 			echo "Invalid parameter: $P"
 			help

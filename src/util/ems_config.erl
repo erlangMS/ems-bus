@@ -309,28 +309,7 @@ parse_http_headers_([{Key, _} = Item|T], ShowDebugResponseHeaders, Hostname, Res
 			erlang:error(einvalid_http_response_header)
 	end.
 	
-parse_jar_path("") -> "";
-parse_jar_path(<<>>) -> "";
-parse_jar_path(undefined) -> "";
-parse_jar_path(Path) ->	ems_util:replace_all_vars_and_custom_variables(Path, [{<<"PRIV_PATH">>, ?PRIV_PATH}]).
 
-parse_java_home(<<>>) -> ems_util:get_java_home();
-parse_java_home(undefined) -> ems_util:get_java_home();
-parse_java_home(Path) -> 
-	Path2 = binary_to_list(Path),
-	Path3 = ems_util:replace_all_vars_and_custom_variables(Path2, [{<<"JAVA_HOME">>, ems_util:get_java_home()},
-																	{<<"PRIV_PATH">>, ?PRIV_PATH}]),
-	case Path3 =:= "" of
-		true -> "";
-		false ->
-			case filelib:is_dir(Path3) of
-				true -> 
-					Path3;
-				false -> 
-					ems_logger:format_warn("ems_config detect inexistent java_home \033[01;34m\"~s\"\033[0m.", [Path3]),
-					Path3
-			end
-	end.
 	
 
 parse_variables(V) when is_map(V) -> maps:to_list(V);
@@ -646,50 +625,7 @@ parse_config(Json, Filename) ->
 		put(parse_step, restricted_services_admin),
 		RestrictedServicesAdmin = get_p(<<"restricted_services_admin">>, Json, ?RESTRICTED_SERVICES_ADMIN),
 		
-		put(parse_step, java_jar_path),
-		JarPath = parse_jar_path(get_p(<<"java_jar_path">>, Json, ?JAVA_JAR_PATH)),
 
-		put(parse_step, java_service_scan),
-		JavaServiceScan = get_p(<<"java_service_scan">>, Json, ?JAVA_SERVICE_SCAN),
-
-		put(parse_step, java_home),
-		JavaHome = parse_java_home(get_p(<<"java_home">>, Json, <<>>)),
-
-		put(parse_step, java_thread_pool),
-		JavaThreadPool = ems_util:parse_range(get_p(<<"java_thread_pool">>, Json, 12), 1, 120),
-
-		put(parse_step, java_service_user_notify),
-		JavaServiceUserNotify = get_p(<<"java_service_user_notify">>, Json, undefined),
-		case JavaServiceUserNotify =/= undefined andalso JavaServiceUserNotify =/= <<>> of
-			true -> 
-				{JavaServiceUserNotifyClass, _, JavaServiceUserNotifyFunction} = ems_util:parse_service_service(JavaServiceUserNotify),
-				JavaServiceUserNotifyModule = list_to_atom(JavaServiceUserNotifyClass),
-				JavaServiceUserNotifyClass2 = ems_util:replace(JavaServiceUserNotifyClass, "\\.", "_"),
-				JavaServiceUserNotifyNode = list_to_atom(JavaServiceUserNotifyClass2 ++ "_node01@" ++ Hostname);
-			false ->
-				 JavaServiceUserNotifyModule = undefined,
-				 JavaServiceUserNotifyNode = undefined,
-				 JavaServiceUserNotifyFunction = undefined
-		end,
-
-		put(parse_step, java_service_user_notify_on_load_enabled),
-		JavaServiceUserNotifyOnLoad = get_p(<<"java_service_user_notify_on_load_enabled">>, Json, false),
-
-		put(parse_step, java_service_user_notify_on_update_enabled),
-		JavaServiceUserNotifyOnUpdate = get_p(<<"java_service_user_notify_on_update_enabled">>, Json, true),
-
-		put(parse_step, java_service_user_notify_full_sync_enabled),
-		JavaServiceUserNotifyFullSyncEnabled = get_p(<<"java_service_user_notify_full_sync_enabled">>, Json, false),
-		
-		put(parse_step, java_service_user_notify_required_fields),
-		JavaServiceUserNotifyRequiredFields = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_required_fields">>, Json, [<<"name">>, <<"login">>, <<"email">>, <<"cpf">>, <<"nome_mae">>])),
-
-		put(parse_step, java_service_user_notify_source_types),
-		JavaServiceUserNotifySourcesTypes = ems_util:binlist_to_atomlist(get_p(<<"java_service_user_notify_source_types">>, Json, ems_util:atomlist_to_binlist(?CLIENT_DEFAULT_SCOPE))),
-
-		put(parse_step, log_show_user_notify_activity),
-		LogShowUserNotifyActivity = ems_util:parse_bool(get_p(<<"log_show_user_notify_activity">>, Json, true)),
-		
 
 		put(parse_step, smtp_passwd),
 		SmtpPassword = binary_to_list(get_p(<<"smtp_passwd">>, Json, <<>>)),
@@ -844,21 +780,7 @@ parse_config(Json, Filename) ->
 				 log_file_archive_path = LogFileArchivePath,
 				 log_show_odbc_pool_activity = LogShowOdbcPoolActivity,
 				 log_show_data_loader_activity = LogShowDataLoaderActivity,
-				 log_show_user_notify_activity = LogShowUserNotifyActivity,
 				 rest_default_querystring = Querystring,
-				 java_jar_path = JarPath,
-				 java_home = JavaHome,
-				 java_thread_pool = JavaThreadPool,
-				 java_service_scan = JavaServiceScan,
-				 java_service_user_notify = JavaServiceUserNotify,
-				 java_service_user_notify_module = JavaServiceUserNotifyModule,
-				 java_service_user_notify_node = JavaServiceUserNotifyNode,
-				 java_service_user_notify_function = JavaServiceUserNotifyFunction,
-  				 java_service_user_notify_on_load_enabled = JavaServiceUserNotifyOnLoad,
- 				 java_service_user_notify_on_update_enabled = JavaServiceUserNotifyOnUpdate,
-				 java_service_user_notify_full_sync_enabled = JavaServiceUserNotifyFullSyncEnabled,
-				 java_service_user_notify_required_fields = JavaServiceUserNotifyRequiredFields,
-				 java_service_user_notify_source_types = JavaServiceUserNotifySourcesTypes,
 				 smtp_passwd = SmtpPassword,
 				 smtp_from = SmtpFrom,
 				 smtp_mail = SmtpMail,
