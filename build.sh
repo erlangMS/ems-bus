@@ -164,6 +164,29 @@ function clean_deps(){
 	rm -rf ./deps
 }
 
+ensure_rebar() {
+	if command -v rebar3 &> /dev/null; then
+		REBAR="rebar3"
+	elif command -v rebar &> /dev/null; then
+		REBAR="rebar"
+	elif [ -f tools/rebar/rebar3 ]; then
+		REBAR="tools/rebar/rebar3"
+	else
+		echo "Rebar not found. Downloading rebar3 (v3.22.0)..."
+		mkdir -p tools/rebar
+		if command -v wget &> /dev/null; then
+			wget https://github.com/erlang/rebar3/releases/download/3.22.0/rebar3 -O tools/rebar/rebar3
+		elif command -v curl &> /dev/null; then
+			curl -L -o tools/rebar/rebar3 https://github.com/erlang/rebar3/releases/download/3.22.0/rebar3
+		else
+			die "Error: wget or curl not found to download rebar3." 1
+		fi
+		chmod +x tools/rebar/rebar3
+		REBAR="tools/rebar/rebar3"
+	fi
+	echo "Using rebar: $REBAR"
+}
+
 function prerequisites_docker(){
   printf "Checking ErlangMS prerequisites... "
   apt-get -y install libodbc1
@@ -311,24 +334,44 @@ else
 	
 	echo "Compiling the project erlangms..."
 
+	ensure_rebar
+
 	if [ "$SKIP_DEPS" = "false" ]; then
 		clean_deps
 		if [ "$SKIP_CLEAN" = "false" ]; then	
-			tools/rebar/rebar clean get-deps compile	
+			$REBAR clean
+			$REBAR get-deps
+			$REBAR compile	
 		else
-			tools/rebar/rebar get-deps compile	
+			$REBAR get-deps
+			$REBAR compile	
 		fi
 	else
 		if [ "$SKIP_CLEAN" = "false" ]; then	
-			tools/rebar/rebar clean compile	
+			$REBAR clean
+			$REBAR compile	
 		else
-			tools/rebar/rebar compile	
+			$REBAR compile	
 		fi
 	fi
 
 	if [ "$?" = "1" ]; then
 		echo "Oops, something wrong!"
 	else
+		# Copy artifacts to ./ebin and ./deps for backward compatibility
+		echo "Copying artifacts to ./ebin and ./deps..."
+		mkdir -p ebin
+		cp -r _build/default/lib/ems_bus/ebin/* ebin/
+		
+		mkdir -p deps
+		for d in _build/default/lib/*; do
+			NAME=$(basename $d)
+			if [ "$NAME" != "ems_bus" ]; then
+				mkdir -p deps/$NAME/ebin
+				cp -r $d/ebin/* deps/$NAME/ebin/
+			fi
+		done
+
 		echo "Ok!"
 	fi
 

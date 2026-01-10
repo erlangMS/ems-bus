@@ -45,59 +45,57 @@ LINUX_VERSION_ID=$(awk -F"=" '{ if ($1 == "VERSION_ID"){
 								 } 
 							   }'  /etc/os-release)
 
+# Imprime uma mensagem e termina o script
+# Parâmetros:
+#  $1  - Mensagem que será impressa 
+#  $2  - Código de retorno para o comando exit (default 1)
+die () {
+    echo "$1"
+    exit ${2:-1}
+}
+
 clear
 
 echo "Start erlangms release tool ( Date: $(date '+%d/%m/%Y %H:%M:%S')  Distro: $LINUX_DISTRO )"
 echo "Linux: $LINUX_DESCRIPTION  Version: $LINUX_VERSION_ID"
 
 # Parameters
-WORKING_DIR=$(pwd)
-RELEASE_PATH=$WORKING_DIR
+# script is in rel/ directory, so we need to go up if running from there, 
+# or stay if running from root. 
+# Better approach: determine script directory and work from there.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
+WORKING_DIR=$PROJECT_ROOT
+
+cd "$WORKING_DIR" || die "Could not change to working directory $WORKING_DIR"
+
 SKIP_BUILD="false"
 SKIP_BUILD_IMAGE="false"
 
 # Get ErlangMS version in the file src/ems_bus.app.src
-VERSION_RELEASE=$(cat ../src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
-[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in rebar.config"
+VERSION_RELEASE=$(cat src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
+[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in src/ems_bus.app.src"
 
-RELEASE_FILE=ems-bus-$VERSION_RELEASE.tar.gz
-
-# Imprime uma mensagem e termina o script
-# Parâmetros:
-#  $1  - Mensagem que será impressa 
-die () {
-    echo $1
-    exit 1
-}
+RELEASE_FILE="ems-bus-$VERSION_RELEASE.tar.gz"
 
 
 # ***** Clean ******
 clean(){
 	echo "Clean release build..."
-	cd $WORKING_DIR
-	rm -Rf ems-bus
-	rm -Rf ems_bus
-	#rm -f *.tar.gz
+	rm -Rf _build/default/rel/ems_bus
+	rm -f *.tar.gz
 	rm -f *.tar
-	rm -f ../priv/scripts/*.log
-	rm -f ../priv/scripts/*.tar
-	rm -f ../priv/scripts/~*
-	rm -rf ../priv/db
-	rm -rf ../priv/log
-	rm -rf ../priv/tmp
-	rm -rf ../priv/archive
-	
 }
 
 
 # show help 
 help(){
 	echo "release.sh tool"
-	echo "How to use: ./release.sh"
+	echo "How to use: ./rel/release.sh (from project root) or ./release.sh (from rel/)"
 	echo
 	echo "Additional parameters:"
-	echo "  --skip-build		-> skip build with rebar. Default is true."
-	echo "  --skip-build_image	-> skip build with rebar. Default is true."
+	echo "  --skip-build		-> skip build with rebar. Default is false."
+	echo "  --skip-build-image	-> skip docker image build. Default is false."
 	echo "  --clean          	-> clean build release."
 	exit 1
 }
@@ -106,87 +104,75 @@ help(){
 
 
 # make release for each distro
+# make release for each distro
 make_release(){
-	cd $WORKING_DIR
-
 	echo "Please wait, generating the release $VERSION_RELEASE of the ems-bus, this may take a while!"
 
 
 	# ########## Recompile the project before generating the release ########## 
 	
-	cd ..
 	if [ "$SKIP_BUILD" = "false" ]; then
-		echo 'Recompiling the fonts with rebar...'
-		./build.sh
+		echo 'Recompiling the project with rebar3...'
+		./build.sh || die "Build failed"
 	fi
 
 
-	# rebar is installed
-	#if ! rebar --version 2> /dev/null ]; then
-	#	if [ "$LINUX_DISTRO" = "ubuntu" ]; then
-	#		echo "O software de build rebar não está instalado mas eu posso instalar para você!"
-	#		sudo apt-get install rebar
-	#	fi
-	#fi
+	# ******** Gera o release *********
+	echo 'Begin generate release with rebar3 now...'
+    
+    # Ensure rebar3 is available
+    if [ ! -f "tools/rebar/rebar3" ]; then
+         die "rebar3 not found at tools/rebar/rebar3"
+    fi
 
+	./tools/rebar/rebar3 release || die 'Failed to generate release with rebar3 release!'
+    ./tools/rebar/rebar3 tar || die 'Failed to generate release tarball with rebar3 tar!'
 
-	# ******** Gera o release na pasta rel *********
-	echo 'Begin generate release with rebar now...'
-	cd rel
-	../tools/rebar/rebar generate || die 'Failed to generate release with rebar compile generate!'
-
-	mv ems_bus ems-bus
-	mv ems-bus/bin/ems_bus ems-bus/bin/ems-bus
-
-
-	#Creates the symlink of the priv folder for the project lib ems_bus-$VERSION/priv
-	cd ems-bus
-	ln -sf lib/ems_bus-$VERSION_RELEASE/priv/ priv || die "The symbolic priv link could not be created for lib/ems_bus-$VERSION_RELEASE/priv!"
-	# Faz algumas limpezas para não ir lixo no pacote
-	rm -rf log || die 'Could not remove log folder in cleanup!'
-	rm -rf priv/db || die 'Unable to remove db folder in cleanup!'
-	rm -rf priv/log || die 'Unable to remove log folder in cleanup!'
-	rm -rf priv/tmp || die 'Unable to remove tmp folder in cleanup!'
-	rm -rf priv/archive || die 'Unable to remove tmp archive in cleanup!'
-	cd ..
-
-
-	# ####### Create the package ems-bus-x.x.x.tar.gz #######
-
-	# Create the package file gz
-	echo "Begin create compress file ems-bus-$VERSION_RELEASE.gz now..."
-	tar -czf $RELEASE_FILE ems-bus/ 
+    # The tarball is generated in _build/default/rel/ems_bus/ems_bus-VERSION.tar.gz
+    # We want to move it to the root or where expected
+    
+    GENERATED_TAR="_build/default/rel/ems_bus/ems_bus-$VERSION_RELEASE.tar.gz"
+    
+    if [ -f "$GENERATED_TAR" ]; then
+        cp "$GENERATED_TAR" "$RELEASE_FILE"
+        echo "Release generated at $RELEASE_FILE"
+    else
+        die "Could not find generated tarball at $GENERATED_TAR"
+    fi
 
 }
 
 
 make_imagem(){
-	cd $WORKING_DIR/docker
-	cp ../$RELEASE_FILE . 
-	sudo docker compose build
+    if [ -d "docker" ]; then
+	    cd docker
+	    cp ../$RELEASE_FILE . 
+	    sudo docker compose build
+        cd ..
+    else
+        echo "Docker directory not found, skipping image build."
+    fi
 }
 
 # *************** main ***************
 
 # Read command line parameters
-for P in $*; do
+# Read command line parameters
+for P in "$@"; do
 	if [[ "$P" =~ ^--.+$ ]]; then
 		if [ "$P" = "--help" ]; then
 			help
 		elif [[ "$P" = "--clean" ]]; then
 			clean
-			exit 1
+			exit 0
 		elif [[ "$P" =~ --skip[_-]build ]]; then
 			SKIP_BUILD="true"
-		elif [[ "$P" =~ --skip[_-]build[_-]image? ]]; then
+		elif [[ "$P" =~ --skip[_-]build[_-]image ]]; then
 			SKIP_BUILD_IMAGE="true"
 		else
 			echo "Invalid parameter: $P"
 			help
 		fi
-	else
-		echo "Invalid parameter: $P"
-		help
 	fi
 done
 

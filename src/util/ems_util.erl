@@ -1109,20 +1109,38 @@ replace_all_vars_and_custom_variables_binary(Subject, Vargs) ->
 
 -spec replace_all_vars_and_custom_variables(string() | binary(), list(tuple())) -> string().
 replace_all_vars_and_custom_variables(Subject, Vargs) -> 
-	CustomVariables = ems_db:get_param(custom_variables),
+	CustomVariables0 = try ems_db:get_param(custom_variables) catch _:_ -> [] end,
+	CustomVariables = case CustomVariables0 of
+		undefined -> [];
+		Map when is_map(Map) -> maps:to_list(Map);
+		List when is_list(List) -> List;
+		_ -> []
+	end,
 	Result = replace_all_vars(Subject, Vargs),
 	ems_util:replace_all_vars(Result, CustomVariables).
 
 
 -spec replace_custom_variables_binary(string() | binary()) -> binary().
 replace_custom_variables_binary(Str) -> 
-	CustomVariables = ems_db:get_param(custom_variables),
+	CustomVariables0 = try ems_db:get_param(custom_variables) catch _:_ -> [] end,
+	CustomVariables = case CustomVariables0 of
+		undefined -> [];
+		Map when is_map(Map) -> maps:to_list(Map);
+		List when is_list(List) -> List;
+		_ -> []
+	end,
 	list_to_binary(ems_util:replace_all_vars(Str, CustomVariables)).
 
 
 -spec replace_custom_variables(string() | binary()) -> string().
 replace_custom_variables(Str) -> 
-	CustomVariables = ems_db:get_param(custom_variables),
+	CustomVariables0 = try ems_db:get_param(custom_variables) catch _:_ -> [] end,
+	CustomVariables = case CustomVariables0 of
+		undefined -> [];
+		Map when is_map(Map) -> maps:to_list(Map);
+		List when is_list(List) -> List;
+		_ -> []
+	end,
 	ems_util:replace_all_vars(Str, CustomVariables).
 
 
@@ -2839,10 +2857,7 @@ parse_tcp_listen_address_t([H|T], TcpListenPrefixInterfaceNames, Result) ->
 		  end,
 	case inet:parse_address(IP) of
 		{ok, {0, 0, 0, 0}} ->
-			case ip_list(TcpListenPrefixInterfaceNames) of
-				{ok, IpList} -> IpList;
-				_Error -> [{127,0,0,1}]
-			end;
+			[{0,0,0,0}];
 		{ok, L2} -> 
 			case lists:member(L2, Result) of
 				true -> parse_tcp_listen_address_t(T, TcpListenPrefixInterfaceNames, Result);

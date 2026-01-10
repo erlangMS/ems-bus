@@ -20,7 +20,6 @@
 					cowboy,
 					json_rec,
 					jsx,
-					jiffy,
 					poolboy,
 					mochiweb
                  ]},

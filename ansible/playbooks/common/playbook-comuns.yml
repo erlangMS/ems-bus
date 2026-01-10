@@ -6,31 +6,29 @@
 ---
 - name: Provisionamento básico das VMs
   hosts: all
-  become: yes
+  become: true
 
   tasks:
     - name: Atualizar cache de pacotes
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
 
     - name: Instalar pacotes básicos
-      apt:
+      ansible.builtin.apt:
         name:
           - git
           - vim
           - curl
           - wget
           - unzip
-          - ntp
-          - htop
-          - net-tools
           - lsof
           - bash-completion
           - tree
         state: present
 
     - name: Garantir que o locale pt_BR.UTF-8 esteja gerado (Debian/Ubuntu)
-      ansible.builtin.locale_gen:
+      community.general.locale_gen:
         name: pt_BR.UTF-8
         state: present
       when: ansible_facts['os_family'] == "Debian"
@@ -49,20 +47,6 @@
           LANG=pt_BR.UTF-8
           LANGUAGE=pt_BR:pt:en
 
-    - name: Aplicar temporariamente o locale na sessão atual
-      ansible.builtin.shell: |
-        export LANG=pt_BR.UTF-8
-        export LANGUAGE=pt_BR:pt:en
-      args:
-        executable: /bin/bash
-
     - name: Configurar timezone para America/Sao_Paulo
-      ansible.builtin.timezone:
+      community.general.timezone:
         name: America/Sao_Paulo
-
-    - name: Habilitar e iniciar serviço de NTP
-      service:
-        name: ntp
-        enabled: yes
-        state: started
-

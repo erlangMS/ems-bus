@@ -37,7 +37,6 @@ start() ->
 	application:start(json_rec),
 	application:start(jsx),
 	application:start(poolboy),
-	application:start(jiffy),
 	application:start(mochiweb),
     application:start(oauth2),
 	application:start(ems_bus).

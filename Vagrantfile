@@ -7,7 +7,7 @@
 
 Vagrant.configure("2") do |config|
   config.vm.define "erlangms" do |node|
-    node.vm.box = "generic/ubuntu2204"
+    node.vm.box = "bento/ubuntu-24.04"
     node.vm.hostname = "erlangms"
     node.vm.network "private_network", ip: "192.168.60.10"
 

@@ -38,7 +38,7 @@ scan_with_filter(Filename, RootPath, Conf, FilterKey, FilterValue) ->
 scan_files([], Result, _, _, _) -> Result;
 scan_files([{_NodeName, JsonFilename}|Rest], Result, Conf, FilterKey, FilterValue) ->
 	RootPath = filename:dirname(JsonFilename),
-	case parse_filename_path(JsonFilename, RootPath, Conf) of
+	case parse_filename_path(JsonFilename, undefined, Conf) of
 		{ok, <<>>} ->
 			scan_files(Rest, Result, Conf, FilterKey, FilterValue);
 		{ok, ""} ->
@@ -46,7 +46,7 @@ scan_files([{_NodeName, JsonFilename}|Rest], Result, Conf, FilterKey, FilterValu
 		{ok, undefined} ->
 			scan_files(Rest, Result, Conf, FilterKey, FilterValue);
 		{ok, Filename} ->
-			Result2 = scan_file(Filename, Result, RootPath, Conf, FilterKey, FilterValue),
+			Result2 = scan_file(Filename, Result, undefined, Conf, FilterKey, FilterValue),
 			scan_files(Rest, Result2, Conf, FilterKey, FilterValue);
 		{error, Filename} ->
 			ems_logger:format_warn("ems_json_scan scan invalid file \033[01;34m~p\033[0m.", [Filename])

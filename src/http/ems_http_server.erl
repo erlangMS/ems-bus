@@ -69,7 +69,9 @@ handle_info(timeout, State = #state{service = S = #service{name = Name,
 	ServerName = binary_to_list(iolist_to_binary([Name, <<"_port_">>, integer_to_binary(S2#service.tcp_port)])),
 	case start_listeners(ListenAddress_t, S2, ServerName, 1, State) of
 		{ok, State2} ->	{noreply, State2};
-		{error, _Reason, State2} -> {noreply, State2}
+		{error, Reason, State2} -> 
+			ems_logger:error("ems_http_server failed to start listeners. Reason: ~p.", [Reason]),
+			{noreply, State2}
 	end.
 
 terminate(_Reason, _State) ->
