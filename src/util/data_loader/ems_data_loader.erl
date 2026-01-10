@@ -152,7 +152,9 @@ init(#service{name = Name,
 	GroupDataLoader = lists:delete(NameStr, ems_util:binlist_to_list(maps:get(<<"group">>, Props, []))),
 	%erlang:send_after(60000 * 60, self(), check_sync_full),
 	case CheckRemoveRecords andalso CheckRemoveRecordsCheckpoint > 0 of
-		true -> erlang:send_after(CheckRemoveRecordsCheckpoint + 90000 + rand:uniform(10000), self(), check_count_records);
+		true -> 
+			ThrottledTimeout = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint + 90000 + rand:uniform(10000)),
+			erlang:send_after(ThrottledTimeout, self(), check_count_records);
 		false -> ok
 	end,
 	LogShowDataLoaderActivity =  ems_util:parse_bool(maps:get(<<"log_show_data_loader_activity">>, Props, Conf#config.log_show_data_loader_activity)),
@@ -279,7 +281,8 @@ handle_info(check_sync_full, State = #state{name = Name,
 						{noreply, State#state{wait_count = WaitCount + 1}, UpdateCheckpoint}
 				end;
 			_ -> 
-				erlang:send_after(60000 * 5, self(), check_sync_full),
+				ThrottledTimeout4 = ems_data_loader_throttle:apply_throttle(60000 * 5),
+				erlang:send_after(ThrottledTimeout4, self(), check_sync_full),
 				{noreply, State, UpdateCheckpoint}
 		end;
 
@@ -301,20 +304,23 @@ handle_info(check_count_records, State = #state{name = Name,
 				{ok, State2} -> 
 					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, undefined),
 					ems_util:flush_messages(),
-					erlang:send_after(CheckRemoveRecordsCheckpoint, self(), check_count_records),
+					ThrottledTimeout5 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
+					erlang:send_after(ThrottledTimeout5, self(), check_count_records),
 					{noreply, State2#state{wait_count = 0}, UpdateCheckpoint};
 				{error, Reason} -> 
 					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
 					ems_db:inc_counter(ErrorCheckpointMetricName),
 					ems_util:flush_messages(),
-					erlang:send_after(CheckRemoveRecordsCheckpoint, self(), check_count_records),
+					ThrottledTimeout6 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
+					erlang:send_after(ThrottledTimeout6, self(), check_count_records),
 					?DEBUG("~s check_count_records wait ~pms for next checkpoint while has database connection error. Reason: ~p.", [Name, TimeoutOnError, Reason]),
 					{noreply, State#state{wait_count = 0}, TimeoutOnError}
 			end;
 		false ->
 			TimeoutWait = get_timeout_wait(WaitCount),
 			?DEBUG("~s handle check_count_records wait ~pms to execute.", [Name, TimeoutWait]),
-			erlang:send_after(TimeoutWait, self(), check_count_records),
+			ThrottledTimeout7 = ems_data_loader_throttle:apply_throttle(TimeoutWait),
+			erlang:send_after(ThrottledTimeout7, self(), check_count_records),
 			{noreply, State#state{wait_count = WaitCount + 1}, UpdateCheckpoint}
 	end;
 
