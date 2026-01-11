@@ -95,7 +95,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  \033[0;32mssl_cacertfile\033[0m: \033[01;34m~p\033[0m.", [Conf#config.ssl_cacertfile]),
 			ems_logger:info("  \033[0;32mssl_certfile\033[0m: \033[01;34m~p\033[0m.", [Conf#config.ssl_certfile]),
 			ems_logger:info("  \033[0;32mssl_keyfile\033[0m: \033[01;34m~p\033[0m.", [Conf#config.ssl_keyfile]),
-			Ret;
+			erlang:set_cookie(node(), erlangms), ems_logger:info("Cookie loaded: ~p", [erlang:get_cookie()]), Ret;
 		{error, Reason} ->
 			ems_logger:format_error("Loading failed. Reason: ~p.\n", [Reason]),
 			erlang:halt(),

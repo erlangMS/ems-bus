@@ -570,19 +570,10 @@ dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
 			end
 	end.
 
--ifdef(win32_plataform).
 get_work_node('', _, _, _) -> {ok, node()};
 get_work_node([], _, _, _) -> {error, eunavailable_service};
-get_work_node(_, _, _, _) -> 
-	{ok, Hostname} = inet:gethostname(),
-	Node = erlang:list_to_atom("node01@" ++ Hostname), 
-	{ok, Node}.
--else.
-get_work_node('', _, _, _) -> {ok, node()};
-get_work_node([], _, _, _) -> {error, eunavailable_service};
-get_work_node([H|_], _HostList, _HostNames, _ModuleName) -> 
+get_work_node([H|_], _HostList, _HostNames, _ModuleName) -> ems_logger:info("Dispatcher selected node: ~p. Cookie: ~p", [H, erlang:get_cookie()]), 
 	{ok, H}.
--endif.	
 
 
 -spec dispatch_middleware_function(#request{}, boolean()) -> {ok, request, #request{}} | {error, request, #request{}}.

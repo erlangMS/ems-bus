@@ -717,7 +717,7 @@ parse_config(Json, Filename) ->
 		HostSearch = get_p(<<"host_search">>, Json, <<>>),	
 		
 		put(parse_step, node_search),
-		NodeSearch = get_p(<<"node_search">>, Json, <<>>),		
+		NodeSearch0 = get_p(<<"node_search">>, Json, <<>>), NodeSearch = case is_list(NodeSearch0) of true -> [ case N of <<"localhost">> -> <<"127.0.0.1">>; _ -> N end || N <- NodeSearch0 ]; false -> NodeSearch0 end,		
 
 		WWWPath = ems_db:get_param(www_path),
 		

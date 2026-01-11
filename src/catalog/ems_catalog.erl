@@ -350,12 +350,13 @@ parse_host_service(_Host, ModuleName, Node, Conf) ->
 	end,
 	ListHost2 = [case string:tokens(atom_to_list(X), ".") of
 					[N, _] -> N;
-					[N] -> N
+					[N] -> N;
+                                        _ -> atom_to_list(X)
 				 end || X <- ListHost],
 	ListNode2 = lists:map(fun(X) -> binary_to_list(X) end, ListNode),
 	ClusterName = [case X of
 						[] -> ModuleNameCanonical ++ K  ++ "@" ++ Y;
-						_  -> ModuleNameCanonical ++ K ++ "_" ++ X ++ "@" ++ Y 
+						_  -> ModuleNameCanonical ++ K ++ "@" ++ Y 
 				   end || X <- ListNode2, Y <- ListHost2, K <- [""]],
 	ClusterNode = lists:map(fun(X) -> list_to_atom(X) end, ClusterName),
 	{ClusterNode, ClusterName}.
@@ -373,12 +374,13 @@ parse_host_service(_Host, ModuleName, Node, Conf) ->
 	end,
 	ListHost2 = [case string:tokens(atom_to_list(X), ".") of
 					[N, _] -> N;
-					[N] -> N
+					[N] -> N;
+                                        _ -> atom_to_list(X)
 				 end || X <- ListHost],
 	ListNode2 = lists:map(fun(X) -> binary_to_list(X) end, ListNode),
 	ClusterName = [case X of
 						[] -> ModuleNameCanonical ++ K  ++ "@" ++ Y;
-						_  -> ModuleNameCanonical ++ K ++ "_" ++ X ++ "@" ++ Y 
+						_  -> ModuleNameCanonical ++ K ++ "@" ++ Y 
 				   end || X <- ListNode2, Y <- ListHost2, K <- ["", "02"]],
 	ClusterNode = lists:map(fun(X) -> list_to_atom(X) end, ClusterName),
 	{ClusterNode, ClusterName}.

@@ -194,8 +194,13 @@ fi
 if [ "$SKIP_BUILD_IMAGE" = "false" ]; then
 	make_imagem
 fi
-clean
+
+# Clean only build artifacts, not the release file
+echo "Cleaning build artifacts..."
+rm -Rf _build/default/rel/ems_bus
+
 cd $WORKING_DIR
 echo "Ok!"
+echo "Release file: $RELEASE_FILE"
 
 

@@ -101,7 +101,7 @@ echo ""
 echo "[4/4] Configuring .hosts.erlang..."
 
 # Create .hosts.erlang file
-echo "'node01'." > "$SCRIPT_DIR/.hosts.erlang"
+echo "'127.0.0.1'." > "$SCRIPT_DIR/.hosts.erlang"
 
 # Create symbolic link in user home directory
 if [ -n "$USER_HOME" ] && [ "$USER_HOME" != "/root" ]; then
