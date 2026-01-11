@@ -2071,11 +2071,25 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								PayloadMap = decode_payload_as_json(Payload),
 								QuerystringMap2 = QuerystringMap;
 							<<"application/x-www-form-urlencoded">> ->
-								ems_db:inc_counter(http_content_type_in_form_urlencode),
-								ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
-								{ok, Payload, CowboyReq2} = cowboy_req:read_urlencoded_body(CowboyReq, ReadBodyOpts),
-								PayloadMap = maps:from_list(Payload),
-								QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap);
+								{ok, PayloadRaw, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
+								case detect_payload_is_json(PayloadRaw) of
+									true ->
+										ems_logger:warn("ems_http_handler sniffed JSON payload despite Content-Type: application/x-www-form-urlencoded. treat as application/json."),
+										ems_db:inc_counter(http_content_type_in_application_json_sniffed_from_urlencoded),
+										ContentTypeIn2 = <<"application/json">>,
+										Payload = PayloadRaw,
+										PayloadMap = decode_payload_as_json(Payload),
+										QuerystringMap2 = QuerystringMap;
+									false ->
+										ems_db:inc_counter(http_content_type_in_form_urlencode),
+										ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
+										% Need to parse the already read body as form-urlencoded
+										PayloadList = cow_qs:parse_qs(PayloadRaw),
+										Payload = PayloadList,
+										PayloadMap = maps:from_list(Payload),
+										QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap)
+								end;
+
 							<<"application/x-www-form-urlencoded">> ->
 								ems_db:inc_counter(http_content_type_in_form_urlencode),
 								ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
@@ -2168,11 +2182,20 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							_ -> 
-								ems_db:inc_counter(http_content_type_in_other),
-								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
-								PayloadMap = undefined,
-								QuerystringMap2 = QuerystringMap
+								case detect_payload_is_json(Payload) of
+									true ->
+										ems_db:inc_counter(http_content_type_in_application_json_sniffed),
+										ContentTypeIn2 = <<"application/json">>,
+										PayloadMap = decode_payload_as_json(Payload),
+										QuerystringMap2 = QuerystringMap;
+									false ->
+										ems_db:inc_counter(http_content_type_in_other),
+										ContentTypeIn2 = ContentTypeIn,
+										PayloadMap = undefined,
+										QuerystringMap2 = QuerystringMap
+								end
+
 						end,
 						put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass4);
 					false ->
@@ -2395,6 +2418,17 @@ decode_payload_as_xml(undefined) -> #{};
 decode_payload_as_xml(<<>>) -> #{};
 decode_payload_as_xml(_) -> #{}.
 	
+
+-spec detect_payload_is_json(binary()) -> boolean().
+detect_payload_is_json(<<>>) -> false;
+detect_payload_is_json(Payload) ->
+	% Remove espaços em branco iniciais
+	PayloadTrimmed = string:trim(Payload, leading),
+	case PayloadTrimmed of
+		<<${, _/binary>> -> true;  % Começa com {
+		<<$[, _/binary>> -> true;  % Começa com [
+		_ -> false
+	end.
 
 -spec is_url_valido(binary() | string()) -> boolean().
 is_url_valido(Url) when is_binary(Url) ->
