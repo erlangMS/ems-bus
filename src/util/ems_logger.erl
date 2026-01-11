@@ -785,8 +785,7 @@ do_log_request(Request = #request{rid = RID,
 						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"group">>, ?WHITE_PARAM_COLOR, ServiceGroup,
 						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
 						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
-						case (Reason =/= ok orelse 
-							   ShowPayloadService orelse 
+						case ((ShowPayloadService andalso (is_atom(Payload) orelse is_number(Payload))) orelse 
 							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList)) 
 							  ) of
 							true ->

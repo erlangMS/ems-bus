@@ -217,7 +217,12 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 												ems_cache:add(ets_result_cache_get, ResultCache, ReqHash, {T1, Request2, ResultCache, req_wait_result, []}),
 												ResultDispatServiceWork = dispatch_service_work(Request2, Service, ShowDebugResponseHeaders),
 												put(dispatch_request_step, dispatch_request_step_pass16_1),
-												ResultDispatServiceWork
+												case ResultDispatServiceWork of
+													{ok, _, _} -> ResultDispatServiceWork; 
+													_ -> 
+														ems_cache:flush(ets_result_cache_get, ReqHash),
+														ResultDispatServiceWork
+												end
 										end;
 									false -> 
 										put(dispatch_request_step, dispatch_request_step_pass17),
@@ -643,9 +648,15 @@ dispatch_middleware_function(Request = #request{reason = ok,
 						end;
 					false ->
 						ets:insert(ems_dispatcher_post_time, {post_time, T3}),
-						{ok, request, Request2#request{response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
-													   latency = Latency,
-													   status_text = StatusText}}
+						case ShowDebugResponseHeaders of
+							true ->
+								{ok, request, Request2#request{response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+															   latency = Latency,
+															   status_text = StatusText}};
+							false ->
+								{ok, request, Request2#request{latency = Latency,
+															   status_text = StatusText}}
+						end
 				end;
 			{error, Reason2} = Error ->
 				ResponseHeader = Request#request.response_header,

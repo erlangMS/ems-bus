@@ -22,7 +22,6 @@
     <<"oauth2_with_check_constraint">> => false,
     <<"oauth2_refresh_token">> => 7200,
     <<"auth_default_scope">> => [<<"user_db">>, <<"user_fs">>],
-    <<"auth_default_scope_original">> => [<<"user2_db">>, <<"user_db">>, <<"user_aluno_ativo_db">>, <<"user_fs">>],
     <<"debug">> => false,
     <<"sufixo_email_institucional">> => <<"@unb.br">>,
     <<"http_max_content_length">> => 524288,
