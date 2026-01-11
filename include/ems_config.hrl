@@ -117,7 +117,7 @@
 % Mostra no log payload e response
 -define(LOG_SHOW_RESPONSE, true).
 -define(LOG_SHOW_RESPONSE_HEADER, true).
--define(LOG_SHOW_PAYLOAD, true).
+-define(LOG_SHOW_PAYLOAD, false).
 -define(LOG_SHOW_CONTENT_STATIC_FILE, false).
 
 

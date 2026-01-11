@@ -27,7 +27,7 @@
     <<"sufixo_email_institucional">> => <<"@unb.br">>,
     <<"http_max_content_length">> => 524288,
     <<"log_show_response">> => true,
-    <<"log_show_payload">> => true,
+    <<"log_show_payload">> => false,
     <<"log_show_response_max_length">> => 512000,
     <<"log_show_payload_max_length">> => 512000,
     <<"log_show_odbc_pool_activity">> => false,
