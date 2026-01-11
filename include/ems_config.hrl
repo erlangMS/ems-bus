@@ -115,7 +115,7 @@
 -define(SSL_PATH, filename:join(?PRIV_PATH, "ssl")).
 
 % Mostra no log payload e response
--define(LOG_SHOW_RESPONSE, true).
+-define(LOG_SHOW_RESPONSE, false).
 -define(LOG_SHOW_RESPONSE_HEADER, true).
 -define(LOG_SHOW_PAYLOAD, false).
 -define(LOG_SHOW_CONTENT_STATIC_FILE, false).
@@ -135,8 +135,8 @@
 -define(LOG_ARCHIVE_CHECKPOINT, 1000 * 60 * 60 * 24).  % Por default são 24 horas
 
 % Define o tamanho máximo default que pode ser impresso no log do payload e response para depuração
--define(LOG_SHOW_PAYLOAD_MAX_LENGTH, 512000).
--define(LOG_SHOW_RESPONSE_MAX_LENGTH, 512000).
+-define(LOG_SHOW_PAYLOAD_MAX_LENGTH, 120).
+-define(LOG_SHOW_RESPONSE_MAX_LENGTH, 120).
 
 % Define se mostra as atividades do pool de conexão no log para depuração
 -define(LOG_SHOW_ODBC_POOL_ACTIVITY, true).

@@ -810,11 +810,10 @@ do_log_request(Request = #request{rid = RID,
 							false -> <<>>
 						end,
 						case (Filename == undefined orelse LogShowContentStaticFile)  
-						    andalso 
-							 (Reason =/= ok orelse 
-							   ShowResponseService orelse
-							   (ShowResponseUrlList =/= [] andalso lists:member(Url, ShowResponseUrlList))
-							  ) of
+			    andalso 
+			     (ShowResponseService orelse
+			       (ShowResponseUrlList =/= [] andalso lists:member(Url, ShowResponseUrlList))
+			      ) of
 							true -> 
 								 ResponseData2 = case is_binary(ResponseData) of
 													true -> ResponseData;

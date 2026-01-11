@@ -2212,13 +2212,14 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																		   <<"X-ems-timeout">> => integer_to_binary(TimeoutService),
 																		   <<"X-ems-expires">> => integer_to_binary(ExpiresService),
 																		   <<"X-ems-lang">> => LangService,
-																		   <<"x-ems-authorization">> => atom_to_binary(AuthorizationService, utf8),
-																		   <<"expires">> => Expires}
+																		   <<"X-ems-authorization">> => atom_to_binary(AuthorizationService, utf8),
+																		   <<"expires">> => Expires,
+																		   <<"cache-control">> => CacheControlService}
 												end;
 											_ -> 
 												case ShowDebugResponseHeaders of
 													false ->
-														HttpHeaderDefault#{<<"cache_control">> => CacheControlService};
+														HttpHeaderDefault#{<<"cache-control">> => CacheControlService};
 													true ->
 														HttpHeaderDefault#{<<"X-ems-rowid">> => integer_to_binary(Rowid),
 																		   <<"X-ems-hash">> => integer_to_binary(ReqHash),
