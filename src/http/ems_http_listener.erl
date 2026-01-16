@@ -70,12 +70,7 @@ init({IpAddress,
 																	 {certfile, binary_to_list(SslCertFile)},
 																	 {keyfile, binary_to_list(SslKeyFile)},
 																	 {verify, verify_none},
-																	 {crl_check, false},
-																	 {client_renegotiation, true},
-																	 {padding_check, false},
-																	 {fail_if_no_peer_cert, false},
-															 		 {next_protocols_advertised, [<<"http/1.1">>]},
-																	 {alpn_preferred_protocols, [<<"http/1.1">>]}
+																	 {crl_check, false}
 																  ]
 												   },
 												 #{env => #{dispatch => Dispatch}});

@@ -24,7 +24,7 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 												  content_type_out = ContentTypeOut}} ->
 					compute_metric_by_content_type_out(ContentTypeOut),
 					Response = cowboy_req:reply(Code, 
-												ResponseHeader#{<<"content-type">> => ContentTypeOut}, 
+												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}), 
 												ResponseData, 
 												CowboyReq2),
 					ems_logger:log_request(Request2);
@@ -32,7 +32,7 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 													 response_header = ResponseHeader,
 													 response_data = ResponseData}} ->
 					Response = cowboy_req:reply(Code, 
-												ResponseHeader,
+												normalize_headers(ResponseHeader),
 												ResponseData, 
 												CowboyReq2),
 					ems_logger:log_request(Request2);
@@ -44,7 +44,7 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 											   latency = ems_util:get_milliseconds() - T1},
 					ResponseHeader = Request2#request.response_header,
 					Response = cowboy_req:reply(Request2#request.code, 
-												ResponseHeader,
+												normalize_headers(ResponseHeader),
 												Request2#request.response_data, CowboyReq2),
 					ems_logger:log_request(Request2)
 			end;
@@ -52,7 +52,7 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 									     response_header = ResponseHeader,
 									     response_data = ResponseData}, CowboyReq2} ->
 			Response = cowboy_req:reply(Code, 
-										ResponseHeader,
+										normalize_headers(ResponseHeader),
 										ResponseData, 
 										CowboyReq2),
 			ems_logger:log_request(Request);
@@ -63,7 +63,7 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 			{Ip, _} = cowboy_req:peer(CowboyReq),
 			Ip2 = inet_parse:ntoa(Ip),
 			ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, Reason]),
-			Response = cowboy_req:reply(400, HttpHeaderDefault, ?EINVALID_HTTP_REQUEST, CowboyReq)
+			Response = cowboy_req:reply(400, normalize_headers(HttpHeaderDefault), ?EINVALID_HTTP_REQUEST, CowboyReq)
 	end,
 	{ok, Response, State}.
 
@@ -109,3 +109,8 @@ compute_metric_by_content_type_out(ContentTypeOut) ->
 		_ ->
 			ems_db:inc_counter(http_content_type_out_other)
 	end.
+
+normalize_headers(Headers) ->
+	maps:fold(fun(K, V, Acc) ->
+		Acc#{string:lowercase(K) => V}
+	end, #{}, Headers).

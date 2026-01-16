@@ -154,7 +154,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																							   reason_detail = RequestCache#request.reason_detail,
 																							   content_type_out = RequestCache#request.content_type_out,
 																							   response_data = <<>>,
-																							   response_header = ResponeHeader#{<<"X-ems-result-cache-hit">> => <<"true,not_modified">>},
+																							   response_header = ResponeHeader#{<<"x-ems-result-cache-hit">> => <<"true,not_modified">>},
 																							   result_cache_rid = RequestCache#request.rid,
 																							   etag = RequestCache#request.etag,
 																							   filename = RequestCache#request.filename,
@@ -188,7 +188,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																								reason_detail = RequestCache#request.reason_detail,
 																								content_type_out = RequestCache#request.content_type_out,
 																								response_data = RequestCache#request.response_data,
-																								response_header = ResponeHeader#{<<"X-ems-result-cache-hit">> => <<"true">>},
+																								response_header = ResponeHeader#{<<"x-ems-result-cache-hit">> => <<"true">>},
 																								result_cache_rid = RequestCache#request.rid,
 																								etag = RequestCache#request.etag,
 																								filename = RequestCache#request.filename,
@@ -249,7 +249,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 										true ->
 											{ok, request, Request#request{code = 200, 
 																		  content_type_out = ?CONTENT_TYPE_JSON,
-																		  response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+																		  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 																		  response_data = ems_catalog:get_metadata_json(Service),
 																		  latency = Latency,
 																		  status_text = StatusText}
@@ -268,7 +268,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									case ShowDebugResponseHeaders of
 										true ->
 											{ok, request, Request#request{code = 200, 
-																		  response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+																		  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 																		  latency = Latency,
 																		  status_text = StatusText}
 											};
@@ -294,7 +294,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																   content_type_out = ?CONTENT_TYPE_JSON,
 																   reason = Reason, 
 																   reason_detail = ReasonDetail,
-																   response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+																   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 																   response_data = ems_schema:to_json({error, Reason}), 
 																   user = User,
 																   latency = Latency,
@@ -339,7 +339,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 												   content_type_out = ?CONTENT_TYPE_JSON,
 												   reason = access_denied, 
 												   reason_detail = host_denied,
-												   response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+												   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 												   response_data = ?HOST_DENIED_JSON, 
 												   user = User,
 												   latency = Latency,
@@ -624,9 +624,9 @@ dispatch_middleware_function(Request = #request{reason = ok,
 																	status = req_done,
 																	status_text = StatusText};
 									true ->
-										Request3 = Request2#request{response_header = ResponseHeader#{<<"X-ems-result-cache">> => integer_to_binary(ResultCache),
-																									  <<"X-ems-result-cache-shared">> => ems_util:boolean_to_binary(ResultCacheShared),
-																									  <<"X-ems-status">> => StatusText},
+										Request3 = Request2#request{response_header = ResponseHeader#{<<"x-ems-result-cache">> => integer_to_binary(ResultCache),
+																									  <<"x-ems-result-cache-shared">> => ems_util:boolean_to_binary(ResultCacheShared),
+																									  <<"x-ems-status">> => StatusText},
 																	latency = T3 - T1,
 																	status = req_done,
 																	status_text = StatusText}
@@ -640,7 +640,7 @@ dispatch_middleware_function(Request = #request{reason = ok,
 																		status = req_done,
 																		status_text = StatusText}};
 									true ->
-										{ok, request, Request2#request{response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+										{ok, request, Request2#request{response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 																	   latency = T3 - T1,
 																	   status = req_done,
 																	   status_text = StatusText}}
@@ -650,7 +650,7 @@ dispatch_middleware_function(Request = #request{reason = ok,
 						ets:insert(ems_dispatcher_post_time, {post_time, T3}),
 						case ShowDebugResponseHeaders of
 							true ->
-								{ok, request, Request2#request{response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+								{ok, request, Request2#request{response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 															   latency = Latency,
 															   status_text = StatusText}};
 							false ->
@@ -664,7 +664,7 @@ dispatch_middleware_function(Request = #request{reason = ok,
 				{error, request, Request#request{code = 500,
 												 reason = Reason2,
 												 content_type_out = ?CONTENT_TYPE_JSON,
-												 response_header = ResponseHeader#{<<"X-ems-status">> => StatusText},
+												 response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 												 response_data = ems_schema:to_json(Error),
 												 latency = Latency,
 												 status_text = StatusText}}
@@ -694,7 +694,7 @@ dispatch_middleware_function(Request = #request{t1 = T1,
 	case ShowDebugResponseHeaders of
 		true ->
 			{error, request, Request#request{content_type_out = ?CONTENT_TYPE_JSON,
-											 response_header = ResponseHeader#{<<"X-ems_status">> => StatusText},
+											 response_header = ResponseHeader#{<<"x-ems_status">> => StatusText},
 											 latency = Latency,
 											 status_text = StatusText}};
 		false ->	
