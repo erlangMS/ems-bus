@@ -1827,6 +1827,13 @@ url_mask(Url) -> iolist_to_binary([<<"/erl.ms/">>, base64:encode(Url)]).
 url_mask_str(Url) -> binary_to_list(iolist_to_binary([<<"/erl.ms/">>, base64:encode(Url)])). 
 
 
+lookup_retry_options(_Request, []) -> false;
+lookup_retry_options(Request, [Type|T]) ->
+	case ems_catalog_lookup:lookup(Request#request{type = Type}) of
+		{Service, ParamsMap, QuerystringMap} -> {Service, ParamsMap, QuerystringMap};
+		_ -> lookup_retry_options(Request, T)
+	end.
+
 -spec encode_request_cowboy(tuple(), pid(), #encode_request_state{}) -> {ok, #request{}} | {error, atom()}.
 encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_default = HttpHeaderDefault,
 																   http_header_options = HttpHeaderOptions, 
@@ -2006,6 +2013,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			referer = Referer,
 			payload = <<>>, 
 			payload_map = #{},
+			response_header = HttpHeaderDefault,
 			response_data = <<>>,
 			node_exec = CurrentNode,
 			code = 200,
@@ -2016,7 +2024,15 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			forwarded_for = ForwardedFor
 		},	
 		put(encode_request_cowboy_step, encode_request_cowboy_step_pass5),
-		case ems_catalog_lookup:lookup(Request) of
+		LookupResult = case ems_catalog_lookup:lookup(Request) of
+			{_, _, _} = Match -> Match;
+			_ -> 
+				case Type of 
+					<<"OPTIONS">> -> lookup_retry_options(Request, [<<"PUT">>, <<"POST">>, <<"DELETE">>]);
+					_ -> false
+				end
+		end,
+		case LookupResult of
 			{Service = #service{name = ServiceName,
 								 service = ServiceService,	
 								 url = ServiceUrl,
@@ -2305,6 +2321,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																code = 200, 
 																reason = enoent_service_contract,
 																type = Type,  % use original verb of request
+																response_header = HttpHeaderOptions,
 																response_data = ?ENOENT_SERVICE_CONTRACT_JSON,
 																latency = Latency,
 																status_text = StatusText}

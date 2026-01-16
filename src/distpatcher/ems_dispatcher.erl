@@ -499,8 +499,8 @@ dispatch_service_work_send(Request = #request{type = Type,
 			{Module, Node} ! Msg,
 			ems_logger:info("ems_dispatcher send ~p to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]),
 			case Type of 
-				<<"GET">> -> TimeoutConfirmation = 3500;
-				_ -> TimeoutConfirmation = 35000
+				<<"GET">> -> TimeoutConfirmation = 120000;
+				_ -> TimeoutConfirmation = 90000
 			end,
 			receive 
 				ok -> 

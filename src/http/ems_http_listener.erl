@@ -73,13 +73,15 @@ init({IpAddress,
 																	 {crl_check, false}
 																  ]
 												   },
-												 #{env => #{dispatch => Dispatch}});
+												 #{env => #{dispatch => Dispatch},
+												   idle_timeout => 300000});
 		false ->
 			Ret = cowboy:start_clear(ListenerName, 
 										#{socket_opts => [{ip, IpAddress}, 
 										 				  {port, Port}]}, 
 										#{compress => true,
-										  env => #{dispatch => Dispatch}
+										  env => #{dispatch => Dispatch},
+										  idle_timeout => 300000
 									})
 	end,
 	case Ret of
