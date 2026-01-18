@@ -14,8 +14,11 @@ def requires_auth(f):
     """Decorator to require OAuth2 authentication."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        print(f"[Auth Check] Request URL: {request.url}")
+        print(f"[Auth Check] Request Method: {request.method}")
+        print(f"[Auth Check] Request Headers: {dict(request.headers)}")
         print(f"[Auth Check] Session keys: {list(session.keys())}")
-        print(f"[Auth Check] Has access_token: {'access_token' in session}")
+        
         if 'access_token' in session:
             print(f"[Auth Check] Access token: {session['access_token'][:20]}...")
         

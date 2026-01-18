@@ -87,4 +87,11 @@ def create_app(config_class=Config):
     from app import routes
     app.register_blueprint(routes.bp)
     
+    @app.after_request
+    def log_response_headers(response):
+        """Log Set-Cookie headers for debugging."""
+        if 'Set-Cookie' in response.headers:
+            print(f"[Cookie Debug] Set-Cookie: {response.headers.getlist('Set-Cookie')}")
+        return response
+    
     return app
