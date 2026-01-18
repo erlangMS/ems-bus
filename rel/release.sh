@@ -136,6 +136,10 @@ make_release(){
     if [ -f "$GENERATED_TAR" ]; then
         cp "$GENERATED_TAR" "$RELEASE_FILE"
         echo "Release generated at $RELEASE_FILE"
+        
+        # Cria cópia com nome fixo para facilitar build do Docker
+        cp "$GENERATED_TAR" "ems-bus.tar.gz"
+        echo "Docker-friendly copy created at ems-bus.tar.gz"
     else
         die "Could not find generated tarball at $GENERATED_TAR"
     fi

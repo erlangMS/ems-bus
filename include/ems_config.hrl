@@ -24,7 +24,6 @@
 % Nome do servidor
 -define(SERVER_NAME, ems_util:server_name()).
 
-
 -define(PRIV_PATH_DEFAULT, ems_util:get_priv_dir_default()).
 
 % Caminho do diretório privado
@@ -128,8 +127,8 @@
 % Armazena o buffer do log a cada LOG_FILE_CHECKPOINT ms (Aumente este valor se existir muita contenção de escrita em disco)
 -define(LOG_FILE_CHECKPOINT, 400).  
 
-% Tamanho máximo permitido para os arquivos de logs: 250MB
--define(LOG_FILE_MAX_SIZE, 262144000000).  
+% Tamanho máximo permitido para os arquivos de logs: 90MB (94371840 bytes)
+-define(LOG_FILE_MAX_SIZE, 94371840).  
 
 % Arquiva o log a cada LOG_ARCHIVE_CHECKPOINT ms
 -define(LOG_ARCHIVE_CHECKPOINT, 1000 * 60 * 60 * 24).  % Por default são 24 horas
@@ -267,7 +266,7 @@
 % HTTP
 -define(HTTP_SERVER_PORT, 2381).
 -define(HTTP_MAX_CONNECTIONS, 100000).
--define(HTTP_MAX_CONTENT_LENGTH, 524288).  % Limite default do conteúdo do payload é de 512KB
+-define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
 
 
