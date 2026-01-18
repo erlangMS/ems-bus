@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ entry.name or 'Service Entry' }} - Catalog Manager{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('main.view_service_entry', file_path=file_path, entry_index=entry_index) }}"
+        class="btn btn-secondary" style="margin-bottom: 1rem;">← Cancel</a>
+    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">✏️ Edit Service Entry</h1>
+    <p class="text-muted">{{ file_path }}</p>
+</div>
+
+<div class="card">
+    <div class="card-header">Edit Fields</div>
+
+    <form method="POST" style="display: grid; gap: 1.5rem; padding: 1.5rem 0;">
+        {% for key, value in entry.items() %}
+        {% if not key.startswith('_') %}
+        <div>
+            <label for="{{ key }}" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                {{ key }}
+            </label>
+
+            {% if key in ['comment', 'description'] %}
+            <textarea id="{{ key }}" name="{{ key }}" rows="3"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; font-size: 1rem;">{{ value }}</textarea>
+            {% elif key == 'url' %}
+            <input type="text" id="{{ key }}" name="{{ key }}" value="{{ value }}"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+            {% else %}
+            <input type="text" id="{{ key }}" name="{{ key }}" value="{{ value }}"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; font-size: 1rem;">
+            {% endif %}
+
+            <p class="text-small text-muted" style="margin-top: 0.25rem;">
+                Current value: <code>{{ value }}</code>
+            </p>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div style="display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                💾 Save Changes
+            </button>
+            <a href="{{ url_for('main.view_service_entry', file_path=file_path, entry_index=entry_index) }}"
+                class="btn btn-secondary" style="flex: 1; text-align: center;">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">⚠️ Important Notes</div>
+    <ul style="margin: 0; padding-left: 1.5rem;">
+        <li>Only modify fields you understand</li>
+        <li>Empty fields will be removed from the entry</li>
+        <li>A backup (.bak) will be created automatically</li>
+        <li>Changes take effect immediately after saving</li>
+    </ul>
+</div>
+{% endblock %}

@@ -3,31 +3,25 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from app.catalog_service import CatalogService
 from pathlib import Path
+from urllib.parse import urlencode
+import requests
 
 
 bp = Blueprint('main', __name__)
 
 
-def check_auth(username, password):
-    """Check if username/password combination is valid."""
-    return (username == current_app.config['BASIC_AUTH_USERNAME'] and
-            password == current_app.config['BASIC_AUTH_PASSWORD'])
-
-
-def authenticate():
-    """Send 401 response for authentication."""
-    return ('Authentication required', 401, {
-        'WWW-Authenticate': 'Basic realm="Catalog Manager"'
-    })
-
-
 def requires_auth(f):
-    """Decorator to require authentication."""
+    """Decorator to require OAuth2 authentication."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
+        print(f"[Auth Check] Session keys: {list(session.keys())}")
+        print(f"[Auth Check] Has access_token: {'access_token' in session}")
+        if 'access_token' in session:
+            print(f"[Auth Check] Access token: {session['access_token'][:20]}...")
+        
+        if 'access_token' not in session:
+            print(f"[Auth Check] No access token, redirecting to login")
+            return redirect(url_for('main.login_page'))
         return f(*args, **kwargs)
     return decorated
 
@@ -41,34 +35,138 @@ def get_catalog_service():
     )
 
 
+@bp.route('/login')
+def login_page():
+    """Show login page."""
+    return render_template('login.html')
+
+
+@bp.route('/oauth/login')
+def oauth_login():
+    """Redirect to OAuth2 authorization endpoint."""
+    params = {
+        'client_id': current_app.config['OAUTH2_CLIENT_ID'],
+        'redirect_uri': current_app.config['OAUTH2_REDIRECT_URI'],
+        'response_type': 'code',
+        'scope': current_app.config['OAUTH2_SCOPE']
+    }
+    auth_url = f"{current_app.config['OAUTH2_AUTHORIZE_URL']}?{urlencode(params)}"
+    
+    print(f"[OAuth2] Redirecting to authorization URL: {auth_url}")
+    print(f"[OAuth2] Client ID: {current_app.config['OAUTH2_CLIENT_ID']}")
+    print(f"[OAuth2] Redirect URI: {current_app.config['OAUTH2_REDIRECT_URI']}")
+    
+    return redirect(auth_url)
+
+
+@bp.route('/callback')
+def oauth_callback():
+    """Handle OAuth2 callback and exchange code for token."""
+    code = request.args.get('code')
+    error = request.args.get('error')
+    
+    print(f"[OAuth2 Callback] Received callback")
+    print(f"[OAuth2 Callback] Code: {code}")
+    print(f"[OAuth2 Callback] Error: {error}")
+    print(f"[OAuth2 Callback] All args: {request.args}")
+    
+    if error:
+        print(f"[OAuth2 Callback] Authentication error: {error}")
+        flash(f'Authentication error: {error}', 'error')
+        return redirect(url_for('main.login_page'))
+    
+    if not code:
+        print(f"[OAuth2 Callback] No authorization code received")
+        flash('No authorization code received', 'error')
+        return redirect(url_for('main.login_page'))
+    
+    try:
+        # Exchange authorization code for access token
+        # The barramento expects Basic Auth header with client_id:client_secret
+        import base64
+        
+        # Create Basic Auth header
+        credentials = f"{current_app.config['OAUTH2_CLIENT_ID']}:{current_app.config['OAUTH2_CLIENT_SECRET']}"
+        basic_auth = base64.b64encode(credentials.encode()).decode()
+        
+        token_url = current_app.config['OAUTH2_TOKEN_URL']
+        
+        # Payload according to barramento's OAuth2 implementation
+        payload = {
+            'grant_type': 'authorization_code',
+            'code': code
+        }
+        
+        headers = {
+            'Authorization': f'Basic {basic_auth}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        
+        print(f"[OAuth2 Token Exchange] URL: {token_url}")
+        print(f"[OAuth2 Token Exchange] Payload: {payload}")
+        print(f"[OAuth2 Token Exchange] Basic Auth: {basic_auth}")
+        
+        token_response = requests.post(
+            token_url,
+            data=payload,
+            headers=headers,
+            timeout=10
+        )
+        
+        print(f"[OAuth2 Token Exchange] Status: {token_response.status_code}")
+        print(f"[OAuth2 Token Exchange] Response: {token_response.text[:500]}")
+        
+        if token_response.status_code == 200:
+            token_data = token_response.json()
+            session['access_token'] = token_data.get('access_token')
+            session['user'] = token_data.get('resource_owner', {})
+            session['client'] = token_data.get('client', {})
+            
+            print(f"[OAuth2 Token Exchange] Success! Access token: {token_data.get('access_token')[:20]}...")
+            print(f"[OAuth2 Token Exchange] User: {token_data.get('resource_owner', {}).get('login')}")
+            print(f"[OAuth2 Session] Saved to session - keys: {list(session.keys())}")
+            print(f"[OAuth2 Session] Session access_token: {session.get('access_token', 'NOT FOUND')[:20] if session.get('access_token') else 'NOT FOUND'}...")
+            
+            flash('Successfully logged in!', 'success')
+            
+            print(f"[OAuth2 Redirect] Redirecting to index")
+            return redirect(url_for('main.index'))
+        else:
+            print(f"[OAuth2 Token Exchange] Failed with status {token_response.status_code}")
+            flash(f'Authentication failed: {token_response.text}', 'error')
+            return redirect(url_for('main.login_page'))
+    
+    except Exception as e:
+        print(f"[OAuth2 Token Exchange] Exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Authentication error: {str(e)}', 'error')
+        return redirect(url_for('main.login_page'))
+
+
+@bp.route('/logout')
+def logout():
+    """Logout user by clearing session."""
+    session.clear()
+    flash('Successfully logged out', 'success')
+    return redirect(url_for('main.login_page'))
+
+
 @bp.route('/')
 @requires_auth
 def index():
-    """Dashboard with catalog overview."""
+    """Dashboard with catalog tree navigation."""
     try:
         catalog_service = get_catalog_service()
-        catalog_path = current_app.config['CATALOG_PATH']
         
-        # Get main catalog file
-        main_catalog = catalog_path / 'catalog.json'
+        # Build catalog tree
+        tree = catalog_service.build_catalog_tree('catalog.json')
         
-        # Get stats for the catalog
-        catalog_stats = {}
-        try:
-            stats = catalog_service.get_catalog_stats('catalog.json')
-            catalog_stats['ems-bus'] = stats
-        except Exception as e:
-            catalog_stats['ems-bus'] = {
-                'error': str(e),
-                'total_services': 0,
-                'by_type': {},
-                'by_owner': {},
-                'unique_files': 0
-            }
+        if not tree:
+            flash('Error loading catalog tree', 'error')
+            return render_template('error.html', error='Could not load catalog tree'), 500
         
-        return render_template('index.html', 
-                             catalog_paths={'ems-bus': 'catalog.json'},
-                             catalog_stats=catalog_stats)
+        return render_template('index.html', tree=tree)
     
     except Exception as e:
         flash(f'Error loading catalog: {e}', 'error')
@@ -218,3 +316,74 @@ def search():
     except Exception as e:
         flash(f'Error during search: {e}', 'error')
         return render_template('search.html', query=query, results=[])
+
+
+@bp.route('/service/<path:file_path>/<int:entry_index>')
+@requires_auth
+def view_service_entry(file_path, entry_index):
+    """View a specific service entry."""
+    try:
+        catalog_service = get_catalog_service()
+        entry = catalog_service.get_service_entry(file_path, entry_index)
+        
+        if not entry:
+            flash('Service entry not found', 'error')
+            return redirect(url_for('main.index'))
+        
+        return render_template('service_entry_view.html',
+                             entry=entry,
+                             file_path=file_path,
+                             entry_index=entry_index)
+    
+    except Exception as e:
+        flash(f'Error loading service entry: {e}', 'error')
+        return redirect(url_for('main.index'))
+
+
+@bp.route('/service/<path:file_path>/<int:entry_index>/edit', methods=['GET', 'POST'])
+@requires_auth
+def edit_service_entry(file_path, entry_index):
+    """Edit a specific service entry."""
+    catalog_service = get_catalog_service()
+    
+    if request.method == 'POST':
+        try:
+            # Build updated entry from form data
+            updated_entry = {}
+            
+            # Get all form fields
+            for key in request.form.keys():
+                if key.startswith('_'):  # Skip internal fields
+                    continue
+                value = request.form.get(key, '').strip()
+                if value:  # Only include non-empty values
+                    updated_entry[key] = value
+            
+            # Update the entry
+            if catalog_service.update_service_entry(file_path, entry_index, updated_entry):
+                flash('Service entry updated successfully!', 'success')
+                return redirect(url_for('main.view_service_entry', 
+                                      file_path=file_path, 
+                                      entry_index=entry_index))
+            else:
+                flash('Error updating service entry', 'error')
+        
+        except Exception as e:
+            flash(f'Error saving changes: {e}', 'error')
+    
+    # GET request - load entry for editing
+    try:
+        entry = catalog_service.get_service_entry(file_path, entry_index)
+        
+        if not entry:
+            flash('Service entry not found', 'error')
+            return redirect(url_for('main.index'))
+        
+        return render_template('service_entry_edit.html',
+                             entry=entry,
+                             file_path=file_path,
+                             entry_index=entry_index)
+    
+    except Exception as e:
+        flash(f'Error loading service entry: {e}', 'error')
+        return redirect(url_for('main.index'))

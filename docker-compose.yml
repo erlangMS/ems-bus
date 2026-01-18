@@ -8,8 +8,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "2301:2301"
-      - "2344:2344"
+      - "192.168.1.9:2301:2301"
+      - "192.168.1.9:2344:2344"
     volumes:
       # Mount configuration directory
       - ./priv/conf:/app/lib/ems_bus-2.0.26/priv/conf
@@ -31,11 +31,20 @@ services:
       context: ./dashboard
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "192.168.1.9:5000:5000"
     environment:
-      # Authentication credentials (change these in production!)
-      - CATALOG_USERNAME=${CATALOG_USERNAME:-admin}
-      - CATALOG_PASSWORD=${CATALOG_PASSWORD:-admin123}
+      # OAuth2 settings
+      - OAUTH2_CLIENT_ID=1
+      - OAUTH2_CLIENT_SECRET=CPD
+      - OAUTH2_AUTHORIZE_URL=http://192.168.1.9:2301/authorize
+      - OAUTH2_TOKEN_URL=http://192.168.1.9:2301/authorize
+      - OAUTH2_REDIRECT_URI=http://192.168.1.9:5000/callback
+      - OAUTH2_SCOPE=user_fs
+      
+      # CORS configuration (comma-separated list of allowed origins)
+      - CORS_ALLOWED_ORIGINS=http://192.168.1.9:2301,http://192.168.1.9:5000
+      
+      # Flask secret key
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
       
       # Catalog path

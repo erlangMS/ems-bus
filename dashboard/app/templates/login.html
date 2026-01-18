@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Login - ems-bus Catalog Manager{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 4rem auto; text-align: center;">
+    <div class="card">
+        <div style="padding: 3rem 2rem;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">📊 ems-bus</h1>
+            <h2 style="font-size: 1.5rem; font-weight: 400; color: var(--text-light); margin-bottom: 2rem;">
+                Catalog Manager
+            </h2>
+
+            <p style="margin-bottom: 2rem; color: var(--text-light);">
+                Please login to continue
+            </p>
+
+            <a href="{{ url_for('main.oauth_login') }}" class="btn btn-primary"
+                style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                🔐 Login with ems-bus
+            </a>
+
+            <p class="text-small text-muted" style="margin-top: 2rem;">
+                Powered by OAuth2
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

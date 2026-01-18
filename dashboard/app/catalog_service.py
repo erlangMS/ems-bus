@@ -216,3 +216,126 @@ class CatalogService:
         
         except json.JSONDecodeError as e:
             return False, f"Invalid JSON: {e}", None
+    
+    def is_master_catalog(self, item: Dict) -> bool:
+        """Check if an item is a master catalog (has 'file' parameter).
+        
+        Args:
+            item: Catalog item to check
+            
+        Returns:
+            True if item is a master catalog, False otherwise
+        """
+        return 'file' in item and 'catalog' in item
+    
+    def build_catalog_tree(self, root_catalog: str = 'catalog.json') -> Dict:
+        """Build hierarchical tree structure from catalogs.
+        
+        Args:
+            root_catalog: Root catalog file to start from
+            
+        Returns:
+            Tree structure with master catalogs and service entries
+        """
+        def _build_node(catalog_path: str, parent_name: str = None) -> Dict:
+            """Recursively build tree node."""
+            try:
+                data, full_path = self.load_catalog(catalog_path)
+                
+                if not isinstance(data, list):
+                    return None
+                
+                node = {
+                    'path': catalog_path,
+                    'full_path': str(full_path),
+                    'name': parent_name or catalog_path,
+                    'children': [],
+                    'services': []
+                }
+                
+                for idx, item in enumerate(data):
+                    if not isinstance(item, dict):
+                        continue
+                    
+                    if self.is_master_catalog(item):
+                        # This is a master catalog - add as child node
+                        current_dir = Path(catalog_path).parent
+                        child_path = str(current_dir / item['file'])
+                        child_node = _build_node(child_path, item.get('catalog', item['file']))
+                        if child_node:
+                            node['children'].append(child_node)
+                    else:
+                        # This is a service entry - add to services list
+                        item_with_meta = {
+                            **item,
+                            '_index': idx,
+                            '_file': catalog_path
+                        }
+                        node['services'].append(item_with_meta)
+                
+                return node
+            
+            except Exception as e:
+                print(f"Warning: Could not build tree for {catalog_path}: {e}")
+                return None
+        
+        return _build_node(root_catalog)
+    
+    def get_service_entry(self, catalog_path: str, entry_index: int) -> Optional[Dict]:
+        """Get a specific service entry from a catalog file.
+        
+        Args:
+            catalog_path: Relative path to catalog file
+            entry_index: Index of the entry in the catalog
+            
+        Returns:
+            Service entry dictionary or None if not found
+        """
+        try:
+            data, _ = self.load_catalog(catalog_path)
+            
+            if not isinstance(data, list) or entry_index >= len(data):
+                return None
+            
+            entry = data[entry_index]
+            
+            # Don't return master catalogs
+            if self.is_master_catalog(entry):
+                return None
+            
+            return entry
+        
+        except Exception as e:
+            print(f"Error getting service entry: {e}")
+            return None
+    
+    def update_service_entry(self, catalog_path: str, entry_index: int, updated_entry: Dict) -> bool:
+        """Update a specific service entry in a catalog file.
+        
+        Args:
+            catalog_path: Relative path to catalog file
+            entry_index: Index of the entry to update
+            updated_entry: Updated entry data
+            
+        Returns:
+            True if updated successfully, False otherwise
+        """
+        try:
+            data, full_path = self.load_catalog(catalog_path)
+            
+            if not isinstance(data, list) or entry_index >= len(data):
+                return False
+            
+            # Don't allow updating master catalogs
+            if self.is_master_catalog(data[entry_index]):
+                return False
+            
+            # Update the entry
+            data[entry_index] = updated_entry
+            
+            # Save the catalog
+            return self.save_catalog(catalog_path, data)
+        
+        except Exception as e:
+            print(f"Error updating service entry: {e}")
+            return False

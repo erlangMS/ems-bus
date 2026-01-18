@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.name or 'Service Entry' }} - Catalog Manager{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('main.index') }}" class="btn btn-secondary" style="margin-bottom: 1rem;">← Back to Tree</a>
+    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">📄 {{ entry.name or entry.catalog or 'Service Entry' }}</h1>
+    <p class="text-muted">{{ file_path }}</p>
+</div>
+
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="card-header" style="margin-bottom: 0;">Service Details</div>
+        <a href="{{ url_for('main.edit_service_entry', file_path=file_path, entry_index=entry_index) }}"
+            class="btn btn-primary">✏️ Edit</a>
+    </div>
+
+    <div style="display: grid; gap: 1rem;">
+        {% for key, value in entry.items() %}
+        {% if not key.startswith('_') %}
+        <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+            <p class="text-small text-muted" style="margin-bottom: 0.25rem;">{{ key }}</p>
+            <p style="font-weight: 500;">
+                {% if value is string and value|length > 100 %}
+                <code
+                    style="background: var(--bg); padding: 0.5rem; border-radius: 4px; display: block; overflow-x: auto;">{{ value }}</code>
+                {% elif key == 'url' %}
+                <code style="background: var(--bg); padding: 0.25rem 0.5rem; border-radius: 4px;">{{ value }}</code>
+                {% else %}
+                {{ value }}
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">JSON Representation</div>
+    <pre
+        style="background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 4px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9rem;">{{ entry | tojson(indent=2) }}</pre>
+</div>
+{% endblock %}
