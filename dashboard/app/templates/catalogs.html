@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogos - Catalog Manager{% endblock %}
+
+{% block content %}
+<h1 style="font-size: 2rem; margin-bottom: 2rem;">📚 Catálogos Disponíveis</h1>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+    {% for catalog_name, catalog_path in catalog_paths.items() %}
+    <div class="card">
+        <div class="card-header">{{ catalog_name }}</div>
+        <p class="text-small text-muted" style="margin-bottom: 1rem;">{{ catalog_path }}</p>
+        <a href="{{ url_for('main.view_catalog', catalog_name=catalog_name) }}" class="btn btn-primary"
+            style="width: 100%; text-align: center;">
+            Ver Catálogo
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not catalog_paths %}
+<div class="card">
+    <p class="text-muted" style="text-align: center; padding: 2rem;">
+        Nenhum catálogo configurado
+    </p>
+</div>
+{% endif %}
+{% endblock %}

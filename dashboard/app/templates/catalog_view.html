@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ catalog_name }} - Catalog Manager{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">📄 {{ catalog_name }}</h1>
+    <p class="text-muted">{{ catalog_path }}</p>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+        <div>
+            <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ stats.total_services }}</p>
+            <p class="text-muted text-small">Total de Serviços</p>
+        </div>
+        <div>
+            <p style="font-size: 1.5rem; font-weight: 700; color: var(--success);">{{ stats.unique_files }}</p>
+            <p class="text-muted text-small">Arquivos de Catálogo</p>
+        </div>
+        <div>
+            <p style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">{{ stats.by_type|length }}</p>
+            <p class="text-muted text-small">Tipos de Serviço</p>
+        </div>
+    </div>
+</div>
+
+<div class="search-box">
+    <form action="{{ url_for('main.search') }}" method="get">
+        <input type="text" name="q" class="search-input" placeholder="Buscar serviços..."
+            value="{{ request.args.get('q', '') }}">
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header">Serviços ({{ services|length }})</div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                    <th style="padding: 0.75rem;">Nome</th>
+                    <th style="padding: 0.75rem;">URL</th>
+                    <th style="padding: 0.75rem;">Tipo</th>
+                    <th style="padding: 0.75rem;">Owner</th>
+                    <th style="padding: 0.75rem;">Arquivo</th>
+                    <th style="padding: 0.75rem;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem;">
+                        <strong>{{ service.name or service.catalog or '-' }}</strong>
+                        {% if service.comment %}
+                        <br><span class="text-small text-muted">{{ service.comment }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <code
+                            style="background: var(--bg); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">
+                                {{ service.url or '-' }}
+                            </code>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <span
+                            style="background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                            {{ service.type or '-' }}
+                        </span>
+                    </td>
+                    <td style="padding: 0.75rem;">{{ service.owner or '-' }}</td>
+                    <td style="padding: 0.75rem;">
+                        <span class="text-small text-muted">{{ service._source_file }}</span>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <a href="{{ url_for('main.view_catalog_file', catalog_name=catalog_name, file_path=service._source_file) }}"
+                            class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                            Ver Arquivo
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not services %}
+    <p class="text-muted" style="padding: 2rem; text-align: center;">Nenhum serviço encontrado</p>
+    {% endif %}
+</div>
+{% endblock %}

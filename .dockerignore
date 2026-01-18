@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+doc/
+
+# Development
+.vscode/
+.vagrant/
+Vagrantfile
+
+# Build artifacts
+_build/
+ebin/
+.rebar/
+deps/
+
+# Dashboard (not needed in barramento image)
+dashboard/
+
+# Logs and temporary files
+*.log
+startup.log
+
+# Ansible
+ansible/
+
+# Tools
+tools/
+
+# Docker
+docker-compose.yml
+.dockerignore

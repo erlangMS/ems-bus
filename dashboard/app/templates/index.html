@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ems-bus Catalog Manager{% endblock %}
+
+{% block content %}
+<h1 style="font-size: 2rem; margin-bottom: 2rem;">📊 Dashboard</h1>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+    {% for catalog_name, stats in catalog_stats.items() %}
+    <div class="card">
+        <div class="card-header">{{ catalog_name }}</div>
+
+        {% if stats.error %}
+        <p class="text-muted">❌ Erro: {{ stats.error }}</p>
+        {% else %}
+        <div style="margin-bottom: 1rem;">
+            <p style="font-size: 2rem; font-weight: 700; color: var(--primary);">
+                {{ stats.total_services }}
+            </p>
+            <p class="text-muted text-small">Total de Serviços</p>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <p class="text-small" style="font-weight: 600; margin-bottom: 0.5rem;">Por Tipo:</p>
+            {% for type, count in stats.by_type.items() %}
+            <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                <span class="text-small">{{ type }}</span>
+                <span class="text-small" style="font-weight: 600;">{{ count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <p class="text-small text-muted">{{ stats.unique_files }} arquivo(s) de catálogo</p>
+        </div>
+
+        <a href="{{ url_for('main.view_catalog', catalog_name=catalog_name) }}" class="btn btn-primary"
+            style="width: 100%; text-align: center;">
+            Ver Catálogo
+        </a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% if not catalog_stats %}
+<div class="card">
+    <p class="text-muted">Nenhum catálogo configurado em emsbus.conf</p>
+</div>
+{% endif %}
+{% endblock %}
