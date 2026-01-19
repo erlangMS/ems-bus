@@ -15,7 +15,6 @@
 
 init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDefault,
 											  show_debug_response_headers = ShowDebugResponseHeaders}) ->
-	ems_logger:info("DEBUG: HttpHeaderDefault in init: ~p", [HttpHeaderDefault]),
 	case ems_util:encode_request_cowboy(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
 			case ems_dispatcher:dispatch_request(Request, Service, ShowDebugResponseHeaders) of
@@ -121,5 +120,4 @@ normalize_headers(Headers, DefaultHeaders) ->
 		Acc#{string:lowercase(K) => V}
 	end, #{}, Headers),
 	Merged = maps:merge(DefaultHeaders, HeadersLower),
-	ems_logger:info("DEBUG: normalize_headers. Headers: ~p. Default: ~p. Merged: ~p", [Headers, DefaultHeaders, Merged]),
 	Merged.

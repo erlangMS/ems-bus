@@ -49,6 +49,9 @@ SKIP_CLEAN="false"
 
 KEEP_DB="false"
 
+# Release flag
+BUILD_RELEASE="false"
+
 
 if [ "$LINUX_DISTRO" = "centos" -o "$LINUX_DISTRO" = "redhat" -o "$LINUX_DISTRO" = "fedora" -o "$LINUX_DISTRO" = "kdeneon" ]; then
     BUILD_RPM_FLAG="true"
@@ -99,6 +102,7 @@ help() {
     echo "  --skip-dep=true|false   -> Define if skip rebar deps"
     echo "  --skip-clean=true|false -> Define if rebar clean"
     echo "  --clean                 -> Equal to --skip-clean=true"
+    echo "  --release               -> Execute rel/release.sh after build"
     echo
     exit 1
 }
@@ -206,6 +210,8 @@ for P in $*; do
             SKIP_CLEAN="false"
         elif [[ "$P" =~ --keep[\_-]db$ ]]; then
             KEEP_DB="true"
+        elif [ "$P" = "--release" ]; then
+            BUILD_RELEASE="true"
         elif [ "$P" = "--help" ]; then
             help
         else
@@ -232,6 +238,7 @@ echo "Erlang version: $ERLANG_VERSION_OS"
 echo "Skip get-deps before build: $SKIP_DEPS" 
 echo "Skip clear before build: $SKIP_CLEAN" 
 echo "Keep database before build: $KEEP_DB" 
+echo "Build release after build: $BUILD_RELEASE" 
 echo "Date: $(date '+%d/%m/%Y %H:%M:%S')"
 echo "============================================================================="
 
@@ -287,4 +294,14 @@ else
     done
 
     echo "Ok!"
+
+    if [ "$BUILD_RELEASE" = "true" ]; then
+        if [ -f "rel/release.sh" ]; then
+            echo "Executing release script..."
+            chmod +x rel/release.sh
+            ./rel/release.sh
+        else
+            echo "Release script not found at rel/release.sh"
+        fi
+    fi
 fi
