@@ -115,3 +115,6 @@ class Config:
     # Backup settings
     CREATE_BACKUPS = True
     BACKUP_SUFFIX = '.bak'
+
+    # App Version
+    VERSION = '2.0.26'

@@ -4,6 +4,14 @@
 {% block page_header %}Buscar Serviços{% endblock %}
 
 {% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="{{ url_for('main.index') }}" class="btn btn-default">
+            <i class="fas fa-arrow-left mr-1"></i> Voltar
+        </a>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <div class="card card-primary">
@@ -43,18 +51,19 @@
 
             {% if results %}
             <div class="card-body table-responsive p-0">
-                <table class="table table-hover text-nowrap">
+                <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Nome</th>
-                            <th>URL</th>
-                            <th>Tipo</th>
-                            <th>Catálogo / Arquivo</th>
-                            <th>Ações</th>
+                            <th style="width: 15%;">Nome</th>
+                            <th style="width: 30%;">URL</th>
+                            <th style="width: 15%;">Tipo</th>
+                            <th style="width: 20%;">Catálogo / Arquivo</th>
+                            <th style="width: 10%;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for result in results %}
+                        {% if result.type %}
                         <tr>
                             <td>
                                 <strong>{{ result.name or result.catalog or '-' }}</strong>
@@ -75,10 +84,11 @@
                             <td>
                                 <a href="{{ url_for('main.view_catalog_file', catalog_name=result._catalog_name, file_path=result._source_file) }}"
                                     class="btn btn-sm btn-info">
-                                    <i class="fas fa-file-code mr-1"></i> Ver Arquivo
+                                    <i class="fas fa-file-code mr-1"></i> Consultar
                                 </a>
                             </td>
                         </tr>
+                        {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>

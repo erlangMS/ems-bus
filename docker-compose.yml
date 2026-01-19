@@ -56,7 +56,6 @@ services:
 
       # Session Cookie Configuration
       - SESSION_COOKIE_SECURE=False
-      - SESSION_COOKIE_SECURE=False
       - SESSION_COOKIE_SAMESITE=Lax
     volumes:
       # Mount catalog directory for read/write access

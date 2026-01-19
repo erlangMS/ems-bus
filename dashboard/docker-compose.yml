@@ -1,46 +1,8 @@
 
 services:
   dashboard:
+    image: evertonagilar/erlangms-dashboard:v2026.1
     build: .
     container_name: ems-dashboard
     ports:
       - "5000:5000"
-    environment:
-      # Authentication credentials (change these!)
-      - CATALOG_USERNAME=admin
-      - CATALOG_PASSWORD=admin123
-      - FLASK_SESSION_SECRET_KEY=change-this-secret-key-in-production
-
-      # Path configuration
-      - EMSBUS_CONFIG_PATH=/app/priv/conf/emsbus.conf
-
-    volumes:
-      # Mount config file as READ-ONLY for security
-      - ../priv/conf/emsbus.conf:/app/priv/conf/emsbus.conf:ro
-
-      # Mount priv directory as READ-WRITE to allow catalog edits
-      # Catalog paths in emsbus.conf are resolved relative to the config file's directory
-      - ../priv:/app/priv:rw
-
-    restart: unless-stopped
-
-    # Security options
-    user: "1000:1000"
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-
-    # Network configuration
-    networks:
-      - catalog-net
-
-networks:
-  catalog-net:
-    driver: bridge

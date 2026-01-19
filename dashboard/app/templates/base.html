@@ -16,10 +16,80 @@
 
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-    {% block extra_css %}{% endblock %}
+    <style>
+        /* Sidebar Collapse Logic - Toggle Logos */
+        /* Default: Hide Mini Logo, Show Full Text handled by inline styles and AdminLTE */
+
+        /* Dynamic Brand Link Padding */
+        .brand-link {
+            padding-bottom: 1rem;
+            transition: padding-bottom 0.3s;
+        }
+
+        .sidebar-collapse .brand-link {
+            padding-bottom: 2rem !important;
+        }
+
+        /* When Collapsed: Show Mini Logo */
+        .sidebar-collapse .brand-link .brand-mini-wrapper {
+            display: flex !important;
+            margin-left: 0.6rem;
+            /* Force fixed width to fit */
+            object-fit: contain;
+        }
+
+        /* When Collapsed: Hide Full Text Wrapper */
+        .sidebar-collapse .brand-link .brand-text-wrapper {
+            display: none !important;
+        }
+
+        /* FORCE DISABLE HOVER EXPANSION */
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover {
+            width: 4.6rem !important;
+        }
+
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover .brand-text,
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover .brand-text-wrapper {
+            display: none !important;
+        }
+
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover .brand-mini-wrapper {
+            display: flex !important;
+        }
+
+        /* Hide Sidebar Labels on Hover when Collapsed */
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover .nav-sidebar .nav-link p,
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover .nav-header,
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-sidebar:hover .user-panel .info {
+            display: none !important;
+        }
+
+        /* Sidebar Footer Logic */
+        .sidebar-mini.sidebar-collapse .sidebar-custom-footer .version-text {
+            display: none !important;
+        }
+
+        .sidebar-mini.sidebar-collapse .sidebar-custom-footer .version-mini {
+            display: block !important;
+            text-align: center;
+        }
+
+        .sidebar-mini.sidebar-collapse .sidebar-custom-footer {
+            padding: 10px 0 !important;
+        }
+
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .content-wrapper,
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-footer,
+        .sidebar-mini.sidebar-collapse.sidebar-no-expand .main-header {
+            margin-left: 4.6rem !important;
+        }
+    </style>
+
+    {% block extra_css %}
+    {% endblock %}
 </head>
 
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition sidebar-mini layout-fixed sidebar-no-expand">
     <div class="wrapper">
         <!-- Navbar -->
         <nav class="main-header navbar navbar-expand navbar-white navbar-light">
@@ -61,18 +131,36 @@
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="{{ url_for('main.index') }}" class="brand-link">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="ErlangMS Logo"
-                    class="brand-image img-circle elevation-3" style="opacity: .8">
-                <span class="brand-text font-weight-light">ErlangMS</span>
+                <!-- Mini Logo (Visible on Collapse) -->
+                <span class="brand-image brand-mini-wrapper"
+                    style="display: none; align-items: center; justify-content: center; opacity: 1; height: 33px; width: 35px;">
+                    <span
+                        style="background-color: #0033A0; padding: 6px 5px; border-radius: 6px; font-weight: 700; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.9rem; display: flex; align-items: center; line-height: 1;">
+                        <span style="color: #ffffff;">E</span>
+                        <span style="color: #ffffff; margin: 0 2px;">/</span>
+                        <span style="color: #000000;">MS</span>
+                    </span>
+                </span>
+
+                <!-- Full Logo (Visible on Expand) -->
+                <span class="brand-text brand-text-wrapper"
+                    style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 1.4rem; margin-left: 0.8rem; display: flex; align-items: center;">
+                    <span
+                        style="background-color: #0033A0; padding: 4px 12px; border-radius: 6px; display: flex; align-items: center;">
+                        <span style="color: #ffffff;">Erlang</span>
+                        <span style="color: #ffffff; margin: 0 1px;">/</span>
+                        <span style="color: #000000;">MS</span>
+                    </span>
+                </span>
             </a>
 
             <!-- Sidebar -->
             <div class="sidebar">
                 <!-- Sidebar Menu -->
-                <nav class="mt-2">
+                <nav class="mt-4">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
                         data-accordion="false">
-                        <li class="nav-header">DEVOPS</li>
+                        <li class="nav-header">OPÇÔES</li>
 
                         <li class="nav-item">
                             <a href="{{ url_for('main.index') }}" class="nav-link">
@@ -97,6 +185,13 @@
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->
+            </div>
+
+            <!-- Sidebar Footer (Version) -->
+            <div class="sidebar-custom-footer"
+                style="padding: 10px 20px; color: #c2c7d0; border-top: 1px solid #4b545c; font-size: 0.8rem; position: absolute; bottom: 0; width: 100%; background-color: #343a40;">
+                <span class="version-text">Versão {{ config['VERSION'] }}</span>
+                <span class="version-mini" style="display: none;">v{{ config['VERSION'].split('.')[0] }}</span>
             </div>
             <!-- /.sidebar -->
         </aside>
@@ -140,7 +235,6 @@
 
         <footer class="main-footer">
             <div class="float-right d-none d-sm-block">
-                <b>Version</b> 2.0.26
             </div>
             <strong>Desenvolvido por Everton de Vargas Agilar &copy; 2014-2026 <a
                     href="https://unb.br">UnB</a>.</strong> Todos os direitos reservados.
