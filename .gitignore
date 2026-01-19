@@ -29,3 +29,4 @@ contrib/login_webpack/node_modules/**
 .vscode/
 .idea/**
 tools/
+**.bak
