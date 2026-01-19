@@ -9,29 +9,43 @@ from typing import Dict, List, Optional, Tuple
 class CatalogService:
     """Handles catalog file operations."""
     
-    def __init__(self, catalog_path: Path, create_backups: bool = True):
+    def __init__(self, catalog_paths: List[Path], create_backups: bool = True):
         """Initialize catalog service.
         
         Args:
-            catalog_path: Path to catalog directory
+            catalog_paths: List of paths to catalog directories (or single Path for backward compatibility)
             create_backups: Whether to create backups before saving
         """
-        self.catalog_path = catalog_path
+        # Support both single Path and List[Path] for backward compatibility
+        if isinstance(catalog_paths, Path):
+            self.catalog_paths = [catalog_paths]
+        elif isinstance(catalog_paths, list):
+            self.catalog_paths = catalog_paths
+        else:
+            self.catalog_paths = [Path(catalog_paths)]
+        
         self.create_backups = create_backups
     
     def resolve_path(self, relative_catalog_file: str) -> Path:
-        """Resolve catalog file path.
+        """Resolve catalog file path by searching all catalog directories.
         
         Args:
             relative_catalog_file: Relative path to catalog file (e.g., 'catalog.json')
             
         Returns:
             Absolute path to catalog file
+            
+        Raises:
+            FileNotFoundError: If file not found in any catalog directory
         """
-        # Resolve relative to catalog_path
-        full_path = (self.catalog_path / relative_catalog_file).resolve()
+        # Try each catalog path in order
+        for catalog_path in self.catalog_paths:
+            full_path = (catalog_path / relative_catalog_file).resolve()
+            if full_path.exists():
+                return full_path
         
-        return full_path
+        # If not found, return path from first directory (for error messages)
+        return (self.catalog_paths[0] / relative_catalog_file).resolve()
     
     def load_catalog(self, catalog_path: str) -> Tuple[List[Dict], Path]:
         """Load a catalog file.

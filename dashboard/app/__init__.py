@@ -16,14 +16,7 @@ def validate_config(config):
     """
     required_vars = {
         'SECRET_KEY': 'Flask secret key for session encryption',
-        'OAUTH2_CLIENT_ID': 'OAuth2 client ID',
-        'OAUTH2_CLIENT_SECRET': 'OAuth2 client secret',
-        'OAUTH2_AUTHORIZE_URL': 'OAuth2 authorization endpoint URL',
-        'OAUTH2_TOKEN_URL': 'OAuth2 token endpoint URL',
-        'OAUTH2_REDIRECT_URI': 'OAuth2 callback redirect URI',
-        'OAUTH2_SCOPE': 'OAuth2 scope',
         'CORS_ALLOWED_ORIGINS': 'CORS allowed origins (comma-separated)',
-        'CATALOG_PATH': 'Path to catalog directory'
     }
     
     missing = []
@@ -46,6 +39,8 @@ def validate_config(config):
     print("\n" + "="*80)
     print("Dashboard Configuration Loaded Successfully")
     print("="*80)
+    
+    # Display basic config
     for var in required_vars.keys():
         value = config.get(var)
         # Mask sensitive values
@@ -56,6 +51,23 @@ def validate_config(config):
         else:
             display_value = str(value)
         print(f"  {var}: {display_value}")
+    
+    # Display OAuth2 config (already validated in Config.__init__)
+    print(f"  OAUTH2_CLIENT_ID: {config.get('OAUTH2_CLIENT_ID')}")
+    print(f"  OAUTH2_CLIENT_SECRET: ***MASKED***")
+    print(f"  OAUTH2_AUTHORIZE_URL: {config.get('OAUTH2_AUTHORIZE_URL')}")
+    print(f"  OAUTH2_TOKEN_URL: {config.get('OAUTH2_TOKEN_URL')}")
+    print(f"  OAUTH2_REDIRECT_URI: {config.get('OAUTH2_REDIRECT_URI')}")
+    print(f"  OAUTH2_SCOPE: {config.get('OAUTH2_SCOPE')}")
+    print(f"  VERIFY_SSL: {config.get('VERIFY_SSL', True)}")
+    
+    # Display catalog paths
+    catalog_paths = config.get('CATALOG_PATHS', [])
+    if len(catalog_paths) > 1:
+        print(f"  CATALOG_PATHS: {', '.join(str(p) for p in catalog_paths)}")
+    else:
+        print(f"  CATALOG_PATH: {config.get('CATALOG_PATH')}")
+    
     print("="*80 + "\n")
 
 
@@ -69,7 +81,20 @@ def create_app(config_class=Config):
         Configured Flask application
     """
     app = Flask(__name__)
+    
+    # Create config instance (this validates OAuth2 and reads instance vars)
+    config_instance = config_class()
+    
+    # Load configuration from class
     app.config.from_object(config_class)
+    
+    # Copy instance variables to Flask config
+    app.config['HTTP_PORT'] = config_instance.HTTP_PORT
+    app.config['HTTPS_PORT'] = config_instance.HTTPS_PORT
+    app.config['VERIFY_SSL'] = config_instance.VERIFY_SSL
+    app.config['USE_SSL'] = config_instance.USE_SSL
+    app.config['SSL_CERT_FILE'] = config_instance.SSL_CERT_FILE
+    app.config['SSL_KEY_FILE'] = config_instance.SSL_KEY_FILE
     
     # Validate configuration
     validate_config(app.config)

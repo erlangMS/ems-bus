@@ -22,9 +22,9 @@ def requires_auth(f):
 
 def get_catalog_service():
     """Get CatalogService instance."""
-    catalog_path = current_app.config['CATALOG_PATH']
+    catalog_paths = current_app.config.get('CATALOG_PATHS', [current_app.config['CATALOG_PATH']])
     return CatalogService(
-        catalog_path,
+        catalog_paths,
         current_app.config['CREATE_BACKUPS']
     )
 
@@ -94,12 +94,14 @@ def oauth_callback():
         print(f"[OAuth2 Token Exchange] URL: {token_url}")
         print(f"[OAuth2 Token Exchange] Payload: {payload}")
         print(f"[OAuth2 Token Exchange] Basic Auth: {basic_auth}")
+        print(f"[OAuth2 Token Exchange] SSL Verification: {current_app.config.get('VERIFY_SSL', True)}")
         
         token_response = requests.post(
             token_url,
             data=payload,
             headers=headers,
-            timeout=10
+            timeout=10,
+            verify=current_app.config.get('VERIFY_SSL', True)
         )
         
         print(f"[OAuth2 Token Exchange] Status: {token_response.status_code}")
@@ -148,14 +150,31 @@ def index():
     try:
         catalog_service = get_catalog_service()
         
-        # Build catalog tree
-        tree = catalog_service.build_catalog_tree('catalog.json')
+        # Build trees for all catalogs
+        trees = []
+        catalog_dirs = current_app.config.get('CATALOG_PATHS', [current_app.config['CATALOG_PATH']])
         
-        if not tree:
-            flash('Error loading catalog tree', 'error')
-            return render_template('error.html', error='Could not load catalog tree'), 500
+        for catalog_dir in catalog_dirs:
+            # Try catalog.json first
+            catalog_file = catalog_dir / 'catalog.json'
+            if not catalog_file.exists():
+                # Look for any .json file
+                json_files = list(catalog_dir.glob('*.json'))
+                if json_files:
+                    catalog_file = json_files[0]
+                else:
+                    continue
+            
+            tree = catalog_service.build_catalog_tree(catalog_file.name)
+            if tree:
+                tree['_catalog_dir'] = catalog_dir.name
+                trees.append(tree)
         
-        return render_template('index.html', tree=tree)
+        if not trees:
+            flash('Error loading catalog trees', 'error')
+            return render_template('error.html', error='Could not load any catalog trees'), 500
+        
+        return render_template('index.html', trees=trees)
     
     except Exception as e:
         flash(f'Error loading catalog: {e}', 'error')
@@ -167,7 +186,32 @@ def index():
 def list_catalogs():
     """List all available catalogs."""
     try:
-        return render_template('catalogs.html', catalog_paths={'ems-bus': 'catalog.json'})
+        catalog_paths = {}
+        
+        # Get all configured catalog directories
+        catalog_dirs = current_app.config.get('CATALOG_PATHS', [current_app.config['CATALOG_PATH']])
+        
+        # Search for catalog files in each directory
+        for catalog_dir in catalog_dirs:
+            # First try catalog.json (standard name)
+            catalog_file = catalog_dir / 'catalog.json'
+            if catalog_file.exists():
+                catalog_name = catalog_dir.name
+                catalog_paths[catalog_name] = 'catalog.json'
+            else:
+                # Look for any .json file in the root directory
+                json_files = list(catalog_dir.glob('*.json'))
+                if json_files:
+                    # Use the first .json file found
+                    catalog_file = json_files[0]
+                    catalog_name = catalog_dir.name
+                    catalog_paths[catalog_name] = catalog_file.name
+        
+        # Fallback if no catalogs found
+        if not catalog_paths:
+            catalog_paths = {'ems-bus': 'catalog.json'}
+        
+        return render_template('catalogs.html', catalog_paths=catalog_paths)
     
     except Exception as e:
         flash(f'Error loading catalogs: {e}', 'error')
@@ -181,15 +225,30 @@ def view_catalog(catalog_name):
     try:
         catalog_service = get_catalog_service()
         
+        # Find the catalog file for this catalog name
+        catalog_file_name = 'catalog.json'  # default
+        catalog_dirs = current_app.config.get('CATALOG_PATHS', [current_app.config['CATALOG_PATH']])
+        
+        for catalog_dir in catalog_dirs:
+            if catalog_dir.name == catalog_name:
+                # Try catalog.json first
+                catalog_file = catalog_dir / 'catalog.json'
+                if not catalog_file.exists():
+                    # Look for any .json file
+                    json_files = list(catalog_dir.glob('*.json'))
+                    if json_files:
+                        catalog_file_name = json_files[0].name
+                break
+        
         # Load all services recursively
-        services = catalog_service.list_catalogs_recursive('catalog.json')
+        services = catalog_service.list_catalogs_recursive(catalog_file_name)
         
         # Get statistics
-        stats = catalog_service.get_catalog_stats('catalog.json')
+        stats = catalog_service.get_catalog_stats(catalog_file_name)
         
         return render_template('catalog_view.html',
                              catalog_name=catalog_name,
-                             catalog_path='catalog.json',
+                             catalog_path=catalog_file_name,
                              services=services,
                              stats=stats)
     
@@ -287,15 +346,29 @@ def search():
     try:
         catalog_service = get_catalog_service()
         
-        # Search in catalog
+        # Search across all catalogs
         all_results = []
-        try:
-            results = catalog_service.search_catalogs('catalog.json', query)
+        catalog_dirs = current_app.config.get('CATALOG_PATHS', [current_app.config['CATALOG_PATH']])
+        
+        for catalog_dir in catalog_dirs:
+            # Find the catalog file for this directory
+            catalog_file = catalog_dir / 'catalog.json'
+            if not catalog_file.exists():
+                # Look for any .json file
+                json_files = list(catalog_dir.glob('*.json'))
+                if json_files:
+                    catalog_file = json_files[0]
+                else:
+                    continue
+            
+            # Search in this catalog
+            results = catalog_service.search_catalogs(catalog_file.name, query)
+            
+            # Add catalog name to each result
             for result in results:
-                result['_catalog_name'] = 'ems-bus'
+                result['_catalog_name'] = catalog_dir.name
+            
             all_results.extend(results)
-        except Exception as e:
-            flash(f'Error searching catalog: {e}', 'warning')
         
         return render_template('search.html', 
                              query=query, 
