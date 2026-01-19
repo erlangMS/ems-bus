@@ -9,6 +9,25 @@ import requests
 
 bp = Blueprint('main', __name__)
 
+@bp.before_request
+def log_request_info():
+    print(f"[Request Debug] Path: {request.path}")
+    print(f"[Request Debug] Headers: {dict(request.headers)}")
+    print(f"[Request Debug] Cookies: {request.cookies}")
+    if 'ems_dashboard_session' in request.cookies:
+        print(f"[Request Debug] Session cookie found: {request.cookies['ems_dashboard_session'][:20]}...")
+    else:
+        print(f"[Request Debug] NO session cookie found")
+
+
+@bp.after_request
+def log_response_info(response):
+    print(f"[Response Debug] Status: {response.status_code}")
+    print(f"[Response Debug] Headers: {dict(response.headers)}")
+    if 'Set-Cookie' in response.headers:
+        print(f"[Response Debug] Set-Cookie: {response.headers['Set-Cookie']}")
+    return response
+
 
 def requires_auth(f):
     """Decorator to require OAuth2 authentication."""
@@ -110,8 +129,22 @@ def oauth_callback():
         if token_response.status_code == 200:
             token_data = token_response.json()
             session['access_token'] = token_data.get('access_token')
-            session['user'] = token_data.get('resource_owner', {})
-            session['client'] = token_data.get('client', {})
+            
+            # Minimize session data to avoid cookie size limits (4KB)
+            raw_user = token_data.get('resource_owner', {})
+            session['user'] = {
+                'id': raw_user.get('id'),
+                'login': raw_user.get('login'),
+                'name': raw_user.get('name'),
+                'email': raw_user.get('email')
+            }
+            
+            # client info is minimal, likely safe, but let's be safe
+            raw_client = token_data.get('client', {})
+            session['client'] = {
+                'id': raw_client.get('id'),
+                'name': raw_client.get('name')
+            }
             
             print(f"[OAuth2 Token Exchange] Success! Access token: {token_data.get('access_token')[:20]}...")
             print(f"[OAuth2 Token Exchange] User: {token_data.get('resource_owner', {}).get('login')}")
@@ -121,7 +154,36 @@ def oauth_callback():
             flash('Login realizado com sucesso!', 'success')
             
             print(f"[OAuth2 Redirect] Redirecting to index")
-            return redirect(url_for('main.index'))
+            
+            # Debug session size
+            import json
+            try:
+                # Estimate cookie size (base64 overhead approx 1.33x)
+                session_str = json.dumps(dict(session))
+                print(f"[OAuth2 Debug] Session data size (json): {len(session_str)} bytes")
+                print(f"[OAuth2 Debug] Estimated cookie size: {len(session_str) * 1.4} bytes")
+                if len(session_str) * 1.4 > 4000:
+                    print(f"[OAuth2 Debug] WARNING: Session cookie might be too large!")
+            except:
+                pass
+
+            # Create response object to manually set a test cookie
+            response = redirect(url_for('main.index'))
+            
+            # Manually set a test cookie to verify browser acceptance
+            # using the exact same settings we expect for the session
+            response.set_cookie(
+                'debug_cookie', 
+                'hello_world', 
+                max_age=300,
+                secure=False,
+                httponly=False,
+                samesite='Lax',
+                path='/'
+            )
+            print("[OAuth2 Debug] Manually added 'debug_cookie' to response")
+            
+            return response
         else:
             print(f"[OAuth2 Token Exchange] Failed with status {token_response.status_code}")
             flash(f'Falha na autenticação: {token_response.text}', 'error')

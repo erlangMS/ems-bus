@@ -60,6 +60,9 @@ def validate_config(config):
     print(f"  OAUTH2_REDIRECT_URI: {config.get('OAUTH2_REDIRECT_URI')}")
     print(f"  OAUTH2_SCOPE: {config.get('OAUTH2_SCOPE')}")
     print(f"  VERIFY_SSL: {config.get('VERIFY_SSL', True)}")
+    print(f"  SESSION_COOKIE_SECURE: {config.get('SESSION_COOKIE_SECURE')}")
+    print(f"  SESSION_COOKIE_SAMESITE: {config.get('SESSION_COOKIE_SAMESITE')}")
+    print(f"  SESSION_COOKIE_DOMAIN: {config.get('SESSION_COOKIE_DOMAIN')}")
     
     # Display catalog paths
     catalog_paths = config.get('CATALOG_PATHS', [])
@@ -85,16 +88,19 @@ def create_app(config_class=Config):
     # Create config instance (this validates OAuth2 and reads instance vars)
     config_instance = config_class()
     
-    # Load configuration from class
-    app.config.from_object(config_class)
+    # Load configuration from INSTANCE to evaluate properties
+    app.config.from_object(config_instance)
     
-    # Copy instance variables to Flask config
+    # Copy instance variables to Flask config (redundant if using from_object(instance) but safe to keep)
     app.config['HTTP_PORT'] = config_instance.HTTP_PORT
     app.config['HTTPS_PORT'] = config_instance.HTTPS_PORT
     app.config['VERIFY_SSL'] = config_instance.VERIFY_SSL
     app.config['USE_SSL'] = config_instance.USE_SSL
     app.config['SSL_CERT_FILE'] = config_instance.SSL_CERT_FILE
     app.config['SSL_KEY_FILE'] = config_instance.SSL_KEY_FILE
+    
+    # Explicitly set the session cookie secure value from the evaluated property
+    app.config['SESSION_COOKIE_SECURE'] = config_instance.SESSION_COOKIE_SECURE
     
     # Validate configuration
     validate_config(app.config)

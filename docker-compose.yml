@@ -34,7 +34,8 @@ services:
       - "192.168.1.9:5000:5000"
     environment:
       # Define que vai fazer listener na porta 5000
-      - HTTPS_PORT=5000
+      - HTTP_PORT=5000
+      - VERIFY_SSL=False
 
       # OAuth2 settings
       - OAUTH2_CLIENT_ID=1
@@ -52,6 +53,11 @@ services:
       
       # Catalog path
       - CATALOG_PATH=/app/priv/catalog
+
+      # Session Cookie Configuration
+      - SESSION_COOKIE_SECURE=False
+      - SESSION_COOKIE_SECURE=False
+      - SESSION_COOKIE_SAMESITE=Lax
     volumes:
       # Mount catalog directory for read/write access
       - ./priv/catalog:/app/priv/catalog:rw

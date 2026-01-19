@@ -15,9 +15,7 @@
 # Data       |  Quem           |  Mensagem  
 # -----------------------------------------------------------------------------------------------------
 # 10/11/2015  Everton Agilar     Initial release script release
-# 29/09/2017  Everton Agilar     Reads /etc/default/erlangms-build
-# 05/05/2018  Everton Agilar     Build with docker
-#
+# 19/01/2026  Everton Agilar     Instalação do rebar3 se não estiver instalado
 #
 #
 #
@@ -30,7 +28,7 @@ LINUX_DISTRO=$(awk -F"=" '{ if ($1 == "ID"){
                             } 
                           }' /etc/os-release)
 
-VERSION_SCRIPT="3.0.1"
+VERSION_SCRIPT="3.0.2"
 
 
 # Necessário para as bibliotecas c utilizadas
@@ -38,8 +36,8 @@ export CFLAGS='-std=c11 -static -w'
 export CXXFLAGS='-w'
 echo "Usando CFLAGS=$CFLAGS"
 
-# Erlang Runtime version required > 20
-ERLANG_VERSION=20
+# Erlang Runtime version required
+ERLANG_VERSION=24
 
 # Skip deps before build 
 SKIP_DEPS="false"
@@ -125,22 +123,6 @@ le_setting () {
 }    
 
 
-# Reads the settings for running the default configuration file /etc/default/erlangms-docker
-# These configurations can be redefined via the command line
-le_all_settings () {
-    printf "Verify if exist conf file $CONFIG_ARQ... "
-    if [ -f "$CONFIG_ARQ" ]; then
-        printf "OK\n"
-        echo "Reading settings from $CONFIG_ARQ... OK"
-        SKIP_DEPS=$(le_setting 'SKIP_DEPS' "$SKIP_DEPS")
-        SKIP_CLEAN=$(le_setting 'SKIP_CLEAN' "$SKIP_CLEAN")
-        KEEP_DB=$(le_setting 'KEEP_DB' "$KEEP_DB")
-        ERLANG_VERSION=$(le_setting 'ERLANG_VERSION' "$ERLANG_VERSION" | sed 's/[^0-9]//g')
-    else
-        printf "NO\n"
-    fi
-}
-
 ## Checks if the version of erlang installed is compatible with this script
 check_erlang_version(){
     printf "Checking Erlang Runtime version... "
@@ -165,8 +147,6 @@ function clean_deps(){
 ensure_rebar() {
     if command -v rebar3 &> /dev/null; then
         REBAR="rebar3"
-    elif command -v rebar &> /dev/null; then
-        REBAR="rebar"
     elif [ -f tools/rebar/rebar3 ]; then
         REBAR="tools/rebar/rebar3"
     else
@@ -190,8 +170,6 @@ ensure_rebar() {
 if [ "$1" = "--help" ]; then
     help
 fi
-
-le_all_settings
 
 # Read command line parameters
 for P in $*; do

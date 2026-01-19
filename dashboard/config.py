@@ -82,9 +82,18 @@ class Config:
     @property
     def SESSION_COOKIE_SECURE(self):
         """Enable secure cookies when using HTTPS."""
+        # Allow override via environment variable
+        secure_env = os.environ.get('SESSION_COOKIE_SECURE')
+        if secure_env is not None:
+             return secure_env.lower() not in ('false', '0', 'no', 'off')
         return self.USE_SSL
+    
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Allow cookies in OAuth2 redirects
+    SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    if SESSION_COOKIE_SAMESITE.lower() in ('none', 'null', ''):
+        SESSION_COOKIE_SAMESITE = None
+        
+    SESSION_COOKIE_PATH = '/'
     SESSION_COOKIE_NAME = 'ems_dashboard_session'
     
     # CORS configuration
