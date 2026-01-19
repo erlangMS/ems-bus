@@ -76,9 +76,6 @@ def create_app(config_class=Config):
     
     # Enable CORS for all routes (OAuth2 requires cross-origin requests)
     # CRITICAL: When using credentials, cannot use origins="*", must specify exact origins
-    print(f"[CORS Config] Allowed origins: {app.config['CORS_ALLOWED_ORIGINS']}")
-    print(f"[CORS Config] Supports credentials: True")
-    
     CORS(app, 
          resources={r"/*": {"origins": app.config['CORS_ALLOWED_ORIGINS']}}, 
          supports_credentials=True)
@@ -86,12 +83,5 @@ def create_app(config_class=Config):
     # Register routes
     from app import routes
     app.register_blueprint(routes.bp)
-    
-    @app.after_request
-    def log_response_headers(response):
-        """Log Set-Cookie headers for debugging."""
-        if 'Set-Cookie' in response.headers:
-            print(f"[Cookie Debug] Set-Cookie: {response.headers.getlist('Set-Cookie')}")
-        return response
     
     return app

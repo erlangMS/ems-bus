@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <title>{% block title %}ems-bus Catalog Manager{% endblock %}</title>
     <style>
         * {
@@ -229,7 +230,11 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <a href="{{ url_for('main.index') }}" class="logo">🚀 ems-bus Catalog Manager</a>
+                <a href="{{ url_for('main.index') }}" class="logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="logo"
+                        style="height: 40px; vertical-align: middle; margin-right: 10px;">
+                    ErlangMS - API Management
+                </a>
                 <nav>
                     <ul>
                         {% if session.get('access_token') %}
@@ -264,7 +269,7 @@
 
     <footer>
         <div class="container">
-            <p>ems-bus Catalog Manager | Flask + Jinja2 | Server-Side Processing</p>
+            <p>@author: Everton de Vargas Agilar</p>
         </div>
     </footer>
 

@@ -136,7 +136,51 @@ Cliente → Envia refresh_token → Servidor OAuth2 → Retorna novo access_toke
 
 ## Fluxos de Autenticação
 
-### 1. Password Grant Flow
+### 1. Authorization Code Grant Flow
+(Usado pelo Dashboard)
+
+Este é o fluxo mais seguro e recomendado para aplicações web server-side.
+
+**Componentes Específicos do ems-bus:**
+*   A página de login padrão (`/priv/www/login`) utiliza **AJAX** para submissão.
+*   Por isso, o endpoint `/code_request` retorna **200 OK** com um JSON `{"redirect": "..."}` em vez de um redirect 302 direto.
+*   Isso garante que o script de login possa fazer um redirecionamento `top-level` (`window.location.href`), preservando cookies de sessão da aplicação cliente.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant ClientApp as Dashboard
+    participant AuthServer as ems-bus (Auth)
+    
+    User->>ClientApp: Clica em "Login"
+    ClientApp->>Browser: Redirect para /authorize
+    Browser->>AuthServer: GET /authorize?response_type=code&client_id=1...
+    AuthServer-->>Browser: Retorna página de Login (HTML + login.js)
+    
+    User->>Browser: Digita usuário/senha
+    Browser->>AuthServer: AJAX POST /code_request (Basic Auth)
+    Note over Browser,AuthServer: Autenticação via AJAX
+    
+    AuthServer-->>Browser: 200 OK {"redirect": "http://dashboard/callback?code=..."}
+    Note right of Browser: login.js faz window.location.href = redirect
+    
+    Browser->>ClientApp: GET /callback?code=...
+    ClientApp->>AuthServer: POST /authorize (Server-to-Server)
+    Note over ClientApp,AuthServer: Troca code por token
+    AuthServer-->>ClientApp: access_token + refresh_token
+    
+    ClientApp->>Browser: Cria sessão (Cookie) e redireciona para /
+    Browser->>ClientApp: GET / (com Cookie de Sessão)
+    ClientApp-->>User: Página autenticada
+```
+
+**Requisitos Críticos:**
+1.  **CORS**: A aplicação cliente deve habilitar CORS com `supports_credentials=True`.
+2.  **Origens**: Não use `*` no CORS; especifique as origens exatas (ex: `http://192.168.1.9:2301`).
+3.  **Redirecionamento**: O cliente deve acessar o dashboard pelo IP/Domínio correto, não `localhost`, para que os cookies sejam aceitos.
+
+### 2. Password Grant Flow
 
 ```mermaid
 sequenceDiagram
@@ -194,8 +238,8 @@ sequenceDiagram
 curl -X POST http://localhost:2301/authorize \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
-  -d "username=admin" \
-  -d "password=senha123" \
+  -d "username=erlangms" \
+  -d "password=123456" \
   -d "scope=user_db user_fs"
 ```
 
@@ -210,9 +254,9 @@ curl -X POST http://localhost:2301/authorize \
   "scope": "user_db user_fs",
   "resource_owner": {
     "id": 1,
-    "login": "admin",
-    "name": "Administrador",
-    "email": "admin@example.com",
+    "login": "erlangms",
+    "name": "erlangms",
+    "email": "erlangms@unb.br",
     "lista_perfil": ["admin"],
     "lista_permission": ["*"]
   }
@@ -236,8 +280,8 @@ curl -X POST http://localhost:2301/authorize \
 curl -X POST http://localhost:2301/authorize \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=client_credentials" \
-  -d "client_id=meu_app" \
-  -d "client_secret=secret_key_123" \
+  -d "client_id=1" \
+  -d "client_secret=CPD" \
   -d "scope=user_db"
 ```
 
@@ -343,8 +387,8 @@ curl -X POST http://localhost:2301/revoke \
 
 # Configurações
 BASE_URL="http://localhost:2301"
-USERNAME="admin"
-PASSWORD="senha123"
+USERNAME="erlangms"
+PASSWORD="123456"
 TOKEN_FILE="/tmp/ems_token.json"
 
 # Função para obter token
@@ -455,7 +499,7 @@ class EMSBusClient:
         return response.json()
 
 # Uso
-client = EMSBusClient("http://localhost:2301", "admin", "senha123")
+client = EMSBusClient("http://localhost:2301", "erlangms", "123456")
 client.authenticate()
 users = client.get("/api/users")
 print(users)
@@ -526,7 +570,7 @@ class EMSBusClient {
 
 // Uso
 (async () => {
-    const client = new EMSBusClient('http://localhost:2301', 'admin', 'senha123');
+    const client = new EMSBusClient('http://localhost:2301', 'erlangms', '123456');
     await client.authenticate();
     const users = await client.get('/api/users');
     console.log(users);
@@ -544,7 +588,7 @@ class EMSBusClient {
 **Solução:**
 ```bash
 # Verificar usuário existe
-curl http://localhost:2301/api/users?filter=login:admin
+curl http://localhost:2301/api/users?filter=login:erlangms
 
 # Verificar logs do barramento
 docker logs ems-bus | grep -i "invalid_grant"
@@ -557,7 +601,7 @@ docker logs ems-bus | grep -i "invalid_grant"
 **Solução:**
 ```bash
 # Verificar cliente cadastrado
-curl http://localhost:2301/api/clients?filter=client_id:meu_app
+curl http://localhost:2301/api/clients?filter=client_id:1
 ```
 
 ### Erro: "token_expired"
@@ -581,8 +625,8 @@ curl -X POST http://localhost:2301/authorize \
 # Solicitar token com scopes corretos
 curl -X POST http://localhost:2301/authorize \
   -d "grant_type=password" \
-  -d "username=admin" \
-  -d "password=senha123" \
+  -d "username=erlangms" \
+  -d "password=123456" \
   -d "scope=user_db user_fs admin"
 ```
 

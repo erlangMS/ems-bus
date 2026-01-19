@@ -14,16 +14,7 @@ def requires_auth(f):
     """Decorator to require OAuth2 authentication."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        print(f"[Auth Check] Request URL: {request.url}")
-        print(f"[Auth Check] Request Method: {request.method}")
-        print(f"[Auth Check] Request Headers: {dict(request.headers)}")
-        print(f"[Auth Check] Session keys: {list(session.keys())}")
-        
-        if 'access_token' in session:
-            print(f"[Auth Check] Access token: {session['access_token'][:20]}...")
-        
         if 'access_token' not in session:
-            print(f"[Auth Check] No access token, redirecting to login")
             return redirect(url_for('main.login_page'))
         return f(*args, **kwargs)
     return decorated
@@ -54,11 +45,6 @@ def oauth_login():
         'scope': current_app.config['OAUTH2_SCOPE']
     }
     auth_url = f"{current_app.config['OAUTH2_AUTHORIZE_URL']}?{urlencode(params)}"
-    
-    print(f"[OAuth2] Redirecting to authorization URL: {auth_url}")
-    print(f"[OAuth2] Client ID: {current_app.config['OAUTH2_CLIENT_ID']}")
-    print(f"[OAuth2] Redirect URI: {current_app.config['OAUTH2_REDIRECT_URI']}")
-    
     return redirect(auth_url)
 
 
