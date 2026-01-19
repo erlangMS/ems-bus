@@ -61,12 +61,12 @@ def oauth_callback():
     
     if error:
         print(f"[OAuth2 Callback] Authentication error: {error}")
-        flash(f'Authentication error: {error}', 'error')
+        flash(f'Erro de autenticação: {error}', 'error')
         return redirect(url_for('main.login_page'))
     
     if not code:
         print(f"[OAuth2 Callback] No authorization code received")
-        flash('No authorization code received', 'error')
+        flash('Nenhum código de autorização recebido', 'error')
         return redirect(url_for('main.login_page'))
     
     try:
@@ -116,20 +116,20 @@ def oauth_callback():
             print(f"[OAuth2 Session] Saved to session - keys: {list(session.keys())}")
             print(f"[OAuth2 Session] Session access_token: {session.get('access_token', 'NOT FOUND')[:20] if session.get('access_token') else 'NOT FOUND'}...")
             
-            flash('Successfully logged in!', 'success')
+            flash('Login realizado com sucesso!', 'success')
             
             print(f"[OAuth2 Redirect] Redirecting to index")
             return redirect(url_for('main.index'))
         else:
             print(f"[OAuth2 Token Exchange] Failed with status {token_response.status_code}")
-            flash(f'Authentication failed: {token_response.text}', 'error')
+            flash(f'Falha na autenticação: {token_response.text}', 'error')
             return redirect(url_for('main.login_page'))
     
     except Exception as e:
         print(f"[OAuth2 Token Exchange] Exception: {str(e)}")
         import traceback
         traceback.print_exc()
-        flash(f'Authentication error: {str(e)}', 'error')
+        flash(f'Erro de autenticação: {str(e)}', 'error')
         return redirect(url_for('main.login_page'))
 
 
@@ -137,7 +137,7 @@ def oauth_callback():
 def logout():
     """Logout user by clearing session."""
     session.clear()
-    flash('Successfully logged out', 'success')
+    flash('Logout realizado com sucesso', 'success')
     return redirect(url_for('main.login_page'))
 
 
@@ -245,7 +245,7 @@ def edit_catalog_file(catalog_name, file_path):
             # Save catalog
             catalog_service.save_catalog(file_path, parsed_data)
             
-            flash('Catalog saved successfully! Backup created.', 'success')
+            flash('Catálogo salvo com sucesso! Backup criado.', 'success')
             return redirect(url_for('main.view_catalog_file', 
                                   catalog_name=catalog_name, 
                                   file_path=file_path))
@@ -348,9 +348,8 @@ def edit_service_entry(file_path, entry_index):
                 if value:  # Only include non-empty values
                     updated_entry[key] = value
             
-            # Update the entry
             if catalog_service.update_service_entry(file_path, entry_index, updated_entry):
-                flash('Service entry updated successfully!', 'success')
+                flash('Serviço atualizado com sucesso!', 'success')
                 return redirect(url_for('main.view_service_entry', 
                                       file_path=file_path, 
                                       entry_index=entry_index))

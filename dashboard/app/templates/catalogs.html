@@ -1,28 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Catálogos - Catalog Manager{% endblock %}
+{% block title %}Catálogos - ErlangMS{% endblock %}
+{% block page_header %}Catálogos Disponíveis{% endblock %}
 
 {% block content %}
-<h1 style="font-size: 2rem; margin-bottom: 2rem;">📚 Catálogos Disponíveis</h1>
-
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+<div class="row">
     {% for catalog_name, catalog_path in catalog_paths.items() %}
-    <div class="card">
-        <div class="card-header">{{ catalog_name }}</div>
-        <p class="text-small text-muted" style="margin-bottom: 1rem;">{{ catalog_path }}</p>
-        <a href="{{ url_for('main.view_catalog', catalog_name=catalog_name) }}" class="btn btn-primary"
-            style="width: 100%; text-align: center;">
-            Ver Catálogo
-        </a>
+    <div class="col-lg-4 col-md-6 col-sm-12">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h5 class="card-title m-0">{{ catalog_name }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted">{{ catalog_path }}</p>
+                <a href="{{ url_for('main.view_catalog', catalog_name=catalog_name) }}" class="btn btn-primary">
+                    <i class="fas fa-eye mr-1"></i> Ver Catálogo
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5><i class="icon fas fa-exclamation-triangle"></i> Atenção!</h5>
+            Nenhum catálogo configurado no sistema.
+        </div>
     </div>
     {% endfor %}
 </div>
-
-{% if not catalog_paths %}
-<div class="card">
-    <p class="text-muted" style="text-align: center; padding: 2rem;">
-        Nenhum catálogo configurado
-    </p>
-</div>
-{% endif %}
 {% endblock %}

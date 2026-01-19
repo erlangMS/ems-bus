@@ -1,79 +1,93 @@
 {% extends "base.html" %}
 
-{% block title %}{{ file_path }} - Catalog Manager{% endblock %}
+{% block title %}{{ file_path }} - ErlangMS{% endblock %}
+{% block page_header %}Arquivo: {{ file_path }}{% endblock %}
 
 {% block extra_css %}
 <style>
     .json-display {
         background: #1e293b;
         color: #e2e8f0;
-        padding: 1.5rem;
-        border-radius: 8px;
-        overflow-x: auto;
+        padding: 1rem;
+        border-radius: 4px;
         font-family: 'Courier New', monospace;
         font-size: 0.9rem;
-        line-height: 1.5;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">📄 {{ file_path }}</h1>
-    <p class="text-muted">{{ full_path }}</p>
-</div>
-
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <div class="card-header" style="margin-bottom: 0;">Informações</div>
-        <a href="{{ url_for('main.edit_catalog_file', catalog_name=catalog_name, file_path=file_path) }}"
-            class="btn btn-primary">✏️ Editar</a>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-        <div>
-            <p class="text-small text-muted">Total de Entradas</p>
-            <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ data|length }}</p>
-        </div>
-        <div>
-            <p class="text-small text-muted">Catálogo</p>
-            <p style="font-weight: 600;">{{ catalog_name }}</p>
-        </div>
+<div class="row mb-3">
+    <div class="col-12">
+        <p class="text-muted"><i class="far fa-file-alt mr-1"></i> {{ full_path }}</p>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">Conteúdo JSON</div>
-    <pre class="json-display">{{ json_content }}</pre>
-</div>
-
-<div class="card" style="margin-top: 1.5rem;">
-    <div class="card-header">Entradas ({{ data|length }})</div>
-
-    {% for item in data %}
-    <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-            <div>
-                <p style="font-weight: 600; margin-bottom: 0.25rem;">
-                    {{ item.name or item.catalog or 'Sem nome' }}
-                </p>
-                {% if item.comment %}
-                <p class="text-small text-muted">{{ item.comment }}</p>
-                {% endif %}
-                {% if item.file %}
-                <p class="text-small" style="margin-top: 0.5rem;">
-                    📁 Referência: <code>{{ item.file }}</code>
-                </p>
-                {% endif %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card card-outline card-primary">
+            <div class="card-header">
+                <h3 class="card-title">Informações</h3>
             </div>
-            {% if item.type %}
-            <span
-                style="background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                {{ item.type }}
-            </span>
-            {% endif %}
+            <div class="card-body">
+                <strong><i class="fas fa-layer-group mr-1"></i> Catálogo</strong>
+                <p class="text-muted">{{ catalog_name }}</p>
+                <hr>
+                <strong><i class="fas fa-list-ol mr-1"></i> Total de Entradas</strong>
+                <p class="text-muted">{{ data|length }}</p>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('main.edit_catalog_file', catalog_name=catalog_name, file_path=file_path) }}"
+                    class="btn btn-primary btn-block">
+                    <i class="fas fa-edit mr-1"></i> Editar Arquivo
+                </a>
+            </div>
         </div>
     </div>
-    {% endfor %}
+
+    <div class="col-md-8">
+        <div class="card card-outline card-info collapsed-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-code mr-1"></i> Conteúdo JSON (Raw)</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse"><i
+                            class="fas fa-plus"></i></button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <pre class="json-display m-0">{{ json_content }}</pre>
+            </div>
+        </div>
+
+        <div class="card card-outline card-success">
+            <div class="card-header">
+                <h3 class="card-title">Entradas Processadas</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-striped">
+                    <tbody>
+                        {% for item in data %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.name or item.catalog or 'Sem nome' }}</strong>
+                                {% if item.comment %}
+                                <br><small class="text-muted">{{ item.comment }}</small>
+                                {% endif %}
+                                {% if item.file %}
+                                <br><small class="text-primary"><i class="fas fa-link mr-1"></i> {{ item.file }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">
+                                {% if item.type %}
+                                <span class="badge badge-info">{{ item.type }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - ems-bus Catalog Manager{% endblock %}
+{% block title %}Dashboard - ErlangMS{% endblock %}
+{% block page_header %}Índice de Catálogos{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -30,13 +31,15 @@
     }
 
     .tree-folder:hover {
-        background: var(--bg);
+        background: rgba(0, 0, 0, 0.05);
     }
 
     .tree-icon {
         font-size: 1.2rem;
         width: 1.5rem;
         text-align: center;
+        color: #ffc107;
+        /* Warning color for folders */
     }
 
     .tree-service {
@@ -51,7 +54,8 @@
     }
 
     .tree-service:hover {
-        background: var(--bg);
+        background: rgba(0, 0, 0, 0.05);
+        color: #007bff;
     }
 
     .tree-children {
@@ -65,6 +69,7 @@
     .expand-icon {
         transition: transform 0.2s;
         display: inline-block;
+        color: #6c757d;
     }
 
     .expand-icon.expanded {
@@ -81,10 +86,10 @@
     {% if node.children %}
     {# This is a master catalog (folder) #}
     <div class="tree-folder" onclick="toggleNode(this)">
-        <span class="expand-icon">▶</span>
-        <span class="tree-icon">📁</span>
+        <span class="expand-icon"><i class="fas fa-chevron-right"></i></span>
+        <span class="tree-icon"><i class="fas fa-folder"></i></span>
         <strong>{{ node.name }}</strong>
-        <span class="text-small text-muted">({{ node.children|length + node.services|length }} items)</span>
+        <span class="badge badge-info ml-2">{{ node.children|length + node.services|length }} itens</span>
     </div>
     <ul class="tree-children">
         {# Render child catalogs #}
@@ -97,13 +102,10 @@
         <li class="tree-node">
             <a href="{{ url_for('main.view_service_entry', file_path=service._file, entry_index=service._index) }}"
                 class="tree-service">
-                <span class="tree-icon">📄</span>
-                <span>{{ service.name or service.catalog or service.url or 'Unnamed Service' }}</span>
+                <span class="tree-icon" style="color: #6c757d;"><i class="far fa-file-code"></i></span>
+                <span>{{ service.name or service.catalog or service.url or 'Serviço sem nome' }}</span>
                 {% if service.type %}
-                <span
-                    style="background: var(--primary); color: white; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">
-                    {{ service.type }}
-                </span>
+                <span class="badge badge-primary ml-auto">{{ service.type }}</span>
                 {% endif %}
             </a>
         </li>
@@ -115,13 +117,10 @@
 <li class="tree-node">
     <a href="{{ url_for('main.view_service_entry', file_path=service._file, entry_index=service._index) }}"
         class="tree-service">
-        <span class="tree-icon">📄</span>
-        <span>{{ service.name or service.catalog or service.url or 'Unnamed Service' }}</span>
+        <span class="tree-icon" style="color: #6c757d;"><i class="far fa-file-code"></i></span>
+        <span>{{ service.name or service.catalog or service.url or 'Serviço sem nome' }}</span>
         {% if service.type %}
-        <span
-            style="background: var(--primary); color: white; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">
-            {{ service.type }}
-        </span>
+        <span class="badge badge-primary ml-auto">{{ service.type }}</span>
         {% endif %}
     </a>
 </li>
@@ -131,14 +130,30 @@
 {% endif %}
 {% endmacro %}
 
-<h1 style="font-size: 2rem; margin-bottom: 2rem;">📊 Índice de Catálogos</h1>
-
-<div class="card">
-    <div class="card-header">Catalog Tree</div>
-
-    <ul class="tree">
-        {{ render_tree_node(tree) }}
-    </ul>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-sitemap mr-2"></i> Estrutura de Serviços</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button type="button" class="btn btn-tool" data-card-widget="maximize">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <ul class="tree">
+                    {{ render_tree_node(tree) }}
+                </ul>
+            </div>
+            <div class="card-footer text-muted">
+                Selecione um serviço para visualizar ou editar seus detalhes.
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>

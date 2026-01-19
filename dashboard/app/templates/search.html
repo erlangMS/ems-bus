@@ -1,85 +1,98 @@
 {% extends "base.html" %}
 
-{% block title %}Buscar - Catalog Manager{% endblock %}
+{% block title %}Buscar - ErlangMS{% endblock %}
+{% block page_header %}Buscar Serviços{% endblock %}
 
 {% block content %}
-<h1 style="font-size: 2rem; margin-bottom: 2rem;">🔍 Buscar Serviços</h1>
-
-<div class="search-box">
-    <form action="{{ url_for('main.search') }}" method="get">
-        <input type="text" name="q" class="search-input" placeholder="Digite para buscar..." value="{{ query }}"
-            autofocus>
-    </form>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card card-primary">
+            <div class="card-header">
+                <h3 class="card-title">Filtros de Busca</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('main.search') }}" method="get">
+                    <div class="input-group input-group-lg">
+                        <input type="text" name="q" class="form-control"
+                            placeholder="Digite nome, url ou tipo do serviço..." value="{{ query }}" autofocus>
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-lg btn-default">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% if query %}
-<div class="card">
-    <div class="card-header">
-        Resultados para "{{ query }}"
-        {% if result_count is defined %}
-        <span class="text-muted">({{ result_count }} encontrado{{ 's' if result_count != 1 else '' }})</span>
-        {% endif %}
-    </div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Resultados para "<strong>{{ query }}</strong>"</h3>
+                {% if result_count is defined %}
+                <div class="card-tools">
+                    <span class="badge badge-info">{{ result_count }} encontrado{{ 's' if result_count != 1 else ''
+                        }}</span>
+                </div>
+                {% endif %}
+            </div>
 
-    {% if results %}
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                    <th style="padding: 0.75rem;">Nome</th>
-                    <th style="padding: 0.75rem;">URL</th>
-                    <th style="padding: 0.75rem;">Tipo</th>
-                    <th style="padding: 0.75rem;">Catálogo</th>
-                    <th style="padding: 0.75rem;">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for result in results %}
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.75rem;">
-                        <strong>{{ result.name or result.catalog or '-' }}</strong>
-                        {% if result.comment %}
-                        <br><span class="text-small text-muted">{{ result.comment }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 0.75rem;">
-                        <code
-                            style="background: var(--bg); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">
-                                        {{ result.url or '-' }}
-                                    </code>
-                    </td>
-                    <td style="padding: 0.75rem;">
-                        <span
-                            style="background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                            {{ result.type or '-' }}
-                        </span>
-                    </td>
-                    <td style="padding: 0.75rem;">
-                        <span class="text-small">{{ result._catalog_name }}</span>
-                        <br><span class="text-small text-muted">{{ result._source_file }}</span>
-                    </td>
-                    <td style="padding: 0.75rem;">
-                        <a href="{{ url_for('main.view_catalog_file', catalog_name=result._catalog_name, file_path=result._source_file) }}"
-                            class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                            Ver Arquivo
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            {% if results %}
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover text-nowrap">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>URL</th>
+                            <th>Tipo</th>
+                            <th>Catálogo / Arquivo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr>
+                            <td>
+                                <strong>{{ result.name or result.catalog or '-' }}</strong>
+                                {% if result.comment %}
+                                <br><small class="text-muted">{{ result.comment }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code>{{ result.url or '-' }}</code>
+                            </td>
+                            <td>
+                                <span class="badge badge-success">{{ result.type or '-' }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-light">{{ result._catalog_name }}</span>
+                                <br><small class="text-muted">{{ result._source_file }}</small>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.view_catalog_file', catalog_name=result._catalog_name, file_path=result._source_file) }}"
+                                    class="btn btn-sm btn-info">
+                                    <i class="fas fa-file-code mr-1"></i> Ver Arquivo
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card-body">
+                <div class="callout callout-warning">
+                    <h5>Nenhum resultado encontrado</h5>
+                    <p>Não encontramos serviços correspondentes a "{{ query }}". Tente outros termos.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
-    {% else %}
-    <p class="text-muted" style="padding: 2rem; text-align: center;">
-        Nenhum resultado encontrado para "{{ query }}"
-    </p>
-    {% endif %}
-</div>
-{% else %}
-<div class="card">
-    <p class="text-muted" style="text-align: center; padding: 2rem;">
-        Digite algo no campo de busca para procurar serviços
-    </p>
 </div>
 {% endif %}
 {% endblock %}
