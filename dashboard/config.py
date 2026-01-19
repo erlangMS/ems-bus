@@ -6,7 +6,7 @@ class Config:
     """Base configuration."""
     
     # Flask settings
-    SECRET_KEY = os.environ.get('SECRET_KEY')
+    SECRET_KEY = os.environ.get('FLASK_SESSION_SECRET_KEY')
     
     # OAuth2 settings
     OAUTH2_CLIENT_ID = os.environ.get('OAUTH2_CLIENT_ID')

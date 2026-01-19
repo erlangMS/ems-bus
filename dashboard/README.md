@@ -132,7 +132,7 @@ Change credentials in `.env`:
 ```bash
 CATALOG_USERNAME=your_username
 CATALOG_PASSWORD=your_secure_password
-SECRET_KEY=generate-a-random-secret-key
+FLASK_SESSION_SECRET_KEY=generate-a-random-secret-key
 ```
 
 ### Custom Paths
