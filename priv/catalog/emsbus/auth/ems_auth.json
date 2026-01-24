@@ -46,9 +46,5 @@
 	{
 		"catalog": "/emsbus/auth/ems_netadm_auth_client",
 		"file": "ems_netadm_auth_client.json"
-	},
-	{
-		"catalog": "/emsbus/auth/ems_oauth2_metadata_service",
-		"file": "ems_oauth2_metadata_service.json"
 	}
 ]
