@@ -9,7 +9,7 @@
 %%% *file/1 functions show very bad performance.
 
 -module(sha1).
--export([binstring/1, hexstring/1, binfile/1, hexfile/1]).
+-export([binstring/1]).
 -import(lists, [nth/2, map/2, foldl/3]).
 
 binstring(S) -> fun_apply(S, fun list_to_binary/1, fun(X)->X end).

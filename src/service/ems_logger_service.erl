@@ -11,10 +11,7 @@
 -include("include/ems_config.hrl").
 -include("include/ems_schema.hrl").
 
--export([log_file_head/1, 
-		 log_file_tail/1, 
-		 log_file_name/1, 
-		 check_debug_mode/1, 
+-export([check_debug_mode/1, 
 		 set_debug_mode/1, 
 		 unset_debug_mode/1, 
 		 sync/1,
@@ -28,40 +25,6 @@
 		 print_error_log/1,
 		 print_debug_log/1]).
 
-log_file_tail(Request) ->	
-	QtdLines = ems_util:get_param_url(<<"id">>, 2000, Request),
-	case ems_logger:log_file_tail(QtdLines) of
-		{ok, FileList} ->
-			{ok, Request#request{code = 200, 
-								 content_type_out = <<"text/file">>,
-								 response_data = FileList}
-			};
-		Error -> 
-			{error, Request#request{code = 200, 
-									response_data = Error}
-			}
-	end.
-
-log_file_head(Request) ->	
-	QtdLines = ems_util:get_param_url(<<"id">>, 2000, Request),
-	case ems_logger:log_file_head(QtdLines) of
-		{ok, FileList} ->
-			{ok, Request#request{code = 200, 
-								 content_type_out = <<"text/file">>,
-								 response_data = FileList}
-			};
-		Error -> 
-			{error, Request#request{code = 200, 
-									response_data = Error}
-			}
-	end.
-
-
-log_file_name(Request) ->	
-	Filename = ems_logger:log_file_name(),
-	{ok, Request#request{code = 200, 
-						 response_data = ems_schema:to_json({ok, Filename})}
-	}.
    
 check_debug_mode(Request) ->	
 	{ok, Request#request{code = 200, 
@@ -109,7 +72,6 @@ hide_response(Request) ->
 	}.
 
 checkpoint(Request) ->	
-	ems_logger:checkpoint(),
 	{ok, Request#request{code = 200, 
 						 response_data = ?OK_JSON}
 	}.

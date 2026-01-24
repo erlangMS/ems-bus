@@ -8,10 +8,6 @@
 		"file": "ems_cache.json"
 	},
 	{
-		"catalog": "/emsbus/ems_logger",
-		"file": "ems_logger.json"
-	},
-	{
 		"catalog": "/emsbus/ems_odbc_pool",
 		"file": "ems_odbc_pool.json"
 	},
@@ -38,9 +34,5 @@
 	{
 		"catalog": "/emsbus/tcp_servers",
 		"file": "tcp_servers/ems_tcp_servers.json"
-	},
-	{
-		"catalog": "/emsbus/ems_barramento_service",
-		"file": "ems_barramento_service.json"
 	}
 ]

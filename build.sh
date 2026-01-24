@@ -142,6 +142,7 @@ check_erlang_version(){
 function clean_deps(){
     echo "Clearing the deps folder..."
     rm -rf ./deps
+    rm -rf ./ebin
 }
 
 ensure_rebar() {

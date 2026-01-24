@@ -23,33 +23,47 @@ start_link(Args) ->
 
 init([]) ->
 	KernelServices = ems_catalog_lookup:list_kernel_catalog(),
-    PoolSpecs = lists:map(
+    PoolSpecs = lists:foldl(
 		fun(S = #service{name = WorkerName, 
 						  pool_size = PoolSize, 
 						  pool_max = PoolMax, 
-						  module = Worker}) ->
-					WorkerNameAtom = list_to_atom(binary_to_list(WorkerName)),
-					case PoolMax == 1 of
-						true -> 
-							{WorkerNameAtom,
-								{?MODULE, start_process, [[Worker, start, S]]},
-								permanent, 10000, worker,  [WorkerNameAtom]
-							};
+						  module = Worker}, Acc) ->
+			% Check if the module exists and exports start/1
+			case code:ensure_loaded(Worker) of
+				{module, Worker} ->
+					case erlang:function_exported(Worker, start, 1) of
+						true ->
+							WorkerNameAtom = list_to_atom(binary_to_list(WorkerName)),
+							Child = case PoolMax == 1 of
+								true -> 
+									{WorkerNameAtom,
+										{?MODULE, start_process, [[Worker, start, S]]},
+										permanent, 10000, worker,  [WorkerNameAtom]
+									};
+								false ->
+									{WorkerNameAtom, 
+										{?MODULE, start_process_sup, [[poolboy, 
+																	   start_link, 
+																	   [[{strategy, fifo},
+																		 {name, {local, WorkerNameAtom}},
+																		 {worker_module, Worker},
+																		 {size, PoolSize},
+																		 {max_overflow, PoolMax}], S]
+																	   ]]},
+										 permanent, 10000, worker, [poolboy]
+									}
+							end,
+							[Child | Acc];
 						false ->
-							{WorkerNameAtom, 
-								{?MODULE, start_process_sup, [[poolboy, 
-															   start_link, 
-															   [[{strategy, fifo},
-																 {name, {local, WorkerNameAtom}},
-																 {worker_module, Worker},
-																 {size, PoolSize},
-																 {max_overflow, PoolMax}], S]
-															   ]]},
-								 permanent, 10000, worker, [poolboy]
-							}
-					end
-		end, KernelServices),
-	{ok, {{one_for_one, 10, 10}, PoolSpecs}}.
+							ems_logger:warn("ems_bus_sup skipped service ~p: module ~p does not export start/1.", [WorkerName, Worker]),
+							Acc
+					end;
+				_ ->
+					ems_logger:warn("ems_bus_sup skipped service ~p: module ~p not found.", [WorkerName, Worker]),
+					Acc
+			end
+		end, [], KernelServices),
+	{ok, {{one_for_one, 10, 10}, lists:reverse(PoolSpecs)}}.
 	
 
 start_process([Module, Function, Service = #service{name = WorkerName}]) ->

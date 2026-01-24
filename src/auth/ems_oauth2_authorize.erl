@@ -746,7 +746,7 @@ parse_passport_code(PassportCodeBinBase64) ->
 								end;
 							_ -> 
 								put(parse_passport_code_step, parse_passport_code_pass10),
-								ms_logger:error("ems_oauth2_authorize parse_passport_code failed to find client of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
+								ems_logger:error("ems_oauth2_authorize parse_passport_code failed to find client of passport ~s (~s).", [PassportCodeBinBase64Str, PassportCodeStr2]),
 								{error, eno_passport_present}
 						end;
 					_ -> 

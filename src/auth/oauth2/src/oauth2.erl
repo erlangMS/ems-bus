@@ -164,7 +164,7 @@ authorize_code_grant(Client, Code, RedirUri, Ctx0) ->
             E;
         {ok, {Ctx1, GrantCtx}} ->
             % Obtém o Client armazenado (com redirect_uri original)
-            {ok, StoredClient} = get(GrantCtx, <<"client">>),
+            {ok, _StoredClient} = get(GrantCtx, <<"client">>),
             
             % Determina qual redirect_uri usar para validação
             {RedirUriToValidate, Mode} = case RedirUri of

@@ -376,39 +376,11 @@ parse_config(Json, Filename) ->
 				erlang:error(ecannot_use_read_only_database_path)
 		end,
 
-		put(parse_step, log_file_path),
-		LogFilePath0 = binary_to_list(get_p(<<"log_file_path">>, Json, list_to_binary(filename:join(PrivPath, "log")))),
-		LogFilePath = ems_util:parse_file_name_path(LogFilePath0, [], undefined),
-		
-		put(parse_step, log_file_path_check),
-		case ems_util:ensure_dir_writable(LogFilePath) == ok of
-			true -> ems_logger:format_info("ems_config using log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]);
-			false ->
-				ems_logger:format_error("ems_config cannot initialize read-only log_file_path \033[01;34m\"~s\"\033[0m.", [LogFilePath]),
-				erlang:error(ecannot_use_read_only_log_file_path)
-		end,
-		
-
-		put(parse_step, log_file_archive_path),
-		LogFileArchivePath0 = binary_to_list(get_p(<<"log_file_archive_path">>, Json, list_to_binary(filename:join(PrivPath, "archive_log")))),
-		LogFileArchivePath = ems_util:parse_file_name_path(LogFileArchivePath0, [], undefined),
-		ems_util:ensure_dir_writable(LogFileArchivePath),
-	
-		
-		put(parse_step, log_file_archive_path_check),
-		case ems_util:ensure_dir_writable(LogFileArchivePath) == ok of
-			true -> ems_logger:format_info("ems_config using log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]);
-			false ->
-				ems_logger:format_error("ems_config cannot initialize read-only log_file_archive_path \033[01;34m\"~s\"\033[0m.", [LogFileArchivePath]),
-				erlang:error(ecannot_use_read_only_log_file_archive_path)
-		end,
 		
 		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
 		put(parse_step, start_db),
 		ems_db:start(PrivPath, DatabasePath),  
 		
-		ems_db:set_param(log_file_path, LogFilePath),
-		ems_db:set_param(log_file_archive_path, LogFileArchivePath),
 		ems_db:set_param(instance_type, InstanceType),
 		
 		% Instala o módulo de criptografia blowfish se necessário
@@ -606,11 +578,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_show_payload_max_length),
 		LogShowPayloadMaxLength = get_p(<<"log_show_payload_max_length">>, Json, ?LOG_SHOW_PAYLOAD_MAX_LENGTH),
 		
-		put(parse_step, log_file_checkpoint),
-		LogFileCheckpoint = get_p(<<"log_file_checkpoint">>, Json, ?LOG_FILE_CHECKPOINT),
-		
-		put(parse_step, log_file_max_size),
-		LogFileMaxSize = get_p(<<"log_file_max_size">>, Json, ?LOG_FILE_MAX_SIZE),
 		
 		put(parse_step, log_show_odbc_pool_activity),
 		LogShowOdbcPoolActivity = ems_util:parse_bool(get_p(<<"log_show_odbc_pool_activity">>, Json, ?LOG_SHOW_ODBC_POOL_ACTIVITY)),
@@ -801,10 +768,6 @@ parse_config(Json, Filename) ->
 				 log_show_content_static_file = LogShowPayloadStaticFile,
 				 log_show_response_max_length = LogShowResponseMaxLength,
 				 log_show_payload_max_length = LogShowPayloadMaxLength,
-				 log_file_checkpoint = LogFileCheckpoint,
-				 log_file_max_size = LogFileMaxSize,
-				 log_file_path = LogFilePath,
-				 log_file_archive_path = LogFileArchivePath,
 				 log_show_odbc_pool_activity = LogShowOdbcPoolActivity,
 				 log_show_data_loader_activity = LogShowDataLoaderActivity,
 				 rest_default_querystring = Querystring,

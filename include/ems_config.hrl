@@ -41,11 +41,6 @@
 % Caminho do catálogo de serviços
 -define(CONF_PATH, filename:join(?PRIV_PATH, "conf")).
 
-% Caminho da pasta para o arquivo server.log
--define(LOG_FILE_PATH, ems_util:get_log_file_path()).
-
-% Caminho da pasta para arquivar o server.log
--define(LOG_FILE_ARCHIVE_PATH, ems_util:get_log_file_archive_path()).
 
 % Caminho do favicon
 -define(FAVICON_PATH, filename:join(?PRIV_PATH, "favicon.ico")).
@@ -124,14 +119,6 @@
 -define(RESTRICTED_SERVICES_ADMIN, [ <<"erlangms">> ]).
 
 
-% Armazena o buffer do log a cada LOG_FILE_CHECKPOINT ms (Aumente este valor se existir muita contenção de escrita em disco)
--define(LOG_FILE_CHECKPOINT, 400).  
-
-% Tamanho máximo permitido para os arquivos de logs: 90MB (94371840 bytes)
--define(LOG_FILE_MAX_SIZE, 94371840).  
-
-% Arquiva o log a cada LOG_ARCHIVE_CHECKPOINT ms
--define(LOG_ARCHIVE_CHECKPOINT, 1000 * 60 * 60 * 24).  % Por default são 24 horas
 
 % Define o tamanho máximo default que pode ser impresso no log do payload e response para depuração
 -define(LOG_SHOW_PAYLOAD_MAX_LENGTH, 120).
@@ -414,10 +401,6 @@
 				 log_show_payload_max_length :: boolean(),			%% show payload if content length < show_response_max_length
 				 log_show_odbc_pool_activity = true :: boolean(),	%% Se true, vai mostrar a atividade do pool de conexões
 				 log_show_data_loader_activity = true :: boolean(),	%% Se true, vai mostrar a atividade dos data loaders
-				 log_file_checkpoint :: non_neg_integer(),
-				 log_file_max_size :: non_neg_integer(),
-				 log_file_path :: string(),
-				 log_file_archive_path :: string(),
 				 log_show_content_static_file = ?LOG_SHOW_CONTENT_STATIC_FILE :: boolean(),				%% Se true, imprime o conteúdo do arquivo no log
 				 smtp_passwd :: string(),
 				 smtp_from :: string(),

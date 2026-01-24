@@ -148,7 +148,7 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_([H|T], ClientId, Fie
 						{ok, Result2} = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields)
 				end;		
 			_ ->
-				{ok, Result2} = lists:appnd(Result, find_by_client_com_perfil_permission_aluno(H, ClientId, Fields))		
+				{ok, Result2} = lists:append(Result, find_by_client_com_perfil_permission_aluno(H, ClientId, Fields))		
 		end,
 		case Result2 of 
 			#{} ->

@@ -14,7 +14,7 @@
 
 -export([version/0,
 		 server_name/0,
-		 sleep/1,
+
 		 flush_messages/0,
 		 json_encode/1,
 		 json_decode/1,
@@ -39,8 +39,7 @@
 		 list_to_ets/3,
 		 make_rowid_from_url/2,
 		 read_file_as_map/1,
-		 read_file_as_list/1,
-		 tail_file/2,
+
 		 load_from_file_req/1,
 		 save_from_file_req/1,
  		 node_binary/0,
@@ -75,7 +74,7 @@
          date_dec_minute/2,
 		 date_to_string/1,
 		 date_to_binary/1,
-		 time_to_binary/1,
+
  		 timestamp_str/0,
 		 timestamp_str/1,
 		 timestamp_binary/0,
@@ -83,9 +82,7 @@
 		 uptime_str/0,
 		 boolean_to_binary/1,
 		 value_to_boolean/1,
- 		 replacenth/3,
-		 replace/3,
-		 replace_all/2,
+
 		 replace_vars_with/2,
 		 open_file/1,
 		 file_last_modified/1,
@@ -101,23 +98,23 @@
  		 is_range_valido/3,
 		 is_letter/1,
 		 is_letter_lower/1,
-		 posix_error_description/1,
+
 		 ldap_attribute_map_to_user_field/1,
 		 parse_content_type/1,
 		 parse_oauth2_scope/1,
 		 parse_ldap_attributes/1,
 		 parse_ldap_filter/1,
-		 parse_querystring/1,
+
 		 parse_if_modified_since/1,
 		 parse_basic_authorization_header/1,
 		 parse_result_cache/1,
-		 parse_timeout/2,
+
 		 parse_url_service/1,
 		 parse_lang/1,
 		 parse_name_service/1,
 		 parse_name_querystring/1,
 		 parse_type_service/1,
-		 parse_type_querystring/1,
+
 		 parse_service_service/1,
 		 parse_querystring_def/2,
 		 parse_file_name_path/3,
@@ -147,7 +144,7 @@
 		 make_rowid/1,
 		 make_rowid/2,
 		 make_rowid_id/1,
-		 quote/1,
+
  		 remove_quoted_str/1,
 		 remove_ult_backslash_url/1,
 		 remove_ult_backslash_url_binary/1,
@@ -156,38 +153,35 @@
 		 mes_abreviado/1,
 		 new_rowid_service/2,
 		 utf8_list_to_string/1,
-		 utf8_list_to_binary/1,
-		 utf8_binary_to_list/1,
+
 		 normalize_field_utf8/1,
-		 utf8_string_win/1,
+
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 criptografia_md5/1,
 		 criptografia_blowfish/1,
 		 head_file/2,
-		 replace_all_vars_binary/2,
+
 		 replace_all_vars/2,
 		 replace_all_vars_and_custom_variables/2,
-		 replace_all_vars_and_custom_variables_binary/2,
-		 replace_custom_variables/1,
+
 		 replace_custom_variables_binary/1,
 		 replace_config_and_custom_variables_binary/1,
-		 replace_config_and_custom_variables/1,
-		 to_utf8/1,
+
 		 mime_type/1,
-		 rid_to_string/1,
+
 		 method_to_string/1,
 		 decode_http_header/2,
 		 decode_http_request/1,
 		 tuple_to_maps_with_keys/2,
 		 compile_modulo_erlang/2,
-		 parse_user_agent/1,
+
 		 user_agent_atom_to_binary/1,
 		 to_lower_and_remove_backslash/1,
 		 check_type_email/2,
 		 is_email_institucional/2,
 		 invoque_service/3,
-		 url_mask/1,
+
 		 url_mask_str/1,
 		 list_map_to_list_tuple/1,
 		 list_tuple_to_list_map/1,
@@ -197,14 +191,14 @@
 		 integer_to_list_def/2,
 		 str_trim/1,
 		 binary_to_hex/1,
-		 str_contains/2,
-		 path_writable/1,
+
 		 ensure_dir_writable/1,
 		 file_exists/1,
 		 integer_to_binary_def/2,
 		 add_spaces_all_elements_list/2,
 		 jwt_encode/2,
-		 get_timestamp/0
+		 get_timestamp/0,
+		 encode_request/2
 		]).
 
 %% @doc Gera um JWT (JSON Web Token) usando algoritmo HS256
@@ -219,8 +213,17 @@ jwt_encode(Payload, Secret) ->
 	HeaderBin = base64_url_encode(json_encode(Header)),
 	PayloadBin = base64_url_encode(json_encode(Payload)),
 	SigningInput = <<HeaderBin/binary, ".", PayloadBin/binary>>,
-	Signature = base64_url_encode(crypto:hmac(sha256, Secret, SigningInput)),
+	Signature = base64_url_encode(crypto:mac(hmac, sha256, Secret, SigningInput)),
+	Signature = base64_url_encode(crypto:mac(hmac, sha256, Secret, SigningInput)),
 	<<SigningInput/binary, ".", Signature/binary>>.
+
+encode_request(Method, Uri) ->
+	{ok, #request{
+		type = Method,
+		uri = Uri,
+		url = binary_to_list(Uri),
+		timestamp = calendar:local_time()
+	}}.
 
 %% @doc Codifica binary para Base64 URL-safe (sem padding)
 base64_url_encode(Data) ->
@@ -628,7 +631,7 @@ json_decode(JSON) ->
 		JSON2 = case check_encoding_bin(JSON) of
 			latin1 -> unicode:characters_to_binary(binary_to_list(JSON), latin1, utf8);
 			utf8 -> JSON;
-			_ -> erlang:raise(einvalid_json_encoding)
+			_ -> erlang:error(einvalid_json_encoding)
 		end,
 		T = ?JSON_LIB:decode(JSON2),
 		{ok, element(1, T)}
@@ -1628,8 +1631,6 @@ mime_type(_) -> <<"application/octet-stream">>.
 -spec is_valid_content_type(binary()) -> boolean().
 is_valid_content_type(<<"text/html">>) -> true;
 is_valid_content_type(<<"application/json">>) -> true;
-is_valid_content_type(<<"application/json">>) -> true;
-is_valid_content_type(<<"application/json">>) -> true;
 is_valid_content_type(<<"application/xhtml+xml">>) -> true;
 is_valid_content_type(<<"text/css">>) -> true;
 is_valid_content_type(<<"application/x-javascript">>) -> true;
@@ -2103,18 +2104,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = decode_payload_as_json(Payload),
 								QuerystringMap2 = QuerystringMap;
-							<<"application/json">> ->
-								ems_db:inc_counter(http_content_type_in_application_json),
-								ContentTypeIn2 = <<"application/json">>,
-								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
-								PayloadMap = decode_payload_as_json(Payload),
-								QuerystringMap2 = QuerystringMap;
-							<<"application/json">> -> 
-								ems_db:inc_counter(http_content_type_in_application_json),
-								ContentTypeIn2 = <<"application/json">>,
-								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
-								PayloadMap = decode_payload_as_json(Payload),
-								QuerystringMap2 = QuerystringMap;
 							<<"application/x-www-form-urlencoded">> ->
 								{ok, PayloadRaw, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								case detect_payload_is_json(PayloadRaw) of
@@ -2135,18 +2124,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 										QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap)
 								end;
 
-							<<"application/x-www-form-urlencoded">> ->
-								ems_db:inc_counter(http_content_type_in_form_urlencode),
-								ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
-								{ok, Payload, CowboyReq2} = cowboy_req:read_urlencoded_body(CowboyReq, ReadBodyOpts),
-								PayloadMap = maps:from_list(Payload),
-								QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap);
-							<<"application/x-www-form-urlencoded">> ->
-								ems_db:inc_counter(http_content_type_in_form_urlencode),
-								ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
-								{ok, Payload, CowboyReq2} = cowboy_req:read_urlencoded_body(CowboyReq, ReadBodyOpts),
-								PayloadMap = maps:from_list(Payload),
-								QuerystringMap2 = maps:merge(QuerystringMap, PayloadMap);
 							<<"application/xml">> ->
 								ems_db:inc_counter(http_content_type_in_application_xml),
 								ContentTypeIn2 = <<"application/xml">>,
@@ -3022,18 +2999,21 @@ is_email_valido(Value) ->
 	end.
 
 %% @doc Retorna mensagem registro já existente
-msg_registro_ja_existe(Pattern) ->
-	case ems_db:existe(Pattern) of
-		false -> [];
-		_ -> <<"Registro já está cadastrado."/utf8>>
-	end.
+%% @doc Retorna mensagem registro já existente
+msg_registro_ja_existe(_Pattern) ->
+	%case ems_db:existe(Pattern) of
+	%	false -> [];
+	%	_ -> <<"Registro já está cadastrado."/utf8>>
+	%end.
+	[].
 
 %% @doc Retorna mensagem registro já existente
-msg_registro_ja_existe(Pattern, Message) ->
-	case ems_db:existe(Pattern) of
-		false -> [];
-		_ -> Message
-	end.
+msg_registro_ja_existe(_Pattern, _Message) ->
+	%case ems_db:existe(Pattern) of
+	%	false -> [];
+	%	_ -> Message
+	%end.
+	[].
 		
 %% @doc Mensagens de campo obrigatório
 msg_campo_obrigatorio(NomeCampo, []) -> 
@@ -4000,7 +3980,9 @@ criptografia_md5(Password) when is_binary(Password) ->
 	criptografia_md5(binary_to_list(Password));
 criptografia_md5(Password) -> binary_to_hex(crypto:hash(md5, Password)).
 
-criptografia_blowfish(Password) -> ems_blowfish:criptografia(Password).
+criptografia_blowfish(_Password) -> 
+	%% ems_blowfish module is missing. Returning empty binary.
+	<<>>.
 
 
 -spec flush_messages() -> ok.

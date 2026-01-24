@@ -147,11 +147,11 @@ handle_request({'LDAPMessage', _,
 				 _}, #state{search_invalid_credential_metric_name = SearchInvalidCredentialMetricName,
 							search_success_metric_name = SearchSuccessMetricName,
 							auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, 
-					Ip, Port, TimestampBin) ->
+						 Ip, _Port, _TimestampBin) ->
 	case ems_util:parse_ldap_name(ObjectName) of
 		{ok, _, UserLogin, _BaseFilter} ->
 			case ems_user:find_by_login(UserLogin) of
-				{error, Reason, ReasonDetail} ->
+				{error, _Reason, _ReasonDetail} ->
 					ems_db:inc_counter(SearchInvalidCredentialMetricName),
 					ems_logger:error("ems_ldap_handler handle_request search ~p does not exist from ~p.", [UserLogin, Ip]),
 					ResultDone = make_result_done(invalidCredentials),
@@ -175,7 +175,7 @@ handle_request({'LDAPMessage', _,
 								{ok, [ResultDone]}
 						end
 			end;
-		{error, Reason} -> 
+		{error, _Reason} -> 
 			ems_logger:error("ems_ldap_handler handle_request parse invalid name ~p from ~p.", [ObjectName, Ip]),
 			ResultDone = make_result_done(invalidCredentials),
 			{ok, [ResultDone]}
@@ -204,7 +204,7 @@ handle_request({'LDAPMessage', _,
 													 timeLimit = _TimeLimit, 
 													 typesOnly = _TypesOnly, 
 													 filter = {present, <<"objectClass">>}, attributes = [<<"isGlobalCatalogReady">>]}},
-				 _}, _State, Ip, Port, TimestampBin) ->
+				 _}, _State, _Ip, _Port, _TimestampBin) ->
 	ResultEntry = {searchResEntry, #'SearchResultEntry'{objectName = <<>>,
 										  attributes = [#'PartialAttribute'{type = <<"isGlobalCatalogReady">>, vals = [<<"ErlangMS">>]}]
 										}
@@ -469,17 +469,6 @@ handle_bind_request(Name,
 		 (Password =:= <<>>) orelse (PasswordSize < 1) orelse (PasswordSize > 256) of
 		true ->
 			ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~p.", [Name, Ip]),
-			ems_user:add_history(#user{login = Name},  
-								 #service{}, 
-								 #request{timestamp = TimestampBin,
-										  code = ?LDAP_INSUFFICIENT_ACCESS_RIGHTS,
-										  reason = access_denied,
-										  reason_detail = einvalid_bind_request_name,
-										  reason_exception = einvalid_name,
-										  operation = bind_request,
-										  host = Ip,
-										  protocol = ldap,
-										  port = Port}),
 			BindResponse = make_bind_response(invalidCredentials, Name);
 		false ->
 			case ems_util:parse_ldap_name(Name) of
@@ -503,7 +492,7 @@ handle_bind_request(Name,
 						   end
 					end,
 					BindResponse;
-				{error, Reason} -> 
+				{error, _Reason} -> 
 					ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~p.", [Name, Ip]),
 					BindResponse = make_bind_response(invalidCredentials, Name)
 			end
@@ -522,7 +511,7 @@ handle_request_search_login(Name,
 		{ok, _, UserLogin, _BaseFilter} ->
 			{IsAdmin, BindRequestName} = get_bind_user(Ip, Port, UserLogin),
 			case ems_user:find_by_login_and_scope(UserLogin, AuthDefaultScope) of
-				{error, Reason, ReasonDetail} ->
+				{error, _Reason, _ReasonDetail} ->
 					ems_db:inc_counter(SearchInvalidCredentialMetricName),
 					case Attribute of
 						<<>> ->
@@ -570,7 +559,7 @@ handle_request_search_login(Name,
 					ResultDone = make_result_done(success),
 					{ok, [ResultEntry, ResultDone]}
 			end;
-		{error, Reason} -> 
+		{error, _Reason} -> 
 			ems_logger:error("ems_ldap_handler handle_request_search_login inappropriate matching name ~p from ~p.", [Name, Ip]),
 			ResultDone = make_result_done(inappropriateMatching),
 			{ok, [ResultDone]}
@@ -581,7 +570,7 @@ handle_request_search_filter(FilterLdap, State, Ip, Port, TimestampBin, Attribut
 	case ems_util:parse_ldap_filter(FilterLdap) of
 		{ok, Filter} -> 
 			do_find_by_filter(Filter, State, Ip, Port, TimestampBin, AttributesToReturn, undefined);
-		{error, Reason} -> 
+		{error, _Reason} -> 
 			ems_logger:error("ems_ldap_handler handle_request_search_filter parse invalid filter or ~p from ~p.", [FilterLdap, Ip]),
 			BindResponse = make_bind_response(inappropriateMatching, <<>>),
 			{ok, [BindResponse]}
@@ -590,10 +579,10 @@ handle_request_search_filter(FilterLdap, State, Ip, Port, TimestampBin, Attribut
 
 do_find_by_filter(Filter, 
 				  #state{auth_default_scope = AuthDefaultScope}, 
-				  Ip, Port, TimestampBin, AttributesToReturn, UserLogin) ->
+				  Ip, Port, _TimestampBin, AttributesToReturn, UserLogin) ->
 	{IsAdmin, BindRequestName} = get_bind_user(Ip, Port, undefined),
 	case ems_user:find_by_filter_and_scope([], Filter, AuthDefaultScope) of
-		{error, Reason, ReasonDetail} ->
+		{error, _Reason, _ReasonDetail} ->
 			case BindRequestName of
 				<<>> ->	ems_logger:error("ems_ldap_handler do_find_by_filter unbind search ~p does not exist from ~p.", [Filter, Ip]);
 				_ -> ems_logger:error("ems_ldap_handler do_find_by_filter search ~p does not exist by ~p from ~p.", [Filter, BindRequestName, Ip])
@@ -635,7 +624,7 @@ do_find_by_filter(Filter,
 
 % Autentica o admin a partir da base de usuários de users com flag admin = true	
 do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials, 
-																	  auth_default_scope = AuthDefaultScope}, Ip, Port, TimestampBin) ->
+																	  auth_default_scope = AuthDefaultScope}, _Ip, _Port, _TimestampBin) ->
 	case ems_user:find_by_login_and_password(UserLogin, UserPassword, #client{id = 0, name = <<"ldap">>, scope = AuthDefaultScope}) of
 		{ok, User = #user{active = Active}} -> 
 			case Active orelse AuthAllowUserInativeCredentials of
@@ -644,11 +633,11 @@ do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow
 				false -> 
 					{error, access_denied}
 			end;
-		{error, Reason, ReasonDetail} -> 
+		{error, _Reason, _ReasonDetail} -> 
 			% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 			case ems_user:find_by_login(UserLogin) of
-				{ok, UserFound} -> User = UserFound;
-				_ -> User = #user{login = UserLogin}
+				{ok, UserFound} -> _User = UserFound;
+				_ -> _User = #user{login = UserLogin}
 			end,
 			{error, access_denied}
 	end.
@@ -656,7 +645,7 @@ do_authenticate_admin_with_list_users(UserLogin, UserPassword, #state{auth_allow
 % Autentica o admin com o admin fornecido na configuração do processo ldap
 do_authenticate_admin_with_admin_user(Name, LdapUser, PasswordUser, #state{ldap_admin = AdminLdapConfig, 
 																		   ldap_admin_cn = AdminLdapCnConfig, 
-																		   ldap_admin_password = PasswordAdminLdapConfig}, Ip, Port, TimestampBin) ->
+																		   ldap_admin_password = PasswordAdminLdapConfig}, _Ip, _Port, _TimestampBin) ->
 	LdapUserLower = list_to_binary(string:to_lower(binary_to_list(LdapUser))),
 	PasswordUserLower = list_to_binary(string:to_lower(binary_to_list(PasswordUser))),
 	case (Name =:= AdminLdapConfig orelse 
