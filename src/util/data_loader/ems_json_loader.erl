@@ -169,10 +169,10 @@ terminate(Reason, #service{name = Name}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-handle_do_check_load_or_update(State = #state{update_checkpoint = UpdateCheckpoint}) ->
+handle_do_check_load_or_update(State = #state{}) ->
 	case do_check_load_or_update(State) of
-		{ok, State2} ->	{noreply, State2, UpdateCheckpoint};
-		_Error -> {noreply, State, UpdateCheckpoint}
+		{ok, State2} ->	{noreply, State2, infinity};
+		_Error -> {noreply, State, infinity}
 	end.
 	
 

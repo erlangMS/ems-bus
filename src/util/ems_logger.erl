@@ -92,7 +92,7 @@ debug(_, _, _) ->  ok.
 debug2(Msg) -> 
 	case in_debug() of
 		true -> 
-			Msg2 = lists:concat(["\033[1;34mDEBUG ", ems_clock:local_time_str(), "  ", Msg, "\033[0m"]),
+			Msg2 = lists:concat(["[DEBUG] ", ems_clock:local_time_str(), "  ", Msg, "\n"]),
 			io:format(Msg2);
 		_ -> ok
 	end.
@@ -100,7 +100,7 @@ debug2(Msg) ->
 debug2(Msg, Params) -> 
 	case in_debug() of
 		true -> 
-			Msg2 = lists:concat(["\033[1;34mDEBUG ", ems_clock:local_time_str(), "  ", io_lib:format(Msg, Params), "\033[0m"]),
+			Msg2 = lists:concat(["[DEBUG] ", ems_clock:local_time_str(), "  ", io_lib:format(Msg, Params), "\n"]),
 			io:format(Msg2);
 		_ -> ok
 	end.
@@ -219,13 +219,13 @@ write_msg(Tipo, Msg)  ->
 	try
 		case Tipo of
 			info  -> 
-				Msg1 = iolist_to_binary([?INFO_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, Msg, <<"\n">>]);
+				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?INFO_MESSAGE,  Msg, <<"\n">>]);
 			error -> 
-				Msg1 = iolist_to_binary([?ERROR_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Msg, ?WHITE_BRK_COLOR]);
+				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?ERROR_MESSAGE, Msg, <<"\n">>]);
 			warn  -> 
-				Msg1 = iolist_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Msg, ?WHITE_BRK_COLOR]);
+				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?WARN_MESSAGE,  Msg, <<"\n">>]);
 			debug -> 
-				Msg1 = iolist_to_binary([?DEBUG_MESSAGE, ?LIGHT_GREEN_COLOR, ems_clock:local_time_str(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Msg, ?WHITE_BRK_COLOR])
+				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?DEBUG_MESSAGE, Msg, <<"\n">>])
 		end,
 		case Tipo of
 			error -> io:format(standard_error, Msg1, []);
@@ -294,215 +294,39 @@ do_log_request(Request = #request{rid = RID,
 				  end,
 		case LogShow andalso (UltReqHash == undefined orelse UltReqHash =/= ReqHash) of
 			true ->
-				case Service of
-					undefined -> 
-						ServiceService = <<>>,
-						ServiceName = <<>>,
-						ServiceUrl = <<>>,
-						ServiceOwner = <<>>,
-						ServiceGroup = <<>>,
-						ServiceUseRE = <<>>,
-						ResultCacheService = 0,
-						AuthorizationService = public,
-						ShowResponseService = false,
-						ShowPayloadService = false,
-						ShowResponseHeaderService = false,
-						ServiceAuthorizarion = <<>>,
-						ServiceRestricted = <<>>,
-						OAuth2WithCheckConstraint = <<>>;
-					_ ->
-						ServiceService = Service#service.service,
-						ServiceName = Service#service.name,
-						ServiceUrl = Service#service.url,
-						ServiceOwner = Service#service.owner,
-						ServiceGroup = Service#service.group,
-						ServiceUseRE = ems_util:boolean_to_binary(Service#service.use_re),
-						ResultCacheService = Service#service.result_cache,
-						AuthorizationService = Service#service.authorization,
-						ShowResponseService = Service#service.log_show_response,
-						ShowPayloadService = Service#service.log_show_payload,
-						ShowResponseHeaderService = Service#service.log_show_response_header,
-						ServiceAuthorizarion = atom_to_binary(Service#service.authorization, utf8),
-						ServiceRestricted = ems_util:boolean_to_binary(Service#service.restricted),
-						OAuth2WithCheckConstraint = ems_util:boolean_to_binary(Service#service.oauth2_with_check_constraint)
-						
-				end,
-				TextData = 
-					[
-					   ?BLUE_COLOR, Type, ?WHITE_SPACE_COLOR, Uri, <<" ">>, atom_to_binary(Version, utf8), <<" ">>,
-					   ?TAB_GREEN_COLOR, <<"RID">>, ?WHITE_PARAM_COLOR, integer_to_binary(RID), 
-					   ?SPACE_GREEN_COLOR, <<"ReqHash">>, ?WHITE_PARAM_COLOR, integer_to_binary(ReqHash), 
-					   case UrlMasked of
-							true -> [?TAB_GREEN_COLOR, <<"UrlMasked">>, ?WHITE_PARAM_COLOR, Url];
-							false -> <<>>
-					   end,
-					   ?TAB_GREEN_COLOR, <<"Accept">>, ?WHITE_PARAM_COLOR, Accept,
-					   ?TAB_GREEN_COLOR, <<"Content-Type in">>, ?WHITE_PARAM_COLOR, ContentTypeIn, ?SPACE_GREEN_COLOR, <<"out">>, ?WHITE_PARAM_COLOR, ContentTypeOut,
-					   ?TAB_GREEN_COLOR, <<"Referer">>, ?WHITE_PARAM_COLOR, 
-												case Referer of
-													undefined -> <<>>;
-													_ -> Referer
-												end,
-						?TAB_GREEN_COLOR, <<"User-Agent">>, ?WHITE_PARAM_COLOR, ems_util:user_agent_atom_to_binary(UserAgent), ?SPACE_GREEN_COLOR, <<"Version">>, ?SPACE_GREEN_COLOR, ?WHITE_PARAM_COLOR, UserAgentVersion,	?SPACE_GREEN_COLOR, <<"Host">>, ?SPACE_GREEN_COLOR, ?WHITE_PARAM_COLOR, Host, ?SPACE_GREEN_COLOR, <<"Peer">>, ?WHITE_PARAM_COLOR, IpBin, 
-						?TAB_GREEN_COLOR, <<"Service name">>, ?WHITE_PARAM_COLOR, ServiceName, ?SPACE_GREEN_COLOR, <<"url">>, ?WHITE_PARAM_COLOR, ServiceUrl, ?SPACE_GREEN_COLOR, <<"Use-RE">>, ?WHITE_PARAM_COLOR, ServiceUseRE,
-						?TAB_GREEN_COLOR, <<"Service authorization">>, ?WHITE_PARAM_COLOR, ServiceAuthorizarion, ?SPACE_GREEN_COLOR, <<"restricted">>, ?WHITE_PARAM_COLOR, ServiceRestricted, ?SPACE_GREEN_COLOR, <<"oauth2_with_check_constraint">>, ?WHITE_PARAM_COLOR, OAuth2WithCheckConstraint, 
-						?TAB_GREEN_COLOR, <<"Service function">>, ?WHITE_PARAM_COLOR, ServiceService, ?SPACE_GREEN_COLOR, <<"owner">>, ?WHITE_PARAM_COLOR, ServiceOwner, ?SPACE_GREEN_COLOR, <<"group">>, ?WHITE_PARAM_COLOR, ServiceGroup,
-						?TAB_GREEN_COLOR, <<"Params">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Params])), 
-						?TAB_GREEN_COLOR, <<"Query">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [Query])), 
-						case ((ShowPayloadService andalso (is_atom(Payload) orelse is_number(Payload))) orelse 
-							   (ShowPayloadUrlList =/= [] andalso lists:member(Url, ShowPayloadUrlList)) 
-							  ) of
-							true ->
-							   case ContentLength =< ShowPayloadMaxLength of
-									true ->
-									     Payload2 = case is_binary(Payload) of
-														true -> Payload;
-														false -> iolist_to_binary(io_lib:format("~p",[Payload]))
-										  		    end,
-									     [?TAB_GREEN_COLOR, <<"Payload">>, ?WHITE_PARAM_COLOR, integer_to_list(ContentLength), 
-									      <<" bytes ">>, ?GREEN_COLOR, <<"Content">>, ?WHITE_PARAM_COLOR, Payload2, ?WHITE_COLOR,
-											 case Reason =/= ok of
-												true -> ?RED_COLOR;
-												false -> <<>>
-											 end]; 
-									false -> [?TAB_GREEN_COLOR, <<"Payload">>, ?WHITE_PARAM_COLOR, integer_to_list(ContentLength), <<" bytes">>, ?SPACE_GREEN_COLOR, <<"Content">>, ?WHITE_PARAM_COLOR, <<"large content">>]
-								end;
-							false -> <<>>
-						end,
-						case ShowResponseHeaderService of
-							true -> [?TAB_GREEN_COLOR, <<"ResponseHeader">>, ?WHITE_PARAM_COLOR, list_to_binary(io_lib:format("~p", [ResponseHeader]))];
-							false -> <<>>
-						end,
-						case (Filename == undefined orelse LogShowContentStaticFile)  
-			    andalso 
-			     (ShowResponseService orelse
-			       (ShowResponseUrlList =/= [] andalso lists:member(Url, ShowResponseUrlList))
-			      ) of
-							true -> 
-								 ResponseData2 = case is_binary(ResponseData) of
-													true -> ResponseData;
-													false -> iolist_to_binary(io_lib:format("~p",[ResponseData]))
-												 end,
-								 ContentLengthResponse = byte_size(ResponseData2),
-							     case ContentLengthResponse > 0 of
-									true ->
-										case ContentLengthResponse =< ShowResponseMaxLength of
-											true -> [?TAB_GREEN_COLOR, <<"Response">>, ?WHITE_PARAM_COLOR, integer_to_list(ContentLengthResponse), 
-													 <<" bytes  ">>, ?GREEN_COLOR, <<"Content">>, ?WHITE_PARAM_COLOR, ResponseData2, ?WHITE_COLOR,
-													 case Reason =/= ok of
-														true -> ?RED_COLOR;
-														false -> <<>>
-													 end]; 
-											false -> [?TAB_GREEN_COLOR, <<"Response">>, ?WHITE_PARAM_COLOR, integer_to_list(ContentLengthResponse), <<" bytes  ">>, ?GREEN_COLOR, <<"Content">>, ?WHITE_PARAM_COLOR, <<"Large content">>]
-										end;
-									false -> <<>>
-								end;
-							 false -> <<>>
-						end,
-					   case ResultCacheService > 0 of
-							true ->
-							   ResultCacheSec = trunc(ResultCacheService / 1000),
-							   case ResultCacheSec > 0 of 
-									true  -> ResultCacheMin = trunc(ResultCacheSec / 60);
-									false -> ResultCacheMin = 0
-							   end,
-							   case ResultCacheMin > 0 of
-									true -> 
-									   case ResultCache of 
-											true ->  [?TAB_GREEN_COLOR, <<"Result-Cache">>, ?WHITE_PARAM_COLOR, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheMin), <<"min)  ">>, ?WARN_COLOR, <<" <<RID: ">>, integer_to_binary(ResultCacheRid), <<">>">>, ?WHITE_COLOR];
-											false -> [?TAB_GREEN_COLOR, <<"Result-Cache">>, ?WHITE_PARAM_COLOR, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheMin), <<"min)">>] 
-										end;
-									false ->
-									   case ResultCacheSec > 0 of
-											true -> 
-											   case ResultCache of 
-													true ->  [?TAB_GREEN_COLOR, <<"Result-Cache">>, ?WHITE_PARAM_COLOR, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheSec), <<"sec)  ">>, ?WARN_COLOR, <<" <<RID: ">>, integer_to_binary(ResultCacheRid), <<">>">>, ?WHITE_COLOR];
-													false -> [?TAB_GREEN_COLOR, <<"Result-Cache">>, ?WHITE_PARAM_COLOR, integer_to_list(ResultCacheService), <<"ms (">>, integer_to_binary(ResultCacheSec), <<"sec)">>] 
-												end;
-											false ->
-											   case ResultCache of 
-													true ->  [?TAB_GREEN_COLOR, <<"Result-Cache">>, ?WHITE_PARAM_COLOR, integer_to_list(ResultCacheService), <<"ms ">>, ?WARN_COLOR, <<" <<RID: ">>, integer_to_binary(ResultCacheRid), <<">>">>, ?WHITE_COLOR];
-													false -> [?TAB_GREEN_COLOR, <<"Result-Cache">>, ?WHITE_PARAM_COLOR, integer_to_list(ResultCacheService), <<"ms">>]
-												end
-										end
-								end;
-							false -> <<>>
-						end,
-					    ?TAB_GREEN_COLOR, <<"Cache-Control In">>, ?WHITE_PARAM_COLOR, CacheControl,
-						?SPACE_GREEN_COLOR, <<"ETag">>, ?WHITE_PARAM_COLOR, case Etag of
-											undefined -> <<>>;
-											_ -> Etag
-										end,
-						?TAB_GREEN_COLOR, <<"If-Modified-Since">>, ?WHITE_PARAM_COLOR, case IfModifiedSince of
-															undefined -> <<>>;
-															_ -> IfModifiedSince
-												   end,
-					   ?SPACE_GREEN_COLOR, <<"If-None-Match">>, ?WHITE_PARAM_COLOR, case IfNoneMatch of
-													undefined -> <<>>;
-													_ -> IfNoneMatch
-										   end,
-					   ?TAB_GREEN_COLOR, <<"Authorization type">>, ?WHITE_PARAM_COLOR, case AuthorizationService of
-															basic -> 
-																case Authorization of
-																	<<>> -> <<"basic, oauth2">>;
-																	_ -> <<"oauth2">>
-																end;
-															oauth2 -> <<"oauth2">>;
-															_ -> <<"public">>
-													   end,
-					   case Authorization of
-							<<>> -> <<>>;
-							_ -> [?WARN_COLOR, <<" <<">>, Authorization, <<">>">>, ?WHITE_COLOR]
-					   end,
-					   case GrantType of
-									undefined -> <<>>;
-									_ -> [?TAB_GREEN_COLOR, <<"OAuth2">>, <<" ">>, ?GREEN_COLOR, <<"grant-type">>, ?WHITE_PARAM_COLOR, GrantType]
-					   end,
-					   case AccessToken of
-							undefined -> <<>>;
-							_ ->  [?SPACE_GREEN_COLOR, <<"token">>, ?WHITE_PARAM_COLOR, AccessToken]
-					   end,
-					   case RefreshToken of
-							undefined -> <<>>;
-							_ ->  [?SPACE_GREEN_COLOR, <<"refresh token">>, ?WHITE_PARAM_COLOR, RefreshToken]
-					   end,
-					  ?TAB_GREEN_COLOR, <<"Client">>, ?WHITE_PARAM_COLOR, 
-									  case Client of
-											public -> <<"public">>;
-											undefined -> <<>>;
-											_ -> [integer_to_binary(Client#client.id), <<" ">>, Client#client.name]
-									   end,
-					   ?SPACE_GREEN_COLOR, <<"User">>, ?WHITE_PARAM_COLOR, 
-										case User of
-											public -> <<"public">>;
-											undefined -> <<>>;
-											_ ->  [integer_to_binary(User#user.id), <<" ">>,  User#user.login]
-										 end,
-					   ?TAB_GREEN_COLOR, <<"Node">>, ?WHITE_PARAM_COLOR, 
-										case Node of
-											undefined -> <<>>;
-											_ -> Node
-										 end,
-					   case Filename of
-							undefined -> <<>>;
-							_ -> [?TAB_GREEN_COLOR, <<"Filename">>, ?WHITE_PARAM_COLOR, Filename]
-						end,
-						case Code of
-							302 ->  [?TAB_GREEN_COLOR, <<"Redirect-to">>, ?WHITE_PARAM_COLOR, maps:get(<<"location">>, ResponseHeader, <<>>)];
-							_ -> <<>>
-						end,
-					   ?TAB_GREEN_COLOR, <<"Status">>, ?WHITE_PARAM_COLOR, StatusText, <<"\n}">>],
-				TextBin = iolist_to_binary(TextData),
-				NewState = case Code >= 400 of
-								true  -> write_msg(error, TextBin);
-								false -> write_msg(info,  TextBin)
+				UserLogin = case User of
+								public -> <<"-">>;
+								undefined -> <<"-">>;
+								_ -> User#user.login
 							end,
-				NewState;
+				
+				RefererStr = case Referer of
+								undefined -> <<"-">>;
+								_ -> Referer
+							 end,
+				
+				UserAgentStr = case UserAgent of
+									undefined -> <<"-">>;
+									_ -> ems_util:user_agent_atom_to_binary(UserAgent)
+							   end,
+
+				% Nginx format: $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+				TextData = [
+					IpBin, <<" - ">>, UserLogin, <<" [">>, ems_clock:local_time_str(), <<"] \"">>, 
+					Type, <<" ">>, Uri, <<" ">>, atom_to_binary(Version, utf8), <<"\" ">>,
+					integer_to_binary(Code), <<" ">>, integer_to_binary(ContentLength), <<" \"">>,
+					RefererStr, <<"\" \"">>, UserAgentStr, <<"\"\n">>
+				],
+
+				TextBin = iolist_to_binary(TextData),
+				% Request logs usually go to stdout (info)
+				io:format(TextBin),
+				State;
 			false -> 
 				State
 		end
 	catch 
 		_:ExceptionReason -> 
-			format_error("ems_logger do_log_request format invalid message. Reason: ~p.\nRequest: \033[1;31m~p\033[0m\n.", [ExceptionReason, Request]),
+			format_error("ems_logger do_log_request format invalid message. Reason: ~p.\nRequest: ~p\n.", [ExceptionReason, Request]),
 			State#state{log_ult_reqhash = ReqHash}
 	end.

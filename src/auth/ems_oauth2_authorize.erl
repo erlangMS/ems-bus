@@ -574,7 +574,7 @@ access_token_request(Request, Client) ->
 		% Debug: Print all parameters
 		Params = Request#request.querystring_map,
 		PayloadMap = Request#request.payload_map,
-		ems_logger:info("ems_oauth2_authorize access_token_request Params: ~p Payload: ~p", [Params, PayloadMap]),
+		ems_logger:debug("ems_oauth2_authorize access_token_request Params: ~p Payload: ~p", [Params, PayloadMap]),
 
 		Code = case ems_util:get_querystring(<<"code">>, <<>>, Request) of
 			<<>> -> 

@@ -132,24 +132,11 @@ find_index_by_login_and_password_cmp_password([Table|_] = Tables,
 		 orelse PasswordUser =:= PasswordStrLower 
 		 orelse PasswordUser =:= PasswordStrUpper of
 			true -> 
-				case Table of
-					user_cache_lru ->
-						User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
-										  ctrl_login_count = User#user.ctrl_login_count + 1,
-										  ctrl_last_login_client = Client#client.name},
-						mnesia:dirty_write(user_cache_lru, User2),
-						case CtrlLoginScope of
-							undefined -> ok; % não deveria se está no cache lru
-							_ -> mnesia:dirty_write(CtrlLoginScope, User2)
-						end;
-					_ -> 
 						User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
 										  ctrl_login_count = User#user.ctrl_login_count + 1,
 										  ctrl_last_login_scope = Table,
 										  ctrl_last_login_client = Client#client.name},
-						mnesia:dirty_write(user_cache_lru, User2),
-						mnesia:dirty_write(Table, User2)
-				end,	
+						mnesia:dirty_write(Table, User2),	
 				{ok, User2};
 			false -> 
 				% Eh tabela user_aluno_ativo_db e encontrou o login mas não bateu a senha, vamos tentar buscar a 
@@ -174,24 +161,11 @@ find_index_by_login_and_password_cmp_password([Table|_] = Tables,
 										 orelse PasswordUserEmOutraTabela =:= PasswordStrUpper
 									 ) of
 										true -> 
-											case Table of
-												user_cache_lru ->
-													User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
-																	  ctrl_login_count = User#user.ctrl_login_count + 1,
-																	  ctrl_last_login_client = Client#client.name},
-													mnesia:dirty_write(user_cache_lru, User2),
-													case CtrlLoginScope of
-														undefined -> ok; % não deveria se está no cache lru
-														_ -> mnesia:dirty_write(CtrlLoginScope, User2)
-													end;
-												_ -> 
 													User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
 																	  ctrl_login_count = User#user.ctrl_login_count + 1,
 																	  ctrl_last_login_scope = Table,
 																	  ctrl_last_login_client = Client#client.name},
-													mnesia:dirty_write(user_cache_lru, User2),
-													mnesia:dirty_write(Table, User2)
-											end,	
+													mnesia:dirty_write(Table, User2),	
 											{ok, User2};
 										false -> 
 											find_index_by_login_and_password_cmp_password(Tables, T, LoginBin, 
@@ -396,21 +370,17 @@ find_by_login(Login) ->
 			_ -> {error, enoent}
 		end
 	end,
-	case IndexFind(user_cache_lru) of
+	case IndexFind(user_db) of
 		{error, enoent} -> 
-			case IndexFind(user_db) of
+			case IndexFind(user2_db) of
 				{error, enoent} -> 
-					case IndexFind(user2_db) of
+					case IndexFind(user_aluno_ativo_db) of
 						{error, enoent} -> 
-							case IndexFind(user_aluno_ativo_db) of
+							case IndexFind(user_aluno_inativo_db) of
 								{error, enoent} -> 
-									case IndexFind(user_aluno_inativo_db) of
+									case IndexFind(user_fs) of
 										{error, enoent} -> 
-											case IndexFind(user_fs) of
-												{error, enoent} -> 
-													{error, access_denied, enoent};
-												{ok, Record} -> {ok, Record}
-											end;
+											{error, access_denied, enoent};
 										{ok, Record} -> {ok, Record}
 									end;
 								{ok, Record} -> {ok, Record}

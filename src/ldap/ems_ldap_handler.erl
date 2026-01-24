@@ -39,15 +39,23 @@
 			}).   
 
 
--export([start_link/4]).
--export([init/4]).
+-export([start_link/4, start_link/3]).
+-export([init/4, init/3]).
 
 start_link(Ref, Socket, Transport, Service) ->
 	Pid = spawn_link(?MODULE, init, [Ref, Socket, Transport, Service]),
 	{ok, Pid}.
 
+start_link(Ref, Transport, Opts) ->
+	Pid = spawn_link(?MODULE, init, [Ref, Transport, Opts]),
+	{ok, Pid}.
+
 init(Ref, Socket, Transport, [State]) ->
 	ranch:accept_ack(Ref),
+	loop(Socket, Transport, State).
+
+init(Ref, Transport, [State]) ->
+	{ok, Socket} = ranch:handshake(Ref),
 	loop(Socket, Transport, State).
 
 loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress,

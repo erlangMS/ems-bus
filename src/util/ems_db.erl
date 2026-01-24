@@ -68,11 +68,7 @@ start(PrivPath, DatabasePath) ->
 											    {attributes, record_info(fields, ctrl_params)},
 											    {record_name, ctrl_params}]),
 
-    mnesia:create_table(user_cache_lru, [{type, set},
-										  {ram_copies, Nodes},
-										  {index, [#user.login]},
-										  {attributes, record_info(fields, user)},
-										  {record_name, user}]),
+
 
     mnesia:create_table(user_fs, [{type, set},
 								 {ram_copies, Nodes},
@@ -81,32 +77,32 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user}]),
 
     mnesia:create_table(user_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user2_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user3_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
 
     mnesia:create_table(user_aluno_ativo_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user_aluno_inativo_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
@@ -117,7 +113,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_dados_funcionais}]),
 
     mnesia:create_table(user_dados_funcionais_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {attributes, record_info(fields, user_dados_funcionais)},
 								  {record_name, user_dados_funcionais}]),
 
@@ -127,7 +123,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_email}]),
 
     mnesia:create_table(user_email_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {attributes, record_info(fields, user_email)},
 								  {record_name, user_email}]),
 
@@ -137,7 +133,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_endereco}]),
 
     mnesia:create_table(user_endereco_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {attributes, record_info(fields, user_endereco)},
 								  {record_name, user_endereco}]),
 
@@ -147,7 +143,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_telefone}]),
 
     mnesia:create_table(user_telefone_db, [{type, set},
-								  {disc_copies, Nodes},
+								  {disc_only_copies, Nodes},
 								  {attributes, record_info(fields, user_telefone)},
 								  {record_name, user_telefone}]),
 
@@ -158,7 +154,7 @@ start(PrivPath, DatabasePath) ->
 										{record_name, user_perfil}]),
 
 	mnesia:create_table(user_perfil_db, [{type, set},
-										{disc_copies, Nodes},
+										{disc_only_copies, Nodes},
 										{index, [#user_perfil.user_id, #user_perfil.client_id]},
 									    {attributes, record_info(fields, user_perfil)},
 									    {record_name, user_perfil}]),
@@ -170,13 +166,13 @@ start(PrivPath, DatabasePath) ->
 										{record_name, user_permission}]),
 
 	mnesia:create_table(user_permission_db, [{type, set},
-										{disc_copies, Nodes},
+										{disc_only_copies, Nodes},
 										{index, [#user_permission.user_id, #user_permission.client_id]},
 									    {attributes, record_info(fields, user_permission)},
 									    {record_name, user_permission}]),
 
     mnesia:create_table(client_db, [{type, set},
-									{disc_copies, Nodes},
+									{disc_only_copies, Nodes},
 									{attributes, record_info(fields, client)},
 									{record_name, client}]),
 
@@ -236,43 +232,43 @@ start(PrivPath, DatabasePath) ->
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_get_db, [{type, set},
-										  {disc_copies, Nodes},
+										  {disc_only_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_post_db, [{type, set},
-										  {disc_copies, Nodes},
+										  {disc_only_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_put_db, [{type, set},
-										  {disc_copies, Nodes},
+										  {disc_only_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_delete_db, [{type, set},
-										  {disc_copies, Nodes},
+										  {disc_only_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_options_db, [{type, set},
-											  {disc_copies, Nodes},
+											  {disc_only_copies, Nodes},
 											  {index, [#service.rowid]},
 											  {attributes, record_info(fields, service)},
 											  {record_name, service}]),
 
     mnesia:create_table(catalog_kernel_db, [{type, set},
-											  {disc_copies, Nodes},
+											  {disc_only_copies, Nodes},
 											  {index, [#service.rowid]},
 											  {attributes, record_info(fields, service)},
 											  {record_name, service}]),
 
     mnesia:create_table(catalog_re_db, [{type, set},
-										  {disc_copies, Nodes},
+										  {disc_only_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
@@ -303,7 +299,6 @@ start(PrivPath, DatabasePath) ->
 							user3_db,
 							user_aluno_ativo_db,
 							user_aluno_inativo_db,
-							user_cache_lru,
 							user_dados_funcionais_fs,
 							user_dados_funcionais_db,
 							user_email_fs,

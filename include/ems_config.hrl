@@ -307,24 +307,24 @@
 
 -else.
 
--define(WARN_MESSAGE,   		<<"[WARN  [">>).
--define(INFO_MESSAGE,   		<<"[INFO  [">>).
--define(ERROR_MESSAGE,  		<<"[ERROR [">>).
--define(DEBUG_MESSAGE,  		<<"[DEBUG [">>).
--define(ALERT_MESSAGE,  		<<"[INFO  [">>).
--define(LIGHT_GREEN_COLOR,    	<<"[">>).
--define(GREEN_COLOR, 			<<"[">>).
--define(TAB_GREEN_COLOR, 		<<"\n\t[">>).
--define(SPACE_GREEN_COLOR, 		<<"[">>).
--define(WHITE_COLOR, 			<<"[">>).
--define(WHITE_SPACE_COLOR, 		<<"[  ">>).
--define(WHITE_BRK_COLOR,		<<"[\n">>).
--define(WHITE_PARAM_COLOR,		<<"[: ">>).
--define(RED_COLOR, 				<<"[">>).
--define(WARN_COLOR, 			<<"[">>).
--define(DEBUG_COLOR, 			<<"[">>).
--define(BLUE_COLOR, 			<<"[">>).
--define(BLUE_SPACE_COLOR, 		<<"[ ">>).
+-define(WARN_MESSAGE,   		<<"[WARN] ">>).
+-define(INFO_MESSAGE,   		<<"[INFO] ">>).
+-define(ERROR_MESSAGE,  		<<"[ERROR] ">>).
+-define(DEBUG_MESSAGE,  		<<"[DEBUG] ">>).
+-define(ALERT_MESSAGE,  		<<"[INFO] ">>).
+-define(LIGHT_GREEN_COLOR,    	<<>>).
+-define(GREEN_COLOR, 			<<>>).
+-define(TAB_GREEN_COLOR, 		<<"\n\t">>).
+-define(SPACE_GREEN_COLOR, 		<<" ">>).
+-define(WHITE_COLOR, 			<<>>).
+-define(WHITE_SPACE_COLOR, 		<<" ">>).
+-define(WHITE_BRK_COLOR,		<<"\n">>).
+-define(WHITE_PARAM_COLOR,		<<": ">>).
+-define(RED_COLOR, 				<<>>).
+-define(WARN_COLOR, 			<<>>).
+-define(DEBUG_COLOR, 			<<>>).
+-define(BLUE_COLOR, 			<<>>).
+-define(BLUE_SPACE_COLOR, 		<<" ">>).
 
 -endif.
 
