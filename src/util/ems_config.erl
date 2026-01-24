@@ -729,6 +729,10 @@ parse_config(Json, Filename) ->
 		OAuth2ResourceOwnerFields = get_p(<<"oauth2_resource_owner_fields">>, Json, ?OAUTH2_RESOURCE_OWNER_FIELDS),
 		ems_db:set_param(oauth2_resource_owner_fields, OAuth2ResourceOwnerFields),
 
+		put(parse_step, oauth2_jwt_secret),
+		OAuth2JwtSecret = list_to_binary(get_p(<<"oauth2_jwt_secret">>, Json, "secret_default_change_me")),
+		ems_db:set_param(oauth2_jwt_secret, OAuth2JwtSecret),
+
 
 		put(parse_step, new_config),
 		Conf0 = #config{ 
@@ -790,6 +794,7 @@ parse_config(Json, Filename) ->
 				 ssl_certfile = SslCertfile, 
 				 ssl_keyfile = SslKeyfile, 
 				 sufixo_email_institucional = SufixoEmailInstitucional,
+				 oauth2_jwt_secret = OAuth2JwtSecret,
 				 log_show_response = LogShowResponse,
 				 log_show_response_header = LogShowResponseHeader,
 				 log_show_payload = LogShowPayload,

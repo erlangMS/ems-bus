@@ -53,10 +53,6 @@ start(PrivPath, DatabasePath) ->
 								  {ram_copies, Nodes},
 								  {attributes, record_info(fields, sequence)}]),
 
-    mnesia:create_table(stat_counter_hist, [{type, set},
-								    {disc_copies, Nodes},
-								    {attributes, record_info(fields, stat_counter_hist)},
-								    {record_name, stat_counter_hist}]),
 
     mnesia:create_table(sequence, [{type, set},
 								   {disc_copies, Nodes},
@@ -102,11 +98,6 @@ start(PrivPath, DatabasePath) ->
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
-    mnesia:create_table(user_history, [{type, set},
-									  {disc_copies, Nodes},
-									  {index, [#user_history.user_id]},
-									  {attributes, record_info(fields, user_history)},
-									  {record_name, user_history}]),
 
     mnesia:create_table(user_aluno_ativo_db, [{type, set},
 								  {disc_copies, Nodes},
@@ -310,7 +301,6 @@ start(PrivPath, DatabasePath) ->
 							user_db,
 							user2_db,
 							user3_db,
-							user_history,
 							user_aluno_ativo_db,
 							user_aluno_inativo_db,
 							user_cache_lru,
@@ -344,7 +334,6 @@ start(PrivPath, DatabasePath) ->
 							catalog_options_db,
 							catalog_kernel_db,
 							catalog_re_db,
-							stat_counter_hist,
 							auth_oauth2_access_token_table,
 							auth_oauth2_access_code_table,
 							auth_oauth2_refresh_token_table

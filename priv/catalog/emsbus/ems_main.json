@@ -36,10 +36,6 @@
 		"file": "auth/ems_auth.json"
 	},
 	{
-		"catalog": "/emsbus/ems_netadm_service",
-		"file": "ems_netadm_service.json"
-	},
-	{
 		"catalog": "/emsbus/tcp_servers",
 		"file": "tcp_servers/ems_tcp_servers.json"
 	},

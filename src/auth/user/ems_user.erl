@@ -33,10 +33,12 @@
 		 exist/2,
 		 all/0,
 		 all/1,
-		 add_history/1,
-		 add_history/3,
-		 add_history/4,
 		 get_admim_user/0]).
+
+-spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
+find_by_id(Id) -> 
+	find_by_id(Id, [user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs]).
+
 
 -spec find_by_id(non_neg_integer(), list(atom())) -> {ok, #user{}} | {error, enoent}.
 find_by_id(Id, Tables) -> 
@@ -45,12 +47,6 @@ find_by_id(Id, Tables) ->
 		_ -> {error, enoent}
 	end.
 
-
--spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
-find_by_id(Id) -> 
-	find_by_id([user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs], Id).
-	
-	
 
 -spec all() -> {ok, list()}.
 all() -> 
@@ -668,12 +664,10 @@ to_resource_owner(User, ClientId) ->
 		put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass2),
 		case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
 			true ->
-				io:format("aqui1"),
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass3),
 				OAuth2ResourceOwnerFindPermissionWithCPF = ems_db:get_param(oauth2_resource_owner_find_permission_with_cpf),
 				case User#user.cpf == <<>> orelse not OAuth2ResourceOwnerFindPermissionWithCPF of
 					true ->
-							io:format("aqui2"),
 							put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass4),
 							{ok, ListaPerfil} = ems_user_perfil:find_by_user_and_client(User#user.id, ClientId, [perfil_id, name]),
 							put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass5),
@@ -695,7 +689,6 @@ to_resource_owner(User, ClientId) ->
 							end;
 			
 					false ->
-						io:format("aqui3"),
 						put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass12),
 						{ok, ListaPerfil} = ems_user_perfil:find_by_cpf_and_client(User#user.cpf, ClientId, [perfil_id, name]),
 						put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass13),
@@ -731,7 +724,6 @@ to_resource_owner(User, ClientId) ->
 								ListaPerfilPermissionJson = <<"[]">>
 						end
 				end,
-				io:format("aqui4"),
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass22),
 				iolist_to_binary([<<"{"/utf8>>,
 									<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
@@ -749,7 +741,6 @@ to_resource_owner(User, ClientId) ->
 									<<"\"lista_perfil_permission\":"/utf8>>, ListaPerfilPermissionJson,
 								<<"}"/utf8>>]);
 			false ->
-				io:format("aqui5"),
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass23),
 				ListaPerfilFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [perfil_id, name]) of
 										{ok, ListaPerfil} -> 
@@ -844,7 +835,6 @@ to_resource_owner(User, ClientId) ->
 				ListaPermissionJson = ems_schema:to_json(ListaPermissionFinal),
 				case ShowListaPerfilPermission of
 					true -> 
-						io:format("aqui6"),
 						ListaPerfilPermissionFinal = case ems_user_perfil:find_by_user_and_client(User#user.remap_user_id, ClientId, [id, perfil_id , name, url, grant_get, grant_post, grant_put, grant_delete, position, glyphicon]) of
 													{ok, ListaPerfilPermission} ->
 														case User#user.cpf of
@@ -898,7 +888,6 @@ to_resource_owner(User, ClientId) ->
 						ListaPerfilPermissionJson = <<"[]">>
 				end,
 				put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass41),
-				io:format("aqui7"),
 				iolist_to_binary([<<"{"/utf8>>,
 									<<"\"id\":"/utf8>>, integer_to_binary(User#user.id), <<","/utf8>>,
 									<<"\"remap_user_id\":"/utf8>>, integer_to_binary(User#user.remap_user_id), <<","/utf8>>,
@@ -1223,183 +1212,6 @@ exist(Table, Id) ->
 all(Table) -> ems_db:all(Table).
 	
 
--spec add_history(#request{}) -> ok.
-add_history(Request = #request{user = User, client = Client, service = Service}) ->
-	add_history(case User of
-					undefined -> #user{};
-					public -> #user{name = <<"public">>, 
-									login = <<"public">>};
-					_ -> User
-				end,
-				case Client of 
-						undefined -> #client{};
-						public -> #client{name = <<"public">>};
-						_ -> Client
-				end,
-				case Service of
-						undefined -> #service{};
-						_ -> Service
-				end, 
-				Request).
-
-
--spec add_history(#user{}, #service{}, #request{}) -> ok.
-add_history(User, Service, Request) ->
-	add_history(User, #client{}, Service, Request).
-
--spec add_history(#user{}, #client{}, #service{}, #request{}) -> ok.
-add_history(#user{id = UserId,
-				  codigo = UserCodigo,
-				  login = UserLogin,
-				  name = UserName,
-				  cpf = UserCpf,
-				  email = UserEmail,
-				  type = UserType,
-				  subtype = UserSubtype,
-				  type_email = UserTypeEmail,
-				  active = UserActive,
-				  admin = UserAdmin},
-			#client{id = ClientId,
-					name = ClientName},
-			#service{rowid = ServiceRowid,
-					 name = ServiceName,
-				     url = ServiceUrl,
-					 type  = ServiceType,
-					 service = ServiceService,
-					 use_re = ServiceUseRE,
-					 public = ServicePublic,
-					 version = ServiceVersion,
-					 owner = ServiceOwner,
-					 group = ServiceGroup,
-					 async = ServiceAsync,
-					 log_show_payload = LogShowPayload},
-			#request{
-					   rid = RequestRid,
-					   timestamp = RequestTimestamp,
-					   %latency = RequestLatency,
-					   code  = RequestCode,
-					   reason = RequestReason,
-					   reason_detail = RequestReasonDetail,
-					   operation = RequestOperation,
-					   type = RequestType,
-					   uri = RequestUri,
-					   url = RequestUrl,
-					   url_masked = RequestUrlMasked,
-					   version = RequestHttpVersion,
-					   payload = RequestPayload,
-					   querystring = RequestQuerystring,
-					   params_url = RequestParamsUrl,
-					   content_type_in = RequestContentTypeIn,
-					   content_type_out = RequestContentTypeOut,
-					   content_length = RequestContentLength,
-					   accept = RequestAccept,
-					   user_agent = RequestUserAgent,
-					   user_agent_version = RequestUserAgentVersion,
-					   t1 = RequestT1,
-					   authorization = RequestAuthorization,
-					   protocol = RequestProtocol,
-					   port = RequestPort,
-					   %response_data = RequestResponseData,
-					   req_hash = RequestReqHash,
-					   host = RequestHost,
-					   filename = RequestFilename,
-					   referer = RequestReferer,
-					   access_token = RequestAccessToken}) ->
-	try
-		RequestTimestamp2 =	case is_binary(RequestTimestamp) of
-								true -> RequestTimestamp;
-								false -> ems_util:timestamp_binary(RequestTimestamp)
-							end,	
-		[RequestDate, RequestTime] = string:tokens(binary_to_list(RequestTimestamp2), " "),
-		case LogShowPayload of
-			true -> 
-				case RequestContentLength > 1024 of
-					true ->
-						case is_binary(RequestPayload) of
-							true -> RequestPayload2 = binary:part(RequestPayload, 1, 1024);
-							false -> RequestPayload2 = <<>>
-						end;
-					false -> RequestPayload2 = RequestPayload
-				end,
-				case is_binary(RequestPayload2) of
-					true -> RequestPayload3 = RequestPayload;
-					false -> RequestPayload3 = ems_schema:to_json_def(RequestPayload2, <<>>)
-				end;
-			false -> RequestPayload3 = <<>> 
-		end,
-		RequestParamsUrl2 = ems_schema:to_json_def(RequestParamsUrl, <<>>),
-		UserHistory = #user_history{
-						   %% dados do usuário
-						   user_id = UserId,
-						   user_codigo = UserCodigo,
-						   user_login = UserLogin,
-						   user_name = UserName,
-						   user_cpf = UserCpf,
-						   user_email = UserEmail,
-						   user_type = UserType,
-						   user_subtype = UserSubtype,
-						   user_type_email = UserTypeEmail,
-						   user_active = UserActive,
-						   user_admin = UserAdmin,
-						   
-						   % dados do cliente
-						   client_id = ClientId,
-						   client_name = ClientName,
-						   
-						   %% dados do serviço
-						   service_rowid = ServiceRowid,
-						   service_name = ServiceName,
-						   service_url = ServiceUrl,
-						   service_type  = ServiceType,
-						   service_service = ServiceService,
-						   service_use_re = ServiceUseRE,
-						   service_public = ServicePublic,
-						   service_version = ServiceVersion,
-						   service_owner = ServiceOwner,
-						   service_group = ServiceGroup,
-						   service_async = ServiceAsync,
-						   
-						   %% dados da requisição
-						   request_rid = RequestRid,
-						   request_date = RequestDate,
-						   request_time = RequestTime,
-						   %request_latency = RequestLatency,
-						   request_code  = RequestCode,
-						   request_reason = RequestReason,
-						   request_reason_detail = RequestReasonDetail,
-						   request_operation = RequestOperation,
-						   request_type = RequestType,
-						   request_uri = RequestUri,
-						   request_url = RequestUrl,
-						   request_url_masked = RequestUrlMasked,
-						   request_http_version = RequestHttpVersion,
-						   request_payload = RequestPayload3,
-						   request_querystring = RequestQuerystring,
-						   request_params_url = RequestParamsUrl2,
-						   request_content_type_in = RequestContentTypeIn,
-						   request_content_type_out = RequestContentTypeOut,
-						   request_content_length = RequestContentLength,
-						   request_accept = RequestAccept,
-						   request_user_agent = RequestUserAgent,
-						   request_user_agent_version = RequestUserAgentVersion,
-						   request_t1 = RequestT1,
-						   request_authorization = RequestAuthorization,
-						   request_protocol = RequestProtocol,
-						   request_port = RequestPort,
-						   %request_response_data = RequestResponseData,
-						   request_bash = RequestReqHash,
-						   request_host = RequestHost,
-						   request_filename = RequestFilename,
-						   request_referer = RequestReferer,
-						   request_access_token = RequestAccessToken
-					},
-		ems_db:insert(UserHistory),
-		ok
-	catch
-		_:Reason ->
-			ems_logger:format_error("ems_user add_history failed. Reason ~p.", [Reason]),
-			ok
-	end.
 
 %%%===================================================================
 %%% Funções internas

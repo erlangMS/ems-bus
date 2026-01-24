@@ -1,6 +1,29 @@
 # Autenticação OAuth2 no ems-bus - Guia de Referência
 
-## 1. Visão Geral
+O **ems-bus** suporta nativamente OAuth 2.0 e está em processo de implementação do suporte a OpenID Connect (OIDC). Este documento detalha as funcionalidades atuais e os planos de evolução.
+
+## 1. OAuth 2.0 vs OpenID Connect
+
+É comum confundir os dois protocolos, mas eles têm objetivos distintos:
+
+| Característica | OAuth 2.0 | OpenID Connect (OIDC) |
+| :--- | :--- | :--- |
+| **Objetivo** | **Autorização** (Capacidade de acessar uma API). | **Autenticação** (Saber quem é o usuário). |
+| **Analogia** | Uma chave de hotel (dá acesso ao quarto, mas não diz quem você é). | Um crachá ou RG (identifica a pessoa). |
+| **Token Principal** | `access_token` | `id_token` |
+| **Conteúdo do Token** | Permissões (Scopes). | Informações do Usuário (Claims). |
+| **Formato** | Opaco ou JWT. | Sempre JWT (JSON Web Token). |
+
+### Suporte no ems-bus
+*   **Atualmente:** O barramento implementa **OAuth 2.0** e **OpenID Connect** (OIDC).
+*   **Funcionalidades OIDC:**
+    *   Geração de `id_token` (JWT assinado com HS256) quando o escopo `openid` é solicitado.
+    *   Endpoint `/userinfo` para obter dados do usuário autenticado.
+    *   Endpoint de Discovery (`/.well-known/oauth-authorization-server`) compatível com OIDC.
+
+---
+
+## 2. Visão Geral (OAuth 2.0)
 
 O **ems-bus** implementa um servidor OAuth 2.0 (RFC 6749) completo, projetado para oferecer segurança e interoperabilidade com clientes modernos e frameworks como Authlib, Spring Security, entre outros.
 

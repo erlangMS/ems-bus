@@ -933,7 +933,6 @@ do_log_request(Request = #request{rid = RID,
 								true  -> write_msg(error, TextBin);
 								false -> write_msg(info,  TextBin)
 							end,
-				%ems_user:add_history(Request),
 				NewState;
 			false -> 
 				State

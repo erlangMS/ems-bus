@@ -28,20 +28,25 @@ execute(Request = #request{host = Host}) ->
     % Converte lista de atoms para lista de binários
     ScopesSupported = ems_util:atomlist_to_binlist(AuthDefaultScopes),
 
-    % Metadata JSON conforme RFC 8414
+    % URLs
+    UserInfoUrl = iolist_to_binary([Issuer, <<"/userinfo">>]),
+
+    % Metadata JSON conforme RFC 8414 e OIDC Discovery
     Metadata = #{
         <<"issuer">> => Issuer,
         <<"authorization_endpoint">> => AuthUrl,
         <<"token_endpoint">> => AuthUrl,
+        <<"userinfo_endpoint">> => UserInfoUrl,
         <<"grant_types_supported">> => [
             <<"authorization_code">>,
             <<"client_credentials">>,
             <<"password">>,
             <<"refresh_token">>
         ],
-        <<"response_types_supported">> => [<<"code">>, <<"token">>],
+        <<"response_types_supported">> => [<<"code">>, <<"token">>, <<"id_token">>],
         <<"token_endpoint_auth_methods_supported">> => [<<"client_secret_basic">>],
-        <<"scopes_supported">> => ScopesSupported
+        <<"scopes_supported">> => ScopesSupported,
+        <<"claims_supported">> => [<<"sub">>, <<"iss">>, <<"name">>, <<"email">>, <<"preferred_username">>, <<"cpf">>]
     },
     
     % Retorna JSON

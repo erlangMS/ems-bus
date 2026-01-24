@@ -14,10 +14,10 @@
 
 -export([to_record/2, to_list/1, to_list/2, to_json/1, to_json_def/2, new/1, new_/1, prop_list_to_json/1, get_schema_table/1, get_data_type_field/2]).
 
--export_records([user, user_history, user_permission, user_perfil, 
+-export_records([user, user_permission, user_perfil, 
 				 user_email, user_dados_funcionais, user_endereco, user_telefone,
 				 catalog_schema, schema_type, service, service_owner, 
-				 client, service_datasource, stat_counter_hist, counter]).
+				 client, service_datasource, counter]).
 
 
 % to_record
@@ -186,7 +186,6 @@ new(service_owner) -> #service_owner{};
 new(service_datasource) -> #service_datasource{};
 new(catalog_schema) -> #catalog_schema{};
 new(user) -> #user{};
-new(user_history) -> #user_history{};
 new(user_permission) -> #user_permission{};
 new(user_perfil) -> #user_perfil{};
 new(user_email) -> #user_email{};
@@ -195,7 +194,6 @@ new(user_telefone) -> #user_telefone{};
 new(user_dados_funcionais) -> #user_dados_funcionais{};
 new(schema_type) -> #schema_type{};
 new(client) -> #client{};
-new(stat_counter_hist) -> #stat_counter_hist{};
 new(counter) -> #counter{};
 new(_) -> erlang:error(einvalid_type).
 
@@ -207,7 +205,6 @@ new_(service_owner) -> #service_owner{_ = '_'};
 new_(service_datasource) -> #service_datasource{_ = '_'};
 new_(catalog_schema) -> #catalog_schema{_ = '_'};
 new_(user) -> #user{_ = '_'};
-new_(user_history) -> #user_history{_ = '_'};
 new_(user_permission) -> #user_permission{_ = '_'};
 new_(user_email) -> #user_email{_ = '_'};
 new_(user_endereco) -> #user_endereco{_ = '_'};
@@ -215,7 +212,6 @@ new_(user_telefone) -> #user_telefone{_ = '_'};
 new_(user_dados_funcionais) -> #user_dados_funcionais{_ = '_'};
 new_(user_perfil) -> #user_perfil{_ = '_'};
 new_(client) -> #client{_ = '_'};
-new_(stat_counter_hist) -> #stat_counter_hist{_ = '_'};
 new_(counter) -> #counter{_ = '_'};
 new_(_) -> erlang:error(einvalid_type).
 
@@ -249,8 +245,6 @@ get_schema_table(user_endereco_db) -> ?USER_ENDERECO_SCHEMA_DESCRIPTOR;
 get_schema_table(user_telefone) -> ?USER_TELEFONE_SCHEMA_DESCRIPTOR;
 get_schema_table(user_telefone_fs) -> ?USER_TELEFONE_SCHEMA_DESCRIPTOR;
 get_schema_table(user_telefone_db) -> ?USER_TELEFONE_SCHEMA_DESCRIPTOR;
-get_schema_table(user_history) -> ?USER_HISTORY_DESCRIPTOR;
-get_schema_table(stat_counter_hist) -> ?STAT_COUNTER_HIST_DESCRIPTOR;
 get_schema_table(service) -> ?SERVICE_DESCRIPTOR;
 get_schema_table(catalog_get_fs) -> ?SERVICE_DESCRIPTOR;
 get_schema_table(catalog_get_db) -> ?SERVICE_DESCRIPTOR;

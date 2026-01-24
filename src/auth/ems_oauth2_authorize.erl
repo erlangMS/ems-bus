@@ -181,7 +181,44 @@ execute(Request = #request{type = Type,
 							persist_token_sgbd(Service, User, Client, AccessCode, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
 						false -> ok
 					end,
+
 					put(exec_step, oauth2_authorize_response_pass6),
+					
+					% Lógica OIDC: Gerar id_token se o escopo "openid" estiver presente
+					Scopes = binary:split(maps:get(<<"scope">>, Response#response.state, <<>>), <<" ">>, [global]),
+					IdTokenPart = case lists:member(<<"openid">>, Scopes) of
+						true ->
+							% Configura Claims do ID Token
+							Config = ems_config:getConfig(),
+							Issuer = Config#config.rest_auth_url, % URL do emissor (Identity Provider)
+							Subject = case User of
+								undefined -> <<"unknown">>;
+								#user{id = UserId} -> ems_util:integer_to_binary_def(UserId, 0)
+							end,
+							Audience = case Client of
+								undefined -> <<"unknown">>;
+								#client{id = ClientIdComp} -> ems_util:integer_to_binary_def(ClientIdComp, 0)
+							end,
+							Now = ems_util:get_timestamp(),
+							Exp = Now + Response#response.expires_in,
+							
+							Claims = #{
+								<<"iss">> => Issuer,
+								<<"sub">> => Subject,
+								<<"aud">> => Audience,
+								<<"exp">> => Exp,
+								<<"iat">> => Now,
+								<<"auth_time">> => Now
+							},
+							
+							% Assina o token com a chave configurada
+							Secret = Config#config.oauth2_jwt_secret,
+							IdToken = ems_util:jwt_encode(Claims, Secret),
+							
+							iolist_to_binary([<<"\"id_token\":\""/utf8>>, IdToken, <<"\","/utf8>>]);
+						false -> <<>>
+					end,
+
 					ResponseData2 = iolist_to_binary([<<"{"/utf8>>,
 															ClientProp,
 														   <<"\"access_token\":\""/utf8>>, Response#response.access_token, <<"\","/utf8>>,
@@ -190,6 +227,7 @@ execute(Request = #request{type = Type,
 														   <<"\"scope\":\""/utf8>>, maps:get(<<"scope">>, Response#response.state, <<>>), <<"\","/utf8>>,
 														   <<"\"state\":\""/utf8>>, maps:get(<<"state">>, Response#response.state, <<>>), <<"\","/utf8>>,
 														   <<"\"refresh_token\":\""/utf8>>, Response#response.refresh_token, <<"\","/utf8>>, 
+														   IdTokenPart,
 														   <<"\"refresh_token_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0), <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, Response#response.token_type, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),

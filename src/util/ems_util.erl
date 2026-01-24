@@ -203,8 +203,32 @@
 		 file_exists/1,
 		 integer_to_binary_def/2,
 		 add_spaces_all_elements_list/2,
+		 jwt_encode/2,
 		 get_timestamp/0
 		]).
+
+%% @doc Gera um JWT (JSON Web Token) usando algoritmo HS256
+%% @param Payload: Map contendo os claims
+%% @param Secret: Chave secreta para assinatura
+-spec jwt_encode(map(), binary()) -> binary().
+jwt_encode(Payload, Secret) ->
+	Header = #{
+		<<"typ">> => <<"JWT">>,
+		<<"alg">> => <<"HS256">>
+	},
+	HeaderBin = base64_url_encode(json_encode(Header)),
+	PayloadBin = base64_url_encode(json_encode(Payload)),
+	SigningInput = <<HeaderBin/binary, ".", PayloadBin/binary>>,
+	Signature = base64_url_encode(crypto:hmac(sha256, Secret, SigningInput)),
+	<<SigningInput/binary, ".", Signature/binary>>.
+
+%% @doc Codifica binary para Base64 URL-safe (sem padding)
+base64_url_encode(Data) ->
+	B64 = base64:encode(Data),
+	B64_1 = binary:replace(B64, <<"+">>, <<"-">>, [global]),
+	B64_2 = binary:replace(B64_1, <<"/">>, <<"_">>, [global]),
+	binary:replace(B64_2, <<"=">>, <<>>, [global]).
+
 
 -spec version() -> string().
 version() ->

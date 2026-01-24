@@ -310,11 +310,6 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																   status_text = StatusText}
 								end,
 								put(dispatch_request_step, dispatch_request_step_pass24),
-								ems_user:add_history(case User of 
-														undefined -> #user{};
-														_ -> User
-													 end,
-													 #client{}, Service, Request2),
 								put(dispatch_request_step, dispatch_request_step_pass25),
 								{error, request, Request2}
 						end
@@ -355,11 +350,6 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 												   status_text = StatusText}
 				end,
 				put(dispatch_request_step, dispatch_request_step_pass29),
-				ems_user:add_history(case User of 
-										undefined -> #user{};
-										_ -> User
-									 end,
-									 #client{}, Service, Request2),
 				put(dispatch_request_step, dispatch_request_step_pass30),
 				{error, request, Request2}
 		end

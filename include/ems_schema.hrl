@@ -122,125 +122,8 @@
 %
 % Muitos atributos são armazenados no histórico pois as tabelas origem podem mudar
 %
--record(user_history, {
-			   id :: non_neg_integer(), 						%%  1 - id
-			   user_id :: non_neg_integer(), 					%%  2 - user_id
-			   user_codigo :: non_neg_integer(),				%%  3 - user_codigo
-			   user_login :: binary(),							%%  4 - user_login
-			   user_name :: binary(), 							%%  5 - user_name
-			   user_cpf :: binary(),							%%  6 - user_cpf
-			   user_email :: binary(), 							%%  7 - user_email
-			   user_type :: non_neg_integer(),					%%  8 - user_type
-			   user_subtype :: non_neg_integer(),				%%  9 - user_subtype
-			   user_type_email :: non_neg_integer(),			%% 10 - user_type_email
-			   user_active :: boolean(),						%% 11 - user_active
-			   user_admin :: boolean(),							%% 12 - user_admin
-			   client_id :: non_neg_integer(), 					%% 13 - client_id
-			   client_name :: binary(), 						%% 14 - client_name
-			   service_rowid :: non_neg_integer(), 				%% 15 - service_rowid
-			   service_name :: binary(), 						%% 16 - service_name
-			   service_url :: string(),  						%% 17 - service_url
-			   service_type :: binary(),						%% 18 - service_type
-			   service_service :: binary(),						%% 19 - service_service
-			   service_use_re :: boolean(),						%% 20 - service_use_re
-			   service_public :: boolean(), 					%% 21 - service_public
-			   service_version :: binary(), 					%% 22 - service_version
-			   service_owner :: binary(),  						%% 23 - service_owner
-			   service_group :: binary(),  						%% 24 - service_group
-			   owner :: binary(),  								%% 25 - owner
-			   service_async :: boolean(),						%% 26 - service_async
-			   request_rid :: non_neg_integer(),  				%% 27 - request_rid
-			   request_type :: binary(),						%% 28 - request_type
-			   request_uri :: binary(),							%% 29 - request_uri
-			   request_url :: binary(),							%% 30 - request_url
-			   request_url_masked :: boolean(),					%% 31 - request_url_masked
-			   request_http_version :: binary(),				%% 32 - request_http_version
-			   request_querystring :: binary(),					%% 33 - request_querystring
-			   request_content_type_in :: binary(),				%% 34 - request_content_type_in
-			   request_content_type_out :: binary(),			%% 35 - request_content_type_out
-			   request_content_length :: non_neg_integer(), 	%% 36 - request_content_length
-			   request_accept :: binary(),						%% 37 - request_accept
-			   request_user_agent :: binary(),					%% 38 - request_user_agent
-			   request_user_agent_version :: binary(),			%% 39 - request_user_agent_version
-			   request_t1 :: non_neg_integer(),					%% 40 - request_t1
-			   request_authorization :: binary(),				%% 41 - request_authorization
-			   request_port :: non_neg_integer(),				%% 42 - request_port
-			   request_bash :: non_neg_integer(),				%% 43 - request_bash
-			   request_host :: binary(),						%% 44 - request_host
-			   request_filename :: string(),					%% 45 - request_filename
-			   request_referer :: binary(),						%% 46 - request_referer
-			   request_access_token :: binary(),				%% 47 - request_access_token
-			   request_operation :: atom(),						%% 48 - request_operation
-			   request_reason_detail :: atom(),					%% 49 - request_reason_detail
-			   request_reason :: atom(),						%% 50 - request_reason
-			   request_code :: non_neg_integer(),	 			%% 51 - request_code
-			   request_protocol :: atom(),						%% 52 - request_protocol
-   			   request_date :: binary(),						%% 53 - request_date
-   			   request_time :: binary(),						%% 54 - request_time
-   			   request_payload :: binary(),						%% 55 - request_payload
-   			   request_params_url :: binary()					%% 56 - request_params_url
-		}).
 
 
--define(USER_HISTORY_DESCRIPTOR, {
-			   atom_type,										%%  0 - nome da tabela	
-			   non_neg_integer_type, 							%%  1 - id   
-			   non_neg_integer_type, 							%%  2 - user_id   
-			   non_neg_integer_type,							%%  3 - user_codigo
-			   binary_type,										%%  4 - user_login	
-			   binary_type,										%%  5 - user_name	
-			   binary_type,										%%  6 - user_cpf
-			   binary_type,										%%  7 - user_email
-			   non_neg_integer_type,							%%  8 - user_type
-			   non_neg_integer_type,							%%  9 - user_subtype
-			   non_neg_integer_type,							%% 10 - user_type_email
-			   boolean_type,									%% 11 - user_active
-			   boolean_type,									%% 12 - user_admin
-			   non_neg_integer_type,							%% 13 - client_id
-			   binary_type,										%% 14 - client_name
-			   non_neg_integer_type,							%% 15 - service_rowid
-			   binary_type,										%% 16 - service_name
-			   string_type,										%% 17 - service_url
-			   binary_type,										%% 18 - service_type
-			   binary_type,										%% 19 - service_service
-			   boolean_type,									%% 20 - service_use_re
-			   boolean_type,									%% 21 - service_public
-			   binary_type,										%% 22 - service_version
-			   binary_type,										%% 23 - service_owner
-			   binary_type,										%% 24 - service_group
-			   binary_type,										%% 25 - owner
-			   boolean_type,									%% 26 - service_async
-			   non_neg_integer_type,							%% 27 - request_rid
-			   binary_type,										%% 28 - request_type
-			   binary_type,										%% 29 - request_uri
-			   binary_type,										%% 30 - request_url
-			   boolean_type,									%% 31 - request_url_masked
-			   binary_type,										%% 32 - request_http_version
-			   binary_type,										%% 33 - request_querystring
-			   binary_type,										%% 34 - request_content_type_in
-			   binary_type,										%% 35 - request_content_type_out
-			   non_neg_integer_type,							%% 36 - request_content_length
-			   binary_type,										%% 37 - request_accept
-			   binary_type,										%% 38 - request_user_agent
-			   binary_type,										%% 39 - request_user_agent_version
-			   non_neg_integer_type,							%% 40 - request_t1
-			   binary_type,										%% 41 - request_authorization
-			   non_neg_integer_type,							%% 42 - request_port
-			   non_neg_integer_type,							%% 43 - request_bash
-			   binary_type,										%% 44 - request_host
-			   string_type,										%% 45 - request_filename
-			   binary_type,										%% 46 - request_referer
-			   binary_type,										%% 47 - request_access_token
-			   atom_type,										%% 48 - request_operation
-			   atom_type,										%% 49 - request_reason_detail
-			   atom_type,										%% 50 - request_reason
-			   non_neg_integer_type,							%% 51 - request_code
-			   atom_type,										%% 52 - request_protocol
-			   binary_type,										%% 53 - request_date
-			   binary_type,										%% 54 - request_time
-			   binary_type,										%% 55 - request_payload
-			   binary_type										%% 56 - request_params_url
-			}).		
 
 		
 -record(user_dados_funcionais, {
@@ -866,30 +749,8 @@
 				}).
 
 
--record(stat_counter_hist, {  id :: non_neg_integer(),				%% 1 - id
-							  stat_name :: atom(),					%% 2 - stat_name
-							  stat_value :: non_neg_integer,		%% 3 - stat_value
-							  stat_date :: binary(),				%% 4 - stat_date
-							  stat_time :: binary(),				%% 5 - stat_time
-							  stat_service_name :: binary(),		%% 6 - stat_service_name
-							  stat_service_url :: binary(),			%% 7 - stat_service_url
-							  stat_service_type :: binary(),		%% 8 - stat_service_type
-							  stat_label :: binary()				%% 9 - stat_label
-							}).
 
 
--define(STAT_COUNTER_HIST_DESCRIPTOR, {
-			   atom_type,									%%  0 - nome da tabela	
-			   non_neg_integer_type,						%%  1 - id
-			   atom_type, 									%%  2 - stat_name   
-			   non_neg_integer_type,						%%  3 - stat_value
-			   binary_type,									%%  4 - stat_date
-			   binary_type,									%%  5 - stat_time
-			   binary_type,									%%  6 - stat_service_name
-			   binary_type,									%%  7 - stat_service_url
-			   binary_type,									%%  8 - stat_service_type
-			   binary_type									%%  9 - stat_label
-		}).
 
 
 -record(auth_oauth2_access_token, { id :: binary(),
