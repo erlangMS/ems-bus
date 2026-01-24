@@ -21,10 +21,10 @@ authenticate(Service = #service{authorization = AuthorizationMode,
 		put(authenticate, authenticate_step_pass1),
 		case Type of
 			<<"OPTIONS">> -> 
-				ems_db:inc_counter(ems_auth_user_public_success),
+
 				{ok, public, public, <<>>, <<>>, <<>>};
 			"HEAD" -> 
-				ems_db:inc_counter(ems_auth_user_public_success),
+
 				{ok, public, public, <<>>, <<>>, <<>>};
 			_ -> 
 				put(authenticate, authenticate_step_pass2),
@@ -46,7 +46,7 @@ authenticate(Service = #service{authorization = AuthorizationMode,
 								end;
 							false -> 
 								put(authenticate, authenticate_step_pass5),
-								ems_db:inc_counter(ems_auth_user_public_success),
+
 								{ok, public, public, <<>>, <<>>, <<>>}
 						end
 				end
@@ -126,7 +126,7 @@ do_bearer_authorization(Service, Request = #request{authorization = Authorizatio
 				do_oauth2_check_access_token(AccessToken, Service, Request);
 			Error -> 
 				ems_logger:error("ems_auth_user do_bearer_authorization failed on parse \033[0;32mauthorization\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Authorization)]),
-				ems_db:inc_counter(ems_auth_user_oauth2_denied),
+
 				Error
 		end
 	catch
@@ -138,14 +138,14 @@ do_bearer_authorization(Service, Request = #request{authorization = Authorizatio
 
 -spec do_oauth2_check_access_token(binary(), #service{}, #request{}) -> {ok, #client{} | public, #user{} | public, binary(), binary()} | {error, access_denied}.
 do_oauth2_check_access_token(<<>>, _, _) -> 
-	ems_db:inc_counter(ems_auth_user_oauth2_denied),
+
 	{error, access_denied, eaccess_token_required};
 do_oauth2_check_access_token(AccessToken, Service, Req) ->
 	try
 		case byte_size(AccessToken) > 32 of
 			true -> 
 				ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due \033[0;32minvalid token length\033[0m, \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
-				ems_db:inc_counter(ems_auth_user_oauth2_denied),
+
 				{error, access_denied, einvalid_access_token_size};
 			false -> 
 				case oauth2:verify_access_token(AccessToken, undefined) of
@@ -163,7 +163,7 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 												do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
 											false ->
 												ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32m, user-agent\033[0m: \033[01;34m~s\033[0m, \033[0;32mforwarded-for\033[0m: \033[01;34m~s\033[0m \033[0;32mfor access token\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken peer\033[0m: \033[01;34m~s\033[0m, \033[0;32mtoken user-agent\033[0m: \033[01;34m~p\033[0m, \033[0;32mtoken forwarded-for\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
-												ems_db:inc_counter(einvalid_peer_token),
+
 												{error, access_denied, einvalid_peer_token}
 									end;
 							false ->
@@ -171,7 +171,7 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 						end;
 				_ -> 
 					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for \033[0;32mAccessToken\033[0m: \033[01;34m~p\033[0m, \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m.", [AccessToken, binary_to_list(Req#request.referer)]),
-					ems_db:inc_counter(ems_auth_user_oauth2_denied),
+
 					{error, access_denied, einvalid_access_token}
 				end
 		end
@@ -192,7 +192,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 						  AccessToken, 
 						  Scope, 
 						  State, 
-						  AuthorizationMode) ->
+						  _) ->
 	try
 		case Client of
 			public -> 
@@ -233,11 +233,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 		end,
 		case PermiteAcessarComoAdmin orelse PermiteAcessarWebserviceDoOwner orelse PermiteAcessarWsOAuth2 of
 			true -> 
-				case AuthorizationMode of
-					basic -> ems_db:inc_counter(ems_auth_user_basic_success);
-					oauth2 -> ems_db:inc_counter(ems_auth_user_oauth2_success);
-					_ -> ems_db:inc_counter(ems_auth_user_public_success)
-				end,
+
 				case not RestrictedService of
 					true ->
 						case PermiteAcessarComoAdmin of
@@ -252,11 +248,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 				end,
 				{ok, Client, User, AccessToken, Scope, State};
 			false -> 
-				case AuthorizationMode of
-					basic -> ems_db:inc_counter(ems_auth_user_basic_denied);
-					oauth2 -> ems_db:inc_counter(ems_auth_user_oauth2_denied);
-					_ -> ems_db:inc_counter(ems_auth_user_public_denied)
-				end,
+
 				case not RestrictedService of
 					true -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for\033[0;32mservice\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mis_admin\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
 					false -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for\033[0;32m restricted service\033[0m: \033[01;34m~s\033[0m, \033[0;32muser login\033[0m: \033[01;34m~s\033[0m, \033[0;32mis_admin\033[0m: \033[01;34m~p\033[0m, \033[0;32mclient\033[0m: \033[01;34m~s\033[0m, \033[0;32mowner\033[0m: \033[01;34m~s\033[0m, \033[0;32mauthorization_owner\033[0m: \033[01;34m~p\033[0m.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])

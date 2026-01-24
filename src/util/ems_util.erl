@@ -159,7 +159,6 @@
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 criptografia_md5/1,
-		 criptografia_blowfish/1,
 		 head_file/2,
 
 		 replace_all_vars/2,
@@ -3956,9 +3955,7 @@ criptografia_md5(Password) when is_binary(Password) ->
 	criptografia_md5(binary_to_list(Password));
 criptografia_md5(Password) -> binary_to_hex(crypto:hash(md5, Password)).
 
-criptografia_blowfish(_Password) -> 
-	%% ems_blowfish module is missing. Returning empty binary.
-	<<>>.
+
 
 
 -spec flush_messages() -> ok.

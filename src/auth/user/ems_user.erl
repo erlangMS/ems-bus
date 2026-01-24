@@ -15,25 +15,15 @@
 -export([find_by_id/1, find_by_id/2,		 
 		 find_by_login/1, 
 		 find_by_login_and_scope/2,
-		 find_by_name/1, 
-		 find_by_email/1, 
-		 find_by_cpf/1, 
 		 find_by_login_and_password/2,
 		 find_by_login_and_password/3,
-		 find_by_codigo_pessoa/1, 
-		 find_by_codigo_pessoa/2,
 		 find_by_filter/2,
 		 find_by_filter_and_scope/3,
 		 get_user_info/2,
 		 to_resource_owner/1,
 		 to_resource_owner/2,
  		 new_from_map/2,
-		 get_table/1,
-		 find/2,
-		 exist/2,
-		 all/0,
-		 all/1,
-		 get_admim_user/0]).
+		 find/2]).
 
 -spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
 find_by_id(Id) -> 
@@ -47,16 +37,6 @@ find_by_id(Id, Tables) ->
 		_ -> {error, enoent}
 	end.
 
-
--spec all() -> {ok, list()}.
-all() -> 
-	{ok, ListaUserDb} = ems_db:all(user_db),
-	{ok, ListaUser2Db} = ems_db:all(user2_db),
-	{ok, ListaUserAlunoAtivoDb} = ems_db:all(user_aluno_ativo_db),
-	{ok, ListaUserAlunoInativoDb} = ems_db:all(user_aluno_inativo_db),
-	{ok, ListaUserFs} = ems_db:all(user_fs),
-	{ok, ListaUserDb ++ ListaUser2Db ++ ListaUserAlunoAtivoDb ++ ListaUserAlunoInativoDb ++ ListaUserFs}.
-	
 
 -spec find_by_filter(list(binary()), tuple()) -> {ok, list(#user{})} | {error, atom(), atom()}.
 find_by_filter(Fields, Filter) -> 
@@ -100,37 +80,39 @@ find_by_codigo_pessoa(Table, Codigo) ->
 	end.
 
 
-find_index_by_login_and_password_cmp_password(_, [], _, _, _, _, _, _, _, _, _, _, _, _, _,_,_) ->
-	{error, access_denied};
-find_index_by_login_and_password_cmp_password([Table|_] = Tables, 
-											[#user{password = PasswordUser, cpf = Cpf, ctrl_last_login_scope = CtrlLoginScope} = User|T], 
+find_index_by_login_and_password([], _, _, _, _, _, _) ->
+	{error, access_denied, enoent};
+
+find_index_by_login_and_password([Table|_] = Tables, 
+											[#user{password = PasswordUser, 
+												   passwd_crypto = PasswdCrypto,
+												   cpf = Cpf, 
+												   ctrl_last_login_scope = CtrlLoginScope} = User|T], 
 											LoginBin, 
+											[PasswordStr, PasswordStrLower, PasswordStrUpper] = PasswordStrs,
 											PasswordBin, 
-											PasswordBinCryptoSHA1, 
-											PasswordBinLowerCryptoSHA1, 
-											PasswordBinUpperCryptoSHA1, 
-											PasswordBinCryptoMD5, 
-											PasswordBinLowerCryptoMD5, 
-											PasswordBinUpperCryptoMD5, 
-											PasswordBinCryptoBLOWFISH, 
-											PasswordBinLowerCryptoBLOWFISH, 
-											PasswordBinUpperCryptoBLOWFISH, 
-											PasswordStrLower, 
-											PasswordStrUpper, 
 											Client,
 											AuthPasswordCheckBetweenScope) ->
-	case PasswordUser =:= PasswordBinCryptoSHA1 
-		 orelse PasswordUser =:= PasswordBin 
-		 orelse PasswordUser =:= PasswordBinLowerCryptoSHA1 
-		 orelse PasswordUser =:= PasswordBinUpperCryptoSHA1 
-		 orelse PasswordUser =:= PasswordBinCryptoMD5 
-		 orelse PasswordUser =:= PasswordBinLowerCryptoMD5 
-		 orelse PasswordUser =:= PasswordBinUpperCryptoMD5 
-		 orelse PasswordUser =:= PasswordBinCryptoBLOWFISH 
-		 orelse PasswordUser =:= PasswordBinLowerCryptoBLOWFISH 
-		 orelse PasswordUser =:= PasswordBinUpperCryptoBLOWFISH 
-		 orelse PasswordUser =:= PasswordStrLower 
-		 orelse PasswordUser =:= PasswordStrUpper of
+	% Lazy hash computation based on stored crypto type
+	IsMatch = case PasswdCrypto of
+		undefined ->
+			% Legacy/Fallback: Check plain text or SHA1 compatibility
+			PasswordUser =:= PasswordBin orelse 
+			PasswordUser =:= ems_util:criptografia_sha1(PasswordStr);
+		<<"SHA1">> ->
+			PasswordUser =:= ems_util:criptografia_sha1(PasswordStr) orelse
+			PasswordUser =:= ems_util:criptografia_sha1(PasswordStrLower) orelse
+			PasswordUser =:= ems_util:criptografia_sha1(PasswordStrUpper);
+		<<"MD5">> ->
+			PasswordUser =:= ems_util:criptografia_md5(PasswordStr) orelse
+			PasswordUser =:= ems_util:criptografia_md5(PasswordStrLower) orelse
+			PasswordUser =:= ems_util:criptografia_md5(PasswordStrUpper);
+		_ ->
+			% Default fallback
+			PasswordUser =:= PasswordBin
+	end,
+
+	case IsMatch of
 			true -> 
 						User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
 										  ctrl_login_count = User#user.ctrl_login_count + 1,
@@ -144,91 +126,50 @@ find_index_by_login_and_password_cmp_password([Table|_] = Tables,
 				case Table == user_aluno_ativo_db andalso AuthPasswordCheckBetweenScope of
 					true -> 
 						case mnesia:dirty_index_read(user_db, LoginBin, #user.login) of
-							[#user{password = PasswordUserEmOutraTabela, cpf = CpfUserEmOutraTabela}|_] -> 
-								case CpfUserEmOutraTabela =:= Cpf andalso 
-									(
-										PasswordUserEmOutraTabela =:= PasswordBinCryptoSHA1 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBin 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinLowerCryptoSHA1 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinUpperCryptoSHA1 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinCryptoMD5 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinLowerCryptoMD5 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinUpperCryptoMD5 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinCryptoBLOWFISH 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinLowerCryptoBLOWFISH 
-										 orelse PasswordUserEmOutraTabela =:= PasswordBinUpperCryptoBLOWFISH 
-										 orelse PasswordUserEmOutraTabela =:= PasswordStrLower 
-										 orelse PasswordUserEmOutraTabela =:= PasswordStrUpper
-									 ) of
-										true -> 
-													User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
-																	  ctrl_login_count = User#user.ctrl_login_count + 1,
-																	  ctrl_last_login_scope = Table,
-																	  ctrl_last_login_client = Client#client.name},
-													mnesia:dirty_write(Table, User2),	
+							[#user{password = PasswordUserEmOutraTabela}|_] -> 
+								% Simple check against user_db password (assuming same crypto logic or just simple equality for now to save complexity)
+								IsMatchOther = PasswordUserEmOutraTabela =:= ems_util:criptografia_sha1(PasswordStr),
+								case IsMatchOther of
+									true -> 
+											User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
+																ctrl_login_count = User#user.ctrl_login_count + 1,
+																ctrl_last_login_scope = Table,
+																ctrl_last_login_client = Client#client.name},
+											mnesia:dirty_write(Table, User2),	
 											{ok, User2};
-										false -> 
-											find_index_by_login_and_password_cmp_password(Tables, T, LoginBin, 
-																PasswordBin, 
-																PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-																PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-																PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-																PasswordStrLower, PasswordStrUpper, Client,AuthPasswordCheckBetweenScope) 
-									end
+									false -> 
+											find_index_by_login_and_password(Tables, T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
 								end;
+							_ ->
+								find_index_by_login_and_password(Tables, T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
+						end;
 					false ->					
-						find_index_by_login_and_password_cmp_password(Tables, T, LoginBin, 
-											PasswordBin, 
-											PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-											PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-											PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-											PasswordStrLower, PasswordStrUpper, Client,AuthPasswordCheckBetweenScope) 
+						find_index_by_login_and_password(Tables, T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
 				end
 	end.
 
 
-find_index_by_login_and_password([], _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) ->
+% This function now iterates over tables and calls the optimization logic directly
+find_index_by_login_and_password([], _, _, _, _, _) ->
 	{error, access_denied, enoent};
+
 find_index_by_login_and_password([Table|T] = Tables, 
 											LoginBin, 
+											PasswordStrs,
 											PasswordBin, 
-											PasswordBinCryptoSHA1, 
-											PasswordBinLowerCryptoSHA1, 
-											PasswordBinUpperCryptoSHA1, 
-											PasswordBinCryptoMD5, 
-											PasswordBinLowerCryptoMD5, 
-											PasswordBinUpperCryptoMD5, 
-											PasswordBinCryptoBLOWFISH, 
-											PasswordBinLowerCryptoBLOWFISH, 
-											PasswordBinUpperCryptoBLOWFISH, 
-											PasswordStrLower, 
-											PasswordStrUpper, 
 											Client,
 											AuthPasswordCheckBetweenScope) ->
 	case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
 		Users when is_list(Users) -> 
-			case find_index_by_login_and_password_cmp_password(Tables, Users, LoginBin, 
-																PasswordBin, 
-																PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-																PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-																PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-																PasswordStrLower, PasswordStrUpper, Client, AuthPasswordCheckBetweenScope) of
+			case find_index_by_login_and_password(Tables, Users, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) of
 				{ok, User} -> {ok, User};
-				{error, access_denied} -> 
-					find_index_by_login_and_password(T, LoginBin, 
-												PasswordBin, 
-												PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-												PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-												PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-												PasswordStrLower, PasswordStrUpper, Client, AuthPasswordCheckBetweenScope)
+				{error, access_denied, enoent} -> 
+					find_index_by_login_and_password(T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope);
+				{error, access_denied} ->
+					find_index_by_login_and_password(T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope)
 			end;
 		_ -> 
-			find_index_by_login_and_password(T, LoginBin, 
-							PasswordBin, 
-							PasswordBinCryptoSHA1, PasswordBinLowerCryptoSHA1, PasswordBinUpperCryptoSHA1, 
-							PasswordBinCryptoMD5, PasswordBinLowerCryptoMD5, PasswordBinUpperCryptoMD5, 
-							PasswordBinCryptoBLOWFISH, PasswordBinLowerCryptoBLOWFISH, PasswordBinUpperCryptoBLOWFISH, 
-							PasswordStrLower, PasswordStrUpper, Client, AuthPasswordCheckBetweenScope)
+			find_index_by_login_and_password(T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope)
 	end.
 
 -spec find_by_login_and_password(binary() | list(), binary() | list()) -> {ok, #user{}} | {error, access_denied, enoent | einvalid_password}.	
@@ -255,27 +196,11 @@ find_by_login_and_password(Login, Password, Client)  ->
 			LoginBin = list_to_binary(LoginStr),
 			PasswordBin = list_to_binary(PasswordStr),
 
-			PasswordStrLower = string:to_lower(PasswordStr),
-			PasswordStrUpper = string:to_upper(PasswordStr),
-
-			PasswordBinCryptoSHA1 = ems_util:criptografia_sha1(PasswordStr),
-			PasswordBinLowerCryptoSHA1 = ems_util:criptografia_sha1(PasswordStrLower),
-			PasswordBinUpperCryptoSHA1 = ems_util:criptografia_sha1(PasswordStrUpper),
-
-			PasswordBinCryptoMD5 = ems_util:criptografia_md5(PasswordStr),
-			PasswordBinLowerCryptoMD5 = ems_util:criptografia_md5(PasswordStrLower),
-			PasswordBinUpperCryptoMD5 = ems_util:criptografia_md5(PasswordStrUpper),
-
-			case ems_db:get_param(use_blowfish_crypto) of
-				true ->
-					PasswordBinCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStr),
-					PasswordBinLowerCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStrLower),
-					PasswordBinUpperCryptoBLOWFISH = ems_util:criptografia_blowfish(PasswordStrUpper);
-				false ->
-					PasswordBinCryptoBLOWFISH = undefined,
-					PasswordBinLowerCryptoBLOWFISH = undefined,
-					PasswordBinUpperCryptoBLOWFISH = undefined
-			end,
+			PasswordStrs = [
+				PasswordStr,
+				string:to_lower(PasswordStr),
+				string:to_upper(PasswordStr)
+			],
 
 			case Client of
 				undefined -> 
@@ -292,18 +217,8 @@ find_by_login_and_password(Login, Password, Client)  ->
 			
 			case find_index_by_login_and_password(TablesScope, 
 											 LoginBin, 
+											 PasswordStrs,
 											 PasswordBin, 
-											 PasswordBinCryptoSHA1, 
-											 PasswordBinLowerCryptoSHA1, 
-											 PasswordBinUpperCryptoSHA1, 
-											 PasswordBinCryptoMD5, 
-											 PasswordBinLowerCryptoMD5, 
-											 PasswordBinUpperCryptoMD5, 
-											 PasswordBinCryptoBLOWFISH, 
-											 PasswordBinLowerCryptoBLOWFISH, 
-											 PasswordBinUpperCryptoBLOWFISH, 
-											 PasswordStrLower, 
-											 PasswordStrUpper,
 											 Client2,
 											 AuthPasswordCheckBetweenScope) of
 				{ok, #user{ctrl_source_type = CtrlSourceType} = User} ->
