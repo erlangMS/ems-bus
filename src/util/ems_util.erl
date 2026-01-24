@@ -1909,7 +1909,12 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 		Version = cowboy_req:version(CowboyReq),
 		case cowboy_req:header(<<"content-type">>, CowboyReq) of
 			undefined -> ContentTypeIn = <<>>;
-			ContentTypeInValue -> ContentTypeIn = ContentTypeInValue
+			ContentTypeInValue -> 
+				% Remove parameters (e.g. ;charset=UTF-8)
+				case binary:split(ContentTypeInValue, <<";">>) of
+					[CT|_] -> ContentTypeIn = CT;
+					_ -> ContentTypeIn = ContentTypeInValue
+				end
 		end,
 		ProtocolBin = cowboy_req:scheme(CowboyReq),
 		Protocol = parse_protocol(ProtocolBin),

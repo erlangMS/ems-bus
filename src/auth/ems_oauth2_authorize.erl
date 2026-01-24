@@ -27,8 +27,15 @@ execute(Request = #request{type = Type,
 						GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request),
 						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [binary_to_list(GrantType)]);
 					<<"POST">> -> 
-						GrantType = ems_util:get_querystring(<<"grant_type">>, <<>>, Request),
-						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [binary_to_list(GrantType)]);
+						GrantTypeRaw = ems_util:get_querystring(<<"grant_type">>, <<>>, Request),
+						% Implicit default: if missing or empty, assume "0" (authorization_code)
+						GrantTypeRaw2 = case GrantTypeRaw of
+							<<>> -> <<"0">>;
+							undefined -> <<"0">>;
+							_ -> GrantTypeRaw
+						end,
+						GrantType = normalize_grant_type(GrantTypeRaw2),
+						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantType: ~p (Raw: ~p).", [binary_to_list(GrantType), binary_to_list(GrantTypeRaw)]);
 					_ -> 
 						GrantType = undefined
 				end,
@@ -399,6 +406,12 @@ user_info(Request = #request{user = User, client = Client}) ->
 %%% Funções internas
 %%%===================================================================
 
+normalize_grant_type(<<"0">>) -> <<"authorization_code">>;
+normalize_grant_type(<<"1">>) -> <<"password">>;
+normalize_grant_type(<<"2">>) -> <<"client_credentials">>;
+normalize_grant_type(<<"3">>) -> <<"refresh_token">>;
+normalize_grant_type(GrantType) -> GrantType.
+
 
 %% Cliente Credencial Grant- seção 4.4.1 do RFC 6749. 
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=client_credentials&client_id=s6BhdRkqt3&secret=qwer
@@ -512,15 +525,46 @@ refresh_token_request(Request = #request{querystring_map = StateProp}, Client) -
 
 
 %% Requisita o token de acesso com o código de autorização - seções  4.1.3. e  4.1.4 do RFC 6749.
+%% Requisita o token de acesso com o código de autorização - seções  4.1.3. e  4.1.4 do RFC 6749.
 %% URL de teste: POST http://127.0.0.1:2301/authorize?grant_type=authorization_code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html&username=johndoe&password=A3ddj3w&secret=qwer&code=dxUlCWj2JYxnGp59nthGfXFFtn3hJTqx
+%% NOTA: redirect_uri é OPCIONAL no token request (backward compatible com clientes antigos)
+%%       Se enviado, será validado contra o redirect_uri armazenado no authorization code (RFC 6749)
+%%       Se não enviado, usa o redirect_uri armazenado (comportamento anterior)
 -spec access_token_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
 access_token_request(Request, Client) ->
 	try
-		case ems_util:get_querystring(<<"code">>, <<>>, Request) of
+		% Debug: Print all parameters
+		Params = Request#request.querystring_map,
+		PayloadMap = Request#request.payload_map,
+		ems_logger:info("ems_oauth2_authorize access_token_request Params: ~p Payload: ~p", [Params, PayloadMap]),
+
+		Code = case ems_util:get_querystring(<<"code">>, <<>>, Request) of
+			<<>> -> 
+				% Fallback: Check in payload_map (supports JSON body or unmerged body params)
+				case PayloadMap of
+					#{<<"code">> := CodePayload} -> CodePayload;
+					_ -> <<>>
+				end;
+			CodeVal -> CodeVal
+		end,
+
+		case Code of
 			<<>> -> 
 				{error, access_denied, ecode_empty};
-			Code -> 
-				RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
+			_ -> 
+				% Obtém redirect_uri do request (pode ser vazio, undefined ou um valor)
+				RedirectUriFromRequest = ems_util:to_lower_and_remove_backslash(
+					ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)
+				),
+				
+				% Se redirect_uri foi enviado no request, usa ele para validação
+				% Se não foi enviado (<<>> ou undefined), passa vazio para oauth2 usar o armazenado
+				RedirectUri = case RedirectUriFromRequest of
+					<<>> -> <<>>;      % Não enviado, usa o armazenado (backward compatible)
+					undefined -> <<>>; % Não enviado, usa o armazenado (backward compatible)
+					Uri -> Uri         % Enviado, valida contra o armazenado (RFC 6749)
+				end,
+				
 				Authz = oauth2:authorize_code_grant(Client, Code, RedirectUri, []),
 				issue_token_and_refresh(Authz)
 		end

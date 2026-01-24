@@ -30,19 +30,52 @@ def init_oauth(app):
         client_kwargs['verify'] = False
         print("[Authlib] ⚠️  SSL verification DISABLED (development mode)")
     
-    
-    # Register ems-bus OAuth2 provider using Metadata Discovery (RFC 8414)
-    # Authlib will automatically fetch configuration from the server
+    # Register ems-bus OAuth2 provider
+    # IMPORTANT: ems-bus does NOT expect redirect_uri in token request
+    # We set it in authorize_url but NOT in token request
     oauth.register(
         name='ems_bus',
         client_id=app.config['OAUTH2_CLIENT_ID'],
         client_secret=app.config['OAUTH2_CLIENT_SECRET'],
-        server_metadata_url=app.config.get('OAUTH2_METADATA_URL'),
+        authorize_url=app.config['OAUTH2_AUTHORIZE_URL'],
+        authorize_params=None,
+        access_token_url=app.config['OAUTH2_TOKEN_URL'],
+        access_token_params=None,
+        redirect_uri=None,  # Don't include redirect_uri in token request
         client_kwargs=client_kwargs,
+        server_metadata_url=None,  # Disable metadata discovery
+        # Force Authlib to NOT include redirect_uri in token request
+        # This is ems-bus specific behavior
+        compliance_fix=None,
     )
+    
+    print("[Authlib] OAuth2 client registered for ems-bus")
+    print(f"[Authlib] Client ID: {app.config['OAUTH2_CLIENT_ID']}")
+    print(f"[Authlib] Authorize URL: {app.config['OAUTH2_AUTHORIZE_URL']}")
+    print(f"[Authlib] Token URL: {app.config['OAUTH2_TOKEN_URL']}")
+    print(f"[Authlib] Redirect URI: {app.config['OAUTH2_REDIRECT_URI']}")
+    print(f"[Authlib] SSL Verification: {verify_ssl}")
+    print(f"[Authlib] ⚠️  redirect_uri will NOT be sent in token request (ems-bus specific)")
 
 
+@bp.before_request
+def log_request_info():
+    print(f"[Request Debug] Path: {request.path}")
+    print(f"[Request Debug] Headers: {dict(request.headers)}")
+    print(f"[Request Debug] Cookies: {request.cookies}")
+    if 'ems_dashboard_session' in request.cookies:
+        print(f"[Request Debug] Session cookie found: {request.cookies['ems_dashboard_session'][:20]}...")
+    else:
+        print(f"[Request Debug] NO session cookie found")
 
+
+@bp.after_request
+def log_response_info(response):
+    print(f"[Response Debug] Status: {response.status_code}")
+    print(f"[Response Debug] Headers: {dict(response.headers)}")
+    if 'Set-Cookie' in response.headers:
+        print(f"[Response Debug] Set-Cookie: {response.headers['Set-Cookie']}")
+    return response
 
 
 def requires_auth(f):
@@ -73,7 +106,9 @@ def login_page():
 @bp.route('/oauth/login')
 def oauth_login():
     """Redirect to OAuth2 authorization endpoint using Authlib."""
+    print("[Authlib] Initiating OAuth2 authorization flow")
     redirect_uri = current_app.config['OAUTH2_REDIRECT_URI']
+    print(f"[Authlib] Redirect URI: {redirect_uri}")
     # Pass redirect_uri manually since we set it to None in registration
     return oauth.ems_bus.authorize_redirect(redirect_uri)
 
@@ -81,44 +116,91 @@ def oauth_login():
 @bp.route('/callback')
 def oauth_callback():
     """Handle OAuth2 callback and exchange code for token."""
+    print("[OAuth2] Received callback")
+    print(f"[OAuth2] Request args: {request.args}")
+    
     code = request.args.get('code')
     error = request.args.get('error')
     
     if error:
+        print(f"[OAuth2] Authentication error: {error}")
         flash(f'Erro de autenticação: {error}', 'error')
         return redirect(url_for('main.login_page'))
     
     if not code:
+        print(f"[OAuth2] No authorization code received")
         flash('Nenhum código de autorização recebido', 'error')
         return redirect(url_for('main.login_page'))
     
     try:
-        # Authlib handles the entire token exchange automatically using metadata
-        token = oauth.ems_bus.authorize_access_token()
+        # Manual token exchange to match ems-bus expectations exactly
+        # ems-bus does NOT accept redirect_uri in token request
+        import base64
+        import requests as req
         
-        # Store token in session
-        session['access_token'] = token.get('access_token')
+        # Create Basic Auth header
+        credentials = f"{current_app.config['OAUTH2_CLIENT_ID']}:{current_app.config['OAUTH2_CLIENT_SECRET']}"
+        basic_auth = base64.b64encode(credentials.encode()).decode()
         
-        # Extract user info (ems-bus specific structure)
-        raw_user = token.get('resource_owner', {})
-        session['user'] = {
-            'id': raw_user.get('id'),
-            'login': raw_user.get('login'),
-            'name': raw_user.get('name'),
-            'email': raw_user.get('email')
+        # Payload - ems-bus specific: NO redirect_uri
+        payload = {
+            'grant_type': 'authorization_code',
+            'code': code
         }
         
-        # Extract client info
-        raw_client = token.get('client', {})
-        session['client'] = {
-            'id': raw_client.get('id'),
-            'name': raw_client.get('name')
+        headers = {
+            'Authorization': f'Basic {basic_auth}',
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
         
-        flash('Login realizado com sucesso!', 'success')
-        return redirect(url_for('main.index'))
+        print(f"[OAuth2] Token exchange - URL: {current_app.config['OAUTH2_TOKEN_URL']}")
+        print(f"[OAuth2] Token exchange - Payload: {payload}")
+        
+        token_response = req.post(
+            current_app.config['OAUTH2_TOKEN_URL'],
+            data=payload,
+            headers=headers,
+            timeout=10,
+            verify=current_app.config.get('VERIFY_SSL', True)
+        )
+        
+        print(f"[OAuth2] Token exchange - Status: {token_response.status_code}")
+        print(f"[OAuth2] Token exchange - Response: {token_response.text[:500]}")
+        
+        if token_response.status_code == 200:
+            token_data = token_response.json()
+            session['access_token'] = token_data.get('access_token')
+            
+            # Extract user info (ems-bus specific structure)
+            raw_user = token_data.get('resource_owner', {})
+            session['user'] = {
+                'id': raw_user.get('id'),
+                'login': raw_user.get('login'),
+                'name': raw_user.get('name'),
+                'email': raw_user.get('email')
+            }
+            
+            # Extract client info
+            raw_client = token_data.get('client', {})
+            session['client'] = {
+                'id': raw_client.get('id'),
+                'name': raw_client.get('name')
+            }
+            
+            print(f"[OAuth2] Success! User: {session['user'].get('login')}")
+            print(f"[OAuth2] Session keys: {list(session.keys())}")
+            
+            flash('Login realizado com sucesso!', 'success')
+            return redirect(url_for('main.index'))
+        else:
+            print(f"[OAuth2] Token exchange failed with status {token_response.status_code}")
+            flash(f'Falha na autenticação: {token_response.text}', 'error')
+            return redirect(url_for('main.login_page'))
     
     except Exception as e:
+        print(f"[OAuth2] Token exchange exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
         flash(f'Erro de autenticação: {str(e)}', 'error')
         return redirect(url_for('main.login_page'))
 

@@ -115,4 +115,8 @@ def create_app(config_class=Config):
     from app import routes
     app.register_blueprint(routes.bp)
     
+    # Initialize OAuth (must be after blueprint registration)
+    routes.init_oauth(app)
+    
     return app
+

@@ -3,46 +3,30 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from app.catalog_service import CatalogService
 from pathlib import Path
-from authlib.integrations.flask_client import OAuth
+from urllib.parse import urlencode
+import requests
 
 
 bp = Blueprint('main', __name__)
 
-# Initialize Authlib OAuth
-oauth = OAuth()
+@bp.before_request
+def log_request_info():
+    print(f"[Request Debug] Path: {request.path}")
+    print(f"[Request Debug] Headers: {dict(request.headers)}")
+    print(f"[Request Debug] Cookies: {request.cookies}")
+    if 'ems_dashboard_session' in request.cookies:
+        print(f"[Request Debug] Session cookie found: {request.cookies['ems_dashboard_session'][:20]}...")
+    else:
+        print(f"[Request Debug] NO session cookie found")
 
 
-def init_oauth(app):
-    """Initialize OAuth with Flask app."""
-    oauth.init_app(app)
-    
-    # Prepare client_kwargs with SSL verification setting
-    client_kwargs = {
-        'scope': app.config['OAUTH2_SCOPE'],
-        'token_endpoint_auth_method': 'client_secret_basic',  # Use Basic Auth
-        'token_placement': 'header',  # Send token in Authorization header
-    }
-    
-    # Disable SSL verification if configured (for development with self-signed certs)
-    # Authlib uses 'requests' library by default, which accepts verify=False
-    verify_ssl = app.config.get('VERIFY_SSL', True)
-    if not verify_ssl:
-        client_kwargs['verify'] = False
-        print("[Authlib] ⚠️  SSL verification DISABLED (development mode)")
-    
-    
-    # Register ems-bus OAuth2 provider using Metadata Discovery (RFC 8414)
-    # Authlib will automatically fetch configuration from the server
-    oauth.register(
-        name='ems_bus',
-        client_id=app.config['OAUTH2_CLIENT_ID'],
-        client_secret=app.config['OAUTH2_CLIENT_SECRET'],
-        server_metadata_url=app.config.get('OAUTH2_METADATA_URL'),
-        client_kwargs=client_kwargs,
-    )
-
-
-
+@bp.after_request
+def log_response_info(response):
+    print(f"[Response Debug] Status: {response.status_code}")
+    print(f"[Response Debug] Headers: {dict(response.headers)}")
+    if 'Set-Cookie' in response.headers:
+        print(f"[Response Debug] Set-Cookie: {response.headers['Set-Cookie']}")
+    return response
 
 
 def requires_auth(f):
@@ -72,10 +56,15 @@ def login_page():
 
 @bp.route('/oauth/login')
 def oauth_login():
-    """Redirect to OAuth2 authorization endpoint using Authlib."""
-    redirect_uri = current_app.config['OAUTH2_REDIRECT_URI']
-    # Pass redirect_uri manually since we set it to None in registration
-    return oauth.ems_bus.authorize_redirect(redirect_uri)
+    """Redirect to OAuth2 authorization endpoint."""
+    params = {
+        'client_id': current_app.config['OAUTH2_CLIENT_ID'],
+        'redirect_uri': current_app.config['OAUTH2_REDIRECT_URI'],
+        'response_type': 'code',
+        'scope': current_app.config['OAUTH2_SCOPE']
+    }
+    auth_url = f"{current_app.config['OAUTH2_AUTHORIZE_URL']}?{urlencode(params)}"
+    return redirect(auth_url)
 
 
 @bp.route('/callback')
@@ -84,41 +73,126 @@ def oauth_callback():
     code = request.args.get('code')
     error = request.args.get('error')
     
+    print(f"[OAuth2 Callback] Received callback")
+    print(f"[OAuth2 Callback] Code: {code}")
+    print(f"[OAuth2 Callback] Error: {error}")
+    print(f"[OAuth2 Callback] All args: {request.args}")
+    
     if error:
+        print(f"[OAuth2 Callback] Authentication error: {error}")
         flash(f'Erro de autenticação: {error}', 'error')
         return redirect(url_for('main.login_page'))
     
     if not code:
+        print(f"[OAuth2 Callback] No authorization code received")
         flash('Nenhum código de autorização recebido', 'error')
         return redirect(url_for('main.login_page'))
     
     try:
-        # Authlib handles the entire token exchange automatically using metadata
-        token = oauth.ems_bus.authorize_access_token()
+        # Exchange authorization code for access token
+        # The barramento expects Basic Auth header with client_id:client_secret
+        import base64
         
-        # Store token in session
-        session['access_token'] = token.get('access_token')
+        # Create Basic Auth header
+        credentials = f"{current_app.config['OAUTH2_CLIENT_ID']}:{current_app.config['OAUTH2_CLIENT_SECRET']}"
+        basic_auth = base64.b64encode(credentials.encode()).decode()
         
-        # Extract user info (ems-bus specific structure)
-        raw_user = token.get('resource_owner', {})
-        session['user'] = {
-            'id': raw_user.get('id'),
-            'login': raw_user.get('login'),
-            'name': raw_user.get('name'),
-            'email': raw_user.get('email')
+        token_url = current_app.config['OAUTH2_TOKEN_URL']
+        
+        # Payload according to barramento's OAuth2 implementation
+        payload = {
+            'grant_type': 'authorization_code',
+            'code': code
         }
         
-        # Extract client info
-        raw_client = token.get('client', {})
-        session['client'] = {
-            'id': raw_client.get('id'),
-            'name': raw_client.get('name')
+        headers = {
+            'Authorization': f'Basic {basic_auth}',
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
         
-        flash('Login realizado com sucesso!', 'success')
-        return redirect(url_for('main.index'))
+        print(f"[OAuth2 Token Exchange] URL: {token_url}")
+        print(f"[OAuth2 Token Exchange] Payload: {payload}")
+        print(f"[OAuth2 Token Exchange] Basic Auth: {basic_auth}")
+        print(f"[OAuth2 Token Exchange] SSL Verification: {current_app.config.get('VERIFY_SSL', True)}")
+        
+        token_response = requests.post(
+            token_url,
+            data=payload,
+            headers=headers,
+            timeout=10,
+            verify=current_app.config.get('VERIFY_SSL', True)
+        )
+        
+        print(f"[OAuth2 Token Exchange] Status: {token_response.status_code}")
+        print(f"[OAuth2 Token Exchange] Response: {token_response.text[:500]}")
+        
+        if token_response.status_code == 200:
+            token_data = token_response.json()
+            session['access_token'] = token_data.get('access_token')
+            
+            # Minimize session data to avoid cookie size limits (4KB)
+            raw_user = token_data.get('resource_owner', {})
+            session['user'] = {
+                'id': raw_user.get('id'),
+                'login': raw_user.get('login'),
+                'name': raw_user.get('name'),
+                'email': raw_user.get('email')
+            }
+            
+            # client info is minimal, likely safe, but let's be safe
+            raw_client = token_data.get('client', {})
+            session['client'] = {
+                'id': raw_client.get('id'),
+                'name': raw_client.get('name')
+            }
+            
+            print(f"[OAuth2 Token Exchange] Success! Access token: {token_data.get('access_token')[:20]}...")
+            print(f"[OAuth2 Token Exchange] User: {token_data.get('resource_owner', {}).get('login')}")
+            print(f"[OAuth2 Session] Saved to session - keys: {list(session.keys())}")
+            print(f"[OAuth2 Session] Session access_token: {session.get('access_token', 'NOT FOUND')[:20] if session.get('access_token') else 'NOT FOUND'}...")
+            
+            flash('Login realizado com sucesso!', 'success')
+            
+            print(f"[OAuth2 Redirect] Redirecting to index")
+            
+            # Debug session size
+            import json
+            try:
+                # Estimate cookie size (base64 overhead approx 1.33x)
+                session_str = json.dumps(dict(session))
+                print(f"[OAuth2 Debug] Session data size (json): {len(session_str)} bytes")
+                print(f"[OAuth2 Debug] Estimated cookie size: {len(session_str) * 1.4} bytes")
+                if len(session_str) * 1.4 > 4000:
+                    print(f"[OAuth2 Debug] WARNING: Session cookie might be too large!")
+            except:
+                pass
+
+            # Create response object to manually set a test cookie
+            response = redirect(url_for('main.index'))
+            
+            # Manually set a test cookie to verify browser acceptance
+            # using the exact same settings we expect for the session
+            response.set_cookie(
+                'debug_cookie', 
+                'hello_world', 
+                max_age=300,
+                secure=False,
+                httponly=False,
+                samesite='Lax',
+                path='/'
+            )
+            print("[OAuth2 Debug] Manually added 'debug_cookie' to response")
+            
+            return response
+        else:
+            print(f"[OAuth2 Token Exchange] Failed with status {token_response.status_code}")
+            flash(f'Falha na autenticação: {token_response.text}', 'error')
+            return redirect(url_for('main.login_page'))
     
     except Exception as e:
+        print(f"[OAuth2 Token Exchange] Exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
         flash(f'Erro de autenticação: {str(e)}', 'error')
         return redirect(url_for('main.login_page'))
 

@@ -152,24 +152,53 @@ authorize_client_credentials(Client, Scope, State, Ctx0) ->
 %% @doc Validates a request for an access token from an authorization code.
 %%      Use it to implement the following steps of RFC 6749:
 %%      - 4.1.3. Authorization Code Grant > Access Token Request.
+%%      NOTA: redirect_uri é OPCIONAL (backward compatible):
+%%        - Se RedirUri for <<>> ou undefined: usa o redirect_uri armazenado no código
+%%        - Se RedirUri for enviado: valida contra o redirect_uri armazenado (RFC 6749)
 -spec authorize_code_grant(client(), binary(), rediruri(), appctx())
                             -> {ok, {appctx(), auth()}} | {error, error()}.
 authorize_code_grant(Client, Code, RedirUri, Ctx0) ->
-    case auth_client(Client, RedirUri, Ctx0) of
-        {error, _} -> 
-			{error, invalid_client};
-        {ok, {Ctx1, C}} ->
-            case verify_access_code(Code, C, Ctx1) of
-                {error, _}=E -> 
-					E;
-                {ok, {Ctx2, GrantCtx}} ->
-					?BACKEND:revoke_access_code(Code, Ctx2),
-                    {ok, {[], #a{ client  =C
-                                  , resowner= get_(GrantCtx,<<"resource_owner">>)
-                                  , scope   = get_(GrantCtx, <<"scope">>)
-                                  , state   = get_(GrantCtx, <<"state">>)
-                                  , ttl     = oauth2_config:expiry_time(password_credentials)
-                                  }}}
+    % Primeiro, recupera o contexto do código para obter informações armazenadas
+    case verify_access_code(Code, Ctx0) of
+        {error, _}=E -> 
+            E;
+        {ok, {Ctx1, GrantCtx}} ->
+            % Obtém o Client armazenado (com redirect_uri original)
+            {ok, StoredClient} = get(GrantCtx, <<"client">>),
+            
+            % Determina qual redirect_uri usar para validação
+            {RedirUriToValidate, Mode} = case RedirUri of
+                <<>> -> 
+                    % Não foi enviado, usa o armazenado (backward compatible)
+                    {no_redir, backward_compatible};
+                undefined -> 
+                    % Não foi enviado, usa o armazenado (backward compatible)
+                    {no_redir, backward_compatible};
+                _ -> 
+                    % Foi enviado, valida contra o armazenado (RFC 6749)
+                    {RedirUri, rfc6749}
+            end,
+            
+            % Valida o client com o redirect_uri apropriado
+            case auth_client(Client, RedirUriToValidate, Ctx1) of
+                {error, _} -> 
+                    % Se redirect_uri foi enviado e é diferente, retorna erro específico
+                    case Mode of
+                        backward_compatible -> 
+                            {error, invalid_client};
+                        rfc6749 -> 
+                            % RFC 6749: invalid_grant se redirect_uri não bate
+                            {error, invalid_grant}
+                    end;
+                {ok, {Ctx2, C}} ->
+                    % Revoga o código e retorna a autorização
+                    ?BACKEND:revoke_access_code(Code, Ctx2),
+                    {ok, {[], #a{ client   = C
+                                , resowner = get_(GrantCtx, <<"resource_owner">>)
+                                , scope    = get_(GrantCtx, <<"scope">>)
+                                , state    = get_(GrantCtx, <<"state">>)
+                                , ttl      = oauth2_config:expiry_time(password_credentials)
+                                }}}
             end
     end.
 

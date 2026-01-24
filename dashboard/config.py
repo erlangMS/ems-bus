@@ -38,11 +38,14 @@ class Config:
         required_oauth2_vars = {
             'OAUTH2_CLIENT_ID': self.OAUTH2_CLIENT_ID,
             'OAUTH2_CLIENT_SECRET': self.OAUTH2_CLIENT_SECRET,
-            'OAUTH2_AUTHORIZE_URL': self.OAUTH2_AUTHORIZE_URL,
-            'OAUTH2_TOKEN_URL': self.OAUTH2_TOKEN_URL,
             'OAUTH2_REDIRECT_URI': self.OAUTH2_REDIRECT_URI,
             'OAUTH2_SCOPE': self.OAUTH2_SCOPE,
         }
+        
+        # Require endpoints only if metadata url is not provided
+        if not self.OAUTH2_METADATA_URL:
+            required_oauth2_vars['OAUTH2_AUTHORIZE_URL'] = self.OAUTH2_AUTHORIZE_URL
+            required_oauth2_vars['OAUTH2_TOKEN_URL'] = self.OAUTH2_TOKEN_URL
         
         # Other required vars
         required_other_vars = {
@@ -75,6 +78,7 @@ class Config:
     OAUTH2_CLIENT_SECRET = os.environ.get('OAUTH2_CLIENT_SECRET')
     OAUTH2_AUTHORIZE_URL = os.environ.get('OAUTH2_AUTHORIZE_URL')
     OAUTH2_TOKEN_URL = os.environ.get('OAUTH2_TOKEN_URL')
+    OAUTH2_METADATA_URL = os.environ.get('OAUTH2_METADATA_URL')
     OAUTH2_REDIRECT_URI = os.environ.get('OAUTH2_REDIRECT_URI')
     OAUTH2_SCOPE = os.environ.get('OAUTH2_SCOPE')
     
