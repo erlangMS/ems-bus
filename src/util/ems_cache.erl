@@ -9,6 +9,8 @@
 
 -module(ems_cache).
 
+-include("../include/ems_config.hrl").
+
 -behavior(gen_server). 
 
 %% Server API
@@ -85,6 +87,31 @@ code_change(_OldVsn, State, _Extra) ->
 %% Funções internas
 %%====================================================================
 
+%% @doc Check if object size is within limits
+should_cache_object(Value) ->
+	Size = erts_debug:size(Value) * 8,  % Convert words to bytes
+	case Size =< ?CACHE_MAX_OBJECT_SIZE of
+		true -> {ok, Size};
+		false -> {too_large, Size}
+	end.
+
+%% @doc Cap TTL to maximum allowed
+cap_ttl(infinity) -> infinity;
+cap_ttl(TTL) when TTL > ?CACHE_MAX_TTL ->
+	ems_logger:info("ems_cache: TTL capped from ~pms to ~pms", [TTL, ?CACHE_MAX_TTL]),
+	?CACHE_MAX_TTL;
+cap_ttl(TTL) -> TTL.
+
+%% @doc Check if cache can accept more entries
+can_add_entry(CacheName) ->
+	case ets:info(CacheName, size) of
+		undefined -> false;  % Cache doesn't exist
+		Size when Size >= ?CACHE_MAX_ENTRIES -> 
+			ems_logger:warn("ems_cache: ~p reached max entries (~p)", [CacheName, ?CACHE_MAX_ENTRIES]),
+			false;
+		_ -> true
+	end.
+
 %% @doc Initializes a cache.
 -spec init(string()) -> ok.
 new(CacheName) ->
@@ -129,8 +156,17 @@ get(CacheName, LifeTime, Key, FunResult) ->
 		[] ->
 		  % Not found, create it.
 		  V = FunResult(),
-		  ets:insert(CacheName, {Key, V}),
-		  flush_future(CacheName, LifeTime, Key),
+		  % Validate size and entry limit before caching
+		  case {should_cache_object(V), can_add_entry(CacheName)} of
+			  {{ok, _Size}, true} ->
+				  CappedTTL = cap_ttl(LifeTime),
+				  ets:insert(CacheName, {Key, V}),
+				  flush_future(CacheName, CappedTTL, Key);
+			  {{too_large, Size}, _} ->
+				  ems_logger:warn("ems_cache: object too large (~p bytes) for ~p, not caching", [Size, CacheName]);
+			  {_, false} ->
+				  ok  % Entry limit reached, don't cache
+		  end,
 		  V;
 		[{Key, R}] -> R
 	end.
@@ -140,13 +176,33 @@ get(CacheName, LifeTime, Key, FunResult, FunAfterFlush) ->
 		[] ->
 		  % Not found, create it.
 		  V = FunResult(),
-		  ets:insert(CacheName, {Key, V}),
-		  flush_future(CacheName, LifeTime, Key, FunAfterFlush),
+		  % Validate size and entry limit before caching
+		  case {should_cache_object(V), can_add_entry(CacheName)} of
+			  {{ok, _Size}, true} ->
+				  CappedTTL = cap_ttl(LifeTime),
+				  ets:insert(CacheName, {Key, V}),
+				  flush_future(CacheName, CappedTTL, Key, FunAfterFlush);
+			  {{too_large, Size}, _} ->
+				  ems_logger:warn("ems_cache: object too large (~p bytes) for ~p, not caching", [Size, CacheName]);
+			  {_, false} ->
+				  ok  % Entry limit reached, don't cache
+		  end,
 		  V;
 		[{Key, R}] -> R
 	end.
 
 add(CacheName, LifeTime, Key, Value) ->
-  ets:insert(CacheName, {Key, Value}),
-  flush_future(CacheName, LifeTime, Key).
+  % Validate size and entry limit before caching
+  case {should_cache_object(Value), can_add_entry(CacheName)} of
+	  {{ok, _Size}, true} ->
+		  CappedTTL = cap_ttl(LifeTime),
+		  ets:insert(CacheName, {Key, Value}),
+		  flush_future(CacheName, CappedTTL, Key),
+		  ok;
+	  {{too_large, Size}, _} ->
+		  ems_logger:warn("ems_cache: object too large (~p bytes) for ~p, not caching", [Size, CacheName]),
+		  {error, too_large};
+	  {_, false} ->
+		  {error, cache_full}
+  end.
   

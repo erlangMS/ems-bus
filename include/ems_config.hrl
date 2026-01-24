@@ -273,6 +273,11 @@
 -define(RESULT_CACHE_MAX_SIZE_ENTRY, 524288). % 512KB
 -define(RESULT_CACHE_SHARED, true). 
 
+%% Cache limits (ems_cache module)
+-define(CACHE_MAX_OBJECT_SIZE, 1024).        % 1KB max per object
+-define(CACHE_MAX_TTL, 900000).              % 15 minutes max TTL (900000ms)
+-define(CACHE_MAX_ENTRIES, 120).             % 120 entries max per cache
+
 -define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user2_db">>, <<"user_aluno_ativo_db">>, <<"user_aluno_inativo_db">>, <<"user_fs">>]).
 
 -define(CLIENT_DEFAULT_SCOPE, ems_util:get_auth_default_scope()).

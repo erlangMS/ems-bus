@@ -342,7 +342,8 @@ start(PrivPath, DatabasePath) ->
 							
 	set_param(priv_path, PrivPath),
 	set_param(database_path, DatabasePath),
-	ems_cache:new(ems_db_parsed_query_cache),
+	% ems_db_parsed_query_cache disabled - parsed queries are too large for cache (>60KB)
+	% Parsing is fast enough that caching is not needed
 							
 	ok.
 
@@ -847,7 +848,8 @@ filter(Tab, FilterList) when is_list(FilterList) ->
 				?DEBUG("ems_db filter generate expression query ~p to access table ~p.", [ExprQuery, Tab]),
 				qlc:string_to_handle(ExprQuery)
 			end,
-		ParsedQuery = ems_cache:get(ems_db_parsed_query_cache, ?DB_PARSED_QUERY_CACHE_TIMEOUT, {filter, Tab, FilterList}, F),
+		% Cache disabled (TTL=0) - parsed queries are too large (>60KB)
+		ParsedQuery = ems_cache:get(ems_db_parsed_query_cache, 0, {filter, Tab, FilterList}, F),
 		mnesia:activity(async_dirty, fun () -> qlc:eval(ParsedQuery) end)
 	catch
 		_Exception:Reason -> 
