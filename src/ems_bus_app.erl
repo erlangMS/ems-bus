@@ -20,7 +20,10 @@ start(_StartType, StartArgs) ->
 	case ems_config:start() of
 		{ok, _Pid} ->
 			Conf = ems_config:getConfig(),
-			ems_dispatcher:start(),
+			ems_cache:new(ets_result_cache_get),
+			ets:new(ems_dispatcher_post_time, [set, named_table, public]),
+			ets:insert(ems_dispatcher_post_time, {post_time, 0}),
+			ets:new(ctrl_node_dispatch, [set, named_table, public]),
 			Ret = ems_bus_sup:start_link(StartArgs),
 			AuthorizationMode = case Conf#config.authorization of
 									basic -> <<"basic, oauth2">>;

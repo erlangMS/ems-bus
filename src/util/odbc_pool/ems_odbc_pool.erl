@@ -203,18 +203,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%====================================================================
 
 do_remove_pool_when_worker_died(#service_datasource{id = Id, 
-								   owner = WorkerPid,
-								   connection_closed_metric_name = ConnectionClosedMetricName,
-								   connection_shutdown_metric_name = ConnectionShutdownMetricName}, Reason) ->
+								   owner = WorkerPid}, Reason) ->
 	case Reason of
 		normal ->
 			Pool = find_pool(Id),
 			Pool2 = queue:filter(fun(Item) -> Item#service_datasource.owner /=  WorkerPid end, Pool),
-			erlang:put(Id, Pool2),
-			ems_db:inc_counter(ConnectionClosedMetricName);
+			erlang:put(Id, Pool2);
 		_ ->
-			erlang:put(Id, queue:new()),
-			ems_db:inc_counter(ConnectionShutdownMetricName)
+			erlang:put(Id, queue:new())
 	end.
 			
 -spec do_create_connection(#service_datasource{}, pid()) -> {ok, #service_datasource{}} | {error, eunavailable_odbc_connection}.
@@ -223,10 +219,7 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 													  sql = Sql,
 													  primary_key = PrimaryKey,
 													  %max_pool_size = MaxPoolSize,
-													  connection_count_metric_name = ConnectionCountMetricName,
-													  connection_created_metric_name = ConnectionCreatedMetricName,
-													  connection_reuse_metric_name = ConnectionReuseMetricName,
-													  connection_unavailable_metric_name = ConnectionUnavailableMetricName,
+													  %connection_count_metric_name = ConnectionCountMetricName,
 													  %connection_max_pool_size_exceeded_metric_name = ConnectionMaxPoolSizeExceededMetricName,
 													  log_show_odbc_pool_activity = LogShowPoolActivity}, 
 					 PidModule) ->
@@ -248,16 +241,12 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 								ems_odbc_pool_worker:notify_use(WorkerPid, Datasource3),
 								erlang:put(PidModuleRef, Datasource3),
 								erlang:put(WorkerPid, Datasource3),
-								ConnectionCount2 = ems_db:inc_counter(ConnectionCountMetricName),								
-								ems_db:inc_counter(ConnectionCreatedMetricName),								
-								ems_logger:info("ems_odbc_pool start new worker (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount2], LogShowPoolActivity),
+								ems_logger:info("ems_odbc_pool start new worker (Ds: ~p).", [Id], LogShowPoolActivity),
 								{ok, Datasource3};
-							{error, shutdown} -> 
-								ems_db:inc_counter(ConnectionUnavailableMetricName),								
+							{error, shutdown} ->								
 								{error, eunavailable_odbc_connection};
 							{error, Reason} -> 
-								ems_logger:error("ems_odbc_pool do_create_connection failed on ems_odbc_pool_worker:start_link (Ds: ~p). Reason: ~p.", [Id, Reason]),
-								ems_db:inc_counter(ConnectionUnavailableMetricName),								
+								ems_logger:error("ems_odbc_pool do_create_connection failed on ems_odbc_pool_worker:start_link (Ds: ~p). Reason: ~p.", [Id, Reason]),								
 								case ems_db:is_database_in_restricted_mode(Reason) of	
 									true -> {error, eodbc_restricted_connection};
 									false -> {error, eunavailable_odbc_connection}
@@ -281,7 +270,6 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 				ems_odbc_pool_worker:notify_use(WorkerPid, Datasource3),
 				erlang:put(PidModuleRef, Datasource3),
 				erlang:put(WorkerPid, Datasource3),
-				ems_db:inc_counter(ConnectionReuseMetricName),
 				ems_logger:info("ems_odbc_pool reuse worker (Ds: ~p PoolSize: ~p).", [Id, PoolSize-1], LogShowPoolActivity),
 				{ok, Datasource3}
 		end
@@ -296,9 +284,7 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 													   owner = Owner, 
 													   pid_module_ref = PidModuleRef,
 													   max_pool_size = MaxPoolSize,
-													   connection_count_metric_name = ConnectionCountMetricName,
 													   log_show_odbc_pool_activity = LogShowPoolActivity}) ->
-	ConnectionCount = ems_db:dec_counter(ConnectionCountMetricName),								
 	try
 		erlang:demonitor(PidModuleRef),
 		erlang:erase(PidModuleRef),
@@ -319,7 +305,7 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 							_ ->
 								case erlang:is_process_alive(Owner) of
 									true -> 
-										ems_logger:info("ems_odbc_pool shutdown worker (Ds: ~p PoolSize: ~p ConnectionCount: ~p).", [Id, PoolSize, ConnectionCount-1], LogShowPoolActivity),
+										ems_logger:info("ems_odbc_pool shutdown worker (Ds: ~p PoolSize: ~p).", [Id, PoolSize], LogShowPoolActivity),
 										gen_server:stop(Owner);
 									false -> ok
 								end,
@@ -328,7 +314,7 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 					false -> 
 						case erlang:is_process_alive(Owner) of
 							true -> 
-								ems_logger:info("ems_odbc_pool shutdown worker due connection limit ~p (Ds: ~p PoolSize: ~p ConnectionCount: ~p).", [MaxPoolSize, Id, PoolSize, ConnectionCount-1], LogShowPoolActivity),
+								ems_logger:info("ems_odbc_pool shutdown worker due connection limit ~p (Ds: ~p PoolSize: ~p).", [MaxPoolSize, Id, PoolSize], LogShowPoolActivity),
 								gen_server:stop(Owner);
 							false -> ok
 						end,
@@ -338,16 +324,14 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 		end
 	catch
 		_:Reason -> 
-			ems_logger:error("ems_odbc_pool do_release_connection exception (Ds: ~p ConnectionCount: ~p Reason: ~p).", [Id, ConnectionCount, Reason]),
+			ems_logger:error("ems_odbc_pool do_release_connection exception (Ds: ~p Reason: ~p).", [Id, Reason]),
 			ok
 	end.
 
 -spec do_shutdown_connection(#service_datasource{}) -> ok.
 do_shutdown_connection(#service_datasource{id = Id,
 										   owner = Owner, 
-										   pid_module_ref = PidModuleRef,
-										   connection_count_metric_name = ConnectionCountMetricName}) ->
-	ConnectionCount = ems_db:dec_counter(ConnectionCountMetricName),								
+										   pid_module_ref = PidModuleRef}) ->
 	try
 		erlang:demonitor(PidModuleRef),
 		erlang:erase(PidModuleRef),
@@ -359,7 +343,7 @@ do_shutdown_connection(#service_datasource{id = Id,
 		ok
 	catch
 		_:Reason -> 
-			ems_logger:error("ems_odbc_pool do_shutdown_connection exception (Ds: ~p ConnectionCount: ~p Reason: ~p).", [Id, ConnectionCount, Reason]),
+			ems_logger:error("ems_odbc_pool do_shutdown_connection exception (Ds: ~p Reason: ~p).", [Id, Reason]),
 			ok
 	end.
 

@@ -1985,25 +1985,18 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 		{Rowid, Params_url} = hashsym_and_params(Url2),
 		TypeLookup = case Type of
 					<<"OPTIONS">> -> 
-						ems_db:inc_counter(ems_dispatcher_options),
 						<<"GET">>;
 					<<"HEAD">> -> 
-						ems_db:inc_counter(ems_dispatcher_head),
 						<<"GET">>;
 					<<"GET">> -> 
-						ems_db:inc_counter(ems_dispatcher_get),
 						<<"GET">>;
 					<<"POST">> -> 
-						ems_db:inc_counter(ems_dispatcher_post),
 						<<"POST">>;
 					<<"PUT">> -> 
-						ems_db:inc_counter(ems_dispatcher_put),
 						<<"PUT">>;
 					<<"DELETE">> -> 
-						ems_db:inc_counter(ems_dispatcher_delete),
 						<<"DELETE">>;
 					_ ->
-						ems_db:inc_counter(ehttp_verb_not_supported),
 						erlang:error(ehttp_verb_not_supported)
 			   end,
 		ems_logger:info("Request \033[01;34m~s\033[0m received \033[0;32muri\033[0m: \033[01;34m~s\033[0m \033[0;32murl\033[0m: \033[01;34m~s\033[0m \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(TypeLookup), binary_to_list(Uri), Url2, binary_to_list(Referer), binary_to_list(Host), binary_to_list(UserAgentBrowser)]),
@@ -2099,7 +2092,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 						put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass3),
 						case ContentTypeIn of
 							<<"application/json">> ->
-								ems_db:inc_counter(http_content_type_in_application_json),
 								ContentTypeIn2 = <<"application/json">>,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = decode_payload_as_json(Payload),
@@ -2109,13 +2101,11 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								case detect_payload_is_json(PayloadRaw) of
 									true ->
 										ems_logger:warn("ems_http_handler sniffed JSON payload despite Content-Type: application/x-www-form-urlencoded. treat as application/json."),
-										ems_db:inc_counter(http_content_type_in_application_json_sniffed_from_urlencoded),
 										ContentTypeIn2 = <<"application/json">>,
 										Payload = PayloadRaw,
 										PayloadMap = decode_payload_as_json(Payload),
 										QuerystringMap2 = QuerystringMap;
 									false ->
-										ems_db:inc_counter(http_content_type_in_form_urlencode),
 										ContentTypeIn2 = <<"application/x-www-form-urlencoded">>,
 										% Need to parse the already read body as form-urlencoded
 										PayloadList = cow_qs:parse_qs(PayloadRaw),
@@ -2125,73 +2115,61 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								end;
 
 							<<"application/xml">> ->
-								ems_db:inc_counter(http_content_type_in_application_xml),
 								ContentTypeIn2 = <<"application/xml">>,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = decode_payload_as_xml(Payload),
 								QuerystringMap2 = QuerystringMap;
 							<<"text/plain">> ->
-								ems_db:inc_counter(http_content_type_in_text_plain),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"text/csv">> ->
-								ems_db:inc_counter(http_content_type_in_text_csv),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"application/octet-stream">> ->
-								ems_db:inc_counter(http_content_type_in_octet_stream),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"application/gzip">> ->
-								ems_db:inc_counter(http_content_type_in_application_gzip),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"application/pdf">> ->
-								ems_db:inc_counter(http_content_type_in_application_pdf),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"application/msword">> ->
-								ems_db:inc_counter(http_content_type_in_officedocument),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"application/vnd.openxmlformats-officedocument.wordprocessingml.document">> ->
-								ems_db:inc_counter(http_content_type_in_officedocument),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">> ->
-								ems_db:inc_counter(http_content_type_in_officedocument),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"image/png">> ->
-								ems_db:inc_counter(http_content_type_in_image_png),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"image/jpeg">> ->
-								ems_db:inc_counter(http_content_type_in_image_jpeg),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								PayloadMap = undefined,
 								QuerystringMap2 = QuerystringMap;
 							<<"multipart/form-data">> ->
-								ems_db:inc_counter(http_content_type_in_formdata),
 								ContentTypeIn2 = ContentTypeIn,
 								{ok, Headers, CowboyReq1} = cowboy_req:read_part(CowboyReq),
 								io:format("multipart/form-data headers is ~p\n", [Headers]),
@@ -2207,12 +2185,10 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								{ok, Payload, CowboyReq2} = cowboy_req:read_body(CowboyReq, ReadBodyOpts),
 								case detect_payload_is_json(Payload) of
 									true ->
-										ems_db:inc_counter(http_content_type_in_application_json_sniffed),
 										ContentTypeIn2 = <<"application/json">>,
 										PayloadMap = decode_payload_as_json(Payload),
 										QuerystringMap2 = QuerystringMap;
 									false ->
-										ems_db:inc_counter(http_content_type_in_other),
 										ContentTypeIn2 = ContentTypeIn,
 										PayloadMap = undefined,
 										QuerystringMap2 = QuerystringMap

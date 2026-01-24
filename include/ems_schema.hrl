@@ -119,12 +119,6 @@
 			   atom_type									%% 46 - ctrl_source_type
 			}).		
 		
-%
-% Muitos atributos são armazenados no histórico pois as tabelas origem podem mudar
-%
-
-
-
 		
 -record(user_dados_funcionais, {
 			   id :: non_neg_integer(), 					%%  1 - matricula
@@ -408,23 +402,16 @@
 							 pid_module_ref,											%% 20 - pid_module_ref
 							 owner,														%% 21 - owner
 							 owner_ref,													%% 22 - owner_ref
-							 connection_count_metric_name :: atom(),					%% 23 - connection_count_metric_name
-							 connection_created_metric_name :: atom(),					%% 24 - connection_created_metric_name
-							 connection_closed_metric_name :: atom(),   				%% 25 - connection_closed_metric_name
-							 connection_shutdown_metric_name :: atom(), 				%% 26 - connection_shutdown_metric_name
-							 connection_reuse_metric_name :: atom(), 					%% 27 - connection_reuse_metric_name
-							 connection_unavailable_metric_name :: atom(), 				%% 28 - connection_unavailable_metric_name
-							 connection_max_pool_size_exceeded_metric_name :: atom(), 	%% 29 - connection_max_pool_size_exceeded_metric_name
-							 sql_check_valid_connection :: string(),					%% 30 - sql_check_valid_connection
-							 check_valid_connection_timeout :: non_neg_integer(),		%% 31 - check_valid_connection_timeout
-							 close_idle_connection_timeout :: non_neg_integer(),		%% 32 - close_idle_connection_timeout
-							 log_show_odbc_pool_activity = true :: boolean(),			%% 33 - log_show_odbc_pool_activity
-							 ctrl_path :: string(),										%% 34 - ctrl_path
-							 ctrl_file :: string(),										%% 35 - ctrl_file
-							 ctrl_insert :: binary(),									%% 36 - ctrl_insert				-> Data que foi inserido no banco mnesia
-							 ctrl_update :: binary(), 									%% 37 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-							 ctrl_modified :: binary(),									%% 38 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-							 ctrl_hash :: non_neg_integer(),							%% 39 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+							 sql_check_valid_connection :: string(),					%% 23 - sql_check_valid_connection
+							 check_valid_connection_timeout :: non_neg_integer(),		%% 24 - check_valid_connection_timeout
+							 close_idle_connection_timeout :: non_neg_integer(),		%% 25 - close_idle_connection_timeout
+							 log_show_odbc_pool_activity = true :: boolean(),			%% 26 - log_show_odbc_pool_activity
+							 ctrl_path :: string(),										%% 27 - ctrl_path
+							 ctrl_file :: string(),										%% 28 - ctrl_file
+							 ctrl_insert :: binary(),									%% 29 - ctrl_insert				-> Data que foi inserido no banco mnesia
+							 ctrl_update :: binary(), 									%% 30 - ctrl_update				-> Data que foi atualiado no banco mnesia			
+							 ctrl_modified :: binary(),									%% 31 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+							 ctrl_hash :: non_neg_integer(),							%% 32 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
 							 ds_name :: binary()
 							}).
 
@@ -451,25 +438,18 @@
 			   undefined,									%% 19 - pid_module
 			   undefined, 									%% 20 - pid_module_ref
 			   undefined,									%% 21 - owner
-			   undefined, 									%% 22 - owner_ref
-			   atom_type, 									%% 23 - connection_count_metric_name
-			   atom_type, 									%% 24 - connection_created_metric_name
-			   atom_type, 					  				%% 25 - connection_closed_metric_name
-			   atom_type, 									%% 26 - connection_shutdown_metric_name
-			   atom_type, 				 					%% 27 - connection_reuse_metric_name
-			   atom_type, 									%% 28 - connection_unavailable_metric_name
-			   atom_type, 								 	%% 29 - connection_max_pool_size_exceeded_metric_name
-			   boolean_type,								%% 30 - sql_check_valid_connection
-			   non_neg_integer_type, 						%% 31 - check_valid_connection_timeout
-			   non_neg_integer_type, 						%% 32 - close_idle_connection_timeout
-			   boolean_type, 								%% 33 - log_show_odbc_pool_activity
-			   string_type,									%% 34 - ctrl_path
-			   string_type, 								%% 35 - ctrl_file
-			   binary_type, 								%% 36 - ctrl_insert
-			   binary_type, 								%% 37 - ctrl_update
-			   binary_type,									%% 38 - ctrl_modified
-			   non_neg_integer_type,						%% 39 - ctrl_hash
-			   binary_type 									%% 40 - ds_name
+			   undefined, 											%% 22 - owner_ref
+			   string_type,										%% 23 - sql_check_valid_connection
+			   non_neg_integer_type, 								%% 24 - check_valid_connection_timeout
+			   non_neg_integer_type, 								%% 25 - close_idle_connection_timeout
+			   boolean_type, 										%% 26 - log_show_odbc_pool_activity
+			   string_type,											%% 27 - ctrl_path
+			   string_type, 										%% 28 - ctrl_file
+			   binary_type, 										%% 29 - ctrl_insert
+			   binary_type, 										%% 30 - ctrl_update
+			   binary_type,											%% 31 - ctrl_modified
+			   non_neg_integer_type,								%% 32 - ctrl_hash
+			   binary_type 											%% 33 - ds_name
 		}).
 
 
@@ -554,23 +534,16 @@
 					ctrl_modified :: binary(),								%% 71 - ctrl_modified							-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
 					ctrl_hash :: non_neg_integer(),							%% 72 - ctrl_hash 								-> Hash gerado para poder comparar dois registros	
 					start_timeout :: non_neg_integer(),						%% 73 - start_timeout							-> Define um timeout inicial para aguardar antes de iniciar o processo do serviço
-					service_exec_metric_name :: atom(),						%% 74 - service_exec_metric_name			
-					service_result_cache_hit_metric_name :: atom(),			%% 75 - service_result_cache_hit_metric_name
-					service_host_denied_metric_name :: atom(),				%% 76 - service_host_denied_metric_name
-					service_auth_denied_metric_name :: atom(),				%% 77 - service_auth_denied_metric_name
-					service_error_metric_name :: atom(),					%% 78 - service_error_metric_name
-					service_unavailable_metric_name :: atom(),				%% 79 - service_unavailable_metric_name
-					service_timeout_metric_name :: atom(),					%% 80 - service_timeout_metric_name
-					service_resend_msg1 :: atom(),							%% 81 - service_resend_msg1
-					http_max_content_length :: non_neg_integer(),			%% 82 - http_max_content_length
-					http_headers :: map(),									%% 83 - http_headers
-					restricted = false :: boolean(),						%% 84 - restricted								-> Serviço restrito aos admins
-					glyphicon :: binary(),									%% 85 - glyphicon								-> classe css do glyphicon
-					metadata :: binary(),									%% 86 - metadata 								-> Representação em json do que será enviado para o web service /catalog
-					show_debug_response_headers = false :: boolean(),		%% 87 - show_debug_response_headers				-> Add debug headers in HTTP response headers
-					result_cache_shared = true :: boolean(),				%% 88 - result_cache_shared						-> true if resulta cache is shared between requests
-					log_show_response_header = true :: boolean(),			%% 89 - result_cache_shared						-> true if show response header in logger
-					log_show = true :: boolean()							%% 90 - log_show								
+					service_resend_msg1 :: atom(),								%% 74 - service_resend_msg1
+					http_max_content_length :: non_neg_integer(),				%% 75 - http_max_content_length
+http_headers :: map(),%% 76 - http_headers
+restricted = false :: boolean(),%% 77 - restricted-> Serviço restrito aos admins
+glyphicon :: binary(),%% 78 - glyphicon-> classe css do glyphicon
+metadata :: binary(),%% 79 - metadata -> Representação em json do que será enviado para o web service /catalog
+show_debug_response_headers = false :: boolean(),%% 80 - show_debug_response_headers-> Add debug headers in HTTP response headers
+				result_cache_shared = true :: boolean(),					%% 81 - result_cache_shared					-> true if resulta cache is shared between requests
+				log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
+				log_show = true :: boolean()								%% 83 - log_show								
 				}).
 
 
@@ -649,23 +622,16 @@
 			   binary_type,									%% 71 - ctrl_modified
 			   non_neg_integer_type,						%% 72 - ctrl_hash
 			   non_neg_integer_type,						%% 73 - start_timeout
-			   atom_type, 									%% 74 - service_exec_metric_name			
-			   atom_type, 									%% 75 - service_result_cache_hit_metric_name
-			   atom_type, 									%% 76 - service_host_denied_metric_name
-			   atom_type, 									%% 77 - service_auth_denied_metric_name
-			   atom_type, 									%% 78 - service_error_metric_name
-			   atom_type, 									%% 79 - service_unavailable_metric_name
-			   atom_type, 									%% 80 - service_timeout_metric_name
-			   atom_type, 									%% 81 - service_resend_msg1
-			   non_neg_integer_type,						%% 82 - http_max_content_length
-			   undefined, 									%% 83 - http_headers
-			   boolean_type,								%% 84 - restricted
-			   binary_type,									%% 85 - glyphicon
-			   binary_type,									%% 86 - metadata
-			   boolean_type,								%% 87 - show_debug_response_headers
-			   boolean_type,								%% 88 - result_cache_shared
-			   boolean_type,								%% 89 - log_show_response_header
-			   boolean_type									%% 90 - log_show
+			   atom_type, 									%% 74 - service_resend_msg1
+			   non_neg_integer_type,						%% 75 - http_max_content_length
+			   undefined, 									%% 76 - http_headers
+			   boolean_type,								%% 77 - restricted
+			   binary_type,									%% 78 - glyphicon
+			   binary_type,									%% 79 - metadata
+			   boolean_type,								%% 80 - show_debug_response_headers
+			   boolean_type,								%% 81 - result_cache_shared
+			   boolean_type,								%% 82 - log_show_response_header
+			   boolean_type									%% 83 - log_show
 		}).
 
 

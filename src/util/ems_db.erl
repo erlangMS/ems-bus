@@ -1423,14 +1423,6 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		case ems_db:find_first(service_datasource, [{ctrl_hash, "==", CtrlHash}]) of
 			  {error, enoent} ->										
 					Id = ems_db:inc_counter(service_datasource),
-					IdStr = integer_to_list(Id),
-					ConnectionCountMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_conn_count"])),
-					ConnectionCreatedMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_created_count"])),
-					ConnectionClosedMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_closed_count"])),
-					ConnectionShutdownMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_shutdown_count"])),
-					ConnectionReuseMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_reuse_count"])),
-					ConnectionUnavailableMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_unavailable_count"])),
-					ConnectionMaxPoolSizeExceededMetricName = list_to_atom(lists:concat(["ems_odbc_pool_", IdStr, "_max_pool_size_exceeded_count"])),
 					
 					put(parse_step, new_service_datasource),
 					NewDs = #service_datasource{id = Id,
@@ -1452,13 +1444,6 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 												remap_fields_rev = RemapFieldsRev,
 												show_remap_fields = ShowRemapFields,
 												log_show_odbc_pool_activity = LogShowOdbcPoolActivity,
-												connection_count_metric_name = ConnectionCountMetricName,
-												connection_created_metric_name = ConnectionCreatedMetricName,
-												connection_closed_metric_name = ConnectionClosedMetricName,
-												connection_shutdown_metric_name = ConnectionShutdownMetricName,
-												connection_reuse_metric_name = ConnectionReuseMetricName,
-												connection_unavailable_metric_name = ConnectionUnavailableMetricName,
-												connection_max_pool_size_exceeded_metric_name = ConnectionMaxPoolSizeExceededMetricName,
 												sql_check_valid_connection = SqlCheckValidConnection,
 												check_valid_connection_timeout = CheckValidConnectionTimeout,
 												close_idle_connection_timeout = CloseIdleConnectionTimeout,

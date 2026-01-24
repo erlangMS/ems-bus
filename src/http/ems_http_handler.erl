@@ -22,7 +22,6 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 												  response_header = ResponseHeader,
 												  response_data = ResponseData,
 												  content_type_out = ContentTypeOut}} ->
-					compute_metric_by_content_type_out(ContentTypeOut),
 					Response = cowboy_req:reply(Code, 
 												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, HttpHeaderDefault), 
 												ResponseData, 
@@ -68,47 +67,7 @@ init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDe
 	{ok, Response, State}.
 
 
-compute_metric_by_content_type_out(ContentTypeOut) ->
-	case ContentTypeOut of
-		<<"application/x-www-form-urlencoded; charset=UTF-8">> ->
-			ems_db:inc_counter(http_content_type_out_form_urlencode);
-		<<"application/x-www-form-urlencoded">> ->
-			ems_db:inc_counter(http_content_type_out_form_urlencode);
-		<<"application/json">> ->
-			ems_db:inc_counter(http_content_type_out_application_json);
-		<<"application/json; charset=utf-8">> ->
-			ems_db:inc_counter(http_content_type_out_application_json);
-		<<"application/json;charset=utf-8">> -> 
-			ems_db:inc_counter(http_content_type_out_application_json);
-		<<"application/xml">> ->
-			ems_db:inc_counter(http_content_type_out_application_xml);
-		<<"application/pdf">> ->
-			ems_db:inc_counter(http_content_type_out_application_pdf);
-		<<"text/html">> ->
-			ems_db:inc_counter(http_content_type_out_text_html);
-		<<"application/xhtml+xml">> ->
-			ems_db:inc_counter(http_content_type_out_application_xhtml_xml);
-		<<"text/css">> ->
-			ems_db:inc_counter(http_content_type_out_text_css);
-		<<"application/x-javascript">> ->
-			ems_db:inc_counter(http_content_type_out_javascript);
-		<<"image/png">> ->
-			ems_db:inc_counter(http_content_type_out_image_png);
-		<<"image/x-icon">> ->
-			ems_db:inc_counter(http_content_type_out_image_xicon);
-		<<"image/gif">> ->
-			ems_db:inc_counter(http_content_type_out_image_gif);
-		<<"image/jpeg">> ->
-			ems_db:inc_counter(http_content_type_out_image_jpeg);
-		<<"application/font-woff">> ->
-			ems_db:inc_counter(http_content_type_out_font_woff);
-		<<"image/bmp">> ->
-			ems_db:inc_counter(http_content_type_out_image_bpm);
-		<<"text/csv">> ->
-			ems_db:inc_counter(http_content_type_out_text_csv);
-		_ ->
-			ems_db:inc_counter(http_content_type_out_other)
-	end.
+
 
 
 
