@@ -46,7 +46,7 @@ check_result_cache(ReqHash, Worker, Timestamp2, Url, Debug) ->
 			end
 	end.
 
-check_result_cache2(_, _, _, 0, _, _) -> false;
+
 check_result_cache2(ReqHash, Worker, Timestamp2, Count, Url, Debug) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
 		[] -> false; 
@@ -58,15 +58,30 @@ check_result_cache2(ReqHash, Worker, Timestamp2, Count, Url, Debug) ->
 			false;
 		[{_, {_, Request, _, req_done, _}}] ->
 			{true, Request};
-		_ ->
+		[{_, {_, _, _, req_wait_result, OwnerPid}}] -> 
+			% Monitor the process responsible for generating the cache
+			MonitorRef = erlang:monitor(process, OwnerPid),
 			receive 
 				{ReqHash, Result} -> 
-					Result
-				after 100 -> 
-					check_result_cache2(ReqHash, Worker, Timestamp2, Count - 1, Url, Debug)
-			end
+					erlang:demonitor(MonitorRef, [flush]),
+					Result;
+				{'DOWN', MonitorRef, process, OwnerPid, _Reason} -> 
+					% The owner process died, so we must assume cache miss and try to execute
+					case Debug of
+						true -> ems_logger:info("ems_dispatcher result_cache miss (owner died). url: ~p", [Url]);
+						false -> ok
+					end,
+					false
+			after 10000 -> 
+				erlang:demonitor(MonitorRef, [flush]),
+				case Count > 0 of
+					true -> check_result_cache2(ReqHash, Worker, Timestamp2, Count - 1, Url, Debug);
+					false -> false
+				end
+			end;
+		_ -> false
 	end.
-	
+
 notify_workers_waiting_result_cache(ReqHash, RequestDone) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
 		[] -> ok; 
@@ -99,7 +114,10 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									result_cache = ResultCache},
 				Debug) -> 
 	try
-		ems_logger:info("ems_dispatcher begin execute. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+		case Debug of
+			true -> ems_logger:info("ems_dispatcher begin execute. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+			false -> ok
+		end,
 		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
 		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
 			true ->
@@ -107,7 +125,10 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 					true ->	
 						case ems_auth_user:authenticate(Service, Request) of
 							{ok, Client, User, AccessToken, _Scope, _State} -> 	
-								ems_logger:info("ems_dispatcher authenticate ok. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+								case Debug of
+									true -> ems_logger:info("ems_dispatcher authenticate ok. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+									false -> ok
+								end,
 								Latency = ems_util:get_milliseconds() - T1,
 								Request2 = Request#request{client = Client,
 														   user = User,
@@ -156,7 +177,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																						status_text = RequestCache#request.status_text}}
 												end;
 											false ->
-												ems_cache:add(ets_result_cache_get, ResultCache, ReqHash, {T1, Request2, ResultCache, req_wait_result, []}),
+												ems_cache:add(ets_result_cache_get, ResultCache, ReqHash, {T1, Request2, ResultCache, req_wait_result, self()}),
 												ResultDispatServiceWork = dispatch_service_work(Request2, Service, Debug),
 												case ResultDispatServiceWork of
 													{ok, _, _} -> ResultDispatServiceWork; 
@@ -240,7 +261,10 @@ dispatch_service_work(Request = #request{type = Type,
 							    function = Function},
  					  Debug) ->
 	try
-		ems_logger:info("ems_dispatcher send ~p to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ModuleName, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+		case Debug of
+			true -> ems_logger:info("ems_dispatcher send ~p to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ModuleName, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+			false -> ok
+		end,
 		%% Retornos possíveis:
 		%%
 		%% Com processamento de middleware function e result cache
@@ -337,18 +361,25 @@ dispatch_service_work_send(Request = #request{type = Type,
 						   Debug,
 						   Msg,
 						   Count) ->
-	ems_logger:info("get_work_node Host ~p  HostName: ~p  ModuleName: ~p", [Host, HostName, ModuleName]),	
 	case get_work_node(Host, Host, HostName, ModuleName) of
 		{ok, Node} ->
 			{Module, Node} ! Msg,
-			ems_logger:info("ems_dispatcher send ~p to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]),
+			case Debug of
+				true -> 
+					ems_logger:info("get_work_node Host ~p  HostName: ~p  ModuleName: ~p", [Host, HostName, ModuleName]),
+					ems_logger:info("ems_dispatcher send ~p to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
+				false -> ok
+			end,
 			case Type of 
 				<<"GET">> -> TimeoutConfirmation = 120000;
 				_ -> TimeoutConfirmation = 90000
 			end,
 			receive 
 				ok -> 
-					ems_logger:info("ems_dispatcher receive msg from Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [{Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]),
+					case Debug of
+						true -> ems_logger:info("ems_dispatcher receive msg from Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [{Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
+						false -> ok
+					end,
 					dispatch_service_work_receive(Request, Service, Node, TimeoutService, 0, Debug)
 				after TimeoutConfirmation -> 
 					ems_logger:error("ems_dispatcher dispatch_service_work_send timeout confirmation ~p.", [{Module, Node}]),
@@ -436,14 +467,10 @@ dispatch_middleware_function(Request = #request{reason = ok,
 		case Middleware of 
 			undefined -> Result = {ok, Request};
 			_ ->
-				case code:ensure_loaded(Middleware) of
-					{module, _} ->
-						Result = case erlang:function_exported(Middleware, onrequest, 1) of
-									true -> apply(Middleware, onrequest, [Request]);
-									false -> {ok, Request}
-								 end;
-					_ ->  Result = {error, einvalid_middleware}
-				end
+				Result = case erlang:function_exported(Middleware, onrequest, 1) of
+							true -> apply(Middleware, onrequest, [Request]);
+							false -> {ok, Request}
+						 end
 		end,
 		case Result of
 			{ok, Request2 = #request{code = Code, 
