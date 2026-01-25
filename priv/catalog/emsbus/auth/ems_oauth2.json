@@ -10,7 +10,7 @@
 		"lang": "erlang",
 		"pool_size": 1,
 		"pool_max": 1,
-		"persist_token_sgbd_enabled": false,
+		"persist_token_sgbd_enabled": true,
 		"datasource_persist_sgbd": "ds_ems_user_loader",
 		"sql_persist_access_code": "INSERT INTO BDBarramento.dbo.TB_OAuthAccessCode (OACId, OACDate, OACContext) VALUES(?,GETDATE(),?)",
 		"sql_select_access_code": "SELECT OACId, OACDate, OACContext FROM BDBarramento.dbo.TB_OAuthAccessCode WHERE OACId = ?",
@@ -47,8 +47,7 @@
 						?, 
 						?, 
 						?, 
-						GETDATE())","querystring": [{"name": "response_type",
-		"type": "string",
+						GETDATE())","querystring": [{"name": "response_type","type": "string",
 		"default": "0",
 		"comment": ""
 	},

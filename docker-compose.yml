@@ -11,7 +11,6 @@ services:
       - "192.168.1.9:2301:2301"
       - "192.168.1.9:2344:2344"
     volumes:
-      # Mount configuration directory
       - ./priv/conf:/app/lib/ems_bus-2.0.26/priv/conf
     networks:
       - erlangms

@@ -232,6 +232,7 @@
 -define(TCP_PORT_MAX, 99999).
 -define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, [<<"lo">>, <<"enp">>, <<"eth">>, <<"wl">>, <<"eno">>, <<"ens">>]).
 
+-define(PERSIST_TOKEN_SGBD_ENABLED, true).
 
 -define(SUFIXO_EMAIL_INSTITUCIONAL, <<"@unb.br">>).
 
@@ -248,11 +249,11 @@
 -define(CLIENT_DEFAULT_SCOPE, ems_util:get_auth_default_scope()).
 
 % Código de cores
--define(WARN_MESSAGE,   		<<"[WARN] ">>).
--define(INFO_MESSAGE,   		<<"[INFO] ">>).
--define(ERROR_MESSAGE,  		<<"[ERROR] ">>).
--define(DEBUG_MESSAGE,  		<<"[DEBUG] ">>).
--define(ALERT_MESSAGE,  		<<"[INFO] ">>).
+-define(WARN_MESSAGE,   		<<"WARN ">>).
+-define(INFO_MESSAGE,   		<<"INFO ">>).
+-define(ERROR_MESSAGE,  		<<"ERROR ">>).
+-define(DEBUG_MESSAGE,  		<<"DEBUG ">>).
+-define(ALERT_MESSAGE,  		<<"INFO ">>).
 -define(LIGHT_GREEN_COLOR,    	<<>>).
 -define(GREEN_COLOR, 			<<>>).
 -define(TAB_GREEN_COLOR, 		<<"\n\t">>).
