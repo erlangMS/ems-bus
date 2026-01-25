@@ -81,7 +81,6 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  log_show_response_max_length: ~p bytes (~p KB, ~p MB, ~p GB).", [Conf#config.log_show_response_max_length, round(Conf#config.log_show_response_max_length/1024), round(Conf#config.log_show_response_max_length/1048576), round(Conf#config.log_show_response_max_length/1073741824)]),
 			ems_logger:info("  log_show_payload_max_length: ~p bytes (~p KB, ~p MB, ~p GB).", [Conf#config.log_show_payload_max_length, round(Conf#config.log_show_payload_max_length/1024), round(Conf#config.log_show_payload_max_length/1048576), round(Conf#config.log_show_payload_max_length/1073741824)]),
 			ems_logger:info("  log_show_odbc_pool_activity: ~p.", [Conf#config.log_show_odbc_pool_activity]),
-			ems_logger:info("  debug: ~p.", [Conf#config.debug]),
 			ems_logger:info("  result_cache: ~pms.", [Conf#config.ems_result_cache]),
 			ems_logger:info("  result_cache_enabled: ~p.", [Conf#config.ems_result_cache_enabled]),
 			ems_logger:info("  disable_services: ~300p.", [Conf#config.cat_disable_services]),
@@ -95,6 +94,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  ssl_cacertfile: ~p.", [Conf#config.ssl_cacertfile]),
 			ems_logger:info("  ssl_certfile: ~p.", [Conf#config.ssl_certfile]),
 			ems_logger:info("  ssl_keyfile: ~p.", [Conf#config.ssl_keyfile]),
+			ems_logger:info("  debug: ~p.", [Conf#config.debug]),
 			erlang:set_cookie(node(), erlangms), ems_logger:info("Cookie loaded: ~p", [erlang:get_cookie()]), Ret;
 		{error, Reason} ->
 			ems_logger:format_error("Loading failed. Reason: ~p.\n", [Reason]),
