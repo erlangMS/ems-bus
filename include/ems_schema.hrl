@@ -477,8 +477,7 @@
 					id_re_compiled = undefined, 							%% 14 - id_re_compiled							-> Expressão regular compilada
 					public = true :: boolean(), 							%% 15 - public									-> Indica se o contrato estará listado no Portal API Management
 					comment :: binary(), 									%% 16 - comment									-> Comentário sobre o que o contrato oferece em termos de serviço
-					version :: binary(), 									%% 17 - version									-> Versão do contrato do serviço
-					owner :: binary(),  									%% 18 - owner									-> Quem é o proprietário pelo serviço. Ex.: auth
+					owner :: binary(),  									%% 17 - owner									-> Quem é o proprietário pelo serviço. Ex.: auth
 					group :: binary(),										%% 19 - group									-> Quem é o grupo do serviço. Ex.: auth/user
 					async = false :: boolean(),								%% 20 - async									-> Indica se o serviço será processado em segundo plano (chamada assíncrona)
 					querystring :: list(map()),								%% 21 - querystring								-> Definição da querystring para o contrato do serviço
@@ -543,7 +542,7 @@
 					show_debug_response_headers = false :: boolean(),%% 80 - show_debug_response_headers-> Add debug headers in HTTP response headers
 					result_cache_shared = true :: boolean(),					%% 81 - result_cache_shared					-> true if resulta cache is shared between requests
 					log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
-					log_show = true :: boolean()								%% 83 - log_show								
+					log_show = true :: boolean()								%% 82 - log_show								
 				}).
 
 
@@ -565,10 +564,9 @@
 			   undefined,									%% 14 - id_re_compiled
 			   boolean_type, 								%% 15 - public
 			   binary_type, 								%% 16 - comment
-			   binary_type, 								%% 17 - version
-			   binary_type,									%% 18 - owner
-			   binary_type,									%% 19 - group
-			   boolean_type,								%% 20 - async
+			   binary_type,									%% 17 - owner
+			   binary_type,									%% 18 - group
+			   boolean_type,								%% 19 - async
 			   undefined,									%% 21 - querystring
 			   non_neg_integer_type,						%% 22 - qtd_querystring_req
 			   atom_type,									%% 23 - host
@@ -631,7 +629,7 @@
 			   boolean_type,								%% 80 - show_debug_response_headers
 			   boolean_type,								%% 81 - result_cache_shared
 			   boolean_type,								%% 82 - log_show_response_header
-			   boolean_type									%% 83 - log_show
+			   boolean_type									%% 82 - log_show
 		}).
 
 

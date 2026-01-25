@@ -93,7 +93,7 @@ EXPOSE 2301 2344
 USER erlangms
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:2301/ || exit 1
 
 # Inicia o barramento
