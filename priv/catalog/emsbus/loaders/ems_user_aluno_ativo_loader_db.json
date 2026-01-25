@@ -1,30 +1,30 @@
 {
-    "name": "ems_user_aluno_ativo_loader_db",
+	"name": "ems_user_aluno_ativo_loader_db",
 	"comment": "Catalog for ems_user_aluno_ativo_loader_db",
 	"owner": "data_loader",
 	"version": "1.0.0",
-	"service" : "ems_data_loader:start",
+	"service": "ems_data_loader:start",
 	"url": "/emsbus/ems_user_aluno_ativo_loader_db",
 	"type": "KERNEL",
-	"lang" : "erlang",
-	"update_checkpoint" : 32000,
-	"datasource" : "ds_ems_user_loader",
-	"start_timeout" : 10000,
-	"middleware" : "ems_user_loader_middleware",
-	"group" : [],
-	"pool_size" : 1,
-	"pool_max" : 1,
-	"enable" : false,
-	"source_type" : "user_aluno_ativo_db",
-	"sql_load_packet_length" : 10000,
-	"sql_load" : 
+	"lang": "erlang",
+	"update_checkpoint": 32000,
+	"datasource": "ds_ems_user_loader",
+	"start_timeout": 13000,
+	"middleware": "ems_user_loader_middleware",
+	"group": [],
+	"pool_size": 1,
+	"pool_max": 1,
+	"enable": false,
+	"source_type": "user_aluno_ativo_db",
+	"sql_load_packet_length": 10000,
+	"sql_load": 
 				"select al.AluMatricula as id, 
 				p.PesCodigoPessoa as codigo, 
 				lower(rtrim(cast(al.AluRA as varchar(100)))) as login,
 				rtrim(p.PesNome) as name,  
 				cast(coalesce(p.PesCpf, cast(al.AluCPF as varchar(11))) as varchar(14)) as cpf,
-				rtrim(cast(al.AluSenha as varchar(60))) as password, 
-				null as passwd_crypto, 
+				rtrim(cast(al.AluSenha as varchar(60))) as password,
+	null as passwd_crypto, 
 				rtrim(coalesce(addr.endereco, p.PesEndereco)) as endereco, 
 				rtrim(coalesce(addr.complemento, p.PesComplementoEndereco)) as complemento_endereco, 
 				rtrim(coalesce(addr.bairro, p.PesBairro)) as bairro, 
@@ -66,13 +66,13 @@
 							on pfe.PFmEmaCodigo = em.EmaCodigo 
 					where pfe.PFmPesCodigoPessoa = al.AluPesCodigoPessoa  
 					and em.EmaEmail LIKE '_%@__%.__%') 
-				) as email, 
-				3 as type,  
-				al.AluNivel as subtype,	
-				1 as active,
+				) as email,
+	3 as type,  
+				al.AluNivel as subtype,
+	1 as active,
 				(select u.UsuId from BDAcesso.dbo.TB_Usuario u with (nolock) 
 				 where u.UsuLogin = 'aluno@unb.br') as remap_user_id,
-				 null as dt_expire_password,
+	null as dt_expire_password,
  				 case 
 						when al.AluDataAlteracao > p.PesDataAlteracao then al.AluDataAlteracao  
 						else p.PesDataAlteracao  
@@ -94,17 +94,17 @@
 										on e.EndLocalidade = mu.MunCodigo 
 							where e.EndTipo = 1) addr 
 					on addr.PFEPesCodigoPessoa = al.AluPesCodigoPessoa 
-				where al.AluPerSaiUnB = 99999 and al.alunivel not in  (9,10,11) and al.AluSenha is not null
-				",
-
-	"sql_update" :
+				where al.AluPerSaiUnB = 99999 and al.alunivel not in  (9,
+	10,
+	11) and al.AluSenha is not null
+				","sql_update":
 				"select al.AluMatricula as id, 
 				p.PesCodigoPessoa as codigo, 
 				lower(rtrim(cast(al.AluRA as varchar(100)))) as login,
 				rtrim(p.PesNome) as name,  
 				cast(coalesce(p.PesCpf, cast(al.AluCPF as varchar(11))) as varchar(14)) as cpf,
-				rtrim(cast(al.AluSenha as varchar(60))) as password, 
-				null as passwd_crypto, 
+				rtrim(cast(al.AluSenha as varchar(60))) as password,
+	null as passwd_crypto, 
 				rtrim(coalesce(addr.endereco, p.PesEndereco)) as endereco, 
 				rtrim(coalesce(addr.complemento, p.PesComplementoEndereco)) as complemento_endereco, 
 				rtrim(coalesce(addr.bairro, p.PesBairro)) as bairro, 
@@ -147,12 +147,12 @@
 					where pfe.PFmPesCodigoPessoa = al.AluPesCodigoPessoa  
 					and em.EmaEmail LIKE '_%@__%.__%') 
 				) as email,
-				3 as type,  
-				al.AluNivel as subtype,	
-				1 as active,
+	3 as type,  
+				al.AluNivel as subtype,
+	1 as active,
 				(select u.UsuId from BDAcesso.dbo.TB_Usuario u 
 				 where u.UsuLogin = 'aluno@unb.br') as remap_user_id,
-				 null as dt_expire_password,
+	null as dt_expire_password,
 				 case 
 						when al.AluDataAlteracao > p.PesDataAlteracao then al.AluDataAlteracao  
 						else p.PesDataAlteracao  
@@ -176,7 +176,9 @@
 			   			on addr.PFEPesCodigoPessoa = al.AluPesCodigoPessoa 
 				where (al.AluDataAlteracao >= ? or p.PesDataAlteracao >= ? or 
 					   al.AluDataCadastramento >= ? or p.PesDataCadastramento >= ?) and
-					   al.AluPerSaiUnB = 99999 and al.alunivel not in  (9,10,11) and al.AluSenha is not null 
+					   al.AluPerSaiUnB = 99999 and al.alunivel not in  (9,
+	10,
+	11) and al.AluSenha is not null 
 					and exists ( select 1 
 					   from BDPessoa.dbo.TB_PessoaFisicaEmail pfe with (nolock)  
 						   join BDPessoa.dbo.TB_Email em with (nolock) 
@@ -185,12 +187,35 @@
 						 and em.EmaEmail LIKE '_%@__%.__%' 
 						 and pfe.PFmPesCodigoPessoa = al.AluPesCodigoPessoa 
 						 and (em.EmaDataAlteracao >= ? or em.EmaDataCadastramento >= ?) ) 
-				",
-			
-	"fields" : ["id", "codigo", "login", "name", "cpf", "password", 
-				"passwd_crypto", "endereco", "complemento_endereco", 
-				"bairro", "cidade", "uf", "cep", "rg", "data_nascimento", 
-				"sexo", "telefone", "celular", "ddd", "nome_pai", "nome_mae", "nacionalidade", 
-				"email", "type", "subtype", "active", "remap_user_id", "dt_expire_password", "ctrl_modified"]
-				
+				","fields": [
+		"id",
+		"codigo",
+		"login",
+		"name",
+		"cpf",
+		"password",
+		"passwd_crypto",
+		"endereco",
+		"complemento_endereco",
+		"bairro",
+		"cidade",
+		"uf",
+		"cep",
+		"rg",
+		"data_nascimento",
+		"sexo",
+		"telefone",
+		"celular",
+		"ddd",
+		"nome_pai",
+		"nome_mae",
+		"nacionalidade",
+		"email",
+		"type",
+		"subtype",
+		"active",
+		"remap_user_id",
+		"dt_expire_password",
+		"ctrl_modified"
+	]
 }

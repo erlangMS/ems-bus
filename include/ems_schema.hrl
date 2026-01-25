@@ -438,18 +438,18 @@
 			   undefined,									%% 19 - pid_module
 			   undefined, 									%% 20 - pid_module_ref
 			   undefined,									%% 21 - owner
-			   undefined, 											%% 22 - owner_ref
-			   string_type,										%% 23 - sql_check_valid_connection
-			   non_neg_integer_type, 								%% 24 - check_valid_connection_timeout
-			   non_neg_integer_type, 								%% 25 - close_idle_connection_timeout
-			   boolean_type, 										%% 26 - log_show_odbc_pool_activity
-			   string_type,											%% 27 - ctrl_path
-			   string_type, 										%% 28 - ctrl_file
-			   binary_type, 										%% 29 - ctrl_insert
-			   binary_type, 										%% 30 - ctrl_update
-			   binary_type,											%% 31 - ctrl_modified
-			   non_neg_integer_type,								%% 32 - ctrl_hash
-			   binary_type 											%% 33 - ds_name
+			   undefined, 									%% 22 - owner_ref
+			   string_type,									%% 23 - sql_check_valid_connection
+			   non_neg_integer_type, 						%% 24 - check_valid_connection_timeout
+			   non_neg_integer_type, 						%% 25 - close_idle_connection_timeout
+			   boolean_type, 								%% 26 - log_show_odbc_pool_activity
+			   string_type,									%% 27 - ctrl_path
+			   string_type, 								%% 28 - ctrl_file
+			   binary_type, 								%% 29 - ctrl_insert
+			   binary_type, 								%% 30 - ctrl_update
+			   binary_type,									%% 31 - ctrl_modified
+			   non_neg_integer_type,						%% 32 - ctrl_hash
+			   binary_type 									%% 33 - ds_name
 		}).
 
 
@@ -536,14 +536,14 @@
 					start_timeout :: non_neg_integer(),						%% 73 - start_timeout							-> Define um timeout inicial para aguardar antes de iniciar o processo do serviço
 					service_resend_msg1 :: atom(),								%% 74 - service_resend_msg1
 					http_max_content_length :: non_neg_integer(),				%% 75 - http_max_content_length
-http_headers :: map(),%% 76 - http_headers
-restricted = false :: boolean(),%% 77 - restricted-> Serviço restrito aos admins
-glyphicon :: binary(),%% 78 - glyphicon-> classe css do glyphicon
-metadata :: binary(),%% 79 - metadata -> Representação em json do que será enviado para o web service /catalog
-show_debug_response_headers = false :: boolean(),%% 80 - show_debug_response_headers-> Add debug headers in HTTP response headers
-				result_cache_shared = true :: boolean(),					%% 81 - result_cache_shared					-> true if resulta cache is shared between requests
-				log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
-				log_show = true :: boolean()								%% 83 - log_show								
+					http_headers :: map(),%% 76 - http_headers
+					restricted = false :: boolean(),%% 77 - restricted-> Serviço restrito aos admins
+					glyphicon :: binary(),%% 78 - glyphicon-> classe css do glyphicon
+					metadata :: binary(),%% 79 - metadata -> Representação em json do que será enviado para o web service /catalog
+					show_debug_response_headers = false :: boolean(),%% 80 - show_debug_response_headers-> Add debug headers in HTTP response headers
+					result_cache_shared = true :: boolean(),					%% 81 - result_cache_shared					-> true if resulta cache is shared between requests
+					log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
+					log_show = true :: boolean()								%% 83 - log_show								
 				}).
 
 

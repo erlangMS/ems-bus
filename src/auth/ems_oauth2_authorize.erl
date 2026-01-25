@@ -178,7 +178,9 @@ execute(Request = #request{type = Type,
 					case User =/= undefined andalso Client =/= undefined of
 						true -> 
 							{ok, AccessCode} = get_code_by_user_and_client(User, Client, Request),
-							persist_token_sgbd(Service, User, Client, AccessCode, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion);
+							spawn(fun() -> 
+								persist_token_sgbd(Service, User, Client, AccessCode, AccessToken, Response#response.scope, Response#response.state, UserAgent, UserAgentVersion)
+							end);
 						false -> ok
 					end,
 
@@ -624,8 +626,12 @@ issue_token(Result) ->
     
 
 issue_token_and_refresh({ok, {_, Auth}}) ->
+	T1 = ems_util:get_timestamp(),
 	case oauth2:issue_token_and_refresh(Auth, []) of
-		{ok, {_, Result}} -> {ok, Result};
+		{ok, {_, Result}} -> 
+			T2 = ems_util:get_timestamp(),
+			ems_logger:info("ems_oauth2_authorize issue_token_and_refresh execution time: ~p ms.", [T2 - T1]),
+			{ok, Result};
 		_ -> {error, access_denied, einvalid_issue_token_and_refresh}
 	end;
 issue_token_and_refresh(Result) -> 
@@ -662,6 +668,7 @@ persist_token_sgbd(
 				  _State,
 				  UserAgentAtom, 
 				  UserAgentVersionBin) ->
+	T1 = ems_util:get_timestamp(),
 	try
 		put(persist_token_sgbd_step, oauth2_authorize_persist_token_sgbd_pass1),
 		SqlPersist = ems_util:str_trim(binary_to_list(maps:get(<<"sql_persist">>, Props, <<>>))),
@@ -703,6 +710,8 @@ persist_token_sgbd(
 			false -> 
 				ok
 		end,
+		T2 = ems_util:get_timestamp(),
+		ems_logger:info("ems_oauth2_authorize persist_token_sgbd execution time: ~p ms.", [T2 - T1]),
 		ok
 	catch
 		_:ReasonException -> 

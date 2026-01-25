@@ -14,7 +14,6 @@
 
 -export([version/0,
 		 server_name/0,
-
 		 flush_messages/0,
 		 json_encode/1,
 		 json_decode/1,
@@ -39,7 +38,6 @@
 		 list_to_ets/3,
 		 make_rowid_from_url/2,
 		 read_file_as_map/1,
-
 		 load_from_file_req/1,
 		 save_from_file_req/1,
  		 node_binary/0,
@@ -74,7 +72,6 @@
          date_dec_minute/2,
 		 date_to_string/1,
 		 date_to_binary/1,
-
  		 timestamp_str/0,
 		 timestamp_str/1,
 		 timestamp_binary/0,
@@ -82,7 +79,6 @@
 		 uptime_str/0,
 		 boolean_to_binary/1,
 		 value_to_boolean/1,
-
 		 replace_vars_with/2,
 		 open_file/1,
 		 file_last_modified/1,
@@ -98,23 +94,19 @@
  		 is_range_valido/3,
 		 is_letter/1,
 		 is_letter_lower/1,
-
 		 ldap_attribute_map_to_user_field/1,
 		 parse_content_type/1,
 		 parse_oauth2_scope/1,
 		 parse_ldap_attributes/1,
 		 parse_ldap_filter/1,
-
 		 parse_if_modified_since/1,
 		 parse_basic_authorization_header/1,
 		 parse_result_cache/1,
-
 		 parse_url_service/1,
 		 parse_lang/1,
 		 parse_name_service/1,
 		 parse_name_querystring/1,
 		 parse_type_service/1,
-
 		 parse_service_service/1,
 		 parse_querystring_def/2,
 		 parse_file_name_path/3,
@@ -132,6 +124,7 @@
 		 parse_email/1,
 		 parse_ldap_name/1,
 		 parse_to_integer/1,
+		 parse_integer/1,
 		 match_ip_address/2,
  		 allow_ip_address/2,
 		 mask_ipaddress_to_tuple/1,
@@ -144,7 +137,6 @@
 		 make_rowid/1,
 		 make_rowid/2,
 		 make_rowid_id/1,
-
  		 remove_quoted_str/1,
 		 remove_ult_backslash_url/1,
 		 remove_ult_backslash_url_binary/1,
@@ -153,34 +145,26 @@
 		 mes_abreviado/1,
 		 new_rowid_service/2,
 		 utf8_list_to_string/1,
-
 		 normalize_field_utf8/1,
-
 		 utf8_string_linux/1,
 		 criptografia_sha1/1,
 		 criptografia_md5/1,
 		 head_file/2,
-
 		 replace_all_vars/2,
 		 replace_all_vars_and_custom_variables/2,
-
 		 replace_custom_variables_binary/1,
 		 replace_config_and_custom_variables_binary/1,
-
 		 mime_type/1,
-
 		 method_to_string/1,
 		 decode_http_header/2,
 		 decode_http_request/1,
 		 tuple_to_maps_with_keys/2,
 		 compile_modulo_erlang/2,
-
 		 user_agent_atom_to_binary/1,
 		 to_lower_and_remove_backslash/1,
 		 check_type_email/2,
 		 is_email_institucional/2,
 		 invoque_service/3,
-
 		 url_mask_str/1,
 		 list_map_to_list_tuple/1,
 		 list_tuple_to_list_map/1,
@@ -190,7 +174,6 @@
 		 integer_to_list_def/2,
 		 str_trim/1,
 		 binary_to_hex/1,
-
 		 ensure_dir_writable/1,
 		 file_exists/1,
 		 integer_to_binary_def/2,
@@ -3994,6 +3977,9 @@ parse_to_integer(V) when is_binary(V) -> binary_to_integer(V);
 parse_to_integer(V) when is_list(V) -> list_to_integer(V);
 parse_to_integer(V) when is_integer(V) -> V;
 parse_to_integer(_) -> erlang:error(einvalid_integer).
+
+-spec parse_integer(any()) -> integer().
+parse_integer(V) -> parse_to_integer(V).
 
 
 -spec path_writable(string() | binary()) -> boolean().

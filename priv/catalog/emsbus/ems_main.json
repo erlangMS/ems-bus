@@ -16,10 +16,6 @@
 		"file": "loaders/ems_loaders.json"
 	},
 	{
-		"catalog": "/emsbus/catalogs/ems_main_catalogs",
-		"file": "catalogs/ems_main_catalogs.json"
-	},
-	{
 		"catalog": "/emsbus/ems_info_service",
 		"file": "ems_info_service.json"
 	},

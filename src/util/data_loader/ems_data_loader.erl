@@ -459,7 +459,7 @@ do_check_count_checkpoint(State = #state{name = Name,
 								?DEBUG("~s do_check_count_checkpoint get ids from table...", [Name]),
 								case ems_odbc_pool:param_query(Datasource2, SqlIds, []) of
 									{_, _, Result2} ->
-										ems_odbc_pool:shutdown_connection(Datasource2),
+										ems_odbc_pool:release_connection(Datasource2),
 										Codigos = [N || {N} <- Result2],
 										RemoveCount = do_check_remove_records(Codigos, State),
 										case RemoveCount > 0 of
@@ -479,17 +479,17 @@ do_check_count_checkpoint(State = #state{name = Name,
 										end,
 										{ok, State};
 									Error3 -> 
-										ems_odbc_pool:shutdown_connection(Datasource2),
+										ems_odbc_pool:release_connection(Datasource2),
 										?DEBUG("~s do_check_count_checkpoint exception to execute sql ~p.", [Name, SqlIds]),
 										Error3
 								end;
 							true ->
-								ems_odbc_pool:shutdown_connection(Datasource2),
+								ems_odbc_pool:release_connection(Datasource2),
 								?DEBUG("~s do_check_count_checkpoint skip remove records.", [Name]),
 								{ok, State}
 						end;
 					Error4 -> 
-						ems_odbc_pool:shutdown_connection(Datasource2),
+						ems_odbc_pool:release_connection(Datasource2),
 						?DEBUG("~s do_check_count_checkpoint exception to execute sql ~p. Reason: ~p.", [Name, SqlCount, Error4]),
 						Error4
 				end,
@@ -549,7 +549,7 @@ do_load(CtrlInsert, Conf, State = #state{datasource = Datasource,
 			{ok, Datasource2} -> 
 				Result = do_load_table(CtrlInsert, Conf, State#state{datasource = Datasource2}),
 				%% faz shutdown da conexão em vez de voltar ao pool pois consome muita ram durante as cargas de dados completa
-				ems_odbc_pool:shutdown_connection(Datasource2), 
+				ems_odbc_pool:release_connection(Datasource2), 
 				ems_db:inc_counter(LoadCheckpointMetricName),
 				Result;
 			Error3 -> Error3
@@ -716,7 +716,7 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 								  {sql_timestamp, [DateInitial]}],
 						Result = case ems_odbc_pool:param_query(Datasource2, SqlUpdate, Params) of
 							{_,_,[]} -> 
-								ems_odbc_pool:shutdown_connection(Datasource2), 
+								ems_odbc_pool:release_connection(Datasource2), 
 								ems_db:inc_counter(UpdateMissMetricName),
 								ems_logger:info("~s sync 0 inserts, 0 updates, 0 disabled, 0 skips, 0 errors since ~s.", [Name, ems_util:timestamp_str(LastUpdate)], LogShowDataLoaderActivity),
 								{ok, State#state{insert_count = 0,
@@ -724,7 +724,7 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 												 disable_count = 0,
 												 skip_count = 0}};
 							{_, _, Records} ->
-								ems_odbc_pool:shutdown_connection(Datasource2), 
+								ems_odbc_pool:release_connection(Datasource2), 
 								{ok, InsertCount, UpdateCount, ErrorCount, DisabledCount, SkipCount} = ems_data_pump:data_pump(Records, list_to_binary(CtrlUpdate), Conf, Name, Middleware, update, 0, 0, 0, 0, 0, SourceType, Fields),
 								ems_db:counter(InsertMetricName, InsertCount),
 								ems_db:counter(UpdateMetricName, UpdateCount),
@@ -738,7 +738,7 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 												 disable_count = DisabledCount,
 												 skip_count = SkipCount}};
 							{error, _Reason2} = Error2 -> 
-								ems_odbc_pool:shutdown_connection(Datasource2), 
+								ems_odbc_pool:release_connection(Datasource2), 
 								Error2
 						end,
 						Result;
@@ -784,13 +784,8 @@ do_check_remove_records(Ids, #state{middleware = Middleware, source_type = Sourc
 		true -> Ids2 = [list_to_integer(R) || R <- Ids]; % os ids estão vindo como string
 		false -> Ids2 = Ids
 	end,
-	F = fun() ->
-		  qlc:e(
-			 qlc:q([element(2, Rec) || Rec <- mnesia:table(Table)])
-		  )
-	   end,
 	IdsDB = ordsets:from_list(Ids2), 
-	IdsMnesia = ordsets:from_list(mnesia:activity(async_dirty, F)),
+	IdsMnesia = ordsets:from_list(mnesia:dirty_all_keys(Table)),
 	IdsDiff = ordsets:subtract(IdsMnesia, IdsDB),
 	%io:format("listas IdsDB ~p   IdsMnesia ~p   IdsDiff ~p\n",  [IdsDB, IdsMnesia, IdsDiff]),
 	do_remove_records_(IdsDiff, Table),

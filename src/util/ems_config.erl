@@ -375,7 +375,6 @@ parse_config(Json, Filename) ->
 				ems_logger:format_error("ems_config cannot initialize read-only database path \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
 				erlang:error(ecannot_use_read_only_database_path)
 		end,
-
 		
 		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
 		put(parse_step, start_db),
@@ -578,7 +577,10 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_show_payload_max_length),
 		LogShowPayloadMaxLength = get_p(<<"log_show_payload_max_length">>, Json, ?LOG_SHOW_PAYLOAD_MAX_LENGTH),
 		
-		
+		put(parse_step, max_connection_by_pool),
+		MaxConnectionByPool = ems_util:parse_range(get_p(<<"max_connection_by_pool">>, Json, ?MAX_CONNECTION_IDDLE_BY_POOL), 1, 1000),
+		ems_db:set_param(max_connection_by_pool, MaxConnectionByPool),
+
 		put(parse_step, log_show_odbc_pool_activity),
 		LogShowOdbcPoolActivity = ems_util:parse_bool(get_p(<<"log_show_odbc_pool_activity">>, Json, ?LOG_SHOW_ODBC_POOL_ACTIVITY)),
 
@@ -614,8 +616,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, restricted_services_admin),
 		RestrictedServicesAdmin = get_p(<<"restricted_services_admin">>, Json, ?RESTRICTED_SERVICES_ADMIN),
 		
-
-
 		put(parse_step, smtp_passwd),
 		SmtpPassword = binary_to_list(get_p(<<"smtp_passwd">>, Json, <<>>)),
 

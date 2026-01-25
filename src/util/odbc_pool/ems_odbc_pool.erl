@@ -219,8 +219,6 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 													  sql = Sql,
 													  primary_key = PrimaryKey,
 													  %max_pool_size = MaxPoolSize,
-													  %connection_count_metric_name = ConnectionCountMetricName,
-													  %connection_max_pool_size_exceeded_metric_name = ConnectionMaxPoolSizeExceededMetricName,
 													  log_show_odbc_pool_activity = LogShowPoolActivity}, 
 					 PidModule) ->
 	try
@@ -253,7 +251,6 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 								end
 						end;
 				%	false -> 
-				%		ems_db:inc_counter(ConnectionMaxPoolSizeExceededMetricName),
 				%		ems_logger:info("ems_odbc_pool connection limit (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount], LogShowPoolActivity),
 				%		{error, eodbc_connection_limit}	
 				%end;

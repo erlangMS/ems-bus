@@ -40,7 +40,7 @@ start(PrivPath, DatabasePath) ->
 	% Define a pasta de armazenamento dos databases
 	application:set_env(mnesia, dir, DatabasePath),
 
-	ems_logger:format_info("ems_db initialize database storage \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
+	ems_logger:format_info("ems_db initialize database storage \"~s\".", [DatabasePath]),
 	
 	mnesia:create_schema(Nodes),
 	mnesia:start(),
@@ -55,12 +55,12 @@ start(PrivPath, DatabasePath) ->
 
 
     mnesia:create_table(sequence, [{type, set},
-								   {disc_copies, Nodes},
+								   {ram_copies, Nodes},
 								   {attributes, record_info(fields, sequence)}]),
 
 
     mnesia:create_table(ctrl_params, [{type, set},
-									  {disc_copies, Nodes},
+									  {ram_copies, Nodes},
 									  {attributes, record_info(fields, ctrl_params)}]),
 
     mnesia:create_table(ctrl_transient_params, [{type, set},
@@ -72,38 +72,38 @@ start(PrivPath, DatabasePath) ->
 
     mnesia:create_table(user_fs, [{type, set},
 								 {ram_copies, Nodes},
-								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {index, [#user.codigo, #user.login]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user_db, [{type, set},
-								  {disc_only_copies, Nodes},
-								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {ram_copies, Nodes},
+								  {index, [#user.codigo, #user.login]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user2_db, [{type, set},
-								  {disc_only_copies, Nodes},
-								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {ram_copies, Nodes},
+								  {index, [#user.codigo, #user.login]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user3_db, [{type, set},
-								  {disc_only_copies, Nodes},
-								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {ram_copies, Nodes},
+								  {index, [#user.codigo, #user.login]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
 
     mnesia:create_table(user_aluno_ativo_db, [{type, set},
-								  {disc_only_copies, Nodes},
-								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {ram_copies, Nodes},
+								  {index, [#user.codigo, #user.login]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
     mnesia:create_table(user_aluno_inativo_db, [{type, set},
-								  {disc_only_copies, Nodes},
-								  {index, [#user.codigo, #user.login, #user.name, #user.cpf, #user.email]},
+								  {ram_copies, Nodes},
+								  {index, [#user.codigo, #user.login]},
 								  {attributes, record_info(fields, user)},
 								  {record_name, user}]),
 
@@ -113,7 +113,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_dados_funcionais}]),
 
     mnesia:create_table(user_dados_funcionais_db, [{type, set},
-								  {disc_only_copies, Nodes},
+								  {ram_copies, Nodes},
 								  {attributes, record_info(fields, user_dados_funcionais)},
 								  {record_name, user_dados_funcionais}]),
 
@@ -123,7 +123,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_email}]),
 
     mnesia:create_table(user_email_db, [{type, set},
-								  {disc_only_copies, Nodes},
+								  {ram_copies, Nodes},
 								  {attributes, record_info(fields, user_email)},
 								  {record_name, user_email}]),
 
@@ -133,7 +133,7 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_endereco}]),
 
     mnesia:create_table(user_endereco_db, [{type, set},
-								  {disc_only_copies, Nodes},
+								  {ram_copies, Nodes},
 								  {attributes, record_info(fields, user_endereco)},
 								  {record_name, user_endereco}]),
 
@@ -143,50 +143,50 @@ start(PrivPath, DatabasePath) ->
 								  {record_name, user_telefone}]),
 
     mnesia:create_table(user_telefone_db, [{type, set},
-								  {disc_only_copies, Nodes},
+								  {ram_copies, Nodes},
 								  {attributes, record_info(fields, user_telefone)},
 								  {record_name, user_telefone}]),
 
 	mnesia:create_table(user_perfil_fs, [{type, set},
 									    {ram_copies, Nodes},
-										{index, [#user_perfil.user_id, #user_perfil.client_id]},
 										{attributes, record_info(fields, user_perfil)},
 										{record_name, user_perfil}]),
 
 	mnesia:create_table(user_perfil_db, [{type, set},
-										{disc_only_copies, Nodes},
+										{ram_copies, Nodes},
 										{index, [#user_perfil.user_id, #user_perfil.client_id]},
 									    {attributes, record_info(fields, user_perfil)},
 									    {record_name, user_perfil}]),
 
 	mnesia:create_table(user_permission_fs, [{type, set},
 										{ram_copies, Nodes},
-										{index, [#user_permission.user_id, #user_permission.client_id]},
 										{attributes, record_info(fields, user_permission)},
 										{record_name, user_permission}]),
 
 	mnesia:create_table(user_permission_db, [{type, set},
-										{disc_only_copies, Nodes},
+										{ram_copies, Nodes},
 										{index, [#user_permission.user_id, #user_permission.client_id]},
 									    {attributes, record_info(fields, user_permission)},
 									    {record_name, user_permission}]),
 
     mnesia:create_table(client_db, [{type, set},
-									{disc_only_copies, Nodes},
+									{ram_copies, Nodes},
+									{index, [#client.name]},
 									{attributes, record_info(fields, client)},
 									{record_name, client}]),
 
     mnesia:create_table(client_fs, [{type, set},
 								    {ram_copies, Nodes},
+									{index, [#client.name]},
 									{attributes, record_info(fields, client)},
 									{record_name, client}]),
 
     mnesia:create_table(catalog_schema, [{type, set},
-										 {disc_copies, Nodes},
+										 {ram_copies, Nodes},
 										 {attributes, record_info(fields, catalog_schema)}]),
 
     mnesia:create_table(service_owner, [{type, set},
-	 							  {disc_copies, Nodes},
+	 							  {ram_copies, Nodes},
 								  {attributes, record_info(fields, service_owner)}]),
 
     mnesia:create_table(catalog_get_fs, [{type, set},
@@ -232,59 +232,59 @@ start(PrivPath, DatabasePath) ->
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_get_db, [{type, set},
-										  {disc_only_copies, Nodes},
+										  {ram_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_post_db, [{type, set},
-										  {disc_only_copies, Nodes},
+										  {ram_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_put_db, [{type, set},
-										  {disc_only_copies, Nodes},
+										  {ram_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_delete_db, [{type, set},
-										  {disc_only_copies, Nodes},
+										  {ram_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(catalog_options_db, [{type, set},
-											  {disc_only_copies, Nodes},
+											  {ram_copies, Nodes},
 											  {index, [#service.rowid]},
 											  {attributes, record_info(fields, service)},
 											  {record_name, service}]),
 
     mnesia:create_table(catalog_kernel_db, [{type, set},
-											  {disc_only_copies, Nodes},
+											  {ram_copies, Nodes},
 											  {index, [#service.rowid]},
 											  {attributes, record_info(fields, service)},
 											  {record_name, service}]),
 
     mnesia:create_table(catalog_re_db, [{type, set},
-										  {disc_only_copies, Nodes},
+										  {ram_copies, Nodes},
 										  {index, [#service.rowid]},
 										  {attributes, record_info(fields, service)},
 										  {record_name, service}]),
 
     mnesia:create_table(auth_oauth2_access_token_table, [{type, set},
-														{disc_copies, Nodes},
+														{ram_copies, Nodes},
 														{attributes, record_info(fields, auth_oauth2_access_token)},
 														{record_name, auth_oauth2_access_token}]),
 
     mnesia:create_table(auth_oauth2_access_code_table, [{type, set},
-														{disc_copies, Nodes},
+														{ram_copies, Nodes},
 														{attributes, record_info(fields, auth_oauth2_access_code)},
 														{record_name, auth_oauth2_access_code}]),
 
     mnesia:create_table(auth_oauth2_refresh_token_table, [{type, set},
-														{disc_copies, Nodes},
+														{ram_copies, Nodes},
 														{attributes, record_info(fields, auth_oauth2_refresh_token)},
 														{record_name, auth_oauth2_refresh_token}]),
 
@@ -837,14 +837,7 @@ filter(Tab, FilterList = [{F1, "==", V1}, {F2, "==", V2}]) ->
 	end;
 filter(Tab, FilterList) when is_list(FilterList) -> 
 	try
-		F = fun() ->
-				ExprWhere = filter_condition(Tab, FilterList),
-				ExprQuery = binary_to_list(iolist_to_binary([<<"[R || R <- mnesia:table(">>, atom_to_binary(Tab, utf8), <<"), ">>, ExprWhere, <<"].">>])),
-				?DEBUG("ems_db filter generate expression query ~p to access table ~p.", [ExprQuery, Tab]),
-				qlc:string_to_handle(ExprQuery)
-			end,
-		% Cache disabled (TTL=0) - parsed queries are too large (>60KB)
-		ParsedQuery = ems_cache:get(ems_db_parsed_query_cache, 0, {filter, Tab, FilterList}, F),
+		ParsedQuery = get_qlc_query_handle(Tab, FilterList),
 		mnesia:activity(async_dirty, fun () -> qlc:eval(ParsedQuery) end)
 	catch
 		_Exception:Reason -> 
@@ -853,6 +846,16 @@ filter(Tab, FilterList) when is_list(FilterList) ->
 	end;
 filter(Tab, FilterTuple) when is_tuple(FilterTuple) ->
 	filter(Tab, [FilterTuple]).
+
+
+get_qlc_query_handle(Tab, FilterList) ->
+	F = fun() ->
+			ExprWhere = filter_condition(Tab, FilterList),
+			ExprQuery = binary_to_list(iolist_to_binary([<<"[R || R <- mnesia:table(">>, atom_to_binary(Tab, utf8), <<"), ">>, ExprWhere, <<"].">>])),
+			?DEBUG("ems_db filter generate expression query ~p to access table ~p.", [ExprQuery, Tab]),
+			qlc:string_to_handle(ExprQuery)
+		end,
+	ems_cache:get(ems_db_parsed_query_cache, ?CACHE_MAX_TTL, {filter, Tab, FilterList}, F).
 
 
 filter_condition(Tab, FilterList) -> 
@@ -1119,27 +1122,24 @@ filter_with_limit(Tab, [], Limit, Offset) ->
 			   end,
 			mnesia:activity(async_dirty, F)
 	end;
-filter_with_limit(Tab, Filter = [{_, "==", _}], Limit, Offset) ->
-	TabSize = mnesia:table_info(Tab, size),
-	case TabSize == 0 orelse Offset > TabSize orelse Limit < 1 orelse Offset < 1 of
-		true -> [];
-		false ->
-			Records = filter(Tab, Filter),
-			case Offset > length(Records) of
-				true -> [];
-				false -> lists:sublist(Records, Offset, Limit)
-			end
-	end;
 filter_with_limit(Tab, FilterList, Limit, Offset) when is_list(FilterList) -> 
 	TabSize = mnesia:table_info(Tab, size),
 	case TabSize == 0 orelse Offset > TabSize orelse Limit < 1 orelse Offset < 1 of
 		true -> [];
 		false ->
-			Records = filter(Tab, FilterList),
-			case Offset > length(Records) of
-				true -> [];
-				false -> lists:sublist(Records, Offset, Limit)
-			end
+			F = fun() ->
+				try
+					Handle = get_qlc_query_handle(Tab, FilterList),
+					Q = qlc:cursor(Handle),
+					qlc:next_answers(Q, Offset-1),
+					Records = qlc:next_answers(Q, Limit),
+					qlc:delete_cursor(Q),
+					Records
+				catch
+					_:_ -> []
+				end
+			end,
+			mnesia:activity(async_dirty, F)
 	end;
 filter_with_limit(Tab, FilterTuple, Limit, Offset) when is_tuple(FilterTuple) -> 	
 	filter_with_limit(Tab, [FilterTuple], Limit, Offset).
@@ -1396,16 +1396,35 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		end,
 		
 		put(parse_step, max_pool_size),
-		MaxPoolSize = ems_util:parse_range(maps:get(<<"max_pool_size">>, M, 50), 1, ?MAX_CONNECTION_BY_POOL),
+		MaxPoolSize0 = ems_util:parse_integer(maps:get(<<"max_pool_size">>, M, ?MAX_CONNECTION_IDDLE_BY_POOL)),
+		MaxConnectionLimit = ems_db:get_param(max_connection_by_pool, ?MAX_CONNECTION_IDDLE_BY_POOL),
+		MaxPoolSize = if MaxPoolSize0 > MaxConnectionLimit -> 
+							ems_logger:warn("ems_db datasource ~s max_pool_size ~p exceeds global limit ~p. Capping to ~p.", [DsName, MaxPoolSize0, MaxConnectionLimit, MaxConnectionLimit]),
+							MaxConnectionLimit;
+						 MaxPoolSize0 < 1 -> 1;
+						 true -> MaxPoolSize0
+					  end,
 		
 		put(parse_step, sql_check_valid_connection),
 		SqlCheckValidConnection = parse_datasource_sql_check_validation_connection(Type, maps:get(<<"sql_check_valid_connection">>, M, undefined)),
 		
 		put(parse_step, close_idle_connection_timeout),
-		CloseIdleConnectionTimeout = ems_util:parse_range(maps:get(<<"close_idle_connection_timeout">>, M, ?CLOSE_IDLE_CONNECTION_TIMEOUT), 1, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT),
+		CloseIdleConnectionTimeout0 = ems_util:parse_integer(maps:get(<<"close_idle_connection_timeout">>, M, ?CLOSE_IDLE_CONNECTION_TIMEOUT)),
+		CloseIdleConnectionTimeout = if CloseIdleConnectionTimeout0 > ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT -> 
+											ems_logger:warn("ems_db datasource ~s close_idle_connection_timeout ~p exceeds global limit ~p. Capping to ~p.", [DsName, CloseIdleConnectionTimeout0, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT]),
+											?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT;
+										 CloseIdleConnectionTimeout0 < 1 -> 1;
+										 true -> CloseIdleConnectionTimeout0
+									  end,
 		
 		put(parse_step, check_valid_connection_timeout),
-		CheckValidConnectionTimeout = ems_util:parse_range(maps:get(<<"check_valid_connection_timeout">>, M, ?CHECK_VALID_CONNECTION_TIMEOUT), 1, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT),
+		CheckValidConnectionTimeout0 = ems_util:parse_integer(maps:get(<<"check_valid_connection_timeout">>, M, ?CHECK_VALID_CONNECTION_TIMEOUT)),
+		CheckValidConnectionTimeout = if CheckValidConnectionTimeout0 > ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT -> 
+											ems_logger:warn("ems_db datasource ~s check_valid_connection_timeout ~p exceeds global limit ~p. Capping to ~p.", [DsName, CheckValidConnectionTimeout0, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, ?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT]),
+											?MAX_CLOSE_IDLE_CONNECTION_TIMEOUT;
+										 CheckValidConnectionTimeout0 < 1 -> 1;
+										 true -> CheckValidConnectionTimeout0
+									  end,
 
 		put(parse_step, log_show_odbc_pool_activity),
 		LogShowOdbcPoolActivity = ems_util:parse_bool(maps:get(<<"log_show_odbc_pool_activity">>, M, LogShowOdbcPoolActivityConfig)),

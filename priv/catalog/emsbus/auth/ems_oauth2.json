@@ -47,66 +47,65 @@
 						?, 
 						?, 
 						?, 
-						GETDATE())","querystring": [{
-			"name": "response_type",
-			"type": "string",
-			"default": "0",
-			"comment": ""
-		},
-		{
-			"name": "client_id",
-			"type": "string",
-			"comment": "The client identifier"
-		},
-		{
-			"name": "username",
-			"type": "string",
-			"comment": "Username"
-		},
-		{
-			"name": "password",
-			"type": "string",
-			"comment": "Password"
-		},
-		{
-			"name": "redirect_uri",
-			"type": "string",
-			"comment": ""
-		},
-		{
-			"name": "scope",
-			"type": "string",
-			"comment": ""
-		},
-		{
-			"name": "secret",
-			"type": "string",
-			"comment": ""
-		},
-		{
-			"name": "code",
-			"type": "string",
-			"comment": ""
-		},
-		{
-			"name": "state",
-			"type": "string",
-			"comment": ""
-		}
-	],
-	"lang": "erlang"
+						GETDATE())","querystring": [{"name": "response_type",
+		"type": "string",
+		"default": "0",
+		"comment": ""
+	},
+	{
+		"name": "client_id",
+		"type": "string",
+		"comment": "The client identifier"
+	},
+	{
+		"name": "username",
+		"type": "string",
+		"comment": "Username"
+	},
+	{
+		"name": "password",
+		"type": "string",
+		"comment": "Password"
+	},
+	{
+		"name": "redirect_uri",
+		"type": "string",
+		"comment": ""
+	},
+	{
+		"name": "scope",
+		"type": "string",
+		"comment": ""
+	},
+	{
+		"name": "secret",
+		"type": "string",
+		"comment": ""
+	},
+	{
+		"name": "code",
+		"type": "string",
+		"comment": ""
+	},
+	{
+		"name": "state",
+		"type": "string",
+		"comment": ""
+	}
+],
+"lang": "erlang"
 },
 {
-	"name": "/authorize",
-	"comment": "Oauth 2.0",
-	"owner": "auth",
-	"version": "1.0.0",
-	"service": "ems_oauth2_authorize:execute",
-	"url": "/authorize",
-	"type": "POST",
-	"result_cache": 0,
-	"authorization": "public",
-	"sql_persist": "INSERT INTO BDBarramento.dbo.TB_TokenMetaData
+"name": "/authorize",
+"comment": "Oauth 2.0",
+"owner": "auth",
+"version": "1.0.0",
+"service": "ems_oauth2_authorize:execute",
+"url": "/authorize",
+"type": "POST",
+"result_cache": 0,
+"authorization": "public",
+"sql_persist": "INSERT INTO BDBarramento.dbo.TB_TokenMetaData
 						(TMDClient, 
 						TMDPerson, 
 						TMDUser, 
@@ -120,58 +119,57 @@
 						?, 
 						?, 
 						?, 
-						GETDATE())","querystring": [{"name": "grant_type","type": "string","default": "0",
-	"comment": ""
+						GETDATE())","querystring": [{"name": "grant_type","type": "string","default": "0","comment": ""
 },
 {
-	"name": "client_id",
-	"type": "string",
-	"comment": "The client identifier"
+"name": "client_id",
+"type": "string",
+"comment": "The client identifier"
 },
 {
-	"name": "username",
-	"type": "string",
-	"comment": "Username"
+"name": "username",
+"type": "string",
+"comment": "Username"
 },
 {
-	"name": "password",
-	"type": "string",
-	"comment": "Password"
+"name": "password",
+"type": "string",
+"comment": "Password"
 },
 {
-	"name": "redirect_uri",
-	"type": "string",
-	"comment": ""
+"name": "redirect_uri",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "scope",
-	"type": "string",
-	"comment": ""
+"name": "scope",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "client_secret",
-	"type": "string",
-	"comment": ""
+"name": "client_secret",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "secret",
-	"type": "string",
-	"comment": ""
+"name": "secret",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "code",
-	"type": "string",
-	"comment": ""
+"name": "code",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "state",
-	"type": "string",
-	"comment": ""
+"name": "state",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "refresh_token",
-	"type": "string",
-	"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
+"name": "refresh_token",
+"type": "string",
+"comment": "The refresh token, which can be used to obtain new  access tokens using the same authorization grant"
 }
 ],
 "lang": "erlang"
@@ -188,39 +186,39 @@
 "authorization": "basic",
 "querystring": [
 {
-	"name": "client_id",
-	"type": "string",
-	"comment": "The client identifier"
+"name": "client_id",
+"type": "string",
+"comment": "The client identifier"
 },
 {
-	"name": "username",
-	"type": "string",
-	"comment": "Username"
+"name": "username",
+"type": "string",
+"comment": "Username"
 },
 {
-	"name": "password",
-	"type": "string",
-	"comment": "Password"
+"name": "password",
+"type": "string",
+"comment": "Password"
 },
 {
-	"name": "redirect_uri",
-	"type": "string",
-	"comment": ""
+"name": "redirect_uri",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "scope",
-	"type": "string",
-	"comment": ""
+"name": "scope",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "code",
-	"type": "string",
-	"comment": ""
+"name": "code",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "state",
-	"type": "string",
-	"comment": ""
+"name": "state",
+"type": "string",
+"comment": ""
 }
 ],
 "lang": "erlang"
@@ -237,39 +235,39 @@
 "authorization": "oauth2",
 "querystring": [
 {
-	"name": "client_id",
-	"type": "string",
-	"comment": "The client identifier"
+"name": "client_id",
+"type": "string",
+"comment": "The client identifier"
 },
 {
-	"name": "username",
-	"type": "string",
-	"comment": "Username"
+"name": "username",
+"type": "string",
+"comment": "Username"
 },
 {
-	"name": "password",
-	"type": "string",
-	"comment": "Password"
+"name": "password",
+"type": "string",
+"comment": "Password"
 },
 {
-	"name": "redirect_uri",
-	"type": "string",
-	"comment": ""
+"name": "redirect_uri",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "scope",
-	"type": "string",
-	"comment": ""
+"name": "scope",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "code",
-	"type": "string",
-	"comment": ""
+"name": "code",
+"type": "string",
+"comment": ""
 },
 {
-	"name": "state",
-	"type": "string",
-	"comment": ""
+"name": "state",
+"type": "string",
+"comment": ""
 }
 ],
 "lang": "erlang"
@@ -285,9 +283,9 @@
 "result_cache": 0,
 "querystring": [
 {
-	"name": "code",
-	"type": "string",
-	"comment": "Token de acesso"
+"name": "code",
+"type": "string",
+"comment": "Token de acesso"
 }
 ],
 "lang": "erlang"
@@ -304,9 +302,9 @@
 "authorization": "oauth2",
 "querystring": [
 {
-	"name": "token",
-	"type": "string",
-	"comment": "Token de acesso"
+"name": "token",
+"type": "string",
+"comment": "Token de acesso"
 }
 ],
 "lang": "erlang"
@@ -323,9 +321,9 @@
 "authorization": "oauth2",
 "querystring": [
 {
-	"name": "token",
-	"type": "string",
-	"comment": "Token de acesso"
+"name": "token",
+"type": "string",
+"comment": "Token de acesso"
 }
 ],
 "lang": "erlang"
@@ -348,7 +346,7 @@
 "authorization": "public",
 "querystring": [],
 "host": [],
-"result_cache": 3600000
+"result_cache": 0
 },
 {
 "name": "/userinfo",

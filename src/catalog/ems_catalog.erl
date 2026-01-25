@@ -313,31 +313,6 @@ parse_node_service(<<>>) -> <<>>;
 parse_node_service(List) -> List.
 
 %% @doc O host pode ser um alias definido no arquivo de configuração
--ifdef(win32_plataform).
-parse_host_service(<<>>, _,_,_) -> {'', atom_to_list(node())};
-parse_host_service(_Host, ModuleName, Node, Conf) ->
-	ModuleNameCanonical = [case X of 46 -> 95; _ -> X end || X <- ModuleName], % Troca . por _
-	ListHost = case net_adm:host_file() of
-		{error, _Reason} -> [Conf#config.ems_host];
-		Hosts -> Hosts
-	end,
-	case erlang:is_list(Node) of
-		true  -> ListNode = Node;
-		false -> ListNode = [Node]
-	end,
-	ListHost2 = [case string:tokens(atom_to_list(X), ".") of
-					[N, _] -> N;
-					[N] -> N;
-                                        _ -> atom_to_list(X)
-				 end || X <- ListHost],
-	ListNode2 = lists:map(fun(X) -> binary_to_list(X) end, ListNode),
-	ClusterName = [case X of
-						[] -> ModuleNameCanonical ++ K  ++ "@" ++ Y;
-						_  -> ModuleNameCanonical ++ K ++ "@" ++ Y 
-				   end || X <- ListNode2, Y <- ListHost2, K <- [""]],
-	ClusterNode = lists:map(fun(X) -> list_to_atom(X) end, ClusterName),
-	{ClusterNode, ClusterName}.
--else.
 parse_host_service(<<>>, _,_,_) -> {'', atom_to_list(node())};
 parse_host_service(_Host, ModuleName, Node, Conf) ->
 	ModuleNameCanonical = [case X of 46 -> 95; _ -> X end || X <- ModuleName], % Troca . por _
@@ -361,7 +336,6 @@ parse_host_service(_Host, ModuleName, Node, Conf) ->
 				   end || X <- ListNode2, Y <- ListHost2, K <- ["", "02"]],
 	ClusterNode = lists:map(fun(X) -> list_to_atom(X) end, ClusterName),
 	{ClusterNode, ClusterName}.
--endif.
 
 
 get_p(ParamName, Map, DefaultValue) ->
@@ -563,7 +537,13 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				end,
 				
 				put(parse_step, timeout),
-				Timeout = ems_util:parse_range(get_p(<<"timeout">>, Map, ?SERVICE_TIMEOUT), ?SERVICE_MIN_TIMEOUT, ?SERVICE_MAX_TIMEOUT, einvalid_timeout_service),
+				Timeout0 = ems_util:parse_integer(get_p(<<"timeout">>, Map, ?SERVICE_TIMEOUT)),
+				Timeout = if Timeout0 > ?SERVICE_MAX_TIMEOUT -> 
+								ems_logger:warn("ems_catalog service ~s timeout ~p exceeds global limit ~p. Capping to ~p.", [Name, Timeout0, ?SERVICE_MAX_TIMEOUT, ?SERVICE_MAX_TIMEOUT]),
+								?SERVICE_MAX_TIMEOUT;
+							 Timeout0 < ?SERVICE_MIN_TIMEOUT -> ?SERVICE_MIN_TIMEOUT;
+							 true -> Timeout0
+						  end,
 				
 				put(parse_step, timeout_alert_threshold),
 				TimeoutAlertThreshold = ems_util:parse_range(get_p(<<"timeout_alert_threshold">>, Map, 0), 0, Timeout, einvalid_timeout_alert_threshold),
@@ -702,7 +682,13 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				put(parse_step, phash2),
 				CtrlHash = erlang:phash2(Map),
 				put(parse_step, start_timeout),
-				StartTimeout = ems_util:parse_range(get_p(<<"start_timeout">>, Map, ?START_TIMEOUT), ?START_TIMEOUT_MIN, ?START_TIMEOUT_MAX, einvalid_start_timeout),
+			StartTimeout0 = ems_util:parse_integer(get_p(<<"start_timeout">>, Map, ?START_TIMEOUT)),
+			StartTimeout = if StartTimeout0 > ?START_TIMEOUT_MAX -> 
+								ems_logger:warn("ems_catalog service ~s start_timeout ~p exceeds global limit ~p. Capping to ~p.", [Name, StartTimeout0, ?START_TIMEOUT_MAX, ?START_TIMEOUT_MAX]),
+								?START_TIMEOUT_MAX;
+							 StartTimeout0 < ?START_TIMEOUT_MIN -> ?START_TIMEOUT_MIN;
+							 true -> StartTimeout0
+						  end,
 			
 				put(parse_step, metrics),
 				ServiceResendMsg1 = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_resend_msg1"),

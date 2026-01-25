@@ -83,13 +83,16 @@ find_by_codigo_pessoa(Table, Codigo) ->
 find_index_by_login_and_password([], _, _, _, _, _, _) ->
 	{error, access_denied, enoent};
 
+find_index_by_login_and_password([_|_], [], _, _, _, _, _) ->
+	{error, access_denied, enoent};
+
 find_index_by_login_and_password([Table|_] = Tables, 
 											[#user{password = PasswordUser, 
 												   passwd_crypto = PasswdCrypto,
 												   cpf = Cpf, 
 												   ctrl_last_login_scope = CtrlLoginScope} = User|T], 
 											LoginBin, 
-											[PasswordStr, PasswordStrLower, PasswordStrUpper] = PasswordStrs,
+											PasswordStr,
 											PasswordBin, 
 											Client,
 											AuthPasswordCheckBetweenScope) ->
@@ -100,13 +103,9 @@ find_index_by_login_and_password([Table|_] = Tables,
 			PasswordUser =:= PasswordBin orelse 
 			PasswordUser =:= ems_util:criptografia_sha1(PasswordStr);
 		<<"SHA1">> ->
-			PasswordUser =:= ems_util:criptografia_sha1(PasswordStr) orelse
-			PasswordUser =:= ems_util:criptografia_sha1(PasswordStrLower) orelse
-			PasswordUser =:= ems_util:criptografia_sha1(PasswordStrUpper);
+			PasswordUser =:= ems_util:criptografia_sha1(PasswordStr);
 		<<"MD5">> ->
-			PasswordUser =:= ems_util:criptografia_md5(PasswordStr) orelse
-			PasswordUser =:= ems_util:criptografia_md5(PasswordStrLower) orelse
-			PasswordUser =:= ems_util:criptografia_md5(PasswordStrUpper);
+			PasswordUser =:= ems_util:criptografia_md5(PasswordStr);
 		_ ->
 			% Default fallback
 			PasswordUser =:= PasswordBin
@@ -114,18 +113,31 @@ find_index_by_login_and_password([Table|_] = Tables,
 
 	case IsMatch of
 			true -> 
-						User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
-										  ctrl_login_count = User#user.ctrl_login_count + 1,
-										  ctrl_last_login_scope = Table,
-										  ctrl_last_login_client = Client#client.name},
-						mnesia:dirty_write(Table, User2),	
+				User2 = User#user{ctrl_last_login = ems_util:timestamp_binary(), 
+									ctrl_login_count = User#user.ctrl_login_count + 1,
+									ctrl_last_login_scope = Table,
+									ctrl_last_login_client = Client#client.name},
+				
+				% Async persistence to avoid blocking on disk I/O
+				spawn(fun() -> mnesia:dirty_write(Table, User2) end),
+				
+				% Update cache immediately with the new state
+				ems_cache:add(ems_user_cache, 60000, {Table, LoginBin}, [User2]),
 				{ok, User2};
 			false -> 
 				% Eh tabela user_aluno_ativo_db e encontrou o login mas não bateu a senha, vamos tentar buscar a 
 				% senha na tabela user_db (se a tabela user_db também está no scope)
 				case Table == user_aluno_ativo_db andalso AuthPasswordCheckBetweenScope of
 					true -> 
-						case mnesia:dirty_index_read(user_db, LoginBin, #user.login) of
+						% Optimization: Cache the user_db lookup
+						FindUserDbFun = fun() -> 
+							case mnesia:dirty_index_read(user_db, LoginBin, #user.login) of
+								UsersDb when is_list(UsersDb) -> UsersDb;
+								_ -> []
+							end
+						end,
+						
+						case ems_cache:get(ems_user_cache, 60000, {user_db, LoginBin}, FindUserDbFun) of
 							[#user{password = PasswordUserEmOutraTabela}|_] -> 
 								% Simple check against user_db password (assuming same crypto logic or just simple equality for now to save complexity)
 								IsMatchOther = PasswordUserEmOutraTabela =:= ems_util:criptografia_sha1(PasswordStr),
@@ -135,41 +147,51 @@ find_index_by_login_and_password([Table|_] = Tables,
 																ctrl_login_count = User#user.ctrl_login_count + 1,
 																ctrl_last_login_scope = Table,
 																ctrl_last_login_client = Client#client.name},
-											mnesia:dirty_write(Table, User2),	
+											
+											% Async persistence
+											spawn(fun() -> mnesia:dirty_write(Table, User2) end),
+											
+											% Update cache immediately
+											ems_cache:add(ems_user_cache, 60000, {Table, LoginBin}, [User2]),
 											{ok, User2};
 									false -> 
-											find_index_by_login_and_password(Tables, T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
+											find_index_by_login_and_password(Tables, T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
 								end;
 							_ ->
-								find_index_by_login_and_password(Tables, T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
+								find_index_by_login_and_password(Tables, T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
 						end;
 					false ->					
-						find_index_by_login_and_password(Tables, T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
+						find_index_by_login_and_password(Tables, T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
 				end
 	end.
 
-
-% This function now iterates over tables and calls the optimization logic directly
-find_index_by_login_and_password([], _, _, _, _, _) ->
-	{error, access_denied, enoent};
-
+%% Wrapper to check cache before hitting Mnesia
 find_index_by_login_and_password([Table|T] = Tables, 
 											LoginBin, 
-											PasswordStrs,
+											PasswordStr,
 											PasswordBin, 
 											Client,
 											AuthPasswordCheckBetweenScope) ->
-	case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
-		Users when is_list(Users) -> 
-			case find_index_by_login_and_password(Tables, Users, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope) of
+	CacheKey = {Table, LoginBin},
+	% Try cache first
+	FindFun = fun() -> 
+		case mnesia:dirty_index_read(Table, LoginBin, #user.login) of
+			Users when is_list(Users) -> Users;
+			_ -> []
+		end
+	end,
+	% 60000ms = 1 minute TTL for dataloader protection
+	case ems_cache:get(ems_user_cache, 60000, CacheKey, FindFun) of
+		[] -> 
+			find_index_by_login_and_password(T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope);
+		Users ->
+			case find_index_by_login_and_password(Tables, Users, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope) of
 				{ok, User} -> {ok, User};
 				{error, access_denied, enoent} -> 
-					find_index_by_login_and_password(T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope);
+					find_index_by_login_and_password(T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope);
 				{error, access_denied} ->
-					find_index_by_login_and_password(T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope)
-			end;
-		_ -> 
-			find_index_by_login_and_password(T, LoginBin, PasswordStrs, PasswordBin, Client, AuthPasswordCheckBetweenScope)
+					find_index_by_login_and_password(T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope)
+			end
 	end.
 
 -spec find_by_login_and_password(binary() | list(), binary() | list()) -> {ok, #user{}} | {error, access_denied, enoent | einvalid_password}.	
@@ -182,63 +204,63 @@ find_by_login_and_password(<<>>, _, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_password(_, "", _) -> {error, access_denied, epassword_empty};
 find_by_login_and_password("", _, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_password(Login, Password, Client)  ->
-	PasswordStr = case is_list(Password) of
-					 true -> Password;
-					 false -> binary_to_list(Password)
-				  end,
-	PasswordSize = length(PasswordStr),
-	case PasswordSize >= 0 andalso PasswordSize =< 256 of
-		true ->
-			LoginStr = case is_list(Login) of
-							true -> string:to_lower(Login);
-							false -> string:to_lower(binary_to_list(Login))
-					   end,
-			LoginBin = list_to_binary(LoginStr),
-			PasswordBin = list_to_binary(PasswordStr),
+	T1 = ems_util:get_timestamp(),
+	Result = try
+		PasswordStr = case is_list(Password) of
+						 true -> Password;
+						 false -> binary_to_list(Password)
+					  end,
+		PasswordSize = length(PasswordStr),
+		case PasswordSize >= 0 andalso PasswordSize =< 256 of
+			true ->
+				LoginStr = case is_list(Login) of
+								true -> Login;
+								false -> binary_to_list(Login)
+						   end,
+				LoginBin = list_to_binary(LoginStr),
+				PasswordBin = list_to_binary(PasswordStr),
 
-			PasswordStrs = [
-				PasswordStr,
-				string:to_lower(PasswordStr),
-				string:to_upper(PasswordStr)
-			],
+				case Client of
+					undefined -> 
+						TablesScope = ems_util:get_auth_default_scope(),
+						Client2 = #client{id = 0, name = <<"public">>, scope = TablesScope};
+					_ -> 
+						TablesScope = Client#client.scope,
+						Client2 = Client
+				end,
 
-			case Client of
-				undefined -> 
-					TablesScope = ems_util:get_auth_default_scope(),
-					Client2 = #client{id = 0, name = <<"public">>, scope = TablesScope};
-				_ -> 
-					TablesScope = Client#client.scope,
-					Client2 = Client
-			end,
-
-			% A verificação de senhas entre scopes eh somente em user_aluno_ativo_db e user_db
-			AuthPasswordCheckBetweenScope = ems_db:get_param(auth_password_check_between_scope) and lists:member(user_db, TablesScope) == true,
-			
-			
-			case find_index_by_login_and_password(TablesScope, 
-											 LoginBin, 
-											 PasswordStrs,
-											 PasswordBin, 
-											 Client2,
-											 AuthPasswordCheckBetweenScope) of
-				{ok, #user{ctrl_source_type = CtrlSourceType} = User} ->
-					ems_logger:info("ems_user find_by_login_and_password success (Login: ~s CtrlSourceType: ~w Client: ~p ~s).", [LoginStr, CtrlSourceType, Client2#client.id, binary_to_list(Client2#client.name)]),
-					{ok, User};					
-				Error ->
-					% Se o login apresenta o sufixo de e-mail, remove e pesquisa novamente
-					SufixoEmailInstitucional = ems_db:get_param(sufixo_email_institucional),
-					case SufixoEmailInstitucional =/= "" andalso lists:suffix(SufixoEmailInstitucional, LoginStr) of
-						 true ->
-							LoginStrSemSufixo = string:substr(LoginStr, 1, length(LoginStr)-length(SufixoEmailInstitucional)),
-							find_by_login_and_password(LoginStrSemSufixo, Password, Client2);
-						 false -> 
-							ems_logger:error("ems_user find_by_login_and_password failed. Login: ~p AuthScopes: ~w Client: ~p ~s.", [LoginStr, TablesScope, Client2#client.id, binary_to_list(Client2#client.name)]),
-							Error
-					end
-			end;
-		false -> 
-			{error, access_denied, einvalid_password_size}
-	end.
+				% A verificação de senhas entre scopes eh somente em user_aluno_ativo_db e user_db
+				AuthPasswordCheckBetweenScope = ems_db:get_param(auth_password_check_between_scope) and lists:member(user_db, TablesScope) == true,
+				
+				case find_index_by_login_and_password(TablesScope, 
+												 LoginBin, 
+												 PasswordStr,
+												 PasswordBin, 
+												 Client2,
+												 AuthPasswordCheckBetweenScope) of
+					{ok, #user{ctrl_source_type = CtrlSourceType} = User} ->
+						ems_logger:info("ems_user find_by_login_and_password success (Login: ~s CtrlSourceType: ~w Client: ~p ~s).", [LoginStr, CtrlSourceType, Client2#client.id, binary_to_list(Client2#client.name)]),
+						{ok, User};					
+					Error ->
+						% Se o login apresenta o sufixo de e-mail, remove e pesquisa novamente
+						SufixoEmailInstitucional = ems_db:get_param(sufixo_email_institucional),
+						case SufixoEmailInstitucional =/= "" andalso lists:suffix(SufixoEmailInstitucional, LoginStr) of
+							 true ->
+								LoginStrSemSufixo = string:substr(LoginStr, 1, length(LoginStr)-length(SufixoEmailInstitucional)),
+								find_by_login_and_password(LoginStrSemSufixo, Password, Client2);
+							 false -> 
+								ems_logger:error("ems_user find_by_login_and_password failed. Login: ~p AuthScopes: ~w Client: ~p ~s.", [LoginStr, TablesScope, Client2#client.id, binary_to_list(Client2#client.name)]),
+								Error
+						end
+				end;
+			false -> {error, access_denied, epassword_too_long}
+		end
+	catch
+	_Exception:Reason -> {error, access_denied, Reason}
+	end,
+	T2 = ems_util:get_timestamp(),
+	ems_logger:info("ems_user find_by_login_and_password execution time: ~p ms.", [T2 - T1]),
+	Result.
 
 
 find_by_login_and_scope_(_, []) -> {error, access_denied, enoent};

@@ -15,11 +15,7 @@
 	-define(JSON_LIB, jsx).
 -endif.
 
--ifdef(win32_plataform).
-	-define(UTF8_STRING(Text), ems_util:utf8_string_win(Text)).
--else.
-	-define(UTF8_STRING(Text), ems_util:utf8_string_linux(Text)).
--endif.
+-define(UTF8_STRING(Text), ems_util:utf8_string_linux(Text)).
 
 % Nome do servidor
 -define(SERVER_NAME, ems_util:server_name()).
@@ -41,7 +37,6 @@
 % Caminho do catálogo de serviços
 -define(CONF_PATH, filename:join(?PRIV_PATH, "conf")).
 
-
 % Caminho do favicon
 -define(FAVICON_PATH, filename:join(?PRIV_PATH, "favicon.ico")).
 
@@ -53,7 +48,6 @@
 
 % Caminho da pasta de databases
 -define(DATABASE_PATH, ems_db:get_param(database_path)).
-
 
 % Caminho do arquivo de configuração padrão (Pode ser incluído também na pasta ~/.erlangms do usuário)
 -define(CONF_FILE_PATH_DEFAULT, filename:join(?CONF_PATH_DEFAULT, "emsbus.conf")).
@@ -114,51 +108,36 @@
 -define(LOG_SHOW_PAYLOAD, false).
 -define(LOG_SHOW_CONTENT_STATIC_FILE, false).
 
-
 -define(RESTRICTED_SERVICES_OWNER, [ <<"netadm">>, <<"logger">>, <<"auth">> ]).
 -define(RESTRICTED_SERVICES_ADMIN, [ <<"erlangms">> ]).
-
-
 
 % Define o tamanho máximo default que pode ser impresso no log do payload e response para depuração
 -define(LOG_SHOW_PAYLOAD_MAX_LENGTH, 120).
 -define(LOG_SHOW_RESPONSE_MAX_LENGTH, 120).
 
 % Define se mostra as atividades do pool de conexão no log para depuração
--define(LOG_SHOW_ODBC_POOL_ACTIVITY, true).
+-define(LOG_SHOW_ODBC_POOL_ACTIVITY, false).
 
 % Define se mostra as atividades dos data loaders
 -define(LOG_SHOW_DATA_LOADER_ACTIVITY, true).
 
 % Mostra cabeçalhos de depuração
--define(SHOW_DEBUG_RESPONSE_HEADERS, true).
-
-% Quantos workers HTTP instanciar se não especificado no arquivo de configuração
--define(MIN_HTTP_WORKER, 1).
-
-% Quantos workers HTTP instanciar se não especificado no arquivo de configuração
--define(MAX_HTTP_WORKER, 1000).
-
-% Quantos workers HTTP são permitidos especificar no arquivo de configuração (1 até MAX_HTTP_WORKER_RANGE)
--define(MAX_HTTP_WORKER_RANGE, 1000). 
+-define(SHOW_DEBUG_RESPONSE_HEADERS, false).
 
 % Quanto tempo o dispatcher aguardar um serviço
 -define(SERVICE_TIMEOUT, 60000). 		 % 1 minuto é o tempo padrão que o dispatcher aguarda um serviço executar
 -define(SERVICE_MIN_TIMEOUT, 1000). 	 % 1 segundo é o tempo mínimo que o dispatcher aguarda um serviço executar
--define(SERVICE_MAX_TIMEOUT, 604800000). % 7 dias é o tempo máximo que o dispatcher aguarda um serviço executar
--define(SERVICE_MIN_EXPIRE_MINUTE, 0).
--define(SERVICE_MAX_EXPIRE_MINUTE, 525601). % 1 ano
+-define(SERVICE_MAX_TIMEOUT, 120000). 	 % 2 minutos é o tempo máximo que o dispatcher aguarda um serviço executar
+-define(SERVICE_MIN_EXPIRE_MINUTE, 0).	 % 0 minutos é o tempo mínimo que o dispatcher aguarda um serviço expirar
+-define(SERVICE_MAX_EXPIRE_MINUTE, 525601). % 1 ano é o tempo máximo que o dispatcher aguarda um serviço expirar
 
 % Range de tempo para iniciar processos kernel
 -define(START_TIMEOUT, 1000).
 -define(START_TIMEOUT_MIN, 0).
--define(START_TIMEOUT_MAX, 86400000).
+-define(START_TIMEOUT_MAX, 1800000).  % 30 minutos é o tempo máximo que o dispatcher aguarda um processo kernel iniciar
 
 % Caminho do utilitário que importa dados csv para um banco sqlite
 -define(CSV2SQLITE_PATH, filename:join([?PRIV_PATH, "scripts", "csv2sqlite.py"])). 
-
-% Quanto tempo uma parsed query mnesia fica em cache para reutilização (módulo ems_db)
--define(DB_PARSED_QUERY_CACHE_TIMEOUT, 60000). 
 
 % Limits of API query
 -define(MAX_LIMIT_API_QUERY, 99999999).
@@ -169,19 +148,17 @@
 % Timeout in ms to expire cache of get request (ems_dispatcher_cache)
 -define(TIMEOUT_DISPATCHER_CACHE, 30000).
 
-% Number of datasource entries by odbc connection pool
--define(MAX_CONNECTION_BY_POOL, 1000).
-
+% Number of datasource entries by odbc connection pool in iddle
+-define(MAX_CONNECTION_IDDLE_BY_POOL, 4).
 
 % Timeout to check odbc connection
--define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 120 segundos
+-define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 2 minutos
 -define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h
--define(CLOSE_IDLE_CONNECTION_TIMEOUT, 180000). % 3 minutos
+-define(CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h
 
 
 % Define the default checkpoint to ems_data_loader and ems_json_loader
 -define(DATA_LOADER_UPDATE_CHECKPOINT, 90000).
-
 
 %Define the checkpoint to update permission for ems_user_permission_l
 % HTTP access control (CORS) headers
@@ -190,7 +167,6 @@
 -define(ACCESS_CONTROL_ALLOW_ORIGIN, <<"*">>).
 -define(ACCESS_CONTROL_ALLOW_METHODS, <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>).
 -define(ACCESS_CONTROL_EXPOSE_HEADERS, <<"Cache-Control, Content-Language, Content-Type, Expires, Last-Modified, Pragma, Content-Length">>).
-
 
 % Oauth2
 -define(OAUTH2_DEFAULT_AUTHORIZATION, oauth2).
@@ -204,7 +180,6 @@
 
 % Mensagens de saída json comuns
 -define(CONTENT_TYPE_JSON, <<"application/json">>).
-
 
 -define(CACHE_CONTROL_1_MIN, <<"max-age=60, public"/utf8>>).
 -define(CACHE_CONTROL_1_DAYS, <<"max-age=86400, public"/utf8>>).
@@ -233,7 +208,6 @@
 							    <<"access-control-expose-headers">> => ?ACCESS_CONTROL_EXPOSE_HEADERS
 							  }).
 
-
 % LDAP
 -define(LDAP_SERVER_PORT, 2389).
 -define(LDAP_MAX_CONNECTIONS, 100000).
@@ -247,25 +221,16 @@
 -define(LDAP_NO_SUCH_ATTRIBUTE, 16).  
 
 
-
-
-
 % HTTP
 -define(HTTP_SERVER_PORT, 2381).
 -define(HTTP_MAX_CONNECTIONS, 100000).
 -define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
 
-
+% TCP
 -define(TCP_PORT_MIN, 1024).
 -define(TCP_PORT_MAX, 99999).
-
-
--ifdef(win32_plataform).
-	-define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, []).
--else.
-	-define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, [<<"lo">>, <<"enp">>, <<"eth">>, <<"wl">>, <<"eno">>, <<"ens">>]).
--endif.
+-define(TCP_LISTEN_PREFIX_INTERFACE_NAMES, [<<"lo">>, <<"enp">>, <<"eth">>, <<"wl">>, <<"eno">>, <<"ens">>]).
 
 
 -define(SUFIXO_EMAIL_INSTITUCIONAL, <<"@unb.br">>).
@@ -274,39 +239,15 @@
 -define(RESULT_CACHE_SHARED, true). 
 
 %% Cache limits (ems_cache module)
--define(CACHE_MAX_OBJECT_SIZE, 1024).        % 1KB max per object
--define(CACHE_MAX_TTL, 900000).              % 15 minutes max TTL (900000ms)
--define(CACHE_MAX_ENTRIES, 120).             % 120 entries max per cache
+-define(CACHE_MAX_OBJECT_SIZE, 102400).      % 100KB max per object
+-define(CACHE_MAX_TTL, 3600000).             % 1 hour
+-define(CACHE_MAX_ENTRIES, 250).             % 250 entries max per cache
 
--define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user2_db">>, <<"user_aluno_ativo_db">>, <<"user_aluno_inativo_db">>, <<"user_fs">>]).
+-define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user_fs">>]).
 
 -define(CLIENT_DEFAULT_SCOPE, ems_util:get_auth_default_scope()).
 
-
 % Código de cores
--ifdef(win32_plataform).
-
--define(WARN_MESSAGE,   		<<"[WARN[">>).
--define(INFO_MESSAGE,   		<<"[INFO[">>).
--define(ERROR_MESSAGE,  		<<"[ERROR[">>).
--define(DEBUG_MESSAGE,  		<<"[DEBUG[">>).
--define(ALERT_MESSAGE,  		<<"[INFO[">>).
--define(LIGHT_GREEN_COLOR,    	<<"[">>).
--define(GREEN_COLOR, 			<<"[">>).
--define(TAB_GREEN_COLOR, 		<<"\n\t[">>).
--define(SPACE_GREEN_COLOR, 		<<"[">>).
--define(WHITE_COLOR, 			<<"[">>).
--define(WHITE_SPACE_COLOR, 		<<"[ ">>).
--define(WHITE_BRK_COLOR,		<<"[\n">>).
--define(WHITE_PARAM_COLOR,		<<"[: ">>).
--define(RED_COLOR, 				<<"[">>).
--define(WARN_COLOR, 			<<"[">>).
--define(DEBUG_COLOR, 			<<"[">>).
--define(BLUE_COLOR, 			<<"[">>).
--define(BLUE_SPACE_COLOR, 		<<"[ ">>).
-
--else.
-
 -define(WARN_MESSAGE,   		<<"[WARN] ">>).
 -define(INFO_MESSAGE,   		<<"[INFO] ">>).
 -define(ERROR_MESSAGE,  		<<"[ERROR] ">>).
@@ -325,10 +266,6 @@
 -define(DEBUG_COLOR, 			<<>>).
 -define(BLUE_COLOR, 			<<>>).
 -define(BLUE_SPACE_COLOR, 		<<" ">>).
-
--endif.
-
-
 
 %  Definição para o arquivo de configuração
 -record(config, {instance_type :: atom(),							%% Tipo de instância: production, development, test
@@ -392,7 +329,6 @@
 				 user_email_path_search :: string(),
 				 user_endereco_path_search :: string(),
 				 user_telefone_path_search :: string(),
-
 				 ssl_cacertfile :: binary(),
 				 ssl_certfile :: binary(),
 				 ssl_keyfile :: binary(),
@@ -426,4 +362,3 @@
  				 oauth2_jwt_secret :: binary(),
  				 crypto_blowfish_module_path :: string()
 		 }). 	
-

@@ -36,7 +36,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 					ems_logger:info("ems_barramento_service call ClientPayload: ~p.", [ClientPayload]),
 					case ems_util:json_decode_as_map(list_to_binary(ClientPayload)) of
 						{ok, []} ->
-							ems_logger:error("ems_barramento_service call \033[01;34m~p\033[0m failed.\nReason: eunknow_client.", [UriClient]),
+							ems_logger:error("ems_barramento_service call ~p failed.\nReason: eunknow_client.", [UriClient]),
 							{error, Request#request{code = 400, 
 													reason = eunknow_client,
 													response_data = <<"{\"error\": \"eunknow_client\"}"/utf8>>}
@@ -44,7 +44,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 						{ok, [ClientParams]} -> 
 							case maps:is_key(<<"error">>, ClientParams) of
 								true -> 
-									ems_logger:error("ems_barramento_service call \033[01;34m~p\033[0m failed.\nReason: ~p.", [UriClient, maps:get(<<"error">>, ClientParams)]),
+									ems_logger:error("ems_barramento_service call ~p failed.\nReason: ~p.", [UriClient, maps:get(<<"error">>, ClientParams)]),
 									{error, Request#request{code = 400, 
 															reason = eclient_payload_error,
 															response_data = ?ENOENT_JSON}
@@ -74,7 +74,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 										<<"\"url_mask\":"/utf8>>, ems_util:boolean_to_binary(Conf#config.rest_url_mask), <<","/utf8>>,
 										<<"\"erlangms_version\":\""/utf8>>, list_to_binary(ems_util:version()), <<"\""/utf8>>,
 										<<"}"/utf8>>]),
-									ems_logger:info("ems_barramento_service call \033[01;34m~p\033[0m success.\nContent: \033[01;34m~p\033[0m.", [UriClient, ContentData]),
+									ems_logger:info("ems_barramento_service call ~p success.\nContent: ~p.", [UriClient, ContentData]),
 									{ok, Request#request{code = 200,
 														 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
 														 response_data = ContentData}
@@ -82,7 +82,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 							end;
 						{error, Reason} -> 						
 							% se a chama ao ws der erro, tenta obter os dados localmente
-							ems_logger:error("ems_barramento_service call url \033[01;34m~p\033[0m failed.\nReason: \033[01;34m~p\033[0m, ClientPayload: \033[01;34m~p\033[0m.", [UriClient, Reason, ClientPayload]),
+							ems_logger:error("ems_barramento_service call url ~p failed.\nReason: ~p, ClientPayload: ~p.", [UriClient, Reason, ClientPayload]),
 							ems_logger:info("ems_barramento_service get data local."),
 							case ems_client:find_by_name(AppName) of
 								{error, {error, enoent}} ->
@@ -114,7 +114,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 										<<"\"url_mask\":"/utf8>>, ems_util:boolean_to_binary(Conf#config.rest_url_mask), <<","/utf8>>,
 										<<"\"erlangms_version\":\""/utf8>>, list_to_binary(ems_util:version()), <<"\""/utf8>>,
 										<<"}"/utf8>>]),
-									ems_logger:info("ems_barramento_service call \033[01;34m~p\033[0m success.\nContent: \033[01;34m~p\033[0m.", [UriClient, ContentData]),
+									ems_logger:info("ems_barramento_service call ~p success.\nContent: ~p.", [UriClient, ContentData]),
 									{ok, Request#request{code = 200,
 														 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
 														 response_data = ContentData}
@@ -123,7 +123,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 
 					end;
 				{error, Reason2} -> 
-					ems_logger:error("ems_barramento_service call \033[01;34m~p\033[0m failed.\nReason: \033[01;34m~p\033[0m.", [UriClient, Reason2]),
+					ems_logger:error("ems_barramento_service call ~p failed.\nReason: ~p.", [UriClient, Reason2]),
 					{error, Request#request{code = 400, 
 											reason = einvalid_decode_client_json,
 											operation = httpc_request,
