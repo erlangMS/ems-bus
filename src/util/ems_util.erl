@@ -1872,9 +1872,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								 lang = _LangService,
 								 timeout = _TimeoutService,
 								 http_max_content_length = HttpMaxContentLengthService,
-								 authorization = AuthorizationService,
-								 expires = _ExpiresService,
-								 result_cache_shared = ResultCacheSharedService}, 
+								 authorization = AuthorizationService}, 
 			 ParamsMap, 
 			 QuerystringMap} -> 
 		 		put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass1),
@@ -2008,9 +2006,9 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 						CowboyReq2 = CowboyReq
 				end,
 				put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass6),
-				case ResultCacheSharedService of
-					true ->	ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, Payload]);
-					false -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, AuthorizationService, IpBin, UserAgent, Payload])
+				case AuthorizationService of
+					public -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, Payload]);
+					_ -> ReqHash = erlang:phash2([Url, QuerystringMap2, ContentTypeIn2, AuthorizationService, IpBin, UserAgent, Payload, Authorization])
 				end,
 				put(encode_request_cowboy_step, encode_request_cowboy_lookup_step_pass7),
 				ResponseHeader = case Type of

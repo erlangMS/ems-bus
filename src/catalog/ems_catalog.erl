@@ -82,7 +82,7 @@ get_metadata_json(Version, #service{id = Id,
 
 new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, FunctionName, 
 			   Type, Enable, Comment, Version, Owner, Group, Glyphicon, Async, Querystring, 
-			   QtdQuerystringRequired, Host, HostName, ResultCache, ResultCacheShared,
+			   QtdQuerystringRequired, Host, HostName, ResultCache,
 			   Authorization, Node, Lang, Datasource,
 			   Debug, SchemaIn, SchemaOut, PoolSize, PoolMax, Properties,
 			   Timeout, TimeoutAlertThreshold,
@@ -126,7 +126,6 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					host = Host,
 					host_name = HostName,
 					result_cache = ResultCache,
-					result_cache_shared = ResultCacheShared,
 					authorization = Authorization,
 					node = Node,
 					datasource = Datasource,
@@ -182,7 +181,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 
 new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, FunctionName,
 			Type, Enable, Comment, Version, Owner, Group, Glyphicon, Async, Querystring, 
-			QtdQuerystringRequired, Host, HostName, ResultCache, ResultCacheShared,
+			QtdQuerystringRequired, Host, HostName, ResultCache,
 			Authorization, Node, Lang, Datasource, Debug, SchemaIn, SchemaOut, 
 			PoolSize, PoolMax, Map, Timeout, TimeoutAlertThreshold,
 			Middleware, CacheControl, ExpiresMinute, Public, 
@@ -220,7 +219,6 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			    host = Host,
 			    host_name = HostName,
 			    result_cache = ResultCache,
-			    result_cache_shared = ResultCacheShared,
 			    authorization = Authorization,
 			    node = Node,
 			    datasource = Datasource,
@@ -347,7 +345,6 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 cat_disable_services_owner = DisableServicesOwner,
 								 cat_restricted_services_owner = RestrictedServicesOwner,
 								 ems_result_cache = ResultCacheDefault,
-								 ems_result_cache_shared = ResultCacheSharedDefault,
 								 ems_result_cache_enabled = ResultCacheEnabledDefault,
 								 ems_hostname = HostNameDefault,
 								 authorization = AuthorizationDefault,
@@ -484,14 +481,17 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				case ResultCacheEnabledDefault of
 					true ->
 						case Type of
-							<<"GET">> -> ResultCache = ems_util:parse_result_cache(get_p(<<"result_cache">>, Map, ResultCacheDefault));
+							<<"GET">> -> 
+								ResultCache0 = ems_util:parse_result_cache(get_p(<<"result_cache">>, Map, ResultCacheDefault)),
+								ResultCache = if ResultCache0 > 30000 -> 
+													ems_logger:warn("ems_catalog service ~s result_cache ~pms exceeds limit 30000ms. Capping to 30000ms.", [Name, ResultCache0]),
+													30000;
+												 true -> ResultCache0
+											  end;
 							_ -> ResultCache = 0
 						end;
 					false -> ResultCache = 0
 				end,
-
-				put(parse_step, result_cache_shared),
-				ResultCacheShared = get_p(<<"result_cache_shared">>, Map, ResultCacheSharedDefault),
 				
 				put(parse_step, oauth2_with_check_constraint),
 				OAuth2WithCheckConstraint = ems_util:parse_bool(get_p(<<"oauth2_with_check_constraint">>, Map, Oauth2WithCheckConstraintDefault)),
@@ -696,7 +696,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												   FunctionName, Type, Enable, Comment, 
 												   Version, Owner, Group, Glyphicon, Async, 
 												   Querystring, QtdQuerystringRequired,
-												   Host, HostName, ResultCache, ResultCacheShared,
+												   Host, HostName, ResultCache,
 												   Authorization, Node, Lang,
 												   Datasource, Debug, SchemaIn, SchemaOut, 
 												   PoolSize, PoolMax, Map, Timeout, TimeoutAlertThreshold,
@@ -722,7 +722,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												FunctionName, Type, Enable, Comment,
 												Version, Owner, Group, Glyphicon, Async, 
 												Querystring, QtdQuerystringRequired,
-												Host, HostName, ResultCache, ResultCacheShared,
+												Host, HostName, ResultCache,
 												Authorization, Node, Lang,
 												Datasource, Debug, SchemaIn, SchemaOut, 
 												PoolSize, PoolMax, Map, Timeout, TimeoutAlertThreshold,

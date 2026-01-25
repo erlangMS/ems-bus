@@ -83,8 +83,6 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  log_show_odbc_pool_activity: ~p.", [Conf#config.log_show_odbc_pool_activity]),
 			ems_logger:info("  debug: ~p.", [Conf#config.debug]),
 			ems_logger:info("  result_cache: ~pms.", [Conf#config.ems_result_cache]),
-			ems_logger:info("  result_cache_shared: ~p.", [Conf#config.ems_result_cache_shared]),
-			ems_logger:info("  result_cache_enabled: ~p.", [Conf#config.ems_result_cache_enabled]),
 			ems_logger:info("  result_cache_enabled: ~p.", [Conf#config.ems_result_cache_enabled]),
 			ems_logger:info("  disable_services: ~300p.", [Conf#config.cat_disable_services]),
 			ems_logger:info("  disable_services_owner: ~p.", [Conf#config.cat_disable_services_owner]),

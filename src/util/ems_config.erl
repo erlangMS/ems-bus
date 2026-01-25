@@ -528,9 +528,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, result_cache),
 		ResultCache = ems_util:parse_result_cache(get_p(<<"result_cache">>, Json, ?TIMEOUT_DISPATCHER_CACHE)),
 
-		put(parse_step, result_cache_shared),
-		ResultCacheShared = ems_util:parse_bool(get_p(<<"result_cache_shared">>, Json, ?RESULT_CACHE_SHARED)),
-
 		put(parse_step, result_cache_enabled),
 		case InstanceType of
 			production -> ResultCacheEnabledDefault = true;
@@ -722,7 +719,6 @@ parse_config(Json, Filename) ->
 				 ems_file_dest = Filename,
 				 debug = Debug,
 				 ems_result_cache = ResultCache,
-				 ems_result_cache_shared = ResultCacheShared,
 				 ems_result_cache_enabled = ResultCacheEnabled,
 				 tcp_listen_address	= TcpListenAddress,
 				 tcp_listen_address_t = TcpListenAddress_t,

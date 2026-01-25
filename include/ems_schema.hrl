@@ -539,7 +539,6 @@
 					restricted = false :: boolean(),%% 77 - restricted-> Serviço restrito aos admins
 					glyphicon :: binary(),%% 78 - glyphicon-> classe css do glyphicon
 					metadata :: binary(),%% 79 - metadata -> Representação em json do que será enviado para o web service /catalog
-					result_cache_shared = true :: boolean(),					%% 81 - result_cache_shared					-> true if resulta cache is shared between requests
 					log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
 					log_show = true :: boolean()								%% 82 - log_show								
 				}).
@@ -625,7 +624,6 @@
 			   boolean_type,								%% 77 - restricted
 			   binary_type,									%% 78 - glyphicon
 			   binary_type,									%% 79 - metadata
-			   boolean_type,								%% 81 - result_cache_shared
 			   boolean_type,								%% 82 - log_show_response_header
 			   boolean_type									%% 82 - log_show
 		}).
