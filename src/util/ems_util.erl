@@ -161,7 +161,6 @@
 		 decode_http_request/1,
 		 tuple_to_maps_with_keys/2,
 		 compile_modulo_erlang/2,
-		 user_agent_atom_to_binary/1,
 		 to_lower_and_remove_backslash/1,
 		 check_type_email/2,
 		 is_email_institucional/2,
@@ -1809,7 +1808,7 @@ invoque_service(Type, Url, QuerystringBin, QuerystringMap, ContentTypeIn) ->
 				params_url = Params_url,
 				accept = <<"*/*">>,
 				user_agent = <<"ems-bus">>,
-				user_agent_version = <<>>,
+
 				accept_encoding = <<"*">>,
 				cache_control = <<>>,
 				ip = {127,0,0,1},
@@ -1957,10 +1956,9 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			AcceptEncodingValue -> Accept_Encoding = AcceptEncodingValue
 		end,
 		case cowboy_req:header(<<"user-agent">>, CowboyReq) of
-			undefined -> UserAgentBrowser = <<>>;
-			UserAgentBrowserValue -> UserAgentBrowser = UserAgentBrowserValue
+			undefined -> UserAgent = <<>>;
+			UserAgentValue -> UserAgent = UserAgentValue
 		end,
-		{UserAgent, UserAgentVersion} = parse_user_agent(UserAgentBrowser),
 		case cowboy_req:header(<<"cache-control">>, CowboyReq) of
 			undefined -> Cache_Control = <<>>;
 			CacheControlValue -> Cache_Control = CacheControlValue
@@ -2003,7 +2001,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 					_ ->
 						erlang:error(ehttp_verb_not_supported)
 			   end,
-		ems_logger:info("Request \033[01;34m~s\033[0m received \033[0;32muri\033[0m: \033[01;34m~s\033[0m \033[0;32murl\033[0m: \033[01;34m~s\033[0m \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(TypeLookup), binary_to_list(Uri), Url2, binary_to_list(Referer), binary_to_list(Host), binary_to_list(UserAgentBrowser)]),
+		ems_logger:info("Request \033[01;34m~s\033[0m received \033[0;32muri\033[0m: \033[01;34m~s\033[0m \033[0;32murl\033[0m: \033[01;34m~s\033[0m \033[0;32mreferer\033[0m: \033[01;34m~s\033[0m \033[0;32mpeer\033[0m: \033[01;34m~s\033[0m \033[0;32muser-agent\033[0m: \033[01;34m~s\033[0m.", [binary_to_list(TypeLookup), binary_to_list(Uri), Url2, binary_to_list(Referer), binary_to_list(Host), binary_to_list(UserAgent)]),
 	
 		Request = #request{
 			rid = RID,
@@ -2021,7 +2019,7 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 			params_url = Params_url,
 			accept = Accept,
 			user_agent = UserAgent,
-			user_agent_version = UserAgentVersion,
+
 			accept_encoding = Accept_Encoding,
 			cache_control = Cache_Control,
 			ip = Ip,
@@ -3155,82 +3153,7 @@ json_field_strip_and_escape(Value) ->
 			[<<"\""/utf8>>, ValueEscaped, <<"\""/utf8>>]
 	end.
 
--spec parse_user_agent(binary() | string()) -> tuple().
-parse_user_agent(<<>>) -> {browser_other, ""};
-parse_user_agent(undefined) -> {browser_other, ""};
-parse_user_agent(<<"undefined">>) -> {browser_other, ""};
-parse_user_agent(UserAgent) when is_binary(UserAgent) ->
-	parse_user_agent(binary_to_list(UserAgent));
-parse_user_agent(UserAgent) ->
-	case string:rstr(UserAgent, "Chrome/") of
-		PosChrome when PosChrome > 0 ->
-			BrowserName = browser_chrome,
-			BrowserVersion = parse_user_agent_version(string:substr(UserAgent, PosChrome+7, 4));
-		0 ->
-			case string:rstr(UserAgent, "Firefox/") of
-				PosFirefox when PosFirefox > 0 ->
-					BrowserName = browser_firefox,
-					BrowserVersion = parse_user_agent_version(string:substr(UserAgent, PosFirefox+8, 4));
-				0 ->
-					case string:rstr(UserAgent, "Trident/") of
-						PosTrident when PosTrident > 0 ->
-							BrowserName = browser_ie,
-							BrowserVersion = parse_user_agent_version(string:substr(UserAgent, PosTrident+8, 4));
-						0 ->
-							case string:rstr(UserAgent, "Edge/") of
-								PosEdge when PosEdge > 0 ->
-									BrowserName = browser_edge,
-									BrowserVersion = parse_user_agent_version(string:substr(UserAgent, PosEdge+5, 4));
-								0 ->
-									case string:rstr(UserAgent, "OPR/") of
-										PosOpera when PosOpera > 0 ->
-											BrowserName = browser_opera,
-											BrowserVersion = parse_user_agent_version(string:substr(UserAgent, PosOpera+4, 4));
-										0 ->
-											case string:rstr(UserAgent, "insomnia/") of
-												PosInsomnia when PosInsomnia > 0 ->
-													BrowserName = browser_insomnia,
-													BrowserVersion = parse_user_agent_version_subversion(string:substr(UserAgent, PosInsomnia+9, 5));
-												0 ->
-													case string:rstr(UserAgent, "Safari/") of
-														PosSafari when PosSafari > 0 ->
-															BrowserName = browser_safari,
-															BrowserVersion = parse_user_agent_version(string:substr(UserAgent, PosSafari+7, 4));
-														0 ->
-															BrowserName = browser_other,
-															BrowserVersion = ""
-													end
-											end
-									end
-							end
-					end
-			end
-	end,
-	{BrowserName, list_to_binary(BrowserVersion)}.
 
-parse_user_agent_version(Version) -> parse_user_agent_version(Version, []).
-parse_user_agent_version([], Result) -> lists:reverse(Result);
-parse_user_agent_version([$.|_], Result) -> lists:reverse(Result);
-parse_user_agent_version([H|T], Result) -> 
-  parse_user_agent_version(T, [H|Result]).
-
-parse_user_agent_version_subversion(Version) ->
-	parse_user_agent_version_subversion(Version, false, []).
-parse_user_agent_version_subversion([], _, Result) -> lists:reverse(Result);
-parse_user_agent_version_subversion([$.|_], true, Result) -> lists:reverse(Result);
-parse_user_agent_version_subversion([$.|T], false, Result) -> 
-	parse_user_agent_version_subversion(T, true, [$.|Result]);
-parse_user_agent_version_subversion([H|T], Stop, Result) -> 
-  parse_user_agent_version_subversion(T, Stop, [H|Result]).
-		
--spec user_agent_atom_to_binary(atom()) -> binary().
-user_agent_atom_to_binary(browser_chrome) -> <<"Chrome">>;
-user_agent_atom_to_binary(browser_firefox) -> <<"Firefox">>;
-user_agent_atom_to_binary(browser_ie) -> <<"IE">>;
-user_agent_atom_to_binary(browser_insomnia) -> <<"Insomnia">>;
-user_agent_atom_to_binary(browser_opera) -> <<"Opera">>;
-user_agent_atom_to_binary(browser_safari) -> <<"Safari">>;
-user_agent_atom_to_binary(_) -> <<"Other">>.
 
 
 -spec to_lower_and_remove_backslash(string() | binary()) -> binary().

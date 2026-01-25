@@ -662,39 +662,38 @@
 					  content_length :: non_neg_integer(), 		%% 23 - content_length			Largura da requisição
 					  accept :: binary(),						%% 24 - accept					Parâmetro ACCEPT HTTP
 					  user_agent :: binary(),					%% 25 - user_agent
-					  user_agent_version :: binary(),			%% 26 - user_agent_version
-					  accept_encoding :: binary(),				%% 27 - accept_encoding			Parâmetro ACCEPT_ENCODING HTTP
-					  cache_control :: binary(),				%% 28 - cache_control			Parâmetro CACHE-CONTROL HTTP
-					  etag :: binary(),							%% 29 - etag					Parâmetro ETag
-					  if_modified_since :: binary(),			%% 30 - if_modified_since		Parâmetro If-Modified-Since
-					  if_none_match :: binary(),			    %% 31 - if_none_match			Parâmetro If-None-Match
-					  ip :: tuple(),							%% 32 - ip
-					  ip_bin :: binary(),						%% 33 - ip_bin	
-					  t1 :: non_neg_integer(),					%% 34 - t1						
-					  authorization :: binary(),				%% 36 - authorization			Dados da autenticação da requisição
-					  client :: #client{},						%% 37 - client
-					  user :: #user{},							%% 38 - user			
-					  node_exec :: pid(),						%% 39 - node_exec				Processo que executou a solicitação
-					  worker_send :: pid(),						%% 40 - worker_send				Processo que solicitou a solicitação
-					  status = req_processing :: atom(),		%% 41 - status					req_processing, req_done
-					  protocol :: atom(),						%% 42 - protocol				Protocol (http, ldap)
-					  protocol_bin :: binary(),					%% 43 - protocol_bin
-					  port :: non_neg_integer(),				%% 44 - port		
-					  result_cache = false :: boolean(),		%% 45 - result_cache
-					  result_cache_rid :: non_neg_integer(),	%% 46 - result_cache_rid
-					  response_data = <<>> :: binary(),			%% 47 - response_data
-					  response_header = #{} :: map(),			%% 48 - response_header
-					  req_hash :: non_neg_integer(),			%% 49 - req_hash				Hash gerado para comparar requisições. Função utilizada: erlang:phash2
-					  host :: binary(),							%% 50 - host
-					  filename :: string(),						%% 51 - filename				Qual arquivo foi lido do disco para requisições que leêm arquivos no disco
-					  referer :: binary(),						%% 52 - referer
-					  access_token :: binary(),					%% 53 - access_token
-					  scope :: binary(),						%% 54 - scope
-					  oauth2_grant_type :: binary(),			%% 55 - oauth2_grant_type
-					  oauth2_access_token :: binary(),			%% 56 - oauth2_access_token
-					  oauth2_refresh_token :: binary(),			%% 57 - oauth2_refresh_token
-					  status_text :: binary(),					%% 58 - status_text				Status exibido no log 
-					  forwarded_for :: binary()					%% 59 - x-forwarded-for
+					  accept_encoding :: binary(),				%% 26 - accept_encoding			Parâmetro ACCEPT_ENCODING HTTP
+					  cache_control :: binary(),				%% 27 - cache_control			Parâmetro CACHE-CONTROL HTTP
+					  etag :: binary(),							%% 28 - etag					Parâmetro ETag
+					  if_modified_since :: binary(),			%% 29 - if_modified_since		Parâmetro If-Modified-Since
+					  if_none_match :: binary(),			    %% 30 - if_none_match			Parâmetro If-None-Match
+					  ip :: tuple(),							%% 31 - ip
+					  ip_bin :: binary(),						%% 32 - ip_bin	
+					  t1 :: non_neg_integer(),					%% 33 - t1						
+					  authorization :: binary(),				%% 34 - authorization			Dados da autenticação da requisição
+					  client :: #client{},						%% 35 - client
+					  user :: #user{},							%% 36 - user			
+					  node_exec :: pid(),						%% 37 - node_exec				Processo que executou a solicitação
+					  worker_send :: pid(),						%% 38 - worker_send				Processo que solicitou a solicitação
+					  status = req_processing :: atom(),		%% 39 - status					req_processing, req_done
+					  protocol :: atom(),						%% 40 - protocol				Protocol (http, ldap)
+					  protocol_bin :: binary(),					%% 41 - protocol_bin
+					  port :: non_neg_integer(),				%% 42 - port		
+					  result_cache = false :: boolean(),		%% 43 - result_cache
+					  result_cache_rid :: non_neg_integer(),	%% 44 - result_cache_rid
+					  response_data = <<>> :: binary(),			%% 45 - response_data
+					  response_header = #{} :: map(),			%% 46 - response_header
+					  req_hash :: non_neg_integer(),			%% 47 - req_hash				Hash gerado para comparar requisições. Função utilizada: erlang:phash2
+					  host :: binary(),							%% 48 - host
+					  filename :: string(),						%% 49 - filename				Qual arquivo foi lido do disco para requisições que leêm arquivos no disco
+					  referer :: binary(),						%% 50 - referer
+					  access_token :: binary(),					%% 51 - access_token
+					  scope :: binary(),						%% 52 - scope
+					  oauth2_grant_type :: binary(),			%% 53 - oauth2_grant_type
+					  oauth2_access_token :: binary(),			%% 54 - oauth2_access_token
+					  oauth2_refresh_token :: binary(),			%% 55 - oauth2_refresh_token
+					  status_text :: binary(),					%% 56 - status_text				Status exibido no log 
+					  forwarded_for :: binary()					%% 57 - x-forwarded-for
 				  }).
 
 

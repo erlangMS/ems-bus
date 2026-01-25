@@ -271,7 +271,6 @@ do_log_request(Request = #request{rid = RID,
 								  node_exec = Node,
 								  referer = Referer,
 								  user_agent = UserAgent,
-								  user_agent_version = UserAgentVersion,
 								  filename = Filename,
 								  client = Client,
 								  user = User,
@@ -307,7 +306,7 @@ do_log_request(Request = #request{rid = RID,
 				
 				UserAgentStr = case UserAgent of
 									undefined -> <<"-">>;
-									_ -> ems_util:user_agent_atom_to_binary(UserAgent)
+									_ -> UserAgent
 							   end,
 
 				% Nginx format: $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"

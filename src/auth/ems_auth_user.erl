@@ -151,21 +151,7 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 							   {<<"expiry_time">>, _ExpityTime}, 
 							   {<<"scope">>, Scope},
 							   {<<"state">>, State}]}} -> 
-						% Não é aceito um token gerado em um browser ser utilizado em outro browser
-						case Client =/= undefined of
-							true ->
-									case Client#client.user_agent =:= Req#request.user_agent  of 
-											true ->
-												ems_logger:info("ems_auth_user do_oauth2_check_access_token success peer: ~s , user-agent: ~s, forwarded-for: ~s for access token: ~s, user login: ~s, client: ~s, token peer: ~s, token user-agent: ~p, token forwarded-for: ~p, referer: ~s.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
-												do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
-											false ->
-												ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid peer: ~s , user-agent: ~s, forwarded-for: ~s for access token: ~s, user login: ~s, client: ~s, token peer: ~s, token user-agent: ~p, token forwarded-for: ~p, referer: ~s.", [binary_to_list(Req#request.ip_bin), Req#request.user_agent, binary_to_list(Req#request.forwarded_for), binary_to_list(AccessToken), binary_to_list(User#user.login), binary_to_list(Client#client.name),  binary_to_list(Client#client.peer), Client#client.user_agent, binary_to_list(Client#client.forwarded_for), binary_to_list(Req#request.referer)]),
-
-												{error, access_denied, einvalid_peer_token}
-									end;
-							false ->
-									do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, State, oauth2)
-						end;
+							do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, State, oauth2);
 				_ -> 
 					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
 

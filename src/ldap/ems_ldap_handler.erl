@@ -22,18 +22,6 @@
 				ldap_admin_password,     %% Password of admin ldap
 				base_search,
 				tcp_allowed_address_t,
-				bind_cn_success_metric_name,
-				bind_uid_success_metric_name,
-				bind_success_metric_name,
-				bind_cn_invalid_credential_metric_name,
-				bind_uid_invalid_credential_metric_name,
-				bind_invalid_credential_metric_name,
-				search_invalid_credential_metric_name,
-				search_unavailable_metric_name,
-				search_success_metric_name,
-				host_denied_metric_name,
-				error_metric_name,
-				request_capabilities_metric_name,
 				auth_allow_user_inative_credentials,
 				auth_default_scope
 			}).   
@@ -58,9 +46,7 @@ init(Ref, Transport, [State]) ->
 	{ok, Socket} = ranch:handshake(Ref),
 	loop(Socket, Transport, State).
 
-loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress,
-									   host_denied_metric_name = HostDeniedMetricName,
-									   error_metric_name = ErrorMetricName}) ->
+loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress}) ->
 	case Transport:recv(Socket, 0, ?LDAP_MAX_SIZE_PACKET) of
 		{ok, Data} ->
 			case inet:peername(Socket) of
@@ -87,7 +73,6 @@ loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress,
 											Transport:send(Socket, Response)
 									end;
 								{error, Reason} ->
-									ems_db:inc_counter(ErrorMetricName),
 									ems_logger:error("ems_ldap_handler decode invalid message ~p from ~p. Reason: ~p.", [Data, IpBin, Reason]),
 									ResultDone = make_result_done(inappropriateMatching),
 									Response = [ encode_response(1, ResultDone) ],
@@ -96,7 +81,6 @@ loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress,
 									ok
 							end;
 						false ->
-							ems_db:inc_counter(HostDeniedMetricName),
 							ems_logger:warn("ems_ldap_handler does not grant access to IP ~p. Reason: IP denied.", [IpBin]),
 							ResultDone = make_result_done(insufficientAccessRights),
 							Response = [ encode_response(1, ResultDone) ],
@@ -105,7 +89,6 @@ loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress,
 							ok
 					end;
 				Error -> 
-					ems_db:inc_counter(ErrorMetricName),
 					ems_logger:error("ems_ldap_handler peername error. Reason: ~p.", [Error]),
 					Transport:close(Socket),
 					ok
@@ -152,22 +135,18 @@ handle_request({'LDAPMessage', _,
 													 typesOnly = _TypesOnly, 
 													 filter =  {equalityMatch, {'AttributeValueAssertion', _Attribute = <<"roleOccupant">>, ObjectName}},
 													 attributes = _Attributes}},
-				 _}, #state{search_invalid_credential_metric_name = SearchInvalidCredentialMetricName,
-							search_success_metric_name = SearchSuccessMetricName,
-							auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, 
+				 _}, #state{auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, 
 						 Ip, _Port, _TimestampBin) ->
 	case ems_util:parse_ldap_name(ObjectName) of
 		{ok, _, UserLogin, _BaseFilter} ->
 			case ems_user:find_by_login(UserLogin) of
 				{error, _Reason, _ReasonDetail} ->
-					ems_db:inc_counter(SearchInvalidCredentialMetricName),
 					ems_logger:error("ems_ldap_handler handle_request search ~p does not exist from ~p.", [UserLogin, Ip]),
 					ResultDone = make_result_done(invalidCredentials),
 					{ok, [ResultDone]};
 				{ok, User = #user{active = Active}} -> 
 						case Active orelse AuthAllowUserInativeCredentials of
 							true -> 
-								ems_db:inc_counter(SearchSuccessMetricName),
 								ems_logger:info("ems_ldap_handler handle_request search ~p ~p success from ~p.", [UserLogin, User#user.name, Ip]),
 								{ok, ListaPerfil} = ems_user_perfil:find_by_user(User#user.id, [id, name]),
 								ListaPerfil2 = [ maps:get(<<"name">>, R) || R <- ListaPerfil ],
@@ -511,16 +490,13 @@ handle_bind_request(Name,
 -spec handle_request_search_login(binary(), binary(), #state{}, binary(), non_neg_integer(), binary(), list(binary())) -> {ok, tuple()}.
 handle_request_search_login(Name, 
 						    Attribute,
-							State = #state{search_invalid_credential_metric_name = SearchInvalidCredentialMetricName,
-										   search_success_metric_name = SearchSuccessMetricName,
-										   auth_default_scope = AuthDefaultScope}, 
+							State = #state{auth_default_scope = AuthDefaultScope}, 
 										   Ip, Port, TimestampBin, AttributesToReturn) ->	
 	case ems_util:parse_ldap_name(Name) of
 		{ok, _, UserLogin, _BaseFilter} ->
 			{IsAdmin, BindRequestName} = get_bind_user(Ip, Port, UserLogin),
 			case ems_user:find_by_login_and_scope(UserLogin, AuthDefaultScope) of
 				{error, _Reason, _ReasonDetail} ->
-					ems_db:inc_counter(SearchInvalidCredentialMetricName),
 					case Attribute of
 						<<>> ->
 							case BindRequestName of
@@ -543,7 +519,6 @@ handle_request_search_login(Name,
 							end
 					end;
 				{ok, User} -> 
-					ems_db:inc_counter(SearchSuccessMetricName),
 					case BindRequestName of
 						<<>> -> 
 							ems_logger:info("ems_ldap_handler handle_request_search_login unbind search ~s ~s success from ~s.", [UserLogin, User#user.name, Ip]),
@@ -556,10 +531,10 @@ handle_request_search_login(Name,
 								false -> 
 									case (BindRequestName =:= UserLogin) of
 										true -> 
-											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~s ~s success by ~s from ~s.", [UserLogin, User#user.name, BindRequestName, Ip]),
+											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~s success by ~s from ~s.", [UserLogin, BindRequestName, Ip]),
 											ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 										false ->
-											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~s ~s success by ~s from ~s.", [UserLogin, User#user.name, BindRequestName, Ip]),
+											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~s success by ~s from ~s.", [UserLogin, BindRequestName, Ip]),
 											ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>])
 									end
 							end

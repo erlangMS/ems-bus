@@ -91,53 +91,40 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									result_cache = ResultCache},
 				ShowDebugResponseHeaders) -> 
 	try
-		put(dispatch_request_step, dispatch_request_step_pass1),
 		?DEBUG("ems_dispatcher lookup request ~p.", [Request]),
 		ems_logger:info("ems_dispatcher begin execute. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
 		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
 			true ->
 				case ems_util:allow_ip_address(Ip, AllowedAddress) of
-			true ->	
-				put(dispatch_request_step, dispatch_request_step_pass2),
-				case ems_auth_user:authenticate(Service, Request) of
-					{ok, Client, User, AccessToken, _Scope, _State} -> 	
-						put(dispatch_request_step, dispatch_request_step_pass3),
-						ems_logger:info("ems_dispatcher authenticate ok. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
-						Latency = ems_util:get_milliseconds() - T1,
-						Request2 = Request#request{client = Client,
-												   user = User,
-												   access_token = AccessToken},
-						put(dispatch_request_step, dispatch_request_step_pass4),
-						case Type of
-							<<"OPTIONS">> -> 
-									put(dispatch_request_step, dispatch_request_step_pass5),
-									{ok, request, Request2#request{code = 200, 
-																   content_type_out = ?CONTENT_TYPE_JSON,
-																   response_data = ems_catalog:get_metadata_json(Service),
-																   latency = Latency}
-									};
-							"HEAD" -> 
-									put(dispatch_request_step, dispatch_request_step_pass6),
-									{ok, request, Request2#request{code = 200, 
-																   latency = Latency}
-									};
-							<<"GET">> ->
-								put(dispatch_request_step, dispatch_request_step_pass7),
-								case ResultCache > 0 of
-									true ->
-										put(dispatch_request_step, dispatch_request_step_pass8),
+					true ->	
+						case ems_auth_user:authenticate(Service, Request) of
+							{ok, Client, User, AccessToken, _Scope, _State} -> 	
+								ems_logger:info("ems_dispatcher authenticate ok. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+								Latency = ems_util:get_milliseconds() - T1,
+								Request2 = Request#request{client = Client,
+														   user = User,
+														   access_token = AccessToken},
+								case Type of
+									<<"OPTIONS">> -> 
+										{ok, request, Request2#request{code = 200, 
+																	   content_type_out = ?CONTENT_TYPE_JSON,
+																	   response_data = ems_catalog:get_metadata_json(Service),
+																	   latency = Latency}
+										};
+									"HEAD" -> 
+										{ok, request, Request2#request{code = 200, 
+																	   latency = Latency}
+										};
+									<<"GET">> ->
 										case check_result_cache(ReqHash, WorkerSend, T1) of
 											{true, RequestCache} -> 
-												put(dispatch_request_step, dispatch_request_step_pass9),
 												ResponeHeader = RequestCache#request.response_header,
 												case IfNoneMatch =/= <<>> orelse IfModifiedSince =/= <<>> of
 													true ->
-														put(dispatch_request_step, dispatch_request_step_pass10),
 														StatusText = ems_util:format_rest_status(304, enot_modified, RequestCache#request.reason_detail, undefined, Latency),
 														case ShowDebugResponseHeaders of													
 															true -> 
-																put(dispatch_request_step, dispatch_request_step_pass11),
 																{ok, request, Request2#request{result_cache = true,
 																							   code = 304,
 																							   reason = enot_modified,
@@ -152,7 +139,6 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																							   status = req_done,
 																							   status_text = StatusText}};
 															false ->
-																put(dispatch_request_step, dispatch_request_step_pass12),
 																{ok, request, Request2#request{result_cache = true,
 																							   code = 304,
 																							   reason = enot_modified,
@@ -168,10 +154,8 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																							   status_text = StatusText}}
 														end;
 													false ->
-														put(dispatch_request_step, dispatch_request_step_pass13),
 														case ShowDebugResponseHeaders of													
 															true ->
-																put(dispatch_request_step, dispatch_request_step_pass14),		
 																{ok, request, Request2#request{result_cache = true,
 																								code = RequestCache#request.code,
 																								reason = RequestCache#request.reason,
@@ -186,7 +170,6 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																								status = req_done,
 																								status_text = RequestCache#request.status_text}};
 															false ->
-																put(dispatch_request_step, dispatch_request_step_pass15),
 																{ok, request, Request2#request{result_cache = true,
 																								code = RequestCache#request.code,
 																								reason = RequestCache#request.reason,
@@ -203,10 +186,8 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														end
 												end;
 											false ->
-												put(dispatch_request_step, dispatch_request_step_pass16),
 												ems_cache:add(ets_result_cache_get, ResultCache, ReqHash, {T1, Request2, ResultCache, req_wait_result, []}),
 												ResultDispatServiceWork = dispatch_service_work(Request2, Service, ShowDebugResponseHeaders),
-												put(dispatch_request_step, dispatch_request_step_pass16_1),
 												case ResultDispatServiceWork of
 													{ok, _, _} -> ResultDispatServiceWork; 
 													_ -> 
@@ -214,136 +195,115 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														ResultDispatServiceWork
 												end
 										end;
-									false -> 
-										put(dispatch_request_step, dispatch_request_step_pass17),
+									_ -> 
 										ResultDispatServiceWork = dispatch_service_work(Request2, Service, ShowDebugResponseHeaders),
-										put(dispatch_request_step, dispatch_request_step_pass17_1),
 										ResultDispatServiceWork
 								end;
-							_ ->
-								put(dispatch_request_step, dispatch_request_step_pass18),
-								ResultDispatServiceWork = dispatch_service_work(Request2, Service, ShowDebugResponseHeaders),
-								put(dispatch_request_step, dispatch_request_step_pass18_1),
-								ResultDispatServiceWork
+							{error, Reason, ReasonDetail} -> 
+								ems_logger:info("ems_dispatcher does not authorize call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+								Latency = ems_util:get_milliseconds() - T1,
+								ResponseHeader = Request#request.response_header,
+								case Type of
+									<<"OPTIONS">> -> 
+										StatusText = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency),
+										case ShowDebugResponseHeaders of
+											true ->
+												{ok, request, Request#request{code = 200, 
+																			  content_type_out = ?CONTENT_TYPE_JSON,
+																			  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
+																			  response_data = ems_catalog:get_metadata_json(Service),
+																			  latency = Latency,
+																			  status_text = StatusText}
+												};
+											false ->
+												{ok, request, Request#request{code = 200, 
+																			  content_type_out = ?CONTENT_TYPE_JSON,
+																			  response_data = ems_catalog:get_metadata_json(Service),
+																			  latency = Latency,
+																			  status_text = StatusText}
+												}
+										end;
+									"HEAD" -> 
+										StatusText = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency),
+										case ShowDebugResponseHeaders of
+											true ->
+												{ok, request, Request#request{code = 200, 
+																			  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
+																			  latency = Latency,
+																			  status_text = StatusText}
+												};
+											false ->
+												{ok, request, Request#request{code = 200, 
+																			  latency = Latency,
+																			  status_text = StatusText}
+												}
+										end;
+									 _ -> 
+										StatusText = ems_util:format_rest_status(400, Reason, ReasonDetail, undefined, Latency),
+										% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
+										case ems_util:get_user_request_by_login(Request) of
+											{ok, UserFound} -> User = UserFound;
+											_ -> User = undefined
+										end,
+										case ShowDebugResponseHeaders of
+											true ->
+												Request2 = Request#request{code = 400, 
+																		   content_type_out = ?CONTENT_TYPE_JSON,
+																		   reason = Reason, 
+																		   reason_detail = ReasonDetail,
+																		   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
+																		   response_data = ems_schema:to_json({error, Reason}), 
+																		   user = User,
+																		   latency = Latency,
+																		   status_text = StatusText};
+											false ->
+												Request2 = Request#request{code = 400, 
+																		   content_type_out = ?CONTENT_TYPE_JSON,
+																		   reason = Reason, 
+																		   reason_detail = ReasonDetail,
+																		   response_data = ems_schema:to_json({error, Reason}), 
+																		   user = User,
+																		   latency = Latency,
+																		   status_text = StatusText}
+										end,
+										{error, request, Request2}
+								end
 						end;
-					{error, Reason, ReasonDetail} -> 
-						put(dispatch_request_step, dispatch_request_step_pass19),
-						ems_logger:info("ems_dispatcher does not authorize call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+					false -> 
+						ems_logger:info("ems_dispatcher execute restrict IP to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 						Latency = ems_util:get_milliseconds() - T1,
 						ResponseHeader = Request#request.response_header,
-						case Type of
-							<<"OPTIONS">> -> 
-									put(dispatch_request_step, dispatch_request_step_pass20),
-									StatusText = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency),
-									case ShowDebugResponseHeaders of
-										true ->
-											{ok, request, Request#request{code = 200, 
-																		  content_type_out = ?CONTENT_TYPE_JSON,
-																		  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																		  response_data = ems_catalog:get_metadata_json(Service),
-																		  latency = Latency,
-																		  status_text = StatusText}
-											};
-										false ->
-											{ok, request, Request#request{code = 200, 
-																		  content_type_out = ?CONTENT_TYPE_JSON,
-																		  response_data = ems_catalog:get_metadata_json(Service),
-																		  latency = Latency,
-																		  status_text = StatusText}
-											}
-									end;
-							"HEAD" -> 
-									put(dispatch_request_step, dispatch_request_step_pass21),
-									StatusText = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency),
-									case ShowDebugResponseHeaders of
-										true ->
-											{ok, request, Request#request{code = 200, 
-																		  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																		  latency = Latency,
-																		  status_text = StatusText}
-											};
-										false ->
-											{ok, request, Request#request{code = 200, 
-																		  latency = Latency,
-																		  status_text = StatusText}
-											}
-									end;
-							 _ -> 
-								put(dispatch_request_step, dispatch_request_step_pass22),
-								StatusText = ems_util:format_rest_status(400, Reason, ReasonDetail, undefined, Latency),
-								% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
-								case ems_util:get_user_request_by_login(Request) of
-									{ok, UserFound} -> User = UserFound;
-									_ -> User = undefined
-								end,
-								put(dispatch_request_step, dispatch_request_step_pass23),
-								case ShowDebugResponseHeaders of
-									true ->
-										Request2 = Request#request{code = 400, 
-																   content_type_out = ?CONTENT_TYPE_JSON,
-																   reason = Reason, 
-																   reason_detail = ReasonDetail,
-																   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																   response_data = ems_schema:to_json({error, Reason}), 
-																   user = User,
-																   latency = Latency,
-																   status_text = StatusText};
-									false ->
-										Request2 = Request#request{code = 400, 
-																   content_type_out = ?CONTENT_TYPE_JSON,
-																   reason = Reason, 
-																   reason_detail = ReasonDetail,
-																   response_data = ems_schema:to_json({error, Reason}), 
-																   user = User,
-																   latency = Latency,
-																   status_text = StatusText}
-								end,
-								put(dispatch_request_step, dispatch_request_step_pass24),
-								put(dispatch_request_step, dispatch_request_step_pass25),
-								{error, request, Request2}
-						end
-				end;
-			false -> 
-				ems_logger:info("ems_dispatcher execute restrict IP to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
-				put(dispatch_request_step, dispatch_request_step_pass26),
-				Latency = ems_util:get_milliseconds() - T1,
-				ResponseHeader = Request#request.response_header,
-				StatusText = ems_util:format_rest_status(400, access_denied, host_denied, undefined, Latency),
-				% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
-				put(dispatch_request_step, dispatch_request_step_pass27),				
-				case ems_util:get_user_request_by_login(Request) of
-					{ok, UserFound} -> User = UserFound;
-					_ -> User = undefined
-				end,
-				put(dispatch_request_step, dispatch_request_step_pass28),
-				case ShowDebugResponseHeaders of
-					true ->
-						Request2 = Request#request{code = 400, 
-												   content_type_out = ?CONTENT_TYPE_JSON,
-												   reason = access_denied, 
-												   reason_detail = host_denied,
-												   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-												   response_data = ?HOST_DENIED_JSON, 
-												   user = User,
-												   latency = Latency,
-												   status_text = StatusText};
-					false ->
-						Request2 = Request#request{code = 400, 
-												   content_type_out = ?CONTENT_TYPE_JSON,
-												   reason = access_denied, 
-												   reason_detail = host_denied,
-												   response_data = ?HOST_DENIED_JSON, 
-												   user = User,
-												   latency = Latency,
-												   status_text = StatusText}
-				end,
-				put(dispatch_request_step, dispatch_request_step_pass29),
-				put(dispatch_request_step, dispatch_request_step_pass30),
-				{error, request, Request2}
+						StatusText = ems_util:format_rest_status(400, access_denied, host_denied, undefined, Latency),
+						% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
+						case ems_util:get_user_request_by_login(Request) of
+							{ok, UserFound} -> User = UserFound;
+							_ -> User = undefined
+						end,
+						case ShowDebugResponseHeaders of
+							true ->
+								Request2 = Request#request{code = 400, 
+														   content_type_out = ?CONTENT_TYPE_JSON,
+														   reason = access_denied, 
+														   reason_detail = host_denied,
+														   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
+														   response_data = ?HOST_DENIED_JSON, 
+														   user = User,
+														   latency = Latency,
+														   status_text = StatusText};
+							false ->
+								Request2 = Request#request{code = 400, 
+														   content_type_out = ?CONTENT_TYPE_JSON,
+														   reason = access_denied, 
+														   reason_detail = host_denied,
+														   response_data = ?HOST_DENIED_JSON, 
+														   user = User,
+														   latency = Latency,
+														   status_text = StatusText}
+						end,
+						{error, request, Request2}
 				end;
 			false ->
 				ems_logger:info("ems_dispatcher execute restrict User-Agent to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
-				put(dispatch_request_step, dispatch_request_step_ua_denied),
 				Latency = ems_util:get_milliseconds() - T1,
 				ResponseHeader = Request#request.response_header,
 				StatusText = ems_util:format_rest_status(400, access_denied, user_agent_denied, undefined, Latency),
@@ -372,12 +332,9 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_request exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Step: ~p. Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), get(dispatch_request_step), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_request exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
 			{error, request, Request}
 	end.
-		
-	
-
 
 dispatch_service_work(Request = #request{type = Type,
 										  url = Url,
@@ -390,7 +347,6 @@ dispatch_service_work(Request = #request{type = Type,
 							    function = Function},
  					  ShowDebugResponseHeaders) ->
 	try
-		put(dispatch_service_work_step, dispatch_service_work_local__pass1),
 		ems_logger:info("ems_dispatcher send ~p to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ModuleName, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 		%% Retornos possíveis:
 		%%
@@ -402,25 +358,20 @@ dispatch_service_work(Request = #request{type = Type,
 		%% {ok, request, #request{}}
 		%% {error, request, #request{}}
 		%% {error, atom()}
-		put(dispatch_service_work_step, dispatch_service_work_local__pass1_1),
 		case apply(Module, Function, [Request]) of
 			{Reason, Request2} ->
-				put(dispatch_service_work_step, dispatch_service_work_local__pass2),
 				Request3 = Request2#request{reason = case Request2#request.reason of
 															undefined -> Reason;
 															Reason2 -> Reason2
 													   end},
-				put(dispatch_service_work_step, dispatch_service_work_local__pass3),
 				ResultDispatchMiddleware = dispatch_middleware_function(Request3, ShowDebugResponseHeaders),
-				put(dispatch_service_work_step, dispatch_service_work_local__pass4),
 				ResultDispatchMiddleware;
 			Request2 -> 
-				put(dispatch_service_work_step, dispatch_service_work_local__pass5),
 				Request2
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Step: ~p. Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), get(dispatch_service_work_step), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
 			{error, request, Request}
 	end;
 dispatch_service_work(Request = #request{rid = Rid,
@@ -444,14 +395,12 @@ dispatch_service_work(Request = #request{rid = Rid,
 										 timeout = Timeout},
 					  ShowDebugResponseHeaders) ->
 	try
-		put(dispatch_service_work_step, dispatch_service_work__pass1),
 		case erlang:is_tuple(Client) of
 			false -> 
 				ClientJson = <<"{id:0, codigo:0, name:\"public\", active:true}">>;
 			_ -> 
 				ClientJson = ems_client:to_json(Client)
 		end,
-		put(dispatch_service_work_step, dispatch_service_work__pass2),
 		case erlang:is_tuple(User) of
 			false -> 
 				UserJson = <<"{id:0, codigo:0, name:\"public\", login:null, email:null, type:null, subtype:null, cpf:null, scope:"", active:true, lista_perfil:{}, lista_permission:{}}">>;
@@ -461,15 +410,13 @@ dispatch_service_work(Request = #request{rid = Rid,
 					false -> UserJson = ems_user:to_resource_owner(User)
 				end
 		end,
-		put(dispatch_service_work_step, dispatch_service_work__pass3),
 		T2 = ems_util:get_milliseconds(),
 		Msg = {{Rid, Url, binary_to_list(Type), ParamsMap, QuerystringMap, Payload, ContentType, ModuleName, FunctionName, 
 				ClientJson, UserJson, Metadata, {Scope, AccessToken}, T2, Timeout}, self()},
-		put(dispatch_service_work_step, dispatch_service_work__pass4),
 		dispatch_service_work_send(Request, Service, ShowDebugResponseHeaders, Msg, 1)
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Step: ~p. Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), get(dispatch_service_work_step), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
 			{error, request, Request}
 	end.
 
