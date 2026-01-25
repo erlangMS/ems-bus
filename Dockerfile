@@ -87,7 +87,7 @@ RUN tar -xzf /tmp/ems-bus.tar.gz -C /app && \
 WORKDIR /app
 
 # Expõe portas do barramento
-EXPOSE 2301 2344
+EXPOSE 2301 2344 2389
 
 # Usuário erlangms
 USER erlangms

@@ -10,22 +10,13 @@
 #    $ ./release.sh
 #
 #
-#
-#
-#
 ## Software modification history:
 #
 # Data       |  Quem           |  Mensagem  
 # -----------------------------------------------------------------------------------------------------
 # 28/11/2016  Everton Agilar     Release inicial do script de release
-# 05/03/2017  Everton Agilar     Improve release to deb and rpm
 # 06/07/2017  Everton Agilar     New: --skip_build
 # 28/09/2017  Everton Agilar     New: --clean
-# 25/10/2018  Everto Agilar		 Faz build somente do SO ativo usando o template deste SO
-#
-#
-#
-#
 #
 ########################################################################################################
 
@@ -95,16 +86,11 @@ help(){
 	echo
 	echo "Additional parameters:"
 	echo "  --skip-build		-> skip build with rebar. Default is false."
-	echo "  --skip-build-image	-> skip docker image build. Default is false."
 	echo "  --clean          	-> clean build release."
 	exit 1
 }
 
 
-
-
-# make release for each distro
-# make release for each distro
 make_release(){
 	echo "Please wait, generating the release $VERSION_RELEASE of the ems-bus, this may take a while!"
 
@@ -147,20 +133,8 @@ make_release(){
 }
 
 
-make_imagem(){
-    if [ -d "docker" ]; then
-	    cd docker
-	    cp ../$RELEASE_FILE . 
-	    sudo docker compose build
-        cd ..
-    else
-        echo "Docker directory not found, skipping image build."
-    fi
-}
-
 # *************** main ***************
 
-# Read command line parameters
 # Read command line parameters
 for P in "$@"; do
 	if [[ "$P" =~ ^--.+$ ]]; then
@@ -195,11 +169,6 @@ if [ "$SKIP_BUILD" = "false" ]; then
 	make_release
 fi
 
-if [ "$SKIP_BUILD_IMAGE" = "false" ]; then
-	make_imagem
-fi
-
-# Clean only build artifacts, not the release file
 echo "Cleaning build artifacts..."
 rm -Rf _build/default/rel/ems_bus
 
