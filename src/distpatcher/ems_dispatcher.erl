@@ -15,10 +15,20 @@
 -export([dispatch_request/3, dispatch_service_work/3]).
 
 
-check_result_cache(ReqHash, Worker, Timestamp2) ->
+check_result_cache(ReqHash, Worker, Timestamp2, Url, Debug) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
-		[] -> false; 
-		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> false;
+		[] -> 
+			case Debug of
+				true -> ems_logger:info("ems_dispatcher result_cache miss (not found). url: ~p", [Url]);
+				false -> ok
+			end,
+			false; 
+		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> 
+			case Debug of
+				true -> ems_logger:info("ems_dispatcher result_cache miss (expired). url: ~p", [Url]);
+				false -> ok
+			end,
+			false;
 		[{_, {Timestamp, Request, _, req_done, _}}] ->
 			[{post_time, PostTime}] = ets:lookup(ems_dispatcher_post_time, post_time),
 			case PostTime < Timestamp of
@@ -32,15 +42,20 @@ check_result_cache(ReqHash, Worker, Timestamp2) ->
 				{ReqHash, Result} -> 
 					Result
 				after 300 -> 
-					check_result_cache2(ReqHash, Worker, Timestamp2, 6)
+					check_result_cache2(ReqHash, Worker, Timestamp2, 6, Url, Debug)
 			end
 	end.
 
-check_result_cache2(_, _, _, 0) -> false;
-check_result_cache2(ReqHash, Worker, Timestamp2, Count) ->
+check_result_cache2(_, _, _, 0, _, _) -> false;
+check_result_cache2(ReqHash, Worker, Timestamp2, Count, Url, Debug) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
 		[] -> false; 
-		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> false;
+		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> 
+			case Debug of
+				true -> ems_logger:info("ems_dispatcher result_cache miss (expired retry). url: ~p", [Url]);
+				false -> ok
+			end,
+			false;
 		[{_, {_, Request, _, req_done, _}}] ->
 			{true, Request};
 		_ ->
@@ -48,7 +63,7 @@ check_result_cache2(ReqHash, Worker, Timestamp2, Count) ->
 				{ReqHash, Result} -> 
 					Result
 				after 100 -> 
-					check_result_cache2(ReqHash, Worker, Timestamp2, Count - 1)
+					check_result_cache2(ReqHash, Worker, Timestamp2, Count - 1, Url, Debug)
 			end
 	end.
 	
@@ -104,7 +119,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																	   latency = Latency}
 										};
 									<<"GET">> ->
-										case check_result_cache(ReqHash, WorkerSend, T1) of
+										case check_result_cache(ReqHash, WorkerSend, T1, Url, ShowDebugResponseHeaders) of
 											{true, RequestCache} -> 
 												case ShowDebugResponseHeaders of
 													true -> ems_logger:info("ems_dispatcher result_cache hit. url: ~p", [Url]);

@@ -10,6 +10,7 @@
 -module(ems_cache).
 
 -include("../include/ems_config.hrl").
+-include("../include/ems_schema.hrl").
 
 -behavior(gen_server). 
 
@@ -56,12 +57,33 @@ handle_cast(_Msg, State) ->
 handle_call(_Msg, _From, State) ->
 	{reply, _Msg, State}.
 
--spec handle_info(any(), state()) -> {noreply, state()}.
 handle_info({expire, CacheName, Key}, State) ->
+	#config{debug = Debug} = ems_config:getConfig(),
+	case Debug of
+		true -> 
+			case ets:lookup(CacheName, Key) of
+				[{Key, {_, Request, _, _, _}}] when is_record(Request, request) ->
+					ems_logger:info("ems_cache: ~p entry expired. url: ~p", [CacheName, Request#request.url]);
+				_ ->
+					ems_logger:info("ems_cache: ~p entry expired. key: ~p", [CacheName, Key])
+			end;
+		_ -> ok
+	end,
 	flush(CacheName, Key),
 	{noreply, State};
   
 handle_info({expire, CacheName, Key, FunAfterFlush}, State) ->
+	#config{debug = Debug} = ems_config:getConfig(),
+	case Debug of
+		true -> 
+			case ets:lookup(CacheName, Key) of
+				[{Key, {_, Request, _, _, _}}] when is_record(Request, request) ->
+					ems_logger:info("ems_cache: ~p entry expired (with callback). url: ~p", [CacheName, Request#request.url]);
+				_ ->
+					ems_logger:info("ems_cache: ~p entry expired (with callback). key: ~p", [CacheName, Key])
+			end;
+		_ -> ok
+	end,
 	case ets:lookup(CacheName, Key) of
 		[] -> ok;
 		_ -> 

@@ -33,7 +33,7 @@ execute(Request = #request{type = Type,
 							_ -> GrantTypeRaw
 						end,
 						GrantType = normalize_grant_type(GrantTypeRaw2),
-						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantType: ~p (Raw: ~p).", [binary_to_list(GrantType), binary_to_list(GrantTypeRaw)]);
+						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantType: ~p.", [binary_to_list(GrantType)]);
 					_ -> 
 						GrantType = undefined
 				end,
