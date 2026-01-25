@@ -262,7 +262,7 @@ dispatch_service_work(Request = #request{type = Type,
  					  Debug) ->
 	try
 		case Debug of
-			true -> ems_logger:info("ems_dispatcher send ~p to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ModuleName, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+			true -> ems_logger:info("ems_dispatcher send ~s to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ModuleName, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
 			false -> ok
 		end,
 		%% Retornos possíveis:
@@ -367,7 +367,7 @@ dispatch_service_work_send(Request = #request{type = Type,
 			case Debug of
 				true -> 
 					ems_logger:info("get_work_node Host ~p  HostName: ~p  ModuleName: ~p", [Host, HostName, ModuleName]),
-					ems_logger:info("ems_dispatcher send ~p to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
+					ems_logger:info("ems_dispatcher send ~s to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
 				false -> ok
 			end,
 			case Type of 
@@ -469,7 +469,11 @@ dispatch_middleware_function(Request = #request{reason = ok,
 			_ ->
 				Result = case erlang:function_exported(Middleware, onrequest, 1) of
 							true -> apply(Middleware, onrequest, [Request]);
-							false -> {ok, Request}
+							false -> 
+								case code:ensure_loaded(Middleware) of
+									{module, _} -> apply(Middleware, onrequest, [Request]);
+									_ -> {ok, Request}
+								end
 						 end
 		end,
 		case Result of

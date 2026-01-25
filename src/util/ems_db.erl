@@ -339,7 +339,9 @@ start(PrivPath, DatabasePath) ->
 	set_param(database_path, DatabasePath),
 	% ems_db_parsed_query_cache disabled - parsed queries are too large for cache (>60KB)
 	% Parsing is fast enough that caching is not needed
-							
+	
+	init_params_cache(),
+
 	ok.
 
 
@@ -420,66 +422,104 @@ counter(Name, Inc) -> mnesia:dirty_update_counter(counter, Name, Inc).
 
 -spec get_param(atom()) -> any().
 get_param(ParamName) -> 
-	try
-		case mnesia:dirty_read(ctrl_params, ParamName) of
-			[] -> undefined;
-			[#ctrl_params{value = Value}] -> Value;
-			{aborted, _} -> undefined
-		end
-	catch
-		_:_ -> undefined
+	try persistent_term:get({ems_db_param, ParamName})
+	catch 
+		_:_ ->
+			try
+				case mnesia:dirty_read(ctrl_params, ParamName) of
+					[] -> undefined;
+					[#ctrl_params{value = Value}] -> 
+						persistent_term:put({ems_db_param, ParamName}, Value),
+						Value;
+					{aborted, _} -> undefined
+				end
+			catch
+				_:_ -> undefined
+			end
 	end.
 
 -spec get_param(atom(), function() | any()) -> any().
 get_param(ParamName, Fun) when is_function(Fun) -> 
-	try
-		case mnesia:dirty_read(ctrl_params, ParamName) of
-			[] -> 
-				Value = Fun(),
-				set_param(ParamName, Value),
-				Value;
-			[#ctrl_params{value = Value}] -> Value;
-			{aborted, _} -> Fun()
-		end
-	catch
-		_:_ -> Fun()
+	try persistent_term:get({ems_db_param, ParamName})
+	catch 
+		_:_ ->
+			try
+				case mnesia:dirty_read(ctrl_params, ParamName) of
+					[] -> 
+						Value = Fun(),
+						set_param(ParamName, Value),
+						Value;
+					[#ctrl_params{value = Value}] -> 
+						persistent_term:put({ems_db_param, ParamName}, Value),
+						Value;
+					{aborted, _} -> Fun()
+				end
+			catch
+				_:_ -> Fun()
+			end
 	end;
 get_param(ParamName, DefaultValue) -> 
-	try
-		case mnesia:dirty_read(ctrl_params, ParamName) of
-			[] -> 
-				set_param(ParamName, DefaultValue),
-				DefaultValue;
-			[#ctrl_params{value = Value}] -> Value;
-			{aborted, _} -> DefaultValue
-		end
-	catch
-		_:_ -> DefaultValue
+	try persistent_term:get({ems_db_param, ParamName})
+	catch 
+		_:_ ->
+			try
+				case mnesia:dirty_read(ctrl_params, ParamName) of
+					[] -> 
+						set_param(ParamName, DefaultValue),
+						DefaultValue;
+					[#ctrl_params{value = Value}] -> 
+						persistent_term:put({ems_db_param, ParamName}, Value),
+						Value;
+					{aborted, _} -> DefaultValue
+				end
+			catch
+				_:_ -> DefaultValue
+			end
 	end.
 	
 -spec get_re_param(atom(), string()) -> {re_pattern, term(), term(), term(), term()}.	
 get_re_param(ParamName, DefaultREPattern) -> 
-	try
-		case mnesia:dirty_read(ctrl_params, ParamName) of
-			[#ctrl_params{value = Value}] -> Value;
-			_ -> 
-				{ok, Compiled} = re:compile(DefaultREPattern),
-				set_param(ParamName, Compiled),
-				Compiled
-		end
-	catch
-		_:_ -> 
-			{ok, Compiled2} = re:compile(DefaultREPattern),
-			Compiled2
+	try persistent_term:get({ems_db_param, ParamName})
+	catch 
+		_:_ ->
+			try
+				case mnesia:dirty_read(ctrl_params, ParamName) of
+					[#ctrl_params{value = Value}] -> 
+						persistent_term:put({ems_db_param, ParamName}, Value),
+						Value;
+					_ -> 
+						{ok, Compiled} = re:compile(DefaultREPattern),
+						set_param(ParamName, Compiled),
+						Compiled
+				end
+			catch
+				_:_ -> 
+					{ok, Compiled2} = re:compile(DefaultREPattern),
+					Compiled2
+			end
 	end.
 
 -spec set_param(atom(), any()) -> ok.
 set_param(ParamName, ParamValue) -> 
 	try
 		P = #ctrl_params{name = ParamName, value = ParamValue},
-		mnesia:dirty_write(ctrl_params, P)
+		mnesia:dirty_write(ctrl_params, P),
+		persistent_term:put({ems_db_param, ParamName}, ParamValue)
 	catch
 		_:_ -> ok
+	end.
+
+
+init_params_cache() ->
+	try
+		F = fun() ->
+			Params = qlc:e(qlc:q([P || P <- mnesia:table(ctrl_params)])),
+			[persistent_term:put({ems_db_param, Name}, Value) || #ctrl_params{name = Name, value = Value} <- Params]
+		end,
+		mnesia:activity(async_dirty, F),
+		ems_logger:info("ems_db init_params_cache done.")
+	catch
+		_:Reason -> ems_logger:error("ems_db init_params_cache failed: ~p", [Reason])
 	end.
 
 

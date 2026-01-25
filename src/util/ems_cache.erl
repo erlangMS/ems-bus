@@ -24,7 +24,6 @@
 
 %  Armazena o estado do service. 
 -record(state, {}). 
--type state():: #state{}.
 
 -define(SERVER, ?MODULE).
 
