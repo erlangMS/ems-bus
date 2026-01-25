@@ -17,7 +17,6 @@
     <<"priv_path">> => <<"priv">>,
     <<"database_path">> => <<"priv/db">>,
     <<"log_file_path">> => <<"priv/log">>,
-    <<"log_file_archive_path">> => <<"priv/archive_log">>,
     <<"authorization">> => <<"oauth2">>,
     <<"oauth2_with_check_constraint">> => false,
     <<"oauth2_refresh_token">> => 7200,
@@ -48,10 +47,7 @@
     <<"smtp_port">> => 587,
     <<"oauth2_resource_owner_find_permission_with_cpf">> => true,
     <<"oauth2_resource_owner_fields">> => ?OAUTH2_RESOURCE_OWNER_FIELDS,
-    <<"custom_variables">> => #{
-        <<"ODBC_CONNECTION_STRING_SQLSERVER">> => <<"DSN=ems_user_loader_ds;UID=usuUnBServicos;PWD=xxx;useUnicode=true;characterEncoding=UTF-8">>,
-        <<"ODBC_CONNECTION_STRING_POSTGRESQL">> => <<"DSN=sig_unb;UID=usuunbservicos;PWD=xxx;useUnicode=true;characterEncoding=UTF-8">>
-    },
+    <<"custom_variables">> => #{},
     <<"hostname">> => <<>>,
     <<"tcp_listen_prefix_interface_names">> => ?TCP_LISTEN_PREFIX_INTERFACE_NAMES,
     <<"http_headers">> => #{
