@@ -14,7 +14,6 @@
 -export([check_debug_mode/1, 
 		 set_debug_mode/1, 
 		 unset_debug_mode/1, 
-		 sync/1,
 		 set_level_info/1,
 		 set_level_error/1,
 		 checkpoint/1,
@@ -41,11 +40,6 @@ unset_debug_mode(Request) ->
 						 response_data = ems_schema:to_json({ok, ems_logger:mode_debug(false)})}
 	}.
 
-sync(Request) ->	
-	ems_logger:sync(),
-	{ok, Request#request{code = 200, 
-						 response_data = ?OK_JSON}
-	}.
 
 set_level_info(Request) ->	
 	ems_logger:set_level(info),

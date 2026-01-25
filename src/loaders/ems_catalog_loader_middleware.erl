@@ -171,8 +171,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												function_name = NewCatalog#service.function_name,
 												function = NewCatalog#service.function,
 												public = NewCatalog#service.public,
-												comment = NewCatalog#service.comment,
-												version = NewCatalog#service.version,
 												owner = NewCatalog#service.owner,
 												group = NewCatalog#service.group,
 												glyphicon = NewCatalog#service.glyphicon,

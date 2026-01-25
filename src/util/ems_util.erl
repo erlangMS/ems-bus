@@ -1848,8 +1848,8 @@ invoque_service(Type, Url, QuerystringBin, QuerystringMap, ContentTypeIn) ->
 		 Error -> Error
 	end.	
 
--spec url_mask(string() | binary()) -> binary().
-url_mask(Url) -> iolist_to_binary([<<"/erl.ms/">>, base64:encode(Url)]). 
+-spec unused_url_mask(string() | binary()) -> binary().
+unused_url_mask(Url) -> iolist_to_binary([<<"/erl.ms/">>, base64:encode(Url)]). 
 
 -spec url_mask_str(string() | binary()) -> string().
 url_mask_str(Url) -> binary_to_list(iolist_to_binary([<<"/erl.ms/">>, base64:encode(Url)])). 
@@ -2064,7 +2064,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 								 content_type = ContentTypeService,
 								 owner = OwnerService,
 								 group = GroupService,
-								 version = ServiceVersion,
 								 path = PathService,
 								 cache_control = CacheControlService,
 								 use_re = UseReService,
@@ -2221,13 +2220,12 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 														HttpHeaderOptions#{<<"expires">> => Expires,
 																		   <<"cache-control">> => CacheControlService};
 													true ->
-														HttpHeaderOptions#{<<"X-ems-rowid">> => integer_to_binary(Rowid),
+														   HttpHeaderOptions#{<<"X-ems-rowid">> => integer_to_binary(Rowid),
 																		   <<"X-ems-hash">> => integer_to_binary(ReqHash),
 																		   <<"X-ems-catalog">> => ServiceName,
 																		   <<"X-ems-service">> => ServiceService,
 																		   <<"X-ems-owner">> => OwnerService,
 																		   <<"X-ems-group">> => GroupService,
-																		   <<"X-ems-version">> => ServiceVersion,
 																		   <<"X-ems-url">> => ServiceUrl,
 																		   <<"X-ems-path">> => PathService,
 																		   <<"X-ems-use-re">> => ems_util:boolean_to_binary(UseReService),
@@ -2250,7 +2248,6 @@ encode_request_cowboy(CowboyReq, WorkerSend, #encode_request_state{http_header_d
 																		   <<"X-ems-service">> => ServiceService,
 																		   <<"X-ems-owner">> => OwnerService,
 																		   <<"X-ems-group">> => GroupService,
-																		   <<"X-ems-version">> => ServiceVersion,
 																		   <<"X-ems-url">> => ServiceUrl,
 																		   <<"X-ems-path">> => PathService,
 																		   <<"X-ems-use-re">> => ems_util:boolean_to_binary(UseReService),
@@ -2360,7 +2357,7 @@ parse_if_modified_since(IfModifiedSince) -> cow_date:parse_date(IfModifiedSince)
 						
 -spec parse_querystring(list()) -> list(tuple()).
 parse_querystring(Q) ->
-	Q1 = httpd:parse_query(Q),
+	Q1 = uri_string:dissect_query(Q),
 	Q2 = [{iolist_to_binary(P), 
 		   list_to_binary(case V of
 										[34|_] -> remove_quoted_str(utf8_list_to_string(V));
@@ -2369,8 +2366,8 @@ parse_querystring(Q) ->
 	maps:from_list(Q2).
 
 
--spec rid_to_string(integer()) -> list().
-rid_to_string(RID) -> integer_to_list(RID).
+-spec unused_rid_to_string(integer()) -> list().
+unused_rid_to_string(RID) -> integer_to_list(RID).
 
 
 method_to_string(Method) when is_atom(Method) -> atom_to_list(Method);
@@ -2546,8 +2543,8 @@ parse_result_cache(ResultCache) ->
 	end.	
 
 
--spec parse_timeout(non_neg_integer(), non_neg_integer()) -> non_neg_integer().
-parse_timeout(Timeout, MaxTimeout) ->
+-spec unused_parse_timeout(non_neg_integer(), non_neg_integer()) -> non_neg_integer().
+unused_parse_timeout(Timeout, MaxTimeout) ->
 	case is_integer(Timeout) andalso Timeout > 0 andalso Timeout =< MaxTimeout of
 		true -> Timeout;
 		_ -> erlang:error(einvalid_timeout)
@@ -3894,6 +3891,10 @@ flush_messages() ->
 	after 500 ->
 		ok
 	end.
+
+-spec unused_str_contains(string(), string()) -> boolean().
+unused_str_contains(String, Substring) ->
+	string:str(String, Substring) > 0.
 
 -spec str_contains(string(), list(string())) -> boolean().
 str_contains(_, []) -> false;

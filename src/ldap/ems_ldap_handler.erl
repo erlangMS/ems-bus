@@ -39,7 +39,7 @@ start_link(Ref, Transport, Opts) ->
 	{ok, Pid}.
 
 init(Ref, Socket, Transport, [State]) ->
-	ranch:accept_ack(Ref),
+	{ok, _} = ranch:handshake(Ref),
 	loop(Socket, Transport, State).
 
 init(Ref, Transport, [State]) ->

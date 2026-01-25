@@ -12,7 +12,7 @@
 -include("include/ems_schema.hrl").
 
 -export([new_from_map/2, 
-		 get_metadata_json/1,
+		 get_metadata_json/2,
 		 get_table/3,
 		 find_by_rowid/1]).
 		 
@@ -26,15 +26,14 @@ find_by_rowid(RowId) ->
 	end.
 		 
 
--spec get_metadata_json(#service{}) -> binary().
-get_metadata_json(#service{id = Id,
+-spec get_metadata_json(binary(), #service{}) -> binary().
+get_metadata_json(Version, #service{id = Id,
 						  name = Name,
 						  content_type = ContentType,
 						  type = Type,
 						  url = Url,
 						  service = Service,
 						  comment = Comment,
-						  version = Version,
 						  owner = Owner,
 						  group = Group,
 						  result_cache = ResultCache,
@@ -99,7 +98,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 			   AuthorizationPublicCheckCredential,
 			   HttpMaxContentLength, HttpHeaders, 
 			   LogShowResponse, LogShowResponseHeader, LogShowPayload, Restricted,
-			   ShowDebugResponseHeader, LogShow) ->
+			   ShowDebugResponseHeader, LogShow, Version) ->
 	PatternKey = ems_util:make_rowid_from_url(Url, Type),
 	{ok, Id_re_compiled} = re:compile(PatternKey),
 	Contract = #service{
@@ -118,7 +117,6 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					id_re_compiled = Id_re_compiled,
 					public = Public,
 					comment = Comment,
-					version = Version,
 					owner = Owner,
 					glyphicon = Glyphicon,
 					group = Group,
@@ -180,14 +178,14 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					restricted = Restricted,
 					show_debug_response_headers = ShowDebugResponseHeader
 				},
-	Contract#service{metadata = get_metadata_json(Contract)}.
+	Contract#service{metadata = get_metadata_json(Version, Contract)}.
 	
 
 new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, FunctionName,
 			Type, Enable, Comment, Version, Owner, Group, Glyphicon, Async, Querystring, 
 			QtdQuerystringRequired, Host, HostName, ResultCache, ResultCacheShared,
 			Authorization, Node, Lang, Datasource, Debug, SchemaIn, SchemaOut, 
-			PoolSize, PoolMax, Properties, Timeout, TimeoutAlertThreshold,
+			PoolSize, PoolMax, Map, Timeout, TimeoutAlertThreshold,
 			Middleware, CacheControl, ExpiresMinute, Public, 
 			ContentType, Path, Filename,
 			RedirectUrl, ListenAddress, ListenAddress_t, AllowedAddress, AllowedAddress_t, 
@@ -199,7 +197,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			AuthorizationPublicCheckCredential,
 			HttpMaxContentLength, HttpHeaders, 
 			LogShowResponse, LogShowResponseHeader, LogShowPayload, 
-			Restricted,	ShowDebugResponseHeader, LogShow) ->
+			Restricted,	ShowDebugResponseHeader, LogShow, Version) ->
 	Contract = #service{
 				id = Id,
 				rowid = Rowid,
@@ -214,7 +212,6 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			    function = list_to_atom(FunctionName),
 			    public = Public,
 			    comment = Comment,
-			    version = Version,
 			    owner = Owner,
 			    group = Group,
 			    glyphicon = Glyphicon,
@@ -237,7 +234,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			    timeout = Timeout,
 			    timeout_alert_threshold = TimeoutAlertThreshold,
 			    middleware = Middleware,
-			    properties = Properties,
+			    properties = Map,
 			    cache_control = CacheControl,
 			    expires = ExpiresMinute,
 			    content_type = ContentType,
@@ -276,7 +273,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 				restricted = Restricted,
 				show_debug_response_headers = ShowDebugResponseHeader
 			},
-	Contract#service{metadata = get_metadata_json(Contract)}.
+	Contract#service{metadata = get_metadata_json(Version, Contract)}.
 
 parse_middleware(null) -> undefined;
 parse_middleware(undefined) -> undefined;
@@ -720,7 +717,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												   AuthorizationPublicCheckCredential,
 												   HttpMaxContentLength, HttpHeaders, 
 												   LogShowResponse, LogShowResponseHeader, LogShowPayload,
-												   Restricted, ShowDebugResponseHeader, LogShow);
+												   Restricted, ShowDebugResponseHeader, LogShow, Version);
 					false -> 
 						put(parse_step, new_service),
 						Service = new_service(Rowid, Id, Name, Url2, 
@@ -743,11 +740,11 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												OAuth2WithCheckConstraint, OAuth2TokenEncrypt, OAuth2AllowClientCredentials, AuthAllowUserInativeCredentials,
 												Protocol,
 												CtrlPath, CtrlFile, CtrlModified, StartTimeout, CtrlHash,
-                                                                                                   ServiceResendMsg1,
+												ServiceResendMsg1,
 												AuthorizationPublicCheckCredential,
 												HttpMaxContentLength, HttpHeaders, 
 												LogShowResponse, LogShowResponseHeader, LogShowPayload,
-												Restricted, ShowDebugResponseHeader, LogShow)
+												Restricted, ShowDebugResponseHeader, LogShow, Version)
 				end,
 				{ok, Service};
 			false -> 	

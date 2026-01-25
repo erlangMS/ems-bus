@@ -12,24 +12,11 @@
 -export([binstring/1]).
 -import(lists, [nth/2, map/2, foldl/3]).
 
-binstring(S) -> fun_apply(S, fun list_to_binary/1, fun(X)->X end).
-hexstring(S) -> fun_apply(S, fun list_to_binary/1, fun bin2hex/1).
-binfile(S) -> fun_apply(S, fun read_unsafe/1, fun(X)->X end).
-hexfile(S) -> fun_apply(S, fun read_unsafe/1, fun bin2hex/1).
-
-fun_apply(S, FunRead, FunTransform) ->
-	case catch binstring_unsafe(FunRead(S)) of 
+binstring(S) -> 
+	case catch binstring_unsafe(list_to_binary(S)) of 
 		{'EXIT', Stuff} -> {error, Stuff};
-		Data -> FunTransform(Data)
+		Data -> Data
 	end.
-
-read_unsafe(File) ->  {ok, L} = file:read_file(File), 	L.
-
-bin2hex(B) ->
-	L = binary_to_list(B),
-	LH0 = map(fun(X)->integer_to_list(X,16) end, L),
-	LH = map(fun([X,Y])->[X,Y];([X])->[$0,X] end, LH0), % add zeros
-	lists:flatten(LH).
 
 binstring_unsafe(S) ->
 	X = pad_str(S),

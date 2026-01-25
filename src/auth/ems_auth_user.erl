@@ -151,7 +151,7 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 							   {<<"expiry_time">>, _ExpityTime}, 
 							   {<<"scope">>, Scope},
 							   {<<"state">>, State}]}} -> 
-							do_check_grant_permission(Service, Req, public, User, AccessToken, Scope, State, oauth2);
+							do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
 				_ -> 
 					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
 

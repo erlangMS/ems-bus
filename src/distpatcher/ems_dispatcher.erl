@@ -109,7 +109,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									<<"OPTIONS">> -> 
 										{ok, request, Request2#request{code = 200, 
 																	   content_type_out = ?CONTENT_TYPE_JSON,
-																	   response_data = ems_catalog:get_metadata_json(Service),
+																	   response_data = Service#service.metadata,
 																	   latency = Latency}
 										};
 									"HEAD" -> 
@@ -211,14 +211,14 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 												{ok, request, Request#request{code = 200, 
 																			  content_type_out = ?CONTENT_TYPE_JSON,
 																			  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																			  response_data = ems_catalog:get_metadata_json(Service),
+																			  response_data = Service#service.metadata,
 																			  latency = Latency,
 																			  status_text = StatusText}
 												};
 											false ->
 												{ok, request, Request#request{code = 200, 
 																			  content_type_out = ?CONTENT_TYPE_JSON,
-																			  response_data = ems_catalog:get_metadata_json(Service),
+																			  response_data = Service#service.metadata,
 																			  latency = Latency,
 																			  status_text = StatusText}
 												}

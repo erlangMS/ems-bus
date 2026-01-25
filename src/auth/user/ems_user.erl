@@ -23,7 +23,19 @@
 		 to_resource_owner/1,
 		 to_resource_owner/2,
  		 new_from_map/2,
-		 find/2]).
+		 find/2,
+		 find_by_codigo_pessoa/1,
+		 find_by_codigo_pessoa/2,
+		 find_by_email/1,
+		 find_by_email_/1,
+		 find_by_email_or_login/2,
+		 find_by_cpf/1,
+		 find_by_name/1,
+		 get_admim_user/0,
+		 get_table/1,
+		 exist/2,
+		 all/1
+]).
 
 -spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
 find_by_id(Id) -> 
@@ -89,8 +101,8 @@ find_index_by_login_and_password([_|_], [], _, _, _, _, _) ->
 find_index_by_login_and_password([Table|_] = Tables, 
 											[#user{password = PasswordUser, 
 												   passwd_crypto = PasswdCrypto,
-												   cpf = Cpf, 
-												   ctrl_last_login_scope = CtrlLoginScope} = User|T], 
+												   cpf = _Cpf, 
+												   ctrl_last_login_scope = _CtrlLoginScope} = User|T], 
 											LoginBin, 
 											PasswordStr,
 											PasswordBin, 

@@ -18,7 +18,8 @@
 		 format_warn/1, format_warn/2, format_warn/3,
 		 format_error/1, format_error/2, format_error/3, 
 		 format_debug/1, format_debug/2, format_debug/3,
-		 format_alert/1, format_alert/2, format_alert/3
+		 format_alert/1, format_alert/2, format_alert/3,
+		 set_level/1, show_response/1
 ]).
 
 
@@ -209,6 +210,11 @@ format_alert(Msg, Params, true) -> format_alert(Msg, Params);
 format_alert(_, _, _) -> ok.
 
 
+set_level(_Level) -> ok.
+
+show_response(_Show) -> ok.
+
+
 
 
 %%====================================================================
@@ -241,51 +247,51 @@ write_msg(Tipo, Msg, Params) ->
 	write_msg(Tipo, Msg1).
 	
 	
-do_log_request(Request = #request{rid = RID,
+do_log_request(Request = #request{rid = _RID,
 								  req_hash = ReqHash,
 								  type = Type,
 								  uri = Uri,
-								  url = Url,
-								  url_masked = UrlMasked,
-								  host = Host,
+								  url = _Url,
+								  url_masked = _UrlMasked,
+								  host = _Host,
 								  version = Version,
-								  content_type_in = ContentTypeIn,
-								  content_type_out = ContentTypeOut,
+								  content_type_in = _ContentTypeIn,
+								  content_type_out = _ContentTypeOut,
 								  content_length = ContentLength,
-								  accept = Accept,
+								  accept = _Accept,
 								  ip_bin = IpBin,
-								  payload = Payload,
+								  payload = _Payload,
 								  service = Service,
-								  params_url = Params,
-								  querystring_map = Query,
+								  params_url = _Params,
+								  querystring_map = _Query,
 								  code = Code,
-								  reason = Reason,
-								  result_cache = ResultCache,
-								  result_cache_rid = ResultCacheRid,
-								  response_data = ResponseData,
-								  authorization = Authorization,
-							      cache_control = CacheControl,
-								  etag = Etag,
-								  if_modified_since = IfModifiedSince,
-								  if_none_match = IfNoneMatch,
-								  node_exec = Node,
+								  reason = _Reason,
+								  result_cache = _ResultCache,
+								  result_cache_rid = _ResultCacheRid,
+								  response_data = _ResponseData,
+								  authorization = _Authorization,
+							      cache_control = _CacheControl,
+								  etag = _Etag,
+								  if_modified_since = _IfModifiedSince,
+								  if_none_match = _IfNoneMatch,
+								  node_exec = _Node,
 								  referer = Referer,
 								  user_agent = UserAgent,
-								  filename = Filename,
-								  client = Client,
+								  filename = _Filename,
+								  client = _Client,
 								  user = User,
-								  response_header = ResponseHeader,
-								  oauth2_grant_type = GrantType,
-								  oauth2_access_token = AccessToken,
-								  oauth2_refresh_token = RefreshToken,
-								  status_text = StatusText
+								  response_header = _ResponseHeader,
+								  oauth2_grant_type = _GrantType,
+								  oauth2_access_token = _AccessToken,
+								  oauth2_refresh_token = _RefreshToken,
+								  status_text = _StatusText
 			  }, 
-			  State = #state{log_show_response_max_length = ShowResponseMaxLength, 
-							 log_show_payload_max_length = ShowPayloadMaxLength, 
+			  State = #state{log_show_response_max_length = _ShowResponseMaxLength, 
+							 log_show_payload_max_length = _ShowPayloadMaxLength, 
 							 log_ult_reqhash = UltReqHash,
-							 log_show_response_url_list = ShowResponseUrlList,					
-							 log_show_payload_url_list = ShowPayloadUrlList,
-							 log_show_content_static_file = LogShowContentStaticFile}) ->
+							 log_show_response_url_list = _ShowResponseUrlList,					
+							 log_show_payload_url_list = _ShowPayloadUrlList,
+							 log_show_content_static_file = _LogShowContentStaticFile}) ->
 	try
 		LogShow = case Service of
 						undefined -> true;
