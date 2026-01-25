@@ -286,12 +286,11 @@
 				 ems_hostname :: binary(),							%% Nome da maquina onde o barramento está sendo executado
 				 ems_host :: atom(),								%% Atom do name da maquina onde o barramento está sendo executado
 				 ems_file_dest :: string(),							%% Nome do arquivo de configuração (útil para saber o local do arquivo)
-				 ems_debug = false :: boolean(),					%% Habilita o modo debug
+				 debug = false :: boolean(),					%% Habilita o modo debug
 				 ems_result_cache  :: non_neg_integer(),
 				 ems_result_cache_shared :: non_neg_integer(),
 				 ems_result_cache_enabled = true :: boolean(),
 				 ems_datasources :: map(),
-				 show_debug_response_headers = true :: boolean(),	%% Add debug headers in HTTP response headers
 				 tcp_listen_address :: list(),
 				 tcp_listen_address_t :: list(),
 				 tcp_listen_main_ip :: binary(),

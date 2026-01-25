@@ -25,16 +25,12 @@ check_result_cache(ReqHash, Worker, Timestamp2) ->
 				true -> {true, Request};
 				false -> false
 			end;
-		[{_, {T1, Request, ResultCache, Status, WorkersWaiting}}] ->
-			ets:insert(ets_result_cache_get, {ReqHash, {T1, Request, ResultCache, Status, [Worker | WorkersWaiting]}}),
+		[{_, {_, _, _, _, _}}] ->
+			% Registration into waiting list is now atomic using duplicate_bag
+			ets:insert(ets_result_cache_waiting, {ReqHash, Worker}),
 			receive 
-				Msg -> 
-					case Msg of
-						{ReqHash, Result} -> 
-							Result;
-						_ -> 
-							false
-					end
+				{ReqHash, Result} -> 
+					Result
 				after 300 -> 
 					check_result_cache2(ReqHash, Worker, Timestamp2, 6)
 			end
@@ -49,30 +45,27 @@ check_result_cache2(ReqHash, Worker, Timestamp2, Count) ->
 			{true, Request};
 		_ ->
 			receive 
-				Msg -> 
-					case Msg of
-						{ReqHash, Result} -> 
-							Result;
-						_ -> 
-							false
-					end
+				{ReqHash, Result} -> 
+					Result
 				after 100 -> 
 					check_result_cache2(ReqHash, Worker, Timestamp2, Count - 1)
 			end
 	end.
 	
-notity_workers_waiting_result_cache(ReqHash, RequestDone) ->
+notify_workers_waiting_result_cache(ReqHash, RequestDone) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
 		[] -> ok; 
-		[{_, {T1, _, ResultCache, _, WorkersWaiting}}] ->
+		[{_, {T1, _, ResultCache, _, _}}] ->
 			ets:insert(ets_result_cache_get, {ReqHash, {T1, RequestDone, ResultCache, req_done, []}}),
-			notity_workers_waiting_result_cache_(WorkersWaiting, RequestDone, ReqHash) 
+			% Atomically take and clear all waiting workers for this ReqHash
+			WorkersWaiting = ets:take(ets_result_cache_waiting, ReqHash),
+			notify_workers_waiting_result_cache_(WorkersWaiting, RequestDone, ReqHash) 
 	end.
 
-notity_workers_waiting_result_cache_([], _, _) -> ok;
-notity_workers_waiting_result_cache_([Worker|T], RequestDone, ReqHash) ->
+notify_workers_waiting_result_cache_([], _, _) -> ok;
+notify_workers_waiting_result_cache_([{_, Worker}|T], RequestDone, ReqHash) ->
 	Worker ! {ReqHash, {true, RequestDone}},
-	notity_workers_waiting_result_cache_(T, RequestDone, ReqHash).
+	notify_workers_waiting_result_cache_(T, RequestDone, ReqHash).
 
 
 dispatch_request(Request = #request{req_hash = ReqHash, 
@@ -106,12 +99,6 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														   user = User,
 														   access_token = AccessToken},
 								case Type of
-									<<"OPTIONS">> -> 
-										{ok, request, Request2#request{code = 200, 
-																	   content_type_out = ?CONTENT_TYPE_JSON,
-																	   response_data = Service#service.metadata,
-																	   latency = Latency}
-										};
 									"HEAD" -> 
 										{ok, request, Request2#request{code = 200, 
 																	   latency = Latency}
@@ -119,71 +106,40 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									<<"GET">> ->
 										case check_result_cache(ReqHash, WorkerSend, T1) of
 											{true, RequestCache} -> 
-												ResponeHeader = RequestCache#request.response_header,
+												case ShowDebugResponseHeaders of
+													true -> ems_logger:info("ems_dispatcher result_cache hit. url: ~p", [Url]);
+													false -> ok
+												end,
+												ResponseHeader = RequestCache#request.response_header,
 												case IfNoneMatch =/= <<>> orelse IfModifiedSince =/= <<>> of
 													true ->
-														StatusText = ems_util:format_rest_status(304, enot_modified, RequestCache#request.reason_detail, undefined, Latency),
-														case ShowDebugResponseHeaders of													
-															true -> 
-																{ok, request, Request2#request{result_cache = true,
-																							   code = 304,
-																							   reason = enot_modified,
-																							   reason_detail = RequestCache#request.reason_detail,
-																							   content_type_out = RequestCache#request.content_type_out,
-																							   response_data = <<>>,
-																							   response_header = ResponeHeader#{<<"x-ems-result-cache-hit">> => <<"true,not_modified">>},
-																							   result_cache_rid = RequestCache#request.rid,
-																							   etag = RequestCache#request.etag,
-																							   filename = RequestCache#request.filename,
-																							   latency = Latency,
-																							   status = req_done,
-																							   status_text = StatusText}};
-															false ->
-																{ok, request, Request2#request{result_cache = true,
-																							   code = 304,
-																							   reason = enot_modified,
-																							   reason_detail = RequestCache#request.reason_detail,
-																							   content_type_out = RequestCache#request.content_type_out,
-																							   response_data = <<>>,
-																							   response_header = ResponeHeader,
-																							   result_cache_rid = RequestCache#request.rid,
-																							   etag = RequestCache#request.etag,
-																							   filename = RequestCache#request.filename,
-																							   latency = Latency,
-																							   status = req_done,
-																							   status_text = StatusText}}
-														end;
+														{ok, request, Request2#request{result_cache = true,
+																					   code = 304,
+																					   reason = enot_modified,
+																					   reason_detail = RequestCache#request.reason_detail,
+																					   content_type_out = RequestCache#request.content_type_out,
+																					   response_data = <<>>,
+																					   response_header = ResponseHeader,
+																					   result_cache_rid = RequestCache#request.rid,
+																					   etag = RequestCache#request.etag,
+																					   filename = RequestCache#request.filename,
+																					   latency = Latency,
+																					   status = req_done,
+																					   status_text = ems_util:format_rest_status(304, enot_modified, RequestCache#request.reason_detail, undefined, Latency)}};
 													false ->
-														case ShowDebugResponseHeaders of													
-															true ->
-																{ok, request, Request2#request{result_cache = true,
-																								code = RequestCache#request.code,
-																								reason = RequestCache#request.reason,
-																								reason_detail = RequestCache#request.reason_detail,
-																								content_type_out = RequestCache#request.content_type_out,
-																								response_data = RequestCache#request.response_data,
-																								response_header = ResponeHeader#{<<"x-ems-result-cache-hit">> => <<"true">>},
-																								result_cache_rid = RequestCache#request.rid,
-																								etag = RequestCache#request.etag,
-																								filename = RequestCache#request.filename,
-																								latency = Latency,
-																								status = req_done,
-																								status_text = RequestCache#request.status_text}};
-															false ->
-																{ok, request, Request2#request{result_cache = true,
-																								code = RequestCache#request.code,
-																								reason = RequestCache#request.reason,
-																								reason_detail = RequestCache#request.reason_detail,
-																								content_type_out = RequestCache#request.content_type_out,
-																								response_data = RequestCache#request.response_data,
-																								response_header = ResponeHeader,
-																								result_cache_rid = RequestCache#request.rid,
-																								etag = RequestCache#request.etag,
-																								filename = RequestCache#request.filename,
-																								latency = Latency,
-																								status = req_done,
-																								status_text = RequestCache#request.status_text}}
-														end
+														{ok, request, Request2#request{result_cache = true,
+																						code = RequestCache#request.code,
+																						reason = RequestCache#request.reason,
+																						reason_detail = RequestCache#request.reason_detail,
+																						content_type_out = RequestCache#request.content_type_out,
+																						response_data = RequestCache#request.response_data,
+																						response_header = ResponseHeader,
+																						result_cache_rid = RequestCache#request.rid,
+																						etag = RequestCache#request.etag,
+																						filename = RequestCache#request.filename,
+																						latency = Latency,
+																						status = req_done,
+																						status_text = RequestCache#request.status_text}}
 												end;
 											false ->
 												ems_cache:add(ets_result_cache_get, ResultCache, ReqHash, {T1, Request2, ResultCache, req_wait_result, []}),
@@ -202,132 +158,55 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 							{error, Reason, ReasonDetail} -> 
 								ems_logger:info("ems_dispatcher does not authorize call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 								Latency = ems_util:get_milliseconds() - T1,
-								ResponseHeader = Request#request.response_header,
 								case Type of
-									<<"OPTIONS">> -> 
-										StatusText = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency),
-										case ShowDebugResponseHeaders of
-											true ->
-												{ok, request, Request#request{code = 200, 
-																			  content_type_out = ?CONTENT_TYPE_JSON,
-																			  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																			  response_data = Service#service.metadata,
-																			  latency = Latency,
-																			  status_text = StatusText}
-												};
-											false ->
-												{ok, request, Request#request{code = 200, 
-																			  content_type_out = ?CONTENT_TYPE_JSON,
-																			  response_data = Service#service.metadata,
-																			  latency = Latency,
-																			  status_text = StatusText}
-												}
-										end;
 									"HEAD" -> 
-										StatusText = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency),
-										case ShowDebugResponseHeaders of
-											true ->
-												{ok, request, Request#request{code = 200, 
-																			  response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																			  latency = Latency,
-																			  status_text = StatusText}
-												};
-											false ->
-												{ok, request, Request#request{code = 200, 
-																			  latency = Latency,
-																			  status_text = StatusText}
-												}
-										end;
+										{ok, request, Request#request{code = 200, 
+																	  latency = Latency,
+																	  status_text = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency)}};
 									 _ -> 
-										StatusText = ems_util:format_rest_status(400, Reason, ReasonDetail, undefined, Latency),
 										% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 										case ems_util:get_user_request_by_login(Request) of
 											{ok, UserFound} -> User = UserFound;
 											_ -> User = undefined
 										end,
-										case ShowDebugResponseHeaders of
-											true ->
-												Request2 = Request#request{code = 400, 
-																		   content_type_out = ?CONTENT_TYPE_JSON,
-																		   reason = Reason, 
-																		   reason_detail = ReasonDetail,
-																		   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																		   response_data = ems_schema:to_json({error, Reason}), 
-																		   user = User,
-																		   latency = Latency,
-																		   status_text = StatusText};
-											false ->
-												Request2 = Request#request{code = 400, 
-																		   content_type_out = ?CONTENT_TYPE_JSON,
-																		   reason = Reason, 
-																		   reason_detail = ReasonDetail,
-																		   response_data = ems_schema:to_json({error, Reason}), 
-																		   user = User,
-																		   latency = Latency,
-																		   status_text = StatusText}
-										end,
-										{error, request, Request2}
+										{error, request, Request#request{code = 400, 
+																		 content_type_out = ?CONTENT_TYPE_JSON,
+																		 reason = Reason, 
+																		 reason_detail = ReasonDetail,
+																		 response_data = ems_schema:to_json({error, Reason}), 
+																		 user = User,
+																		 latency = Latency,
+																		 status_text = ems_util:format_rest_status(400, Reason, ReasonDetail, undefined, Latency)}}
 								end
 						end;
 					false -> 
 						ems_logger:info("ems_dispatcher execute restrict IP to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 						Latency = ems_util:get_milliseconds() - T1,
-						ResponseHeader = Request#request.response_header,
-						StatusText = ems_util:format_rest_status(400, access_denied, host_denied, undefined, Latency),
 						% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 						case ems_util:get_user_request_by_login(Request) of
 							{ok, UserFound} -> User = UserFound;
 							_ -> User = undefined
 						end,
-						case ShowDebugResponseHeaders of
-							true ->
-								Request2 = Request#request{code = 400, 
-														   content_type_out = ?CONTENT_TYPE_JSON,
-														   reason = access_denied, 
-														   reason_detail = host_denied,
-														   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-														   response_data = ?HOST_DENIED_JSON, 
-														   user = User,
-														   latency = Latency,
-														   status_text = StatusText};
-							false ->
-								Request2 = Request#request{code = 400, 
-														   content_type_out = ?CONTENT_TYPE_JSON,
-														   reason = access_denied, 
-														   reason_detail = host_denied,
-														   response_data = ?HOST_DENIED_JSON, 
-														   user = User,
-														   latency = Latency,
-														   status_text = StatusText}
-						end,
-						{error, request, Request2}
+						{error, request, Request#request{code = 400, 
+														 content_type_out = ?CONTENT_TYPE_JSON,
+														 reason = access_denied, 
+														 reason_detail = host_denied,
+														 response_data = ?HOST_DENIED_JSON, 
+														 user = User,
+														 latency = Latency,
+														 status_text = ems_util:format_rest_status(400, access_denied, host_denied, undefined, Latency)}}
 				end;
 			false ->
 				ems_logger:info("ems_dispatcher execute restrict User-Agent to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 				Latency = ems_util:get_milliseconds() - T1,
-				ResponseHeader = Request#request.response_header,
-				StatusText = ems_util:format_rest_status(400, access_denied, user_agent_denied, undefined, Latency),
-				case ShowDebugResponseHeaders of
-					true ->
-						RequestUA = Request#request{code = 400, 
-												   content_type_out = ?CONTENT_TYPE_JSON,
-												   reason = access_denied, 
-												   reason_detail = user_agent_denied,
-												   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-												   response_data = ?ACCESS_DENIED_JSON, 
-												   user = undefined,
-												   latency = Latency,
-												   status_text = StatusText};
-					false ->
-						RequestUA = Request#request{code = 400, 
-												   content_type_out = ?CONTENT_TYPE_JSON,
-												   reason = access_denied, 
-												   reason_detail = user_agent_denied,
-												   response_data = ?ACCESS_DENIED_JSON, 
-												   user = undefined,
-												   latency = Latency,
-												   status_text = StatusText}
-				end,
+				RequestUA = Request#request{code = 400, 
+										   content_type_out = ?CONTENT_TYPE_JSON,
+										   reason = access_denied, 
+										   reason_detail = user_agent_denied,
+										   response_data = ?ACCESS_DENIED_JSON, 
+										   user = undefined,
+										   latency = Latency,
+										   status_text = ems_util:format_rest_status(400, access_denied, user_agent_denied, undefined, Latency)},
 				{error, request, RequestUA}
 		end
 	catch
@@ -536,8 +415,8 @@ dispatch_middleware_function(Request = #request{reason = ok,
 												content_length = ContentLength,
 												service = #service{middleware = Middleware,
 												 				   result_cache = ResultCache,
-												 				   result_cache_shared = ResultCacheShared}},
-							 ShowDebugResponseHeaders) ->
+												 				   result_cache_shared = _ResultCacheShared}},
+							 _ShowDebugResponseHeaders) ->
 	T3 = ems_util:get_milliseconds(),
 	Latency = T3 - T1,
 	try
@@ -558,59 +437,32 @@ dispatch_middleware_function(Request = #request{reason = ok,
 									 reason = Reason2,
 									 reason_detail = ReasonDetail,
 									 reason_exception = ReasonException,
-									 response_header = ResponseHeader}} ->
+									 response_header = _ResponseHeader}} ->
 				StatusText = ems_util:format_rest_status(Code, Reason2, ReasonDetail, ReasonException, Latency),
 				case Type =:= <<"GET">> of
 					true -> 
 						case ResultCache > 0 andalso ContentLength < ?RESULT_CACHE_MAX_SIZE_ENTRY of
 							true ->
-								case ShowDebugResponseHeaders of
-									false ->
-										Request3 = Request2#request{latency = ems_util:get_milliseconds() - T1,
-																	status = req_done,
-																	status_text = StatusText};
-									true ->
-										Request3 = Request2#request{response_header = ResponseHeader#{<<"x-ems-result-cache">> => integer_to_binary(ResultCache),
-																									  <<"x-ems-result-cache-shared">> => ems_util:boolean_to_binary(ResultCacheShared),
-																									  <<"x-ems-status">> => StatusText},
-																	latency = T3 - T1,
-																	status = req_done,
-																	status_text = StatusText}
-								end,
-								notity_workers_waiting_result_cache(ReqHash, Request3),
+								Request3 = Request2#request{latency = ems_util:get_milliseconds() - T1,
+															status = req_done,
+															status_text = StatusText},
+								notify_workers_waiting_result_cache(ReqHash, Request3),
 								{ok, request, Request3};
 							false -> 
-								case ShowDebugResponseHeaders of
-									false ->
-										{ok, request, Request2#request{latency = T3 - T1,
-																		status = req_done,
-																		status_text = StatusText}};
-									true ->
-										{ok, request, Request2#request{response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-																	   latency = T3 - T1,
-																	   status = req_done,
-																	   status_text = StatusText}}
-								end
+								{ok, request, Request2#request{latency = T3 - T1,
+																status = req_done,
+																status_text = StatusText}}
 						end;
 					false ->
 						ets:insert(ems_dispatcher_post_time, {post_time, T3}),
-						case ShowDebugResponseHeaders of
-							true ->
-								{ok, request, Request2#request{response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
-															   latency = Latency,
-															   status_text = StatusText}};
-							false ->
-								{ok, request, Request2#request{latency = Latency,
-															   status_text = StatusText}}
-						end
+						{ok, request, Request2#request{latency = Latency,
+													   status_text = StatusText}}
 				end;
 			{error, Reason2} = Error ->
-				ResponseHeader = Request#request.response_header,
 				StatusText = ems_util:format_rest_status(500, Reason2, edispatcher_middleware_failed, undefined, Latency),
 				{error, request, Request#request{code = 500,
 												 reason = Reason2,
 												 content_type_out = ?CONTENT_TYPE_JSON,
-												 response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
 												 response_data = ems_schema:to_json(Error),
 												 latency = Latency,
 												 status_text = StatusText}}
@@ -626,24 +478,15 @@ dispatch_middleware_function(Request = #request{reason = ok,
 	end;
 dispatch_middleware_function(Request = #request{t1 = T1, 
 												code = Code, 
-												response_header = ResponseHeader,
 												reason = Reason,
 												reason_detail = ReasonDetail,
 												reason_exception = ReasonException,
 											    service = #service{}},
-							 ShowDebugResponseHeaders) ->
+							 _ShowDebugResponseHeaders) ->
 	T3 = ems_util:get_milliseconds(),
 	Latency = T3 - T1,
 	StatusText = ems_util:format_rest_status(Code, Reason, ReasonDetail, ReasonException, Latency),
-	case ShowDebugResponseHeaders of
-		true ->
-			{error, request, Request#request{content_type_out = ?CONTENT_TYPE_JSON,
-											 response_header = ResponseHeader#{<<"x-ems_status">> => StatusText},
-											 latency = Latency,
-											 status_text = StatusText}};
-		false ->	
-			{error, request, Request#request{content_type_out = ?CONTENT_TYPE_JSON,
-											 latency = Latency,
-											 status_text = StatusText}}
-	end.
+	{error, request, Request#request{content_type_out = ?CONTENT_TYPE_JSON,
+									 latency = Latency,
+									 status_text = StatusText}}.
 

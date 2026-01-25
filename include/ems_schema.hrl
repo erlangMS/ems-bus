@@ -9,7 +9,7 @@
 -record(encode_request_state, {http_max_content_length,
 							   http_header_default,
 							   http_header_options,
-							   show_debug_response_headers,
+							   debug,
 							   current_node}).
 
 -record(sequence, {key :: atom(), 
@@ -539,7 +539,6 @@
 					restricted = false :: boolean(),%% 77 - restricted-> Serviço restrito aos admins
 					glyphicon :: binary(),%% 78 - glyphicon-> classe css do glyphicon
 					metadata :: binary(),%% 79 - metadata -> Representação em json do que será enviado para o web service /catalog
-					show_debug_response_headers = false :: boolean(),%% 80 - show_debug_response_headers-> Add debug headers in HTTP response headers
 					result_cache_shared = true :: boolean(),					%% 81 - result_cache_shared					-> true if resulta cache is shared between requests
 					log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
 					log_show = true :: boolean()								%% 82 - log_show								
@@ -626,7 +625,6 @@
 			   boolean_type,								%% 77 - restricted
 			   binary_type,									%% 78 - glyphicon
 			   binary_type,									%% 79 - metadata
-			   boolean_type,								%% 80 - show_debug_response_headers
 			   boolean_type,								%% 81 - result_cache_shared
 			   boolean_type,								%% 82 - log_show_response_header
 			   boolean_type									%% 82 - log_show

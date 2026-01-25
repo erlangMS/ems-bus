@@ -13,11 +13,20 @@
 
 -export([init/2]).
 
-init(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDefault,
-											  show_debug_response_headers = ShowDebugResponseHeaders}) ->
+init(CowboyReq, State = #encode_request_state{http_header_options = HttpHeaderOptions}) ->
+	case cowboy_req:method(CowboyReq) of
+		<<"OPTIONS">> ->
+			Response = cowboy_req:reply(200, HttpHeaderOptions, <<>>, CowboyReq),
+			{ok, Response, State};
+		_ ->
+			init_common(CowboyReq, State)
+	end.
+
+init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDefault,
+													debug = Debug}) ->
 	case ems_util:encode_request_cowboy(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
-			case ems_dispatcher:dispatch_request(Request, Service, ShowDebugResponseHeaders) of
+			case ems_dispatcher:dispatch_request(Request, Service, Debug) of
 				{ok, request, Request2 = #request{code = Code,
 												  response_header = ResponseHeader,
 												  response_data = ResponseData,

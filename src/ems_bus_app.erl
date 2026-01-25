@@ -23,6 +23,8 @@ start(_StartType, StartArgs) ->
 			ems_cache:new(ets_result_cache_get),
 			ems_cache:new(ems_user_cache),
 			ems_cache:new(ems_db_parsed_query_cache),
+			% Table for waiting workers for result_cache (atomic registration)
+			ets:new(ets_result_cache_waiting, [duplicate_bag, named_table, public, {write_concurrency, true}]),
 			ets:new(ems_dispatcher_post_time, [set, named_table, public]),
 			ets:insert(ems_dispatcher_post_time, {post_time, 0}),
 			ets:new(ctrl_node_dispatch, [set, named_table, public]),
@@ -79,7 +81,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  log_show_response_max_length: ~p bytes (~p KB, ~p MB, ~p GB).", [Conf#config.log_show_response_max_length, round(Conf#config.log_show_response_max_length/1024), round(Conf#config.log_show_response_max_length/1048576), round(Conf#config.log_show_response_max_length/1073741824)]),
 			ems_logger:info("  log_show_payload_max_length: ~p bytes (~p KB, ~p MB, ~p GB).", [Conf#config.log_show_payload_max_length, round(Conf#config.log_show_payload_max_length/1024), round(Conf#config.log_show_payload_max_length/1048576), round(Conf#config.log_show_payload_max_length/1073741824)]),
 			ems_logger:info("  log_show_odbc_pool_activity: ~p.", [Conf#config.log_show_odbc_pool_activity]),
-			ems_logger:info("  show_debug_response_headers: ~p.", [Conf#config.show_debug_response_headers]),
+			ems_logger:info("  debug: ~p.", [Conf#config.debug]),
 			ems_logger:info("  result_cache: ~pms.", [Conf#config.ems_result_cache]),
 			ems_logger:info("  result_cache_shared: ~p.", [Conf#config.ems_result_cache_shared]),
 			ems_logger:info("  result_cache_enabled: ~p.", [Conf#config.ems_result_cache_enabled]),

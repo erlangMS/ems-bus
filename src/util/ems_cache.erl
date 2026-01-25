@@ -102,14 +102,25 @@ cap_ttl(TTL) when TTL > ?CACHE_MAX_TTL ->
 	?CACHE_MAX_TTL;
 cap_ttl(TTL) -> TTL.
 
-%% @doc Check if cache can accept more entries
+%% @doc Check if cache can accept more entries. If full, evict some entries.
 can_add_entry(CacheName) ->
 	case ets:info(CacheName, size) of
 		undefined -> false;  % Cache doesn't exist
 		Size when Size >= ?CACHE_MAX_ENTRIES -> 
-			ems_logger:warn("ems_cache: ~p reached max entries (~p)", [CacheName, ?CACHE_MAX_ENTRIES]),
-			false;
+			ems_logger:info("ems_cache: ~p reached max entries (~p), starting eviction...", [CacheName, ?CACHE_MAX_ENTRIES]),
+			evict_entries(CacheName, round(?CACHE_MAX_ENTRIES * 0.1) + 1),
+			true;
 		_ -> true
+	end.
+
+%% @doc Evict N entries from the cache using ETS first/next (pseudo-random for set)
+evict_entries(_CacheName, 0) -> ok;
+evict_entries(CacheName, N) ->
+	case ets:first(CacheName) of
+		'$end_of_table' -> ok;
+		Key ->
+			ets:delete(CacheName, Key),
+			evict_entries(CacheName, N - 1)
 	end.
 
 %% @doc Initializes a cache.

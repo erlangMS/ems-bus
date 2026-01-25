@@ -48,11 +48,10 @@ init({IpAddress,
 						   http_max_content_length = HttpMaxContentLength},
 	  ListenerName}) ->
     Conf = ems_config:getConfig(),
-    EmsResponseHeaders = Conf#config.show_debug_response_headers,
     State = #encode_request_state{http_max_content_length = HttpMaxContentLength,
 									http_header_default = Conf#config.http_headers,
 									http_header_options = Conf#config.http_headers_options,
-									show_debug_response_headers = EmsResponseHeaders,
+									debug = Conf#config.debug,
 									current_node = ems_util:node_binary()},
 	Dispatch = cowboy_router:compile([
 		{'_', [

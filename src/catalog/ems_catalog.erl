@@ -98,7 +98,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 			   AuthorizationPublicCheckCredential,
 			   HttpMaxContentLength, HttpHeaders, 
 			   LogShowResponse, LogShowResponseHeader, LogShowPayload, Restricted,
-			   ShowDebugResponseHeader, LogShow, Version) ->
+			   LogShow, Version) ->
 	PatternKey = ems_util:make_rowid_from_url(Url, Type),
 	{ok, Id_re_compiled} = re:compile(PatternKey),
 	Contract = #service{
@@ -175,8 +175,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					log_show_response_header = LogShowResponseHeader,
 					log_show_payload = LogShowPayload,
 					log_show = LogShow,
-					restricted = Restricted,
-					show_debug_response_headers = ShowDebugResponseHeader
+					restricted = Restricted
 				},
 	Contract#service{metadata = get_metadata_json(Version, Contract)}.
 	
@@ -197,7 +196,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			AuthorizationPublicCheckCredential,
 			HttpMaxContentLength, HttpHeaders, 
 			LogShowResponse, LogShowResponseHeader, LogShowPayload, 
-			Restricted,	ShowDebugResponseHeader, LogShow, Version) ->
+			Restricted, LogShow, Version) ->
 	Contract = #service{
 				id = Id,
 				rowid = Rowid,
@@ -270,8 +269,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 				log_show_response_header = LogShowResponseHeader,
 				log_show_payload = LogShowPayload,
 				log_show = LogShow,
-				restricted = Restricted,
-				show_debug_response_headers = ShowDebugResponseHeader
+				restricted = Restricted
 			},
 	Contract#service{metadata = get_metadata_json(Version, Contract)}.
 
@@ -367,7 +365,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 http_headers = HttpHeadersDefault,
 								 rest_default_querystring = RestDefaultQuerystring,
 								 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentialsDefault,
-								 show_debug_response_headers = ShowDebugResponseHeadersDefault,
+								 _debug = _ShowDebugResponseHeadersDefault,
 								 log_show_response = LogShowResponseDefault,
 								 log_show_response_header = LogShowResponseHeaderDefault,
 								 log_show_payload = LogShowPayloadDefault, 
@@ -465,9 +463,6 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				
 				put(parse_step, async),
 				Async = ems_util:parse_bool(get_p(<<"async">>, Map, false)),
-
-				put(parse_step, show_debug_response_headers),
-				ShowDebugResponseHeader = ems_util:parse_bool(get_p(<<"show_debug_response_headers">>, Map, ShowDebugResponseHeadersDefault)),
 
 				put(parse_step, make_rowid),
 				Rowid = ems_util:make_rowid(Url2),
@@ -717,7 +712,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												   AuthorizationPublicCheckCredential,
 												   HttpMaxContentLength, HttpHeaders, 
 												   LogShowResponse, LogShowResponseHeader, LogShowPayload,
-												   Restricted, ShowDebugResponseHeader, LogShow, Version);
+												   Restricted, LogShow, Version);
 					false -> 
 						put(parse_step, new_service),
 						Service = new_service(Rowid, Id, Name, Url2, 
@@ -744,7 +739,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												AuthorizationPublicCheckCredential,
 												HttpMaxContentLength, HttpHeaders, 
 												LogShowResponse, LogShowResponseHeader, LogShowPayload,
-												Restricted, ShowDebugResponseHeader, LogShow, Version)
+												Restricted, LogShow, Version)
 				end,
 				{ok, Service};
 			false -> 	

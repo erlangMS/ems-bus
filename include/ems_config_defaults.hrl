@@ -41,7 +41,6 @@
     <<"result_cache_enabled">> => true,
     <<"tcp_listen_address">> => [<<"0.0.0.0">>],
     <<"tcp_allowed_address">> => [<<"*.*.*.*">>],
-    <<"show_debug_response_headers">> => false,
     <<"static_file_path_probing">> => false,
     <<"static_file_path">> => #{<<"www_path">> => <<"priv/www">>},
     <<"smtp_port">> => 587,
