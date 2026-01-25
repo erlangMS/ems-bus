@@ -127,6 +127,7 @@
 		 parse_integer/1,
 		 match_ip_address/2,
  		 allow_ip_address/2,
+		 allow_user_agent/2,
 		 mask_ipaddress_to_tuple/1,
 		 encode_request_cowboy/3,
 		 msg_campo_obrigatorio/2, msg_email_invalido/2, mensagens/1,
@@ -1425,6 +1426,27 @@ posix_error_description(Code) -> atom_to_list(Code).
 allow_ip_address(_, all) -> true;
 allow_ip_address({127, 0, _,_}, _) -> true;
 allow_ip_address(Ip, AllowedAddress) -> match_ip_address(AllowedAddress, Ip).
+
+
+-spec allow_user_agent(any(), list(binary())) -> boolean().
+allow_user_agent(_, []) -> true;
+allow_user_agent(UserAgent, DeniedList) when is_binary(UserAgent) ->
+	case match_user_agent(DeniedList, UserAgent) of
+		true -> false;
+		false -> true
+	end;
+allow_user_agent(UserAgent, DeniedList) when is_list(UserAgent) -> 
+	allow_user_agent(list_to_binary(UserAgent), DeniedList);
+allow_user_agent(UserAgent, DeniedList) when is_atom(UserAgent) -> 
+	allow_user_agent(atom_to_binary(UserAgent, utf8), DeniedList);
+allow_user_agent(_, _) -> true.
+
+match_user_agent([], _) -> false;
+match_user_agent([Pattern|T], UserAgent) ->
+	case re:run(UserAgent, Pattern, [caseless]) of
+		nomatch -> match_user_agent(T, UserAgent);
+		_ -> true
+	end.
 
 
 %% @doc Retorna o mime-type do arquivo

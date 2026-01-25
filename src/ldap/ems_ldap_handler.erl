@@ -485,23 +485,23 @@ handle_bind_request(Name,
 						{ok, IsAdmin} -> 
 							BindReqHash = erlang:phash2([Ip, Port]),
 							put(BindReqHash, {IsAdmin, AdminLogin}),
-							ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~p success from ~p.", [atom_to_list(UidOrCn), Name, Ip]),
+							ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s success from ~s.", [atom_to_list(UidOrCn), Name, Ip]),
 							BindResponse = make_bind_response(success, Name);
 						_ ->
 						  case do_authenticate_admin_with_list_users(AdminLogin, Password, State, Ip, Port, TimestampBin) of
 							  {ok, #user{admin = IsAdmin, ctrl_source_type = Table}} -> 
 								 BindReqHash = erlang:phash2([Ip, Port]),
 								 put(BindReqHash, {IsAdmin, AdminLogin}),
-								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~p on table ~p success from ~p.", [atom_to_list(UidOrCn), Name, Table, Ip]),
+								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s on table ~p success from ~s.", [atom_to_list(UidOrCn), Name, Table, Ip]),
 								 BindResponse = make_bind_response(success, Name);
 							  _-> 
-								 ems_logger:error("ems_ldap_handler handle_bind_request bind_~s ~p invalid credential from ~p.", [atom_to_list(UidOrCn), Name, Ip]),
+								 ems_logger:error("ems_ldap_handler handle_bind_request bind_~s ~s invalid credential from ~s.", [atom_to_list(UidOrCn), Name, Ip]),
 								 BindResponse = make_bind_response(insufficientAccessRights, Name)
 						   end
 					end,
 					BindResponse;
 				{error, _Reason} -> 
-					ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~p.", [Name, Ip]),
+					ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~s from ~s.", [Name, Ip]),
 					BindResponse = make_bind_response(invalidCredentials, Name)
 			end
 	end,
@@ -524,8 +524,8 @@ handle_request_search_login(Name,
 					case Attribute of
 						<<>> ->
 							case BindRequestName of
-								<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~p does not exist from ~p.", [UserLogin, Ip]);
-								_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~p does not exist by ~p from ~p.", [UserLogin, BindRequestName, Ip])
+								<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~s does not exist from ~s.", [UserLogin, Ip]);
+								_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~s does not exist by ~s from ~s.", [UserLogin, BindRequestName, Ip])
 							end,
 							ResultDone = make_result_done(noSuchObject),
 							{ok, [ResultDone]};
@@ -535,8 +535,8 @@ handle_request_search_login(Name,
 									do_find_by_filter([{Field, <<"==">>, Name}], State, Ip, Port, TimestampBin, AttributesToReturn, UserLogin);
 								{error, einvalid_field} ->
 									case BindRequestName of
-										<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~p does not exist from ~p.", [UserLogin, Ip]);
-										_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~p does not exist by ~p from ~p.", [UserLogin, BindRequestName, Ip])
+										<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~s does not exist from ~s.", [UserLogin, Ip]);
+										_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~s does not exist by ~s from ~s.", [UserLogin, BindRequestName, Ip])
 									end,
 									ResultDone = make_result_done(noSuchAttribute),
 									{ok, [ResultDone]}
@@ -546,7 +546,7 @@ handle_request_search_login(Name,
 					ems_db:inc_counter(SearchSuccessMetricName),
 					case BindRequestName of
 						<<>> -> 
-							ems_logger:info("ems_ldap_handler handle_request_search_login unbind search ~p ~p success from ~p.", [UserLogin, User#user.name, Ip]),
+							ems_logger:info("ems_ldap_handler handle_request_search_login unbind search ~s ~s success from ~s.", [UserLogin, User#user.name, Ip]),
 							ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>]);
 						_ -> 
 							case IsAdmin of
@@ -556,10 +556,10 @@ handle_request_search_login(Name,
 								false -> 
 									case (BindRequestName =:= UserLogin) of
 										true -> 
-											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~p ~p success by ~p from ~p.", [UserLogin, User#user.name, BindRequestName, Ip]),
+											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~s ~s success by ~s from ~s.", [UserLogin, User#user.name, BindRequestName, Ip]),
 											ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 										false ->
-											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~p ~p success by ~p from ~p.", [UserLogin, User#user.name, BindRequestName, Ip]),
+											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~s ~s success by ~s from ~s.", [UserLogin, User#user.name, BindRequestName, Ip]),
 											ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>])
 									end
 							end
@@ -568,7 +568,7 @@ handle_request_search_login(Name,
 					{ok, [ResultEntry, ResultDone]}
 			end;
 		{error, _Reason} -> 
-			ems_logger:error("ems_ldap_handler handle_request_search_login inappropriate matching name ~p from ~p.", [Name, Ip]),
+			ems_logger:error("ems_ldap_handler handle_request_search_login inappropriate matching name ~s from ~s.", [Name, Ip]),
 			ResultDone = make_result_done(inappropriateMatching),
 			{ok, [ResultDone]}
 	end.

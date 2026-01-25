@@ -111,7 +111,8 @@
     <<"ssl_cacertfile">> => undefined,
     <<"ssl_certfile">> => undefined,
     <<"ssl_keyfile">> => undefined,
-    <<"crypto_blowfish_module_path">> => <<>>
+    <<"crypto_blowfish_module_path">> => <<>>,
+    <<"user_agent_denied_list">> => [<<"sqlmap">>, <<"nikto">>, <<"nmap">>, <<"nessus">>, <<"masscan">>, <<"zgrab">>, <<"w3af">>, <<"acunetix">>, <<"havij">>, <<"dirbuster">>, <<"gobuster">>, <<"hydra">>, <<"metasploit">>, <<"netsparker">>]
 }).
 
 -endif.

@@ -94,7 +94,10 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 		put(dispatch_request_step, dispatch_request_step_pass1),
 		?DEBUG("ems_dispatcher lookup request ~p.", [Request]),
 		ems_logger:info("ems_dispatcher begin execute. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
-		case ems_util:allow_ip_address(Ip, AllowedAddress) of
+		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
+		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
+			true ->
+				case ems_util:allow_ip_address(Ip, AllowedAddress) of
 			true ->	
 				put(dispatch_request_step, dispatch_request_step_pass2),
 				case ems_auth_user:authenticate(Service, Request) of
@@ -337,6 +340,35 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 				put(dispatch_request_step, dispatch_request_step_pass29),
 				put(dispatch_request_step, dispatch_request_step_pass30),
 				{error, request, Request2}
+				end;
+			false ->
+				ems_logger:info("ems_dispatcher execute restrict User-Agent to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+				put(dispatch_request_step, dispatch_request_step_ua_denied),
+				Latency = ems_util:get_milliseconds() - T1,
+				ResponseHeader = Request#request.response_header,
+				StatusText = ems_util:format_rest_status(400, access_denied, user_agent_denied, undefined, Latency),
+				case ShowDebugResponseHeaders of
+					true ->
+						RequestUA = Request#request{code = 400, 
+												   content_type_out = ?CONTENT_TYPE_JSON,
+												   reason = access_denied, 
+												   reason_detail = user_agent_denied,
+												   response_header = ResponseHeader#{<<"x-ems-status">> => StatusText},
+												   response_data = ?ACCESS_DENIED_JSON, 
+												   user = undefined,
+												   latency = Latency,
+												   status_text = StatusText};
+					false ->
+						RequestUA = Request#request{code = 400, 
+												   content_type_out = ?CONTENT_TYPE_JSON,
+												   reason = access_denied, 
+												   reason_detail = user_agent_denied,
+												   response_data = ?ACCESS_DENIED_JSON, 
+												   user = undefined,
+												   latency = Latency,
+												   status_text = StatusText}
+				end,
+				{error, request, RequestUA}
 		end
 	catch
 		_:ReasonException -> 

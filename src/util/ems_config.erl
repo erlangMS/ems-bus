@@ -284,6 +284,9 @@ parse_tcp_allowed_address(undefined) -> all;
 parse_tcp_allowed_address([<<"*.*.*.*">>]) -> all;
 parse_tcp_allowed_address(V) -> V.
 
+parse_user_agent_denied_list(undefined) -> [];
+parse_user_agent_denied_list(V) -> V.
+
 parse_http_headers(HttpHeaders, ShowDebugResponseHeaders, Hostname) ->
 	parse_http_headers_(maps:to_list(HttpHeaders), ShowDebugResponseHeaders, Hostname, []).
 
@@ -543,6 +546,10 @@ parse_config(Json, Filename) ->
 
 		put(parse_step, tcp_allowed_address),
 		TcpAllowedAddress = parse_tcp_allowed_address(get_p(<<"tcp_allowed_address">>, Json, all)),
+
+		put(parse_step, user_agent_denied_list),
+		UserAgentDeniedList = parse_user_agent_denied_list(get_p(<<"user_agent_denied_list">>, Json, [])),
+		ems_db:set_param(user_agent_denied_list, UserAgentDeniedList),
 		
 		put(parse_step, http_max_content_length),
 		HttpMaxContentLength = ems_util:parse_range(get_p(<<"http_max_content_length">>, Json, ?HTTP_MAX_CONTENT_LENGTH), 0, ?HTTP_MAX_CONTENT_LENGTH_BY_SERVICE),
@@ -789,7 +796,8 @@ parse_config(Json, Filename) ->
 				 crypto_blowfish_module_path = BlowfishCryptoModPath,
 				 instance_type = InstanceType,
 				 oauth2_resource_owner_find_permission_with_cpf = OAuth2ResourceOwnerFindPermissionWithCPF,
-				 oauth2_resource_owner_fields = OAuth2ResourceOwnerFields
+				 oauth2_resource_owner_fields = OAuth2ResourceOwnerFields,
+				 user_agent_denied_list = UserAgentDeniedList
 				 
 			},
 

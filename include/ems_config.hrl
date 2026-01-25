@@ -360,5 +360,6 @@
  				 auth_default_scope :: list(atom()),
  				 auth_password_check_between_scope :: boolean(),
  				 oauth2_jwt_secret :: binary(),
- 				 crypto_blowfish_module_path :: string()
+ 				 crypto_blowfish_module_path :: string(),
+				 user_agent_denied_list :: list(binary())
 		 }). 	
