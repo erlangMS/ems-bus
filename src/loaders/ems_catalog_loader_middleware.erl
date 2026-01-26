@@ -16,121 +16,89 @@
 
 -spec is_empty(fs | db) -> boolean().
 is_empty(db) ->	
-	mnesia:table_info(catalog_get_db, size) == 0 andalso
-	mnesia:table_info(catalog_post_db, size) == 0 andalso
-	mnesia:table_info(catalog_put_db, size) == 0 andalso
-	mnesia:table_info(catalog_delete_db, size) == 0 andalso
-	mnesia:table_info(catalog_options_db, size) == 0 andalso
-	mnesia:table_info(catalog_re_db, size) == 0 andalso
-	mnesia:table_info(catalog_kernel_db, size) == 0;
+	ets:info(ets_catalog_get_db, size) == 0 andalso
+	ets:info(ets_catalog_post_db, size) == 0 andalso
+	ets:info(ets_catalog_put_db, size) == 0 andalso
+	ets:info(ets_catalog_delete_db, size) == 0 andalso
+	ets:info(ets_catalog_options_db, size) == 0 andalso
+	ets:info(ets_catalog_re_db, size) == 0 andalso
+	ets:info(ets_catalog_kernel_db, size) == 0;
 is_empty(fs) ->	
-	mnesia:table_info(catalog_get_fs, size) == 0 andalso
-	mnesia:table_info(catalog_post_fs, size) == 0 andalso
-	mnesia:table_info(catalog_put_fs, size) == 0 andalso
-	mnesia:table_info(catalog_delete_fs, size) == 0 andalso
-	mnesia:table_info(catalog_options_fs, size) == 0 andalso
-	mnesia:table_info(catalog_re_fs, size) == 0 andalso
-	mnesia:table_info(catalog_kernel_fs, size) == 0.
+	ets:info(ets_catalog_get_fs, size) == 0 andalso
+	ets:info(ets_catalog_post_fs, size) == 0 andalso
+	ets:info(ets_catalog_put_fs, size) == 0 andalso
+	ets:info(ets_catalog_delete_fs, size) == 0 andalso
+	ets:info(ets_catalog_options_fs, size) == 0 andalso
+	ets:info(ets_catalog_re_fs, size) == 0 andalso
+	ets:info(ets_catalog_kernel_fs, size) == 0.
 	
 
 -spec size_table(fs | db) -> non_neg_integer().
 size_table(db) ->	
-	mnesia:table_info(catalog_get_db, size) +
-	mnesia:table_info(catalog_post_db, size) +
-	mnesia:table_info(catalog_put_db, size) +
-	mnesia:table_info(catalog_delete_db, size) +
-	mnesia:table_info(catalog_options_db, size) +
-	mnesia:table_info(catalog_re_db, size) +
-	mnesia:table_info(catalog_kernel_db, size);
+	ets:info(ets_catalog_get_db, size) +
+	ets:info(ets_catalog_post_db, size) +
+	ets:info(ets_catalog_put_db, size) +
+	ets:info(ets_catalog_delete_db, size) +
+	ets:info(ets_catalog_options_db, size) +
+	ets:info(ets_catalog_re_db, size) +
+	ets:info(ets_catalog_kernel_db, size);
 size_table(fs) ->	
-	mnesia:table_info(catalog_get_fs, size) +
-	mnesia:table_info(catalog_post_fs, size) +
-	mnesia:table_info(catalog_put_fs, size) +
-	mnesia:table_info(catalog_delete_fs, size) +
-	mnesia:table_info(catalog_options_fs, size) +
-	mnesia:table_info(catalog_re_fs, size) +
-	mnesia:table_info(catalog_kernel_fs, size).
+	ets:info(ets_catalog_get_fs, size) +
+	ets:info(ets_catalog_post_fs, size) +
+	ets:info(ets_catalog_put_fs, size) +
+	ets:info(ets_catalog_delete_fs, size) +
+	ets:info(ets_catalog_options_fs, size) +
+	ets:info(ets_catalog_re_fs, size) +
+	ets:info(ets_catalog_kernel_fs, size).
 	
 
 -spec clear_table(fs | db) -> ok | {error, efail_clear_ets_table}.
 clear_table(db) ->	
-	case mnesia:clear_table(catalog_get_db) of
-		{atomic, ok} -> 
-			case mnesia:clear_table(catalog_post_db) of
-				{atomic, ok} -> 
-					case mnesia:clear_table(catalog_put_db) of
-						{atomic, ok} ->
-							case mnesia:clear_table(catalog_delete_db) of
-								{atomic, ok} -> 
-									case mnesia:clear_table(catalog_options_db) of
-										{atomic, ok} -> 									
-											case mnesia:clear_table(catalog_re_db) of
-												{atomic, ok} -> 
-													case mnesia:clear_table(catalog_kernel_db) of
-														{atomic, ok} -> ok;
-														_ -> {error, efail_clear_ets_table}
-													end;
-												_ -> {error, efail_clear_ets_table}
-											end;
-										_ -> {error, efail_clear_ets_table}
-									end;
-								_ -> {error, efail_clear_ets_table}
-							end;
-						_ -> {error, efail_clear_ets_table}
-					end;
-				_ -> {error, efail_clear_ets_table}
-			end;
-		_ -> {error, efail_clear_ets_table}
+	try
+		ets:delete_all_objects(ets_catalog_get_db),
+		ets:delete_all_objects(ets_catalog_post_db),
+		ets:delete_all_objects(ets_catalog_put_db),
+		ets:delete_all_objects(ets_catalog_delete_db),
+		ets:delete_all_objects(ets_catalog_options_db),
+		ets:delete_all_objects(ets_catalog_re_db),
+		ets:delete_all_objects(ets_catalog_kernel_db),
+		ok
+	catch
+		_:_ -> {error, efail_clear_ets_table}
 	end;
 clear_table(fs) ->	
-	case mnesia:clear_table(catalog_get_fs) of
-		{atomic, ok} -> 
-			case mnesia:clear_table(catalog_post_fs) of
-				{atomic, ok} -> 
-					case mnesia:clear_table(catalog_put_fs) of
-						{atomic, ok} ->
-							case mnesia:clear_table(catalog_delete_fs) of
-								{atomic, ok} -> 
-									case mnesia:clear_table(catalog_options_fs) of
-										{atomic, ok} -> 									
-											case mnesia:clear_table(catalog_re_fs) of
-												{atomic, ok} -> 
-													case mnesia:clear_table(catalog_kernel_fs) of
-														{atomic, ok} -> ok;
-														_ -> {error, efail_clear_ets_table}
-													end;
-												_ -> {error, efail_clear_ets_table}
-											end;
-										_ -> {error, efail_clear_ets_table}
-									end;
-								_ -> {error, efail_clear_ets_table}
-							end;
-						_ -> {error, efail_clear_ets_table}
-					end;
-				_ -> {error, efail_clear_ets_table}
-			end;
-		_ -> {error, efail_clear_ets_table}
+	try
+		ets:delete_all_objects(ets_catalog_get_fs),
+		ets:delete_all_objects(ets_catalog_post_fs),
+		ets:delete_all_objects(ets_catalog_put_fs),
+		ets:delete_all_objects(ets_catalog_delete_fs),
+		ets:delete_all_objects(ets_catalog_options_fs),
+		ets:delete_all_objects(ets_catalog_re_fs),
+		ets:delete_all_objects(ets_catalog_kernel_fs),
+		ok
+	catch
+		_:_ -> {error, efail_clear_ets_table}
 	end.
 	
 	
 -spec reset_sequence(fs | db) -> ok.
 reset_sequence(db) ->	
-	ems_db:init_sequence(catalog_get_db, 0),
-	ems_db:init_sequence(catalog_post_db, 0),
-	ems_db:init_sequence(catalog_put_db, 0),
-	ems_db:init_sequence(catalog_delete_db, 0),
-	ems_db:init_sequence(catalog_options_db, 0),
-	ems_db:init_sequence(catalog_re_db, 0),
-	ems_db:init_sequence(catalog_kernel_db, 0),
+	ems_db:init_sequence(ets_catalog_get_db, 0),
+	ems_db:init_sequence(ets_catalog_post_db, 0),
+	ems_db:init_sequence(ets_catalog_put_db, 0),
+	ems_db:init_sequence(ets_catalog_delete_db, 0),
+	ems_db:init_sequence(ets_catalog_options_db, 0),
+	ems_db:init_sequence(ets_catalog_re_db, 0),
+	ems_db:init_sequence(ets_catalog_kernel_db, 0),
 	ok;
 reset_sequence(fs) ->	
-	ems_db:init_sequence(catalog_get_fs, 0),
-	ems_db:init_sequence(catalog_post_fs, 0),
-	ems_db:init_sequence(catalog_put_fs, 0),
-	ems_db:init_sequence(catalog_delete_fs, 0),
-	ems_db:init_sequence(catalog_options_fs, 0),
-	ems_db:init_sequence(catalog_re_fs, 0),
-	ems_db:init_sequence(catalog_kernel_fs, 0),
+	ems_db:init_sequence(ets_catalog_get_fs, 0),
+	ems_db:init_sequence(ets_catalog_post_fs, 0),
+	ems_db:init_sequence(ets_catalog_put_fs, 0),
+	ems_db:init_sequence(ets_catalog_delete_fs, 0),
+	ems_db:init_sequence(ets_catalog_options_fs, 0),
+	ems_db:init_sequence(ets_catalog_re_fs, 0),
+	ems_db:init_sequence(ets_catalog_kernel_fs, 0),
 	ok.
 	
 	
@@ -152,11 +120,11 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 		case ems_catalog:new_from_map(Map, Conf) of
 			{ok, NewCatalog = #service{type = ServiceType, use_re = UseRE, rowid = Rowid, ctrl_modified = CtrlModified, ctrl_hash = CtrlHash, enable = Enable}} when Enable == true -> 
 				Table = ems_catalog:get_table(ServiceType, UseRE, SourceType),
-				case ems_catalog_lookup:find(Table, Rowid) of
-					{error, enoent} -> 
+				case ets:lookup(Table, Rowid) of
+					[] -> 
 						Catalog = NewCatalog#service{ctrl_insert = CtrlDate},
 						{ok, Catalog, Table, insert};
-					{ok, CurrentCatalog = #service{ctrl_hash = CurrentCtrlHash}} ->
+					[CurrentCatalog = #service{ctrl_hash = CurrentCtrlHash}] ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
 								?DEBUG("ems_catalog_loader_middleware update ~p from ~p.", [Map, SourceType]),

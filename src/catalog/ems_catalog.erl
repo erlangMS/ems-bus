@@ -756,18 +756,18 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 
 -spec get_table(#service{}, boolean(), fs | db) -> catalog_get_db | catalog_post_db | catalog_put_db | catalog_delete_db | catalog_options_db |
 												   catalog_get_fs | catalog_post_fs | catalog_put_fs | catalog_delete_fs | catalog_options_fs.
-get_table(_, true, db) -> catalog_re_db;
-get_table(_, true, fs) -> catalog_re_fs;
-get_table(<<"GET">>, _, db) -> catalog_get_db;
-get_table(<<"POST">>, _, db) -> catalog_post_db;
-get_table(<<"PUT">>, _, db) -> catalog_put_db;
-get_table(<<"DELETE">>, _, db) -> catalog_delete_db;
-get_table(<<"OPTIONS">>, _, db) -> catalog_options_db;
-get_table(<<"KERNEL">>, _, db) -> catalog_kernel_db;
-get_table(<<"GET">>, _, fs) -> catalog_get_fs;
-get_table(<<"POST">>, _, fs) -> catalog_post_fs;
-get_table(<<"PUT">>, _, fs) -> catalog_put_fs;
-get_table(<<"DELETE">>, _, fs) -> catalog_delete_fs;
-get_table(<<"OPTIONS">>, _, fs) -> catalog_options_fs;
-get_table(<<"KERNEL">>, _, fs) -> catalog_kernel_fs.
+get_table(_, true, db) -> ets_catalog_re_db;
+get_table(_, true, fs) -> ets_catalog_re_fs;
+get_table(<<"GET">>, _, db) -> ets_catalog_get_db;
+get_table(<<"POST">>, _, db) -> ets_catalog_post_db;
+get_table(<<"PUT">>, _, db) -> ets_catalog_put_db;
+get_table(<<"DELETE">>, _, db) -> ets_catalog_delete_db;
+get_table(<<"OPTIONS">>, _, db) -> ets_catalog_options_db;
+get_table(<<"KERNEL">>, _, db) -> ets_catalog_kernel_db;
+get_table(<<"GET">>, _, fs) -> ets_catalog_get_fs;
+get_table(<<"POST">>, _, fs) -> ets_catalog_post_fs;
+get_table(<<"PUT">>, _, fs) -> ets_catalog_put_fs;
+get_table(<<"DELETE">>, _, fs) -> ets_catalog_delete_fs;
+get_table(<<"OPTIONS">>, _, fs) -> ets_catalog_options_fs;
+get_table(<<"KERNEL">>, _, fs) -> ets_catalog_kernel_fs.
 

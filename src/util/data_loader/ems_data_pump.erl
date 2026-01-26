@@ -43,7 +43,7 @@ do_insert_record(Record, CtrlInsert, Conf, Name, Middleware, SourceType, Fields)
 do_insert_record(Map, CtrlInsert, Conf, Name, Middleware, SourceType, _Fields) ->
 	case apply(Middleware, insert_or_update, [Map, CtrlInsert, Conf, SourceType, insert]) of
 		{ok, Record, Table, insert} ->
-			mnesia:dirty_write(Table, Record),
+			db_write(Table, Record),
 			{ok, insert};
 		{ok, Record, _, update} ->
 			?DEBUG("~s skips data with duplicate key: ~p.", [Name, Record]),
@@ -63,7 +63,7 @@ do_update_record(Record, CtrlUpdate, Conf, Name, Middleware, SourceType, Fields)
 do_update_record(Map, CtrlUpdate, Conf, Name, Middleware, SourceType, _Fields) ->
 	case apply(Middleware, insert_or_update, [Map, CtrlUpdate, Conf, SourceType, update]) of
 		{ok, Record, Table, Operation} ->
-			mnesia:dirty_write(Table, Record),
+			db_write(Table, Record),
 			{ok, Operation};
 		{ok, skip} -> 
 			{ok, skip};
@@ -71,6 +71,12 @@ do_update_record(Map, CtrlUpdate, Conf, Name, Middleware, SourceType, _Fields) -
 		{error, Reason} = Error ->	
 			ems_logger:error("~s data update error: ~p.", [Name, Reason]),
 			Error
+	end.
+
+db_write(Table, Record) ->
+	case atom_to_list(Table) of
+		"ets_" ++ _ -> ets:insert(Table, Record);
+		_ -> mnesia:dirty_write(Table, Record)
 	end.
 
 

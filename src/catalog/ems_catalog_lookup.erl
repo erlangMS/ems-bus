@@ -20,18 +20,18 @@
 		 list_kernel_catalog/0, 
 		 list_re_catalog/0]).
 
--spec find(catalog_get_fs | catalog_post_fs | catalog_put_fs | catalog_delete_fs | catalog_options_fs | catalog_kernel_fs |
-		   catalog_get_db | catalog_post_db | catalog_put_db | catalog_delete_db | catalog_options_db | catalog_kernel_db,
+-spec find(ets_catalog_get_fs | ets_catalog_post_fs | ets_catalog_put_fs | ets_catalog_delete_fs | ets_catalog_options_fs | ets_catalog_kernel_fs |
+		   ets_catalog_get_db | ets_catalog_post_db | ets_catalog_put_db | ets_catalog_delete_db | ets_catalog_options_db | ets_catalog_kernel_db,
 		   non_neg_integer()) -> {ok, #service{}} | {error, enoent}.
 find(Table, Rowid) ->
-	case mnesia:dirty_index_read(Table, Rowid, #service.rowid) of
+	case ets:lookup(Table, Rowid) of
 		[] -> {error, enoent};
 		[Record|_] -> {ok, Record}
 	end.
 
--spec all(catalog_get_fs | catalog_post_fs | catalog_put_fs | catalog_delete_fs | catalog_options_fs | catalog_kernel_fs |
-		   catalog_get_db | catalog_post_db | catalog_put_db | catalog_delete_db | catalog_options_db | catalog_kernel_db) -> list() | {error, atom()}.
-all(Table) -> ems_db:all(Table).
+-spec all(ets_catalog_get_fs | ets_catalog_post_fs | ets_catalog_put_fs | ets_catalog_delete_fs | ets_catalog_options_fs | ets_catalog_kernel_fs |
+		   ets_catalog_get_db | ets_catalog_post_db | ets_catalog_put_db | ets_catalog_delete_db | ets_catalog_options_db | ets_catalog_kernel_db) -> list() | {error, atom()}.
+all(Table) -> {ok, ets:tab2list(Table)}.
 
 -spec lookup(#request{}) -> {error, enoent} | {#service{}, map(), map()}.
 lookup(Request) ->	

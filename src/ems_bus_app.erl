@@ -28,6 +28,23 @@ start(_StartType, StartArgs) ->
 			ets:new(ems_dispatcher_post_time, [set, named_table, public]),
 			ets:insert(ems_dispatcher_post_time, {post_time, 0}),
 			ets:new(ctrl_node_dispatch, [set, named_table, public]),
+			
+			% Catalog ETS tables
+			ets:new(ets_catalog_re_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_re_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_get_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_post_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_put_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_delete_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_options_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_kernel_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_get_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_post_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_put_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_delete_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_options_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+			ets:new(ets_catalog_kernel_fs, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),
+
 			Ret = ems_bus_sup:start_link(StartArgs),
 			AuthorizationMode = case Conf#config.authorization of
 									basic -> <<"basic, oauth2">>;

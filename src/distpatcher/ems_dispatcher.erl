@@ -400,7 +400,14 @@ dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
 						false -> ResponseDataReceived
 					end;
 				false -> 
-					ResponseDataReceived
+					case is_list(ResponseDataReceived) of
+						true -> 
+							try iolist_to_binary(ResponseDataReceived)
+							catch _:_ -> list_to_binary(io_lib:format("~p", [ResponseDataReceived]))
+							end;
+						false when is_atom(ResponseDataReceived) -> atom_to_binary(ResponseDataReceived, utf8);
+						false -> list_to_binary(io_lib:format("~p", [ResponseDataReceived]))
+					end
 			end,
 			Request2 = Request#request{code = Code,
 									   reason = Reason,
