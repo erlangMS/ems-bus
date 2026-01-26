@@ -54,7 +54,7 @@
         <<"access-control-max-age">> => <<"31536000">>,
         <<"access-control-allow-headers">> => <<"accept, accept-language, content-language, content-type, x-access_token, x-csrf-token, access-control-allow-origin, authorization, origin, x-requested-with, content-range, content-disposition, content-description">>,
         <<"access-control-allow-methods">> => <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>,
-        <<"access-control-expose-headers">> => <<"cache-control, content-language, content-type, expires, last-modified, pragma, content-length">>,
+        <<"access-control-expose-headers">> => <<"cache-control, content-language, content-type, expires, last-modified, content-length">>,
         <<"x-xss-protection">> => <<"1; mode=block">>,
         <<"x-frame-options">> => <<"SAMEORIGIN">>,
         <<"x-content-type-options">> => <<"nosniff">>
@@ -65,7 +65,7 @@
         <<"access-control-max-age">> => <<"31536000">>,
         <<"access-control-allow-headers">> => <<"accept, accept-language, content-language, content-type, x-access_token, x-csrf-token, access-control-allow-origin, authorization, origin, x-requested-with, content-range, content-disposition, content-description">>,
         <<"access-control-allow-methods">> => <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>,
-        <<"access-control-expose-headers">> => <<"cache-control, content-language, content-type, expires, last-modified, pragma, content-length">>,
+        <<"access-control-expose-headers">> => <<"cache-control, content-language, content-type, expires, last-modified, content-length">>,
         <<"x-xss-protection">> => <<"1; mode=block">>,
         <<"x-frame-options">> => <<"SAMEORIGIN">>,
         <<"x-content-type-options">> => <<"nosniff">>

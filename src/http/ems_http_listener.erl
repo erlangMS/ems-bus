@@ -63,21 +63,32 @@ init({IpAddress,
 	IpAddressStr = inet_parse:ntoa(IpAddress),
 	case IsSsl of
 		true -> 
-			Ret = cowboy:start_tls(ListenerName, #{socket_opts => [  {ip, IpAddress},
+			Ret = cowboy:start_tls(ListenerName, #{
+													num_acceptors => 100,
+													socket_opts => [ {ip, IpAddress},
 																	 {port, Port},
 																	 {cacertfile, binary_to_list(SslCaCertFile)},
 																	 {certfile, binary_to_list(SslCertFile)},
 																	 {keyfile, binary_to_list(SslKeyFile)},
 																	 {verify, verify_none},
-																	 {crl_check, false}
+																	 {crl_check, false},
+																	 {nodelay, true},
+																	 {keepalive, true},
+																	 {sndbuf, 2097152} % 2MB buffer
 																  ]
 												   },
 												 #{env => #{dispatch => Dispatch},
 												   idle_timeout => 300000});
 		false ->
 			Ret = cowboy:start_clear(ListenerName, 
-										#{socket_opts => [{ip, IpAddress}, 
-										 				  {port, Port}]}, 
+										#{
+										  num_acceptors => 100,
+										  socket_opts => [{ip, IpAddress}, 
+										 				  {port, Port},
+										 				  {nodelay, true},
+										 				  {keepalive, true},
+										 				  {sndbuf, 2097152} % 2MB buffer
+										 				 ]}, 
 										#{compress => true,
 										  env => #{dispatch => Dispatch},
 										  idle_timeout => 300000

@@ -330,7 +330,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 		T2 = ems_util:get_milliseconds(),
 		Msg = {{Rid, Url, binary_to_list(Type), ParamsMap, QuerystringMap, Payload, ContentType, ModuleName, FunctionName, 
 				ClientJson, UserJson, Metadata, {Scope, AccessToken}, T2, Timeout}, self()},
-		dispatch_service_work_send(Request, Service, Debug, Msg, 1)
+		dispatch_service_work_send(Request, Service, Debug, Msg)
 	catch
 		_:ReasonException -> 
 			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
@@ -338,17 +338,8 @@ dispatch_service_work(Request = #request{rid = Rid,
 	end.
 
 
-dispatch_service_work_send(Request = #request{t1 = T1}, 
-						   #service{}, _, _, 0) -> 
-	Latency = ems_util:get_milliseconds() - T1,
-	StatusText = ems_util:format_rest_status(400, eunavailable_service, in_dispatch_service_work_send, undefined, Latency),
-	{error, request, Request#request{code = 400,
-									 reason = eunavailable_service,
-									 content_type_out = ?CONTENT_TYPE_JSON,
-									 response_data = ?EUNAVAILABLE_SERVICE_JSON,
-									 latency = Latency,
-									 status_text = StatusText}};
 dispatch_service_work_send(Request = #request{type = Type, 
+											  t1 = T1,
 											  url_masked = UrlMasked, 
 											  url = Url,
 											  user_agent = UserAgent,
@@ -359,8 +350,7 @@ dispatch_service_work_send(Request = #request{type = Type,
 											  module = Module,
 											  timeout = TimeoutService},
 						   Debug,
-						   Msg,
-						   Count) ->
+						   Msg) ->
 	case get_work_node(Host, Host, HostName, ModuleName) of
 		{ok, Node} ->
 			{Module, Node} ! Msg,
@@ -370,24 +360,17 @@ dispatch_service_work_send(Request = #request{type = Type,
 					ems_logger:info("ems_dispatcher send ~s to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
 				false -> ok
 			end,
-			case Type of 
-				<<"GET">> -> TimeoutConfirmation = 120000;
-				_ -> TimeoutConfirmation = 90000
-			end,
-			receive 
-				ok -> 
-					case Debug of
-						true -> ems_logger:info("ems_dispatcher receive msg from Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [{Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
-						false -> ok
-					end,
-					dispatch_service_work_receive(Request, Service, Node, TimeoutService, 0, Debug)
-				after TimeoutConfirmation -> 
-					ems_logger:error("ems_dispatcher dispatch_service_work_send timeout confirmation ~p.", [{Module, Node}]),
-					dispatch_service_work_send(Request, Service, Debug, Msg, Count-1)
-			end;
-		Error ->  
+			dispatch_service_work_receive(Request, Service, Node, TimeoutService, 0, Debug);
+		_Error ->  
 			ems_logger:info("ems_dispatcher failed to get work node. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
-			Error
+			Latency = ems_util:get_milliseconds() - T1,
+			StatusText = ems_util:format_rest_status(400, eunavailable_service, in_dispatch_service_work_send, undefined, Latency),
+			{error, request, Request#request{code = 400,
+											 reason = eunavailable_service,
+											 content_type_out = ?CONTENT_TYPE_JSON,
+											 response_data = ?EUNAVAILABLE_SERVICE_JSON,
+											 latency = Latency,
+											 status_text = StatusText}}
 	end.
 		
 dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
@@ -401,18 +384,23 @@ dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
 	end,
 	receive 
 		{Code, RidRemote, {Reason, ResponseDataReceived}} when RidRemote == Rid  -> 
-			case Reason == ok andalso byte_size(ResponseDataReceived) >= 27 of
+			ResponseData = case is_binary(ResponseDataReceived) of
 				true ->
-					case ResponseDataReceived of
-						% Os dados recebidos do Java pode ser um array de bytes que possui um "header especial" que precisa ser removido do verdadeiro conteúdo
-						<<HeaderJavaSerializable:25/binary, _H2:2/binary, DataBin/binary>> -> 
-							case HeaderJavaSerializable =:= <<172,237,0,5,117,114,0,2,91,66,172,243,23,248,6,8,84,224,2,0,0,120,112,0,0>> of
-								true -> ResponseData = DataBin;
-								false -> ResponseData = ResponseDataReceived
+					case Reason == ok andalso byte_size(ResponseDataReceived) >= 27 of
+						true ->
+							case ResponseDataReceived of
+								% Os dados recebidos do Java pode ser um array de bytes que possui um "header especial" que precisa ser removido do verdadeiro conteúdo
+								<<HeaderJavaSerializable:25/binary, _H2:2/binary, DataBin/binary>> -> 
+									case HeaderJavaSerializable =:= <<172,237,0,5,117,114,0,2,91,66,172,243,23,248,6,8,84,224,2,0,0,120,112,0,0>> of
+										true -> DataBin;
+										false -> ResponseDataReceived
+									end;
+								_ -> ResponseDataReceived
 							end;
-						_ -> ResponseData = ResponseDataReceived
+						false -> ResponseDataReceived
 					end;
-				false -> ResponseData = ResponseDataReceived
+				false -> 
+					ResponseDataReceived
 			end,
 			Request2 = Request#request{code = Code,
 									   reason = Reason,
