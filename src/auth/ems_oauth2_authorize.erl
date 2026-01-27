@@ -21,8 +21,9 @@ execute(Request = #request{type = Type,
 			{error, eno_passport_present} ->		
 				case Type of
 					<<"GET">> -> 
-						GrantType = ems_util:get_querystring(<<"response_type">>, <<>>, Request),
-						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantTytpe: ~p.", [binary_to_list(GrantType)]);
+						GrantTypeRaw = ems_util:get_querystring(<<"response_type">>, <<>>, Request),
+						GrantType = normalize_grant_type(GrantTypeRaw),
+						ems_logger:info("ems_oauth2_authorize autenticate by oauth2 GrantType: ~p.", [binary_to_list(GrantType)]);
 					<<"POST">> -> 
 						GrantTypeRaw = ems_util:get_querystring(<<"grant_type">>, <<>>, Request),
 						% Implicit default: if missing or empty, assume "0" (authorization_code)

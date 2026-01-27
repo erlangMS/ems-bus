@@ -1,59 +1,280 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login Integrado | UnB</title>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&subset=latin,cyrillic-ext" rel="stylesheet"
-        type="text/css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" type="text/css">
-    <link href="libs.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* CSS Reset & Variables */
+        :root {
+            --primary-color: #003366;
+            --bg-color: #003366;
+            --card-bg: #fff;
+            --text-color: #555;
+            --error-color: #F44336;
+            --input-border: #ddd;
+            --input-focus: #1f91f3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .login-page {
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo a {
+            font-size: 36px;
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            font-weight: bold;
+        }
+
+        .logo small {
+            display: block;
+            font-size: 14px;
+            color: #fff;
+            margin-top: 5px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            overflow: hidden;
+        }
+
+        .msg {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        /* Form Elements */
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .input-icon {
+            padding: 0 10px 5px 0;
+            color: var(--text-color);
+            font-size: 24px;
+        }
+
+        .input-icon .material-icons {
+            font-size: 24px;
+        }
+
+        .form-line {
+            position: relative;
+            flex: 1;
+            border-bottom: 1px solid var(--input-border);
+        }
+
+        .form-line.focused {
+            border-bottom: 2px solid var(--input-focus);
+        }
+
+        .form-line.error {
+            border-bottom: 1px solid var(--error-color);
+        }
+
+        .form-control {
+            width: 100%;
+            border: none;
+            background: none;
+            padding: 5px 30px 5px 5px;
+            /* space for toggle icon */
+            font-size: 16px;
+            color: var(--text-color);
+            outline: none;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        /* Toggle Password Button */
+        .toggle-password {
+            position: absolute;
+            right: 0;
+            bottom: 5px;
+            cursor: pointer;
+            color: var(--text-color);
+            z-index: 10;
+        }
+
+        .toggle-password .material-icons {
+            font-size: 20px;
+        }
+
+        /* Error Labels */
+        label.error {
+            color: var(--error-color);
+            font-size: 12px;
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            display: none;
+        }
+
+        label.error.visible {
+            display: block;
+        }
+
+        /* Global Error Box */
+        .alert-danger {
+            background-color: #f2dede;
+            color: #a94442;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* Button */
+        .btn-login {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--primary-color);
+            /* Green #006633 */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s;
+        }
+
+        .btn-login:hover {
+            background-color: #004d26;
+            /* Darker Green for hover */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-login:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 
-<body class="login-page">
-    <div class="login-box">
+<body>
+
+    <div class="login-page">
         <div class="logo">
-            <a href="https://unb.br"><b>UnB</b></a>
+            <a href="https://unb.br">UnB</a>
             <small>Autenticação de Usuário</small>
         </div>
         <div class="card">
-            <div class="body">
-                <form id="sign_in" method="POST">
-                    <div class="msg">Informe os dados para autenticação</div>
-                    <div class="input-group">
-                        <span class="input-group-addon">
-                            <i class="material-icons">person</i>
+            <form id="sign_in" autocomplete="off" novalidate>
+                <div class="msg">Informe os dados para autenticação</div>
+
+                <div id="error"></div>
+
+                <div class="input-group">
+                    <span class="input-icon">
+                        <i class="material-icons">person</i>
+                    </span>
+                    <div class="form-line" id="line-username">
+                        <input type="text" class="form-control" name="username" id="username" placeholder="Usuário"
+                            required autofocus autocomplete="username">
+                        <label class="error" id="error-username">Este campo é obrigatório.</label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <span class="input-icon">
+                        <i class="material-icons">lock</i>
+                    </span>
+                    <div class="form-line" id="line-pass">
+                        <input type="password" class="form-control" name="pass" id="pass" placeholder="Senha" required
+                            autocomplete="current-password">
+                        <span class="toggle-password" id="togglePassword" title="Exibir/Ocultar Senha">
+                            <i class="material-icons">visibility</i>
                         </span>
-                        <div class="form-line">
-                            <input type="text" class="form-control" name="username" id="username" autocomplete="off"
-                                placeholder="Usuário" maxlength="32" required autofocus>
-                        </div>
+                        <label class="error" id="error-pass">Este campo é obrigatório.</label>
                     </div>
-                    <div class="input-group">
-                        <span class="input-group-addon">
-                            <i class="material-icons">lock</i>
-                        </span>
-                        <div class="form-line">
-                            <input type="password" class="form-control" name="pass" id="pass" autocomplete="off"
-                                placeholder="Senha" maxlength="32" required>
-                        </div>
-                    </div>
-                    <span id="error"></span>
-                    <div class="row">
-                        <div class="col-xs-6 p-t-5">
-                        </div>
-                        <div class="col-xs-6">
-                            <button class="btn btn-block bg-green waves-effect" id="enter"
-                                type="submit">AUTENTICAR</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button class="btn-login" type="submit" id="enter">AUTENTICAR</button>
+                </div>
+            </form>
         </div>
     </div>
+
     <script src="libs.js"></script>
     <script src="login.js"></script>
+    <script>
+        // UI Enhancements (non-logic)
+        document.addEventListener('DOMContentLoaded', function () {
+            var inputUser = document.getElementById('username');
+            var inputPass = document.getElementById('pass');
+            var lineUser = document.getElementById('line-username');
+            var linePass = document.getElementById('line-pass');
+            var errorUser = document.getElementById('error-username');
+            var errorPass = document.getElementById('error-pass');
+            var togglePass = document.getElementById('togglePassword');
+            var generalError = document.getElementById('error');
+
+            // Visual Focus/Blur handling (Material Design style)
+            function setFocus(lineEl, isFocused) {
+                if (isFocused) lineEl.classList.add('focused');
+                else lineEl.classList.remove('focused');
+                if (isFocused) {
+                    lineEl.classList.remove('error');
+                    if (lineEl === lineUser) errorUser.classList.remove('visible');
+                    if (lineEl === linePass) errorPass.classList.remove('visible');
+                    // Note: generalError validation removal is handled in login.js
+                }
+            }
+
+            inputUser.addEventListener('focus', function () { setFocus(lineUser, true); });
+            inputUser.addEventListener('blur', function () { setFocus(lineUser, false); });
+            inputPass.addEventListener('focus', function () { setFocus(linePass, true); });
+            inputPass.addEventListener('blur', function () { setFocus(linePass, false); });
+
+            // Password Toggle
+            togglePass.addEventListener('click', function () {
+                var type = inputPass.getAttribute('type') === 'password' ? 'text' : 'password';
+                inputPass.setAttribute('type', type);
+                this.querySelector('.material-icons').innerText = type === 'password' ? 'visibility' : 'visibility_off';
+            });
+        });
+    </script>
 </body>
 
 </html>
