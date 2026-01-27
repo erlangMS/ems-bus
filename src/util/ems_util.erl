@@ -205,8 +205,7 @@ encode_request(Method, Uri) ->
 	{ok, #request{
 		type = Method,
 		uri = Uri,
-		url = binary_to_list(Uri),
-		timestamp = calendar:local_time()
+		url = binary_to_list(Uri)
 	}}.
 
 %% @doc Codifica binary para Base64 URL-safe (sem padding)
@@ -602,8 +601,8 @@ json_decode(JSON) ->
 			utf8 -> JSON;
 			_ -> erlang:error(einvalid_json_encoding)
 		end,
-		T = ?JSON_LIB:decode(JSON2),
-		{ok, element(1, T)}
+		T = ?JSON_LIB:decode(JSON2, [return_maps]),
+		{ok, T}
 	catch
 		_Exception:Reason -> {error, Reason}
 	end.
@@ -1554,6 +1553,7 @@ is_valid_content_type(<<"video/quicktime">>) -> true;
 is_valid_content_type(<<"video/vnd.vivo">>) -> true;
 is_valid_content_type(<<"video/x-ms-asf">>) -> true;
 is_valid_content_type(<<"video/x-ms-asx">>) -> true;
+is_valid_content_type(<<"video/x-ms-wmv">>) -> true;
 is_valid_content_type(<<"video/x-ms-wmx">>) -> true;
 is_valid_content_type(<<"video/x-ms-wvx">>) -> true;
 is_valid_content_type(<<"video/x-msvideo">>) -> true;
@@ -1599,7 +1599,6 @@ invoque_service(Type, Url, QuerystringBin, QuerystringMap, ContentTypeIn) ->
 	Url2 = remove_ult_backslash_url(binary_to_list(Url)),
 	{Rowid, Params_url} = hashsym_and_params(Url2),
 	RID = erlang:system_time(),
-	Timestamp = calendar:local_time(),
 	T1 = trunc(RID / 1.0e6), % optimized: same that get_milliseconds()
 	Request = #request{
 				rid = RID,
@@ -1620,21 +1619,17 @@ invoque_service(Type, Url, QuerystringBin, QuerystringMap, ContentTypeIn) ->
 				ip = {127,0,0,1},
 				ip_bin = <<"127.0.0.1">>,
 				host = <<"localhost">>,
-				timestamp = Timestamp,
 				authorization = <<>>,
 				worker_send = undefined,
 				if_modified_since = <<>>,
 				if_none_match = <<>>,
 				protocol = http,
-				protocol_bin = <<"http">>,
-				port = 2301,
 				result_cache = false,
 				t1 = T1,
 				referer = <<"ems-bus">>,
 				payload = <<>>, 
 				payload_map = #{},
-				response_data = <<>>,
-				node_exec = ems_util:node_binary()
+				response_data = <<>>
 			},	
 	case ems_catalog_lookup:lookup(Request) of
 		{Service = #service{content_type = ContentTypeService}, 
@@ -2142,7 +2137,6 @@ get_querystring(QueryName, OrQueryName2, Default, #request{querystring_map = Que
 load_from_file_req(Request = #request{url = Url,
 									  if_modified_since = IfModifiedSinceReq, 
 									  if_none_match = IfNoneMatchReq,
-									  timestamp = Timestamp,
 									  response_header = ResponseHeader,
 									  service = #service{expires = ExpiresService,
 														 path = Path,
@@ -2157,7 +2151,7 @@ load_from_file_req(Request = #request{url = Url,
 			MimeType = mime_type(filename:extension(Filename)),
 			ETag = integer_to_binary(erlang:phash2({FSize, MTime}, 16#ffffffff)),
 			LastModified = cowboy_clock:rfc1123(MTime),
-			ExpireDate = date_add_minute(Timestamp, ExpiresService + 180), 
+			ExpireDate = date_add_minute(calendar:local_time(), ExpiresService + 180), 
 			Expires = cowboy_clock:rfc1123(ExpireDate),
 			ems_logger:info("ems_static_file_service reading file \033[01;34m~p\033[0m (Size: ~p bytes) from url \033[01;34m~p\033[0m.", [Filename, FSize, Url]),
 			ResponseHeader2 = ResponseHeader#{

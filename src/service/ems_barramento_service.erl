@@ -21,7 +21,6 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 			{error, Request#request{code = 400, 
 									reason = enoent,
 								    reason_detail = eclient_name_undefined_error,
-									operation = barramento_service_check_client_name,
 									response_data = ?ENOENT_JSON}
 			};
 		AppName ->
@@ -88,7 +87,6 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 								{error, {error, enoent}} ->
 									{error, Request#request{code = 400, 
 															reason = einvalid_decode_client_json,
-															operation = json_decode_as_map,
 															response_data = <<"{\"error\": \"eget_client_error\"}"/utf8>>}
 									};
 								{ok, ClientLocal} ->
@@ -126,9 +124,7 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 					ems_logger:error("ems_barramento_service call ~p failed.\nReason: ~p.", [UriClient, Reason2]),
 					{error, Request#request{code = 400, 
 											reason = einvalid_decode_client_json,
-											operation = httpc_request,
 											response_data = <<"{\"error\": \"eoauth2_error\"}"/utf8>>}
 					}
 			end
 	end.
-

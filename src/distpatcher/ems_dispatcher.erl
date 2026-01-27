@@ -159,8 +159,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																					   etag = RequestCache#request.etag,
 																					   filename = RequestCache#request.filename,
 																					   latency = Latency,
-																					   status = req_done,
-																					   status_text = ems_util:format_rest_status(304, enot_modified, RequestCache#request.reason_detail, undefined, Latency)}};
+																					   status = req_done}};
 													false ->
 														{ok, request, Request2#request{result_cache = true,
 																						code = RequestCache#request.code,
@@ -173,8 +172,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																						etag = RequestCache#request.etag,
 																						filename = RequestCache#request.filename,
 																						latency = Latency,
-																						status = req_done,
-																						status_text = RequestCache#request.status_text}}
+																						status = req_done}}
 												end;
 											false ->
 												ems_cache:add(ets_result_cache_get, ResultCache, ReqHash, {T1, Request2, ResultCache, req_wait_result, self()}),
@@ -196,8 +194,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 								case Type of
 									"HEAD" -> 
 										{ok, request, Request#request{code = 200, 
-																	  latency = Latency,
-																	  status_text = ems_util:format_rest_status(200, Reason, ReasonDetail, undefined, Latency)}};
+																	  latency = Latency}};
 									 _ -> 
 										% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 										case ems_util:get_user_request_by_login(Request) of
@@ -210,8 +207,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 																		 reason_detail = ReasonDetail,
 																		 response_data = ems_schema:to_json({error, Reason}), 
 																		 user = User,
-																		 latency = Latency,
-																		 status_text = ems_util:format_rest_status(400, Reason, ReasonDetail, undefined, Latency)}}
+																		 latency = Latency}}
 								end
 						end;
 					false -> 
@@ -228,8 +224,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														 reason_detail = host_denied,
 														 response_data = ?HOST_DENIED_JSON, 
 														 user = User,
-														 latency = Latency,
-														 status_text = ems_util:format_rest_status(400, access_denied, host_denied, undefined, Latency)}}
+														 latency = Latency}}
 				end;
 			false ->
 				ems_logger:info("ems_dispatcher execute restrict User-Agent to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
@@ -240,8 +235,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 										   reason_detail = user_agent_denied,
 										   response_data = ?ACCESS_DENIED_JSON, 
 										   user = undefined,
-										   latency = Latency,
-										   status_text = ems_util:format_rest_status(400, access_denied, user_agent_denied, undefined, Latency)},
+										   latency = Latency},
 				{error, request, RequestUA}
 		end
 	catch
@@ -351,7 +345,7 @@ dispatch_service_work_send(Request = #request{type = Type,
 											  timeout = TimeoutService},
 						   Debug,
 						   Msg) ->
-	case get_work_node(Host, Host, HostName, ModuleName) of
+	case ems_node_discovery:get_work_node(Service) of
 		{ok, Node} ->
 			{Module, Node} ! Msg,
 			case Debug of
@@ -364,13 +358,11 @@ dispatch_service_work_send(Request = #request{type = Type,
 		_Error ->  
 			ems_logger:info("ems_dispatcher failed to get work node. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 			Latency = ems_util:get_milliseconds() - T1,
-			StatusText = ems_util:format_rest_status(400, eunavailable_service, in_dispatch_service_work_send, undefined, Latency),
 			{error, request, Request#request{code = 400,
 											 reason = eunavailable_service,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ?EUNAVAILABLE_SERVICE_JSON,
-											 latency = Latency,
-											 status_text = StatusText}}
+											 latency = Latency}}
 	end.
 		
 dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
@@ -425,14 +417,12 @@ dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
 						false -> ok
 					end,
 					Latency = ems_util:get_milliseconds() - T1,
-					StatusText = ems_util:format_rest_status(503, etimeout_service, edispatch_service_work_receive_exception, undefined, Latency),
 					{error, request, Request#request{code = 503,
 													 reason = etimeout_service,
 													 reason_detail = edispatch_service_work_receive_exception,
 													 content_type_out = ?CONTENT_TYPE_JSON,
 													 response_data = ?ETIMEOUT_SERVICE,
-													 latency = Latency,
-													 status_text = StatusText}};
+													 latency = Latency}};
 				false when TimeoutAlertThreshold > 0 ->
 					ems_logger:warn("ems_dispatcher is waiting ~p for more than ~pms.", [{Module, Node}, TimeoutWaited2]),
 					dispatch_service_work_receive(Request, Service, Node, Timeout2, TimeoutWaited2, Debug);
@@ -441,10 +431,6 @@ dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
 			end
 	end.
 
-get_work_node('', _, _, _) -> {ok, node()};
-get_work_node([], _, _, _) -> {error, eunavailable_service};
-get_work_node([H|_], _HostList, _HostNames, _ModuleName) -> ems_logger:info("Dispatcher selected node: ~p. Cookie: ~p", [H, erlang:get_cookie()]), 
-	{ok, H}.
 
 
 -spec dispatch_middleware_function(#request{}, boolean()) -> {ok, request, #request{}} | {error, request, #request{}}.
@@ -472,39 +458,29 @@ dispatch_middleware_function(Request = #request{reason = ok,
 						 end
 		end,
 		case Result of
-			{ok, Request2 = #request{code = Code, 
-									 reason = Reason2,
-									 reason_detail = ReasonDetail,
-									 reason_exception = ReasonException,
-									 response_header = _ResponseHeader}} ->
-				StatusText = ems_util:format_rest_status(Code, Reason2, ReasonDetail, ReasonException, Latency),
+			{ok, Request2} ->
 				case Type =:= <<"GET">> of
 					true -> 
 						case ResultCache > 0 andalso ContentLength < ?RESULT_CACHE_MAX_SIZE_ENTRY of
 							true ->
 								Request3 = Request2#request{latency = ems_util:get_milliseconds() - T1,
-															status = req_done,
-															status_text = StatusText},
+															status = req_done},
 								notify_workers_waiting_result_cache(ReqHash, Request3),
 								{ok, request, Request3};
 							false -> 
 								{ok, request, Request2#request{latency = T3 - T1,
-																status = req_done,
-																status_text = StatusText}}
+																status = req_done}}
 						end;
 					false ->
 						ets:insert(ems_dispatcher_post_time, {post_time, T3}),
-						{ok, request, Request2#request{latency = Latency,
-													   status_text = StatusText}}
+						{ok, request, Request2#request{latency = Latency}}
 				end;
 			{error, Reason2} = Error ->
-				StatusText = ems_util:format_rest_status(500, Reason2, edispatcher_middleware_failed, undefined, Latency),
 				{error, request, Request#request{code = 500,
 												 reason = Reason2,
 												 content_type_out = ?CONTENT_TYPE_JSON,
 												 response_data = ems_schema:to_json(Error),
-												 latency = Latency,
-												 status_text = StatusText}}
+												 latency = Latency}}
 		end
 	catch 
 		_Exception:Error2 -> 
@@ -512,20 +488,13 @@ dispatch_middleware_function(Request = #request{reason = ok,
 											 reason = Error2,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ems_schema:to_json(Error2),
-											 latency = Latency,
-											 status_text = ems_util:format_rest_status(500, Error2, edispatcher_exception, undefined, Latency)}}
+											 latency = Latency}}
 	end;
 dispatch_middleware_function(Request = #request{t1 = T1, 
-												code = Code, 
-												reason = Reason,
-												reason_detail = ReasonDetail,
-												reason_exception = ReasonException,
 											    service = #service{}},
 							 _Debug) ->
 	T3 = ems_util:get_milliseconds(),
 	Latency = T3 - T1,
-	StatusText = ems_util:format_rest_status(Code, Reason, ReasonDetail, ReasonException, Latency),
 	{error, request, Request#request{content_type_out = ?CONTENT_TYPE_JSON,
-									 latency = Latency,
-									 status_text = StatusText}}.
+									 latency = Latency}}.
 

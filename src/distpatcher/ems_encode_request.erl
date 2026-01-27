@@ -42,9 +42,9 @@ step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url) ->
     put(encode_request_cowboy_step, step2_parse_url),
     {UrlMasked, UrlSemPrefix, QuerystringBin, QuerystringMap0} = parse_url_logic(Url, CowboyReq),
     Url2 = ems_util:remove_ult_backslash_url(UrlSemPrefix),
-    step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url, Url2, UrlMasked, QuerystringBin, QuerystringMap0).
+    step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, UrlMasked, QuerystringBin, QuerystringMap0).
 
-step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url, Url2, UrlMasked, QuerystringBin, QuerystringMap0) ->
+step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, QuerystringBin, QuerystringMap0) ->
     put(encode_request_cowboy_step, step3_parse_headers),
     Method = cowboy_req:method(CowboyReq),
     {Ip, _} = cowboy_req:peer(CowboyReq),
@@ -58,14 +58,14 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url, Url2, UrlMasked, Que
     Version = cowboy_req:version(CowboyReq),
     ContentTypeIn = parse_content_type_header(cowboy_req:header(<<"content-type">>, CowboyReq)),
     Protocol = parse_protocol(cowboy_req:scheme(CowboyReq)),
-    Port = cowboy_req:port(CowboyReq),
+    _Port = cowboy_req:port(CowboyReq),
     
-    HttpHeaderDefault = State#encode_request_state.http_header_default,
-    CurrentNode = State#encode_request_state.current_node,
+    _HttpHeaderDefault = State#encode_request_state.http_header_default,
+    _CurrentNode = State#encode_request_state.current_node,
     
     % Initialize basic Request record
     RID = erlang:system_time(),
-    Timestamp = calendar:local_time(),
+    _Timestamp = calendar:local_time(),
     T1 = trunc(RID / 1.0e6),
     {Rowid, Params_url} = ems_util:hashsym_and_params(Url2),
 
@@ -93,18 +93,12 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url, Url2, UrlMasked, Que
         ip = Ip,
         ip_bin = IpBin,
         host = Host,
-        timestamp = Timestamp,
         protocol = Protocol,
-        protocol_bin = atom_to_binary(Protocol, utf8),
-        port = Port,
         result_cache = false,
         t1 = T1,
         payload = <<>>, 
         payload_map = #{},
-        response_data = <<>>,
-        node_exec = State#encode_request_state.current_node,
-        url_masked = UrlMasked,
-        status_text = <<>>
+        response_data = <<>>
     },
 
     step4_lookup_service(CowboyReq, WorkerSend, State, Request0).
@@ -241,17 +235,15 @@ handle_enoent(CowboyReq, Request, State) ->
     Options = State#encode_request_state.http_header_options,
     DefaultHeaders = State#encode_request_state.http_header_default,
     
-    {Code, StatusText, RespData, Headers} = 
+    {Code, RespData, Headers} = 
         if 
             Request#request.type =:= <<"OPTIONS">> orelse Request#request.type =:= <<"HEAD">> ->
                 {200, 
-                 ems_util:format_rest_status(200, enoent_service_contract, undefined, undefined, Latency),
                  ?ENOENT_SERVICE_CONTRACT_JSON,
                  Options};
             true ->
                 ems_db:inc_counter(ems_dispatcher_lookup_enoent),
                 {404,
-                 ems_util:format_rest_status(404, enoent_service_contract, undefined, undefined, Latency),
                  ?ENOENT_SERVICE_CONTRACT_JSON,
                  DefaultHeaders}
         end,
@@ -262,8 +254,7 @@ handle_enoent(CowboyReq, Request, State) ->
         reason = enoent_service_contract,
         response_header = Headers,
         response_data = RespData,
-        latency = Latency,
-        status_text = StatusText
+        latency = Latency
     },
     
     {error, request, Request2, CowboyReq}.

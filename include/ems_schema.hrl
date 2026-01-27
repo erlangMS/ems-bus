@@ -634,60 +634,50 @@
 					  rid  :: non_neg_integer(), 				%%  1 - rid    					Request ID (Identificador da requisição gerada automaticamente)
 					  rowid :: non_neg_integer(),				%%  2 - rowid  					Identificador interno da requisição. Ver ems_util:hashsym_and_params
 					  service :: #service{},					%%  3 - service					Contrato que estabelece o serviço que vai atender a requisição
-					  timestamp :: calendar:date(), 			%%  4 - Timestamp 	
-					  latency :: non_neg_integer(),				%%  5 - latency 				Tempo que levou para processar a requisição
-					  code :: non_neg_integer(), 				%%  6 - code					Código de retorno HTTP (Ex.: 202 OK, 404 Não Encontrado)
-					  reason :: atom(),							%%  7 - reason					Atom para indicar o erro ou status da requisição
-					  reason_detail :: atom(),					%%  8 - reason_detail			Atom para indicar o erro ou status da requisição
-					  reason_exception :: any(),				%%  9 - reason_exception		Registra a exception ocorrida em run time
-					  type :: binary(),							%% 10 - type					Verbo HTTP (GET, POST, PUT, DELETE e OPTIONS)
-					  operation :: atom(),						%% 11 - operation				Descreve a operação sendo realizada
-					  uri :: binary(),							%% 12 - uri						URI da requisição do serviço
-					  url :: string(),							%% 13 - url						URL da requisição do serviço
-					  url_masked = false :: boolean(),			%% 14 - url_masked				Indica se a url está mascarada. Ex.: /erl.ms/L2F1dGgvY2xpZW50Lz9maWx0ZXI9InsgICJuYW1lIiA6ICJQb3N0bWFuIiB9Ig==
-					  version :: string(),						%% 15 - version					Versão do cabeçalho HTTP
-					  payload :: binary(),						%% 16 - payload					Corpo da requisição (aceita somente JSON)
-					  payload_map :: map(),						%% 17 - payload_map				Corpo da requisição convertida para map após o parser e validação
-					  querystring :: binary(),					%% 18 - querystring				Querystring da requisição
-					  querystring_map :: map(),					%% 19 - querystring_map			Querystring convertida para map após o parser e validação
-					  params_url :: map(),						%% 20 - params_url				Map com os parâmetros da URL
-					  content_type_in :: binary(),				%% 21 - content_type_in			Tipo de conteúdo de entrada (Ex.: application/json)
-					  content_type_out :: binary(),				%% 22 - content_type_out		Tipo de conteúdo de saída. (Ex.: application/json)
-					  content_length :: non_neg_integer(), 		%% 23 - content_length			Largura da requisição
-					  accept :: binary(),						%% 24 - accept					Parâmetro ACCEPT HTTP
-					  user_agent :: binary(),					%% 25 - user_agent
-					  accept_encoding :: binary(),				%% 26 - accept_encoding			Parâmetro ACCEPT_ENCODING HTTP
-					  cache_control :: binary(),				%% 27 - cache_control			Parâmetro CACHE-CONTROL HTTP
-					  etag :: binary(),							%% 28 - etag					Parâmetro ETag
-					  if_modified_since :: binary(),			%% 29 - if_modified_since		Parâmetro If-Modified-Since
-					  if_none_match :: binary(),			    %% 30 - if_none_match			Parâmetro If-None-Match
-					  ip :: tuple(),							%% 31 - ip
-					  ip_bin :: binary(),						%% 32 - ip_bin	
-					  t1 :: non_neg_integer(),					%% 33 - t1						
-					  authorization :: binary(),				%% 34 - authorization			Dados da autenticação da requisição
-					  client :: #client{},						%% 35 - client
-					  user :: #user{},							%% 36 - user			
-					  node_exec :: pid(),						%% 37 - node_exec				Processo que executou a solicitação
-					  worker_send :: pid(),						%% 38 - worker_send				Processo que solicitou a solicitação
-					  status = req_processing :: atom(),		%% 39 - status					req_processing, req_done
-					  protocol :: atom(),						%% 40 - protocol				Protocol (http, ldap)
-					  protocol_bin :: binary(),					%% 41 - protocol_bin
-					  port :: non_neg_integer(),				%% 42 - port		
-					  result_cache = false :: boolean(),		%% 43 - result_cache
-					  result_cache_rid :: non_neg_integer(),	%% 44 - result_cache_rid
-					  response_data = <<>> :: binary(),			%% 45 - response_data
-					  response_header = #{} :: map(),			%% 46 - response_header
-					  req_hash :: non_neg_integer(),			%% 47 - req_hash				Hash gerado para comparar requisições. Função utilizada: erlang:phash2
-					  host :: binary(),							%% 48 - host
-					  filename :: string(),						%% 49 - filename				Qual arquivo foi lido do disco para requisições que leêm arquivos no disco
-					  referer :: binary(),						%% 50 - referer
-					  access_token :: binary(),					%% 51 - access_token
-					  scope :: binary(),						%% 52 - scope
-					  oauth2_grant_type :: binary(),			%% 53 - oauth2_grant_type
-					  oauth2_access_token :: binary(),			%% 54 - oauth2_access_token
-					  oauth2_refresh_token :: binary(),			%% 55 - oauth2_refresh_token
-					  status_text :: binary(),					%% 56 - status_text				Status exibido no log 
-					  forwarded_for :: binary()					%% 57 - x-forwarded-for
+					  latency :: non_neg_integer(),				%%  4 - latency 				Tempo que levou para processar a requisição
+					  code :: non_neg_integer(), 				%%  5 - code					Código de retorno HTTP (Ex.: 202 OK, 404 Não Encontrado)
+					  reason :: atom(),							%%  6 - reason					Atom para indicar o erro ou status da requisição
+					  reason_detail :: atom(),					%%  7 - reason_detail			Atom para indicar o erro ou status da requisição
+					  type :: binary(),							%%  8 - type					Verbo HTTP (GET, POST, PUT, DELETE e OPTIONS)
+					  uri :: binary(),							%%  9 - uri						URI da requisição do serviço
+					  url :: string(),							%% 10 - url						URL da requisição do serviço
+					  url_masked = false :: boolean(),			%% 11 - url_masked				Indica se a url está mascarada. Ex.: /erl.ms/L2F1dGgvY2xpZW50Lz9maWx0ZXI9InsgICJuYW1lIiA6ICJQb3N0bWFuIiB9Ig==
+					  version :: string(),						%% 12 - version					Versão do cabeçalho HTTP
+					  payload :: binary(),						%% 13 - payload					Corpo da requisição (aceita somente JSON)
+					  payload_map :: map(),						%% 14 - payload_map				Corpo da requisição convertida para map após o parser e validação
+					  querystring :: binary(),					%% 15 - querystring				Querystring da requisição
+					  querystring_map :: map(),					%% 16 - querystring_map			Querystring convertida para map após o parser e validação
+					  params_url :: map(),						%% 17 - params_url				Map com os parâmetros da URL
+					  content_type_in :: binary(),				%% 18 - content_type_in			Tipo de conteúdo de entrada (Ex.: application/json)
+					  content_type_out :: binary(),				%% 19 - content_type_out		Tipo de conteúdo de saída. (Ex.: application/json)
+					  content_length :: non_neg_integer(), 		%% 20 - content_length			Largura da requisição
+					  accept :: binary(),						%% 21 - accept					Parâmetro ACCEPT HTTP
+					  user_agent :: binary(),					%% 22 - user_agent
+					  accept_encoding :: binary(),				%% 23 - accept_encoding			Parâmetro ACCEPT_ENCODING HTTP
+					  cache_control :: binary(),				%% 24 - cache_control			Parâmetro CACHE-CONTROL HTTP
+					  etag :: binary(),							%% 25 - etag					Parâmetro ETag
+					  if_modified_since :: binary(),			%% 26 - if_modified_since		Parâmetro If-Modified-Since
+					  if_none_match :: binary(),			    %% 27 - if_none_match			Parâmetro If-None-Match
+					  ip :: tuple(),							%% 28 - ip
+					  ip_bin :: binary(),						%% 29 - ip_bin	
+					  t1 :: non_neg_integer(),					%% 30 - t1						
+					  authorization :: binary(),				%% 31 - authorization			Dados da autenticação da requisição
+					  client :: #client{},						%% 32 - client
+					  user :: #user{},							%% 33 - user			
+					  worker_send :: pid(),						%% 34 - worker_send				Processo que solicitou a solicitação
+					  status = req_processing :: atom(),		%% 35 - status					req_processing, req_done
+					  protocol :: atom(),						%% 36 - protocol				Protocol (http, ldap)
+					  result_cache = false :: boolean(),		%% 37 - result_cache
+					  result_cache_rid :: non_neg_integer(),	%% 38 - result_cache_rid
+					  response_data = <<>> :: binary(),			%% 39 - response_data
+					  response_header = #{} :: map(),			%% 40 - response_header
+					  req_hash :: non_neg_integer(),			%% 41 - req_hash				Hash gerado para comparar requisições. Função utilizada: erlang:phash2
+					  host :: binary(),							%% 42 - host
+					  filename :: string(),						%% 43 - filename				Qual arquivo foi lido do disco para requisições que leêm arquivos no disco
+					  referer :: binary(),						%% 44 - referer
+					  access_token :: binary(),					%% 45 - access_token
+					  scope :: binary(),						%% 46 - scope
+					  forwarded_for :: binary()					%% 47 - x-forwarded-for
 				  }).
 
 
