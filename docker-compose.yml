@@ -1,7 +1,7 @@
 services:
   # Barramento Erlang (ems-bus)
   ems-bus:
-    image: evertonagilar/erlangms:v2026.1
+    image: hub.sti.unb.br/sas/erlangms:v2026.1
     container_name: ems-bus
     hostname: node01
     build:
@@ -24,7 +24,7 @@ services:
 
   # Dashboard
   dashboard:
-    image: evertonagilar/erlangms-dashboard:v2026.1
+    image: hub.sti.unb.br/sas/erlangms-dashboard:v2026.1
     container_name: ems-dashboard
     build:
       context: ./dashboard
