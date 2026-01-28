@@ -1,16 +1,17 @@
 {
 	"name": "ems_barramento_service",
-	"comment": "Informações do barramento utilizado por front-ends.",
+	"comment": "Responde o endpoint /barramento para frontend",
 	"owner": "emsbus",
 	"version": "1.0.0",
-	"service" : "ems_barramento_service:execute",
+	"service": "ems_barramento_service:execute",
 	"url": "/(?<name>.+)/barramento",
-	"use_re" : true,
+	"use_re": true,
 	"async": "false",
 	"type": "GET",
-	"authorization" : "public",
-	"cache_control" : "max-age=120, private",
-	"result_cache" : 86400000,
-	"expires_minute" : 1,
-	"lang" : "erlang"
+	"authorization": "public",
+	"cache_control": "max-age=120, private",
+	"result_cache": 60000,
+	"expires_minute": 1,
+	"lang": "erlang",
+	"debug": true
 }

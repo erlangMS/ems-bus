@@ -12,12 +12,11 @@
 -include("include/ems_schema.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
--export([find_by_id/1, find_by_id/2,		 
+-export([find_by_id/2,		 
 		 find_by_login/1, 
 		 find_by_login_and_scope/2,
 		 find_by_login_and_password/2,
 		 find_by_login_and_password/3,
-		 find_by_filter/2,
 		 find_by_filter_and_scope/3,
 		 get_user_info/2,
 		 to_resource_owner/1,
@@ -37,10 +36,6 @@
 		 all/1
 ]).
 
--spec find_by_id(non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
-find_by_id(Id) -> 
-	find_by_id(Id, [user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs]).
-
 
 -spec find_by_id(non_neg_integer(), list(atom())) -> {ok, #user{}} | {error, enoent}.
 find_by_id(Id, Tables) -> 
@@ -49,10 +44,6 @@ find_by_id(Id, Tables) ->
 		_ -> {error, enoent}
 	end.
 
-
--spec find_by_filter(list(binary()), tuple()) -> {ok, list(#user{})} | {error, atom(), atom()}.
-find_by_filter(Fields, Filter) -> 
-	ems_db:find([user_db, user2_db, user_aluno_ativo_db, user_aluno_inativo_db, user_fs], Fields, Filter).
 
 find_by_filter_and_scope(Fields, Filter, TableScope) -> 
 	ems_db:find(TableScope, Fields, Filter).

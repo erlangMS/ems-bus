@@ -1042,6 +1042,9 @@ filter_with_sort(Tab, []) ->
 %                   <<"type">> => <<"object">>}}]
 %
 -spec filter_with_limit(atom(), list(), non_neg_integer(), non_neg_integer()) -> list(tuple()).
+filter_with_limit(Tab, FilterList = [{_F, "==", _V}], Limit, 1) -> 
+	Records = filter(Tab, FilterList),
+	lists:sublist(Records, Limit);
 filter_with_limit(Tab, [], Limit, Offset) -> 
 	TabSize = mnesia:table_info(Tab, size),
 	case TabSize == 0 orelse Offset > TabSize orelse Limit < 1 orelse Offset < 1 of

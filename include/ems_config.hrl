@@ -236,8 +236,9 @@
 
 -define(SUFIXO_EMAIL_INSTITUCIONAL, <<"@unb.br">>).
 
+% Result cache
 -define(RESULT_CACHE_MAX_SIZE_ENTRY, 524288). % 512KB
--define(RESULT_CACHE_SHARED, true). 
+-define(MAX_RESULT_CACHE, 60000). % 60s
 
 %% Cache limits (ems_cache module)
 -define(CACHE_MAX_OBJECT_SIZE, 102400).      % 100KB max per object

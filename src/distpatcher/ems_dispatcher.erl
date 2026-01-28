@@ -241,7 +241,11 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 	catch
 		_:ReasonException -> 
 			ems_logger:error("ems_dispatcher dispatch_request exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
-			{error, request, Request}
+			LatencyException = ems_util:get_milliseconds() - T1,
+			{error, request, Request#request{code = 500, 
+											 reason = edispatch_request_exception, 
+											 response_data = ems_schema:to_json({error, ReasonException}), 
+											 latency = LatencyException}}
 	end.
 
 dispatch_service_work(Request = #request{type = Type,
@@ -283,7 +287,11 @@ dispatch_service_work(Request = #request{type = Type,
 	catch
 		_:ReasonException -> 
 			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
-			{error, request, Request}
+			LatencyException = ems_util:get_milliseconds() - Request#request.t1,
+			{error, request, Request#request{code = 500, 
+											 reason = edispatch_service_work_local_exception, 
+											 response_data = ems_schema:to_json({error, ReasonException}), 
+											 latency = LatencyException}}
 	end;
 dispatch_service_work(Request = #request{rid = Rid,
 										  type = Type,
@@ -328,7 +336,11 @@ dispatch_service_work(Request = #request{rid = Rid,
 	catch
 		_:ReasonException -> 
 			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
-			{error, request, Request}
+			LatencyException = ems_util:get_milliseconds() - Request#request.t1,
+			{error, request, Request#request{code = 500, 
+											 reason = edispatch_service_work_exception, 
+											 response_data = ems_schema:to_json({error, ReasonException}), 
+											 latency = LatencyException}}
 	end.
 
 

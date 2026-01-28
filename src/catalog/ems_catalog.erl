@@ -483,9 +483,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 						case Type of
 							<<"GET">> -> 
 								ResultCache0 = ems_util:parse_result_cache(get_p(<<"result_cache">>, Map, ResultCacheDefault)),
-								ResultCache = if ResultCache0 > 30000 -> 
-													ems_logger:warn("ems_catalog service ~s result_cache ~pms exceeds limit 30000ms. Capping to 30000ms.", [Name, ResultCache0]),
-													30000;
+								ResultCache = if ResultCache0 > ?MAX_RESULT_CACHE -> ?MAX_RESULT_CACHE;
 												 true -> ResultCache0
 											  end;
 							_ -> ResultCache = 0

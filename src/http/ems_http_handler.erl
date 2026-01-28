@@ -27,18 +27,20 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 	case ems_encode_request:new_from_cowboy_req(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
 			case ems_dispatcher:dispatch_request(Request, Service, Debug) of
-				{ok, request, Request2 = #request{code = Code,
+				{ok, request, Request2 = #request{code = Code0,
 												  response_header = ResponseHeader,
 												  response_data = ResponseData,
 												  content_type_out = ContentTypeOut}} ->
+					Code = case Code0 of undefined -> 200; _ -> Code0 end,
 					Response = cowboy_req:reply(Code, 
 												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, HttpHeaderDefault), 
 												ResponseData, 
 												CowboyReq2),
 					ems_logger:log_request(Request2);
-				{error, request, Request2 = #request{code = Code,
+				{error, request, Request2 = #request{code = Code0,
 													 response_header = ResponseHeader,
 													 response_data = ResponseData}} ->
+					Code = case Code0 of undefined -> 500; _ -> Code0 end,
 					Response = cowboy_req:reply(Code, 
 												normalize_headers(ResponseHeader, HttpHeaderDefault),
 												ResponseData, 
@@ -56,9 +58,10 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 												Request2#request.response_data, CowboyReq2),
 					ems_logger:log_request(Request2)
 			end;
-		{_, request, Request = #request{code = Code,
+		{_, request, Request = #request{code = Code0,
 									     response_header = ResponseHeader,
 									     response_data = ResponseData}, CowboyReq2} ->
+			Code = case Code0 of undefined -> 500; _ -> Code0 end,
 			Response = cowboy_req:reply(Code, 
 										normalize_headers(ResponseHeader, HttpHeaderDefault),
 										ResponseData, 

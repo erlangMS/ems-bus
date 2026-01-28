@@ -25,9 +25,13 @@
 
 -spec find_by_id(non_neg_integer()) -> {ok, #client{}} | {error, enoent}.
 find_by_id(Id) -> 
-	case ems_db:get([client_db, client_fs], Id) of
-		{ok, Record} -> {ok, Record};
-		_ -> {error, enoent}
+	case mnesia:dirty_read(client_db, Id) of
+		[] -> 
+			case mnesia:dirty_read(client_fs, Id) of
+				[] -> {error, enoent};
+				[Record|_] -> {ok, Record}
+			end;
+		[Record|_] -> {ok, Record}
 	end.
 
 
@@ -61,13 +65,13 @@ find_by_name(undefined) -> {error, enoent};
 find_by_name(Name) when is_list(Name) -> 
 	find_by_name(list_to_binary(Name));
 find_by_name(Name) -> 
-	case ems_db:find_first(client_db, [{name, "==", Name}]) of
-		{error, enoent} ->
-			case ems_db:find_first(client_fs, [{name, "==", Name}]) of
-				{error, enoent} -> {error, enoent};
-				{ok, Record2} -> {ok, Record2}
+	case mnesia:dirty_index_read(client_db, Name, #client.name) of
+		[] ->
+			case mnesia:dirty_index_read(client_fs, Name, #client.name) of
+				[] -> {error, enoent};
+				[Record2|_] -> {ok, Record2}
 			end;
-		{ok, Record} -> {ok, Record}
+		[Record|_] -> {ok, Record}
 	end.
 
 
