@@ -1,8 +1,3 @@
-#
-# Playbooks executados ao provisionar o sso-server
-# Autor: Everton de Vargas Agilar
-# Data: 03/06/2025
-#
 - import_playbook: common/playbook-comuns.yml
 - import_playbook: common/playbook-docker.yml
 - import_playbook: common/playbook-erlang.yml

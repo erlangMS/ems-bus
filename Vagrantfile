@@ -32,6 +32,7 @@ Vagrant.configure("2") do |config|
       ansible.inventory_path = "ansible/inventory.ini"
       ansible.config_file = "ansible/ansible.cfg"
       ansible.playbook = "ansible/playbooks/playbook-erlangms.yml"
+      ansible.compatibility_mode = "2.0"
     end
   end
 end
