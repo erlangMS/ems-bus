@@ -218,23 +218,6 @@ fi
 if [ "$?" = "1" ]; then
     echo "Oops, something wrong!"
 else
-    # Copy artifacts to ./ebin and ./deps for backward compatibility
-    echo "Copying artifacts to ./ebin and ./deps..."
-    rm -rf ebin
-    mkdir ebin
-    cp -r /tmp/ems-bus/_build/default/lib/ems_bus/ebin/* ebin/
-
-    mkdir -p deps
-    for d in /tmp/ems-bus/_build/default/lib/*; do
-        NAME=$(basename $d)
-        if [ "$NAME" != "ems_bus" ]; then
-            mkdir -p deps/$NAME/ebin
-            cp -r $d/ebin/* deps/$NAME/ebin/
-        fi
-    done
-
-    echo "Ok!"
-
     # Build release if requested
     if [ "$BUILD_RELEASE" = "true" ]; then
         if [ -f "rel/release.sh" ]; then

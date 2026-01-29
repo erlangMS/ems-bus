@@ -89,7 +89,7 @@ make_release(){
     # The tarball is generated in _build/default/rel/ems_bus/ems_bus-VERSION.tar.gz
     # We want to move it to the root or where expected
     
-    GENERATED_TAR="_build/default/rel/ems_bus/ems_bus-$VERSION_RELEASE.tar.gz"
+    GENERATED_TAR="/tmp/ems-bus/_build/default/rel/ems_bus/ems_bus-$VERSION_RELEASE.tar.gz"
     
     if [ -f "$GENERATED_TAR" ]; then
         cp "$GENERATED_TAR" "$RELEASE_FILE"
@@ -139,7 +139,7 @@ if [ "$SKIP_BUILD" = "false" ]; then
 fi
 
 echo "Cleaning build artifacts..."
-rm -Rf _build/default/rel/ems_bus
+rm -Rf /tmp/ems-bus/_build/default/rel/ems_bus
 
 cd $WORKING_DIR
 echo "Ok!"
