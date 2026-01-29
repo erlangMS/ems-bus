@@ -1,1 +1,4 @@
-- src: geerlingguy.docker
+---
+roles:
+  - name: geerlingguy.docker
+    version: 8.0.0
