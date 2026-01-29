@@ -4,8 +4,17 @@
   become: true
   tasks:
     - name: Instalar Six e pacotes de compatibilidade via Raw
-      ansible.builtin.raw: apt-get update && apt-get install -y python3-six python3-setuptools python3-pkg-resources python3-debian
+      ansible.builtin.raw: DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-six python3-setuptools python3-pkg-resources python3-debian
       changed_when: false
+
+    - name: Verificar se o six pode ser importado via Raw
+      ansible.builtin.raw: python3 -c "import six; print('Six OK')"
+      register: six_check
+      changed_when: false
+
+    - name: Mostrar resultado do check do Six
+      ansible.builtin.debug:
+        msg: "{{ six_check.stdout }}"
 
 - import_playbook: common/playbook-comuns.yml
 - import_playbook: common/playbook-docker.yml
