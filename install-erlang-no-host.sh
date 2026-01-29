@@ -91,9 +91,9 @@ fi
 
 # Also create for root
 ln -sf /etc/odbc.ini /root/.odbc.ini
-echo "✓ Created symbolic link: /root/.odbc.ini -> /etc/odbc.ini"
+echo "Created symbolic link: /root/.odbc.ini -> /etc/odbc.ini"
 
-echo "✓ ODBC configured"
+echo "ODBC configured"
 echo ""
 
 # ############## Configure .hosts.erlang ##############
@@ -107,14 +107,14 @@ echo "'127.0.0.1'." > "$SCRIPT_DIR/.hosts.erlang"
 if [ -n "$USER_HOME" ] && [ "$USER_HOME" != "/root" ]; then
     ln -sf "$SCRIPT_DIR/.hosts.erlang" "$USER_HOME/.hosts.erlang"
     chown -h $CURRENT_USER:$CURRENT_USER "$USER_HOME/.hosts.erlang" 2>/dev/null || true
-    echo "✓ Created symbolic link: $USER_HOME/.hosts.erlang -> $SCRIPT_DIR/.hosts.erlang"
+    echo "Created symbolic link: $USER_HOME/.hosts.erlang -> $SCRIPT_DIR/.hosts.erlang"
 fi
 
 # Also create for root
 ln -sf "$SCRIPT_DIR/.hosts.erlang" /root/.hosts.erlang
-echo "✓ Created symbolic link: /root/.hosts.erlang -> $SCRIPT_DIR/.hosts.erlang"
+echo "Created symbolic link: /root/.hosts.erlang -> $SCRIPT_DIR/.hosts.erlang"
 
-echo "✓ .hosts.erlang configured"
+echo ".hosts.erlang configured"
 echo ""
 
 # ############## Cleanup ##############

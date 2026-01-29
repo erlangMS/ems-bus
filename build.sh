@@ -100,10 +100,10 @@ check_erlang_version(){
             printf "OK\n"
         else
             printf "ERROR\n"
-            die "Build canceled because the Erlang Runtime installed is incompatible with this software. Expected version: $ERLANG_VERSION"
+            die "Erlang required: $ERLANG_VERSION"
         fi 
     else
-        die "Oops, you should install Erlang Runtime $ERLANG_VERSION first !!!"
+        die "Erlang required: $ERLANG_VERSION"
     fi
 }
 
