@@ -1,4 +1,5 @@
-rel/*.tar.gz
+*.tar.gz
+*.gz
 rel/docker/config*
 ebin/**
 priv/db/**
@@ -7,7 +8,6 @@ priv/archive_log/**
 *.beam
 .eunit
 *~
-#*
 .dialyzer.plt
 .rebar
 Mnesia**
@@ -20,7 +20,6 @@ fprof**
 _build/**
 deps/**
 .DS_Store*
-*.gz
 rel/ems-bus
 rel/*.gz
 contrib/login_webpack/dist/**
