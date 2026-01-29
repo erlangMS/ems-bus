@@ -30,7 +30,6 @@
       - erlang-tools
       - erlang-wx
       - erlang-xmerl
-      - rebar
 
   tasks:
     - name: Coletar fatos manualmente
