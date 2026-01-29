@@ -30,8 +30,9 @@ Vagrant.configure("2") do |config|
     # Provisionamento via Ansible (Local na VM para total isolamento)
     node.vm.provision "ansible_local" do |ansible|
       ansible.install = true
-      ansible.install_mode = "pip" # Garante versão recente que suporta Python 3.12
+      ansible.install_mode = "pip"
       ansible.galaxy_role_file = "ansible/requirements.yml"
+      ansible.galaxy_roles_path = "/vagrant/ansible/roles"
       ansible.inventory_path = "ansible/inventory.ini"
       ansible.config_file = "ansible/ansible.cfg"
       ansible.playbook = "ansible/playbooks/playbook-erlangms.yml"
