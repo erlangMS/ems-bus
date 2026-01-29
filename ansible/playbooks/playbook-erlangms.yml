@@ -1,3 +1,12 @@
+- name: Bootstrap dependências do Ansible (Fix para Ubuntu 24.04/Python 3.12)
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Instalar Six e pacotes de compatibilidade via Raw
+      ansible.builtin.raw: apt-get update && apt-get install -y python3-six python3-setuptools python3-pkg-resources python3-debian
+      changed_when: false
+
 - import_playbook: common/playbook-comuns.yml
 - import_playbook: common/playbook-docker.yml
 - import_playbook: common/playbook-erlang.yml
