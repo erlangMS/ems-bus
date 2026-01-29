@@ -1,27 +1,22 @@
-- name: Limpar cache do Ansible e verificar ambiente
+- name: Limpeza e Bootstrap de Dependências (Fix para Ubuntu 24.04)
   hosts: all
   gather_facts: false
   become: true
   tasks:
-    - name: Remover pasta temporária do Ansible no destino
+    - name: Limpeza radical de temporários do Ansible
       ansible.builtin.raw: rm -rf ~/.ansible/tmp
       changed_when: false
 
-    - name: Instalar Six e pacotes de compatibilidade via Raw
+    - name: Instalar dependências críticas via Raw (Sem Python)
       ansible.builtin.raw: >
         DEBIAN_FRONTEND=noninteractive apt-get update &&
         DEBIAN_FRONTEND=noninteractive apt-get install -y
         python3-six python3-setuptools python3-pkg-resources python3-debian python3-apt
       changed_when: false
 
-    - name: Verificar se o six pode ser importado via Raw
-      ansible.builtin.raw: python3 -c "import six; print('Six OK')"
-      register: six_check
+    - name: Garantir que o Python 3.12 está configurado
+      ansible.builtin.raw: ln -sf /usr/bin/python3.12 /usr/bin/python3
       changed_when: false
-
-    - name: Mostrar resultado do check do Six
-      ansible.builtin.debug:
-        msg: "{{ six_check.stdout }}"
 
 - name: Provisionar pacotes comuns
   import_playbook: common/playbook-comuns.yml

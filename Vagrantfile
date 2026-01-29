@@ -27,8 +27,9 @@ Vagrant.configure("2") do |config|
       lv.cpus = "1"
     end
 
-    # Provisionamento via Ansible
-    node.vm.provision "ansible" do |ansible|
+    # Provisionamento via Ansible (Local na VM para total isolamento)
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.install = true
       ansible.inventory_path = "ansible/inventory.ini"
       ansible.config_file = "ansible/ansible.cfg"
       ansible.playbook = "ansible/playbooks/playbook-erlangms.yml"
