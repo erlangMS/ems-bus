@@ -107,7 +107,7 @@ check_erlang_version(){
     fi
 }
 
-# Remove all deps except jiffy
+# Remove all deps
 function clean_deps(){
     echo "Clearing the deps folder..."
     rm -rf ./deps
@@ -220,11 +220,12 @@ if [ "$?" = "1" ]; then
 else
     # Copy artifacts to ./ebin and ./deps for backward compatibility
     echo "Copying artifacts to ./ebin and ./deps..."
-    mkdir -p ebin
-    cp -r _build/default/lib/ems_bus/ebin/* ebin/
+    rm -rf ebin
+    mkdir ebin
+    cp -r /tmp/ems-bus/_build/default/lib/ems_bus/ebin/* ebin/
 
     mkdir -p deps
-    for d in _build/default/lib/*; do
+    for d in /tmp/ems-bus/_build/default/lib/*; do
         NAME=$(basename $d)
         if [ "$NAME" != "ems_bus" ]; then
             mkdir -p deps/$NAME/ebin
