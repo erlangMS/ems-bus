@@ -25,11 +25,6 @@
 
 VERSION_SCRIPT="3.0.2"
 
-# Necessário para as bibliotecas c utilizadas
-export CFLAGS='-std=c11 -static -w'
-export CXXFLAGS='-w'
-echo "Usando CFLAGS=$CFLAGS"
-
 # Erlang Runtime version required
 ERLANG_VERSION=25
 
