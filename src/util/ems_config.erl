@@ -320,21 +320,29 @@ get_p(ParamName, Map, DefaultValue) ->
 			IsEqual = (Result == ResultDefault),
 			case IsEqual of
 				true ->
-					ems_logger:format_info("ems_config param ~s: ~p [DEFAULT]", [ParamName, ResultDefault]),
+					case ets:lookup(debug_ets, debug) of
+						[{debug, true}] -> ems_logger:format_info("ems_config param ~s: ~p [DEFAULT]", [ParamName, ResultDefault]);
+						_ -> ok
+					end,
 					case is_binary(ResultDefault) of
 						true -> ems_util:replace_custom_variables_binary(ResultDefault);
 						false -> ResultDefault
 					end;
 				false ->
-					file:write_file("/tmp/ems_debug_get_p.log", io_lib:format("DEBUG_VAL: ~p | ~p | ~p | ~p\n", [ParamName, Result, ResultDefault, IsEqual]), [append]),
-					ems_logger:format_info("ems_config param ~s: ~p [CUSTOM]", [ParamName, Result]),
+					case ets:lookup(debug_ets, debug) of
+						[{debug, true}] -> ems_logger:format_info("ems_config param ~s: ~p [CUSTOM]", [ParamName, Result]);
+						_ -> ok
+					end,
 					case is_binary(Result) of
 						true -> ems_util:replace_custom_variables_binary(Result);
 						false -> Result
 					end
 			end;
 		error ->
-			ems_logger:format_info("ems_config param ~s: ~p [DEFAULT]", [ParamName, ResultDefault]),
+			case ets:lookup(debug_ets, debug) of
+				[{debug, true}] -> ems_logger:format_info("ems_config param ~s: ~p [DEFAULT]", [ParamName, ResultDefault]);
+				_ -> ok
+			end,
 			case is_binary(ResultDefault) of
 				true -> ems_util:replace_custom_variables_binary(ResultDefault);
 				false -> ResultDefault

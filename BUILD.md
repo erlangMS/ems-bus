@@ -7,9 +7,6 @@ Este documento descreve como realizar o build do projeto dentro da máquina virt
 A partir da raiz do projeto, execute os seguintes comandos:
 
 ```bash
-# Instalar as dependências
-ansible-galaxy install -r ansible/requirements.yml
-
 # Sobe a VM (caso ainda não esteja rodando)
 vagrant up
 
@@ -38,5 +35,7 @@ Para gerar o pacote compactado (`.tar.gz`) pronto para distribuição:
 ./rel/release.sh
 ```
 
-O arquivo gerado será algo como `ems-bus-2.x.x.tar.gz` e também uma cópia com nome fixo `ems-bus.tar.gz` na raiz do projeto.
+Arquivos gerados:
+- `ems-bus-2.x.x.tar.gz`
+- `ems-bus.tar.gz`
 

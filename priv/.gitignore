@@ -1,9 +1,0 @@
-*.conf**
-*~
-#*
-*.log
-*.dump
-/logs
-*.gz
-tmp
-priv/jar/**

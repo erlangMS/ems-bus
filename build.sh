@@ -100,7 +100,7 @@ check_erlang_version(){
             printf "OK\n"
         else
             printf "ERROR\n"
-            die "Erlang required: $ERLANG_VERSION"
+            die "Erlang required: $ERLANG_VERSION Installed: $ERLANG_VERSION_OS"
         fi 
     else
         die "Erlang required: $ERLANG_VERSION"

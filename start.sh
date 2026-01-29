@@ -3,8 +3,14 @@
 # author Everton de Vargas Agilar <<evertonagilar@gmail.com>>
 #
 
-VERSION_SCRIPT="3.0.0"
-ERLANG_VERSION=19
+VERSION_SCRIPT="3.0.1"
+
+# Erlang Runtime version required
+ERLANG_VERSION=25
+
+# Erlang Runtime version installled
+ERLANG_VERSION_OS=`erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell 2> /dev/null | sed 's/[^0-9]//g'`
+
 OBSERVER="false"
 PROFILE="local"
 
@@ -23,17 +29,21 @@ die () {
     exit $2
 }
 
-# Checks if the version of erlang installed is compatible
+## Checks if the version of erlang installed is compatible with this script
 check_erlang_version(){
-	ERLANG_VERSION_OS=`erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell 2> /dev/null | sed 's/[^0-9]//g'`
-	if [ -n "$ERLANG_VERSION_OS" ]; then
-		if [ ! $ERLANG_VERSION_OS -ge $ERLANG_VERSION ]; then
-			die "Opps, the Erlang Runtime installed is incompatible with this software. Expected version: $ERLANG_VERSION"
-		fi 
-	else
-		die "Oops, you should install Erlang Runtime $ERLANG_VERSION first !!!"
-	fi
+    printf "Checking Erlang Runtime version... "
+    if [ -n "$ERLANG_VERSION_OS" ]; then
+        if [ $ERLANG_VERSION_OS -ge $ERLANG_VERSION ]; then
+            printf "OK\n"
+        else
+            printf "ERROR\n"
+            die "Erlang required: $ERLANG_VERSION Installed: $ERLANG_VERSION_OS"
+        fi 
+    else
+        die "Erlang required: $ERLANG_VERSION"
+    fi
 }
+
 
 # Prints on the screen the command help
 help() {
@@ -100,12 +110,8 @@ else
 		sudo docker stop $ID_IMAGE > /dev/null 2>&1
 	fi
 
-	sudo docker run -p 2300:2300 \
-					-p 2301:2301 \
+	sudo docker run -p 2301:2301 \
 					-p 2389:2389 \
-					-p 4369:4369 \
-					-v ~/.erlangms:/var/opt/erlangms/.erlangms \
-					-v ~/.odbc.ini:/var/opt/erlangms/.odbc.ini \
 					-it erlangms
 fi
 
