@@ -23,13 +23,7 @@
 #
 ########################################################################################################
 
-LINUX_DISTRO=$(awk -F"=" '{ if ($1 == "ID"){ 
-                                gsub("\"", "", $2);  print $2 
-                            } 
-                          }' /etc/os-release)
-
 VERSION_SCRIPT="3.0.2"
-
 
 # Necessário para as bibliotecas c utilizadas
 export CFLAGS='-std=c11 -static -w'
@@ -37,7 +31,10 @@ export CXXFLAGS='-w'
 echo "Usando CFLAGS=$CFLAGS"
 
 # Erlang Runtime version required
-ERLANG_VERSION=24
+ERLANG_VERSION=25
+
+# Erlang Runtime version installled
+ERLANG_VERSION_OS=`erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell 2> /dev/null | sed 's/[^0-9]//g'`
 
 # Skip deps before build 
 SKIP_DEPS="false"
@@ -45,34 +42,11 @@ SKIP_DEPS="false"
 # Skip clean before build 
 SKIP_CLEAN="false"
 
+# Keep db before build 
 KEEP_DB="false"
 
 # Release flag
 BUILD_RELEASE="false"
-
-
-if [ "$LINUX_DISTRO" = "centos" -o "$LINUX_DISTRO" = "redhat" -o "$LINUX_DISTRO" = "fedora" -o "$LINUX_DISTRO" = "kdeneon" ]; then
-    BUILD_RPM_FLAG="true"
-    if ! g++ --version 2> /dev/null ; then
-        echo "G++ is not installed, build canceled!!!"
-        echo "Use: sudo yum group install \"Development Tools\""
-        exit
-    fi
-fi
-if [ ! "$BUILD_RPM_FLAG" = "true" ]; then
-    if [ "$LINUX_DISTRO" = "debian" -o "$LINUX_DISTRO" = "ubuntu" -o "$LINUX_DISTRO" = "deepin" -o "$LINUX_DISTRO" = "linuxmint" ]; then
-        BUILD_DEB_FLAG="true"  
-        if ! g++ --version 2> /dev/null ; then
-            echo "Tool dpkg-deb is not installed, build canceled!!!"
-            echo "Use: sudo apt install build-essential"
-            exit
-        fi
-    else
-        BUILD_DEB_FLAG="false"  
-    fi
-fi
-
-
 
 # The settings may be stored in the /etc/default/erlangms-build
 CONFIG_ARQ="/etc/default/erlangms-build"
@@ -145,6 +119,7 @@ function clean_deps(){
     rm -rf ./ebin
 }
 
+# Ensure rebar3 is available
 ensure_rebar() {
     if command -v rebar3 &> /dev/null; then
         REBAR="rebar3"
@@ -200,19 +175,9 @@ for P in $*; do
     fi
 done
 
-
-# Erlang Runtime version installled
-ERLANG_VERSION_OS=`erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell 2> /dev/null | sed 's/[^0-9]//g'`
-
-# Get linux description
-LINUX_DESCRIPTION=$(awk -F"=" '{ if ($1 == "PRETTY_NAME"){ 
-                                gsub("\"", "", $2);  print $2 
-                                } 
-                                }'  /etc/os-release)
-
+check_erlang_version
 
 echo "============================================================================="
-echo "Distro: $LINUX_DESCRIPTION"
 echo "Erlang version: $ERLANG_VERSION_OS"
 echo "Skip get-deps before build: $SKIP_DEPS" 
 echo "Skip clear before build: $SKIP_CLEAN" 
@@ -223,6 +188,7 @@ echo "==========================================================================
 
 # Clean somes files
 rm -f *.dump
+rm -Rf priv/log
 
 if [ "$KEEP_DB" = "false" ]; then
     echo "Clearing the db folder before build..."
@@ -230,11 +196,10 @@ if [ "$KEEP_DB" = "false" ]; then
     rm -Rf ~/.erlangms/db
 fi    
 
-rm -Rf priv/log
+ensure_rebar
 
 echo "Compiling the project erlangms..."
 
-ensure_rebar
 
 if [ "$SKIP_DEPS" = "false" ]; then
     clean_deps
@@ -274,6 +239,7 @@ else
 
     echo "Ok!"
 
+    # Build release if requested
     if [ "$BUILD_RELEASE" = "true" ]; then
         if [ -f "rel/release.sh" ]; then
             echo "Executing release script..."
