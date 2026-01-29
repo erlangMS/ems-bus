@@ -33,6 +33,9 @@
       - rebar
 
   tasks:
+    - name: Coletar fatos manualmente
+      ansible.builtin.setup:
+
     - name: Garante que o sistema está atualizado
       ansible.builtin.apt:
         update_cache: true

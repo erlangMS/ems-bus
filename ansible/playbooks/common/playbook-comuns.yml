@@ -7,8 +7,12 @@
 - name: Provisionamento básico das VMs
   hosts: all
   become: true
+  gather_facts: false
 
   tasks:
+    - name: Coletar fatos manualmente
+      ansible.builtin.setup:
+
     - name: Atualizar cache de pacotes
       ansible.builtin.apt:
         update_cache: true

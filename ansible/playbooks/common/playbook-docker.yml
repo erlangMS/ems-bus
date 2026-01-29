@@ -2,8 +2,12 @@
 - name: Instalar Docker e subir container via docker-compose
   hosts: all
   become: true
+  gather_facts: false
 
   pre_tasks:
+    - name: Coletar fatos manualmente
+      ansible.builtin.setup:
+
     - name: Verificar se o Docker já está instalado
       ansible.builtin.command: docker --version
       register: docker_check
