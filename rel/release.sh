@@ -143,6 +143,6 @@ rm -Rf /tmp/ems-bus/_build/default/rel/ems_bus
 
 cd $WORKING_DIR
 echo "Ok!"
-echo "Release file: $RELEASE_FILE"
+
 
 
