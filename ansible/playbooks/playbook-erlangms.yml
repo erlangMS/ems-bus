@@ -1,10 +1,17 @@
-- name: Bootstrap dependências do Ansible (Fix para Ubuntu 24.04/Python 3.12)
+- name: Limpar cache do Ansible e verificar ambiente
   hosts: all
   gather_facts: false
   become: true
   tasks:
+    - name: Remover pasta temporária do Ansible no destino
+      ansible.builtin.raw: rm -rf ~/.ansible/tmp
+      changed_when: false
+
     - name: Instalar Six e pacotes de compatibilidade via Raw
-      ansible.builtin.raw: DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-six python3-setuptools python3-pkg-resources python3-debian
+      ansible.builtin.raw: >
+        DEBIAN_FRONTEND=noninteractive apt-get update &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y
+        python3-six python3-setuptools python3-pkg-resources python3-debian python3-apt
       changed_when: false
 
     - name: Verificar se o six pode ser importado via Raw
@@ -16,6 +23,11 @@
       ansible.builtin.debug:
         msg: "{{ six_check.stdout }}"
 
-- import_playbook: common/playbook-comuns.yml
-- import_playbook: common/playbook-docker.yml
-- import_playbook: common/playbook-erlang.yml
+- name: Provisionar pacotes comuns
+  import_playbook: common/playbook-comuns.yml
+
+- name: Provisionar Docker
+  import_playbook: common/playbook-docker.yml
+
+- name: Provisionar Erlang
+  import_playbook: common/playbook-erlang.yml
