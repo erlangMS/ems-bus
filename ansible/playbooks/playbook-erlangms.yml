@@ -14,10 +14,6 @@
         python3-six python3-setuptools python3-pkg-resources python3-debian python3-apt
       changed_when: false
 
-    - name: Garantir que o Python 3.12 está configurado
-      ansible.builtin.raw: ln -sf /usr/bin/python3.12 /usr/bin/python3
-      changed_when: false
-
 - name: Provisionar pacotes comuns
   import_playbook: common/playbook-comuns.yml
 
