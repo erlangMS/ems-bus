@@ -34,13 +34,11 @@
 
   tasks:
     - name: Garante que o sistema está atualizado
-      apt:
+      ansible.builtin.apt:
         update_cache: true
         cache_valid_time: 3600
 
     - name: Instala os pacotes Erlang
-      apt:
+      ansible.builtin.apt:
         name: "{{ erlang_packages }}"
         state: present
-        allow_unauthenticated: no
-

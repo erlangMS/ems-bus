@@ -7,8 +7,16 @@
 - name: Provisionamento básico das VMs
   hosts: all
   become: true
+  gather_facts: false
 
   tasks:
+    - name: Garantir dependências do Ansible (Python Six)
+      ansible.builtin.raw: apt-get update && apt-get install -y python3-six
+      changed_when: false
+
+    - name: Coletar fatos agora que o Six está instalado
+      ansible.builtin.setup:
+
     - name: Atualizar cache de pacotes
       ansible.builtin.apt:
         update_cache: true
@@ -25,6 +33,7 @@
           - lsof
           - bash-completion
           - tree
+          - python3-six
         state: present
 
     - name: Garantir que o locale pt_BR.UTF-8 esteja gerado (Debian/Ubuntu)

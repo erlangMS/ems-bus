@@ -1,4 +1,3 @@
 - import_playbook: common/playbook-comuns.yml
 - import_playbook: common/playbook-docker.yml
 - import_playbook: common/playbook-erlang.yml
-

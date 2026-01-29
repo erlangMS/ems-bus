@@ -20,22 +20,6 @@
 #
 ########################################################################################################
 
-# Identify the linux distribution: ubuntu, debian, centos
-LINUX_DISTRO=$(awk -F"=" '{ if ($1 == "ID"){ 
-								gsub("\"", "", $2);  print $2 
-							} 
-						  }' /etc/os-release)
-
-LINUX_DESCRIPTION=$(awk -F"=" '{ if ($1 == "PRETTY_NAME"){ 
-									gsub("\"", "", $2);  print $2 
-								 } 
-							   }'  /etc/os-release)
-
-LINUX_VERSION_ID=$(awk -F"=" '{ if ($1 == "VERSION_ID"){ 
-									gsub("\"", "", $2);  print $2 
-								 } 
-							   }'  /etc/os-release)
-
 # Imprime uma mensagem e termina o script
 # Parâmetros:
 #  $1  - Mensagem que será impressa 
@@ -44,11 +28,6 @@ die () {
     echo "$1"
     exit ${2:-1}
 }
-
-clear
-
-echo "Start erlangms release tool ( Date: $(date '+%d/%m/%Y %H:%M:%S')  Distro: $LINUX_DISTRO )"
-echo "Linux: $LINUX_DESCRIPTION  Version: $LINUX_VERSION_ID"
 
 # Parameters
 # script is in rel/ directory, so we need to go up if running from there, 
@@ -61,7 +40,6 @@ WORKING_DIR=$PROJECT_ROOT
 cd "$WORKING_DIR" || die "Could not change to working directory $WORKING_DIR"
 
 SKIP_BUILD="false"
-SKIP_BUILD_IMAGE="false"
 
 # Get ErlangMS version in the file src/ems_bus.app.src
 VERSION_RELEASE=$(cat src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
@@ -81,22 +59,16 @@ clean(){
 
 # show help 
 help(){
-	echo "release.sh tool"
 	echo "How to use: ./rel/release.sh (from project root) or ./release.sh (from rel/)"
 	echo
 	echo "Additional parameters:"
 	echo "  --skip-build		-> skip build with rebar. Default is false."
 	echo "  --clean          	-> clean build release."
-	exit 1
+	exit 0
 }
 
 
 make_release(){
-	echo "Please wait, generating the release $VERSION_RELEASE of the ems-bus, this may take a while!"
-
-
-	# ########## Recompile the project before generating the release ########## 
-	
 	if [ "$SKIP_BUILD" = "false" ]; then
 		echo 'Recompiling the project with rebar3...'
 		./build.sh || die "Build failed"
@@ -135,6 +107,8 @@ make_release(){
 
 # *************** main ***************
 
+echo "Start erlangms release tool"
+
 # Read command line parameters
 for P in "$@"; do
 	if [[ "$P" =~ ^--.+$ ]]; then
@@ -143,8 +117,6 @@ for P in "$@"; do
 		elif [[ "$P" = "--clean" ]]; then
 			clean
 			exit 0
-		elif [[ "$P" =~ --skip[_-]build[_-]image ]]; then
-			SKIP_BUILD_IMAGE="true"
 		elif [[ "$P" =~ --skip[_-]build ]]; then
 			SKIP_BUILD="true"
 		else
@@ -153,9 +125,6 @@ for P in "$@"; do
 		fi
 	fi
 done
-
-echo "Skip build is $SKIP_BUILD..."
-echo "Skip build image is $SKIP_BUILD_IMAGE..."
 
 clean
 

@@ -5,9 +5,10 @@
 
   pre_tasks:
     - name: Verificar se o Docker já está instalado
-      ansible.builtin.command: docker --version 2>&1 /dev/null
+      ansible.builtin.command: docker --version
       register: docker_check
       ignore_errors: true
+      changed_when: false
 
   roles:
     - role: geerlingguy.docker
