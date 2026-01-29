@@ -1,18 +1,8 @@
-#
-# Playbooks com pacotes essenciais que toda máquina deve ter
-# Autor: Everton de Vargas Agilar
-# Data: 31/05/2025
-#
 ---
 - name: Provisionamento básico das VMs
   hosts: all
   become: true
-  gather_facts: false
-
   tasks:
-    - name: Coletar fatos manualmente
-      ansible.builtin.setup:
-
     - name: Atualizar cache de pacotes
       ansible.builtin.apt:
         update_cache: true
@@ -29,7 +19,6 @@
           - lsof
           - bash-completion
           - tree
-          - python3-six
         state: present
 
     - name: Garantir que o locale pt_BR.UTF-8 esteja gerado (Debian/Ubuntu)
@@ -37,20 +26,6 @@
         name: pt_BR.UTF-8
         state: present
       when: ansible_facts['os_family'] == "Debian"
-
-    - name: Garantir que o locale pt_BR.UTF-8 esteja gerado (RHEL/CentOS)
-      ansible.builtin.command: localedef -i pt_BR -f UTF-8 pt_BR.UTF-8
-      args:
-        creates: /usr/lib/locale/pt_BR.UTF-8
-      when: ansible_facts['os_family'] == "RedHat"
-
-    - name: Configurar variáveis de locale no /etc/environment
-      ansible.builtin.blockinfile:
-        path: /etc/environment
-        marker: "# {mark} ANSIBLE LOCALE"
-        block: |
-          LANG=pt_BR.UTF-8
-          LANGUAGE=pt_BR:pt:en
 
     - name: Configurar timezone para America/Sao_Paulo
       community.general.timezone:
