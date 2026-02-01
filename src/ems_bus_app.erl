@@ -26,7 +26,6 @@ start(_StartType, StartArgs) ->
 			% Table for waiting workers for result_cache (atomic registration)
 			ets:new(ets_result_cache_waiting, [duplicate_bag, named_table, public, {write_concurrency, true}]),
 			ets:new(ems_dispatcher_post_time, [set, named_table, public]),
-			ets:insert(ems_dispatcher_post_time, {post_time, 0}),
 			ets:new(ctrl_node_dispatch, [set, named_table, public]),
 			
 			% Catalog ETS tables

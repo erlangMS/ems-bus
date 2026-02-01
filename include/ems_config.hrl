@@ -238,13 +238,13 @@
 -define(SUFIXO_EMAIL_INSTITUCIONAL, <<"@unb.br">>).
 
 % Result cache
--define(RESULT_CACHE_MAX_SIZE_ENTRY, 524288). % 512KB
--define(MAX_RESULT_CACHE, 60000). % 60s
+-define(RESULT_CACHE_MAX_SIZE_ENTRY, 5242880). % 5MB
+-define(MAX_RESULT_CACHE, 31536000000). % 1 year in ms
 
 %% Cache limits (ems_cache module)
--define(CACHE_MAX_OBJECT_SIZE, 102400).      % 100KB max per object
--define(CACHE_MAX_TTL, 3600000).             % 1 hour
--define(CACHE_MAX_ENTRIES, 250).             % 250 entries max per cache
+-define(CACHE_MAX_OBJECT_SIZE, 5242880).      % 5MB max per object
+-define(CACHE_MAX_TTL, 31536000000).          % 1 year
+-define(CACHE_MAX_ENTRIES, 1000).            % 1000 entries max per cache
 
 -define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user_fs">>]).
 

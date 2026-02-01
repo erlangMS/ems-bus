@@ -29,11 +29,18 @@ check_result_cache(ReqHash, Worker, Timestamp2, Url, Debug) ->
 				false -> ok
 			end,
 			false;
-		[{_, {Timestamp, Request, _, req_done, _}}] ->
-			[{post_time, PostTime}] = ets:lookup(ems_dispatcher_post_time, post_time),
-			case PostTime < Timestamp of
+		[{_, {Timestamp, Request, ResultCache, req_done, _}}] ->
+			case ResultCache == infinity of
 				true -> {true, Request};
-				false -> false
+				false ->
+					case ets:lookup(ems_dispatcher_post_time, Request#request.url) of
+						[{_, PostTime}] ->
+							case PostTime < Timestamp of
+								true -> {true, Request};
+								false -> false
+							end;
+						[] -> {true, Request}
+					end
 			end;
 		[{_, {_, _, _, _, _}}] ->
 			% Registration into waiting list is now atomic using duplicate_bag
@@ -111,8 +118,13 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 									user_agent = UserAgent
 },
 				Service = #service{tcp_allowed_address_t = AllowedAddress,
-									result_cache = ResultCache},
+									module = Module,
+									result_cache = ResultCacheOrig},
 				Debug) -> 
+	ResultCache = case Module == ems_static_file_service orelse Module == ems_info_service of
+					true -> infinity;
+					false -> ResultCacheOrig
+				  end,
 	try
 		case Debug of
 			true -> ems_logger:info("ems_dispatcher begin execute. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
@@ -485,7 +497,8 @@ dispatch_middleware_function(Request = #request{reason = ok,
 																status = req_done}}
 						end;
 					false ->
-						ets:insert(ems_dispatcher_post_time, {post_time, T3}),
+						Url = Request2#request.url,
+						ets:insert(ems_dispatcher_post_time, {Url, T3}),
 						{ok, request, Request2#request{latency = Latency}}
 				end;
 			{error, Reason2} = Error ->
