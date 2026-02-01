@@ -67,6 +67,12 @@ init([]) ->
 		ets:new(debug_ets, [set, named_table, public, {read_concurrency, true}, {write_concurrency, false}]),
 		ets:insert(debug_ets, {debug, false}),
 		Config = load_config(),
+		% Ativa modo debug se configurado no arquivo
+		case Config#config.debug of
+			true -> 
+				ems_logger:mode_debug(true);
+			_ -> ok
+		end,
 		{ok, Config}
 	catch _Exception: Reason ->
 		{stop, Reason}

@@ -761,11 +761,13 @@ get_table(<<"POST">>, _, db) -> ets_catalog_post_db;
 get_table(<<"PUT">>, _, db) -> ets_catalog_put_db;
 get_table(<<"DELETE">>, _, db) -> ets_catalog_delete_db;
 get_table(<<"OPTIONS">>, _, db) -> ets_catalog_options_db;
+get_table(<<"HEAD">>, _, db) -> ets_catalog_get_db;
 get_table(<<"KERNEL">>, _, db) -> ets_catalog_kernel_db;
 get_table(<<"GET">>, _, fs) -> ets_catalog_get_fs;
 get_table(<<"POST">>, _, fs) -> ets_catalog_post_fs;
 get_table(<<"PUT">>, _, fs) -> ets_catalog_put_fs;
 get_table(<<"DELETE">>, _, fs) -> ets_catalog_delete_fs;
 get_table(<<"OPTIONS">>, _, fs) -> ets_catalog_options_fs;
+get_table(<<"HEAD">>, _, fs) -> ets_catalog_get_fs;
 get_table(<<"KERNEL">>, _, fs) -> ets_catalog_kernel_fs.
 

@@ -227,19 +227,33 @@ make_hash(Rowid, Id) -> erlang:phash2([Rowid, Id]).
 has_grant_permission(#service{oauth2_with_check_constraint = false}, _, _) -> true;
 has_grant_permission(#service{oauth2_with_check_constraint = true},
 					 #request{rowid = Rowid, type = Type}, 
-					 #user{id = Id}) ->
+					 #user{id = Id, login = Login}) ->
 	Hash = make_hash(Rowid, Id),
-	case find_by_hash(Hash) of
-		{ok, #user_permission{grant_get = GrantGet, 
-							  grant_post = GrantPost, 
-							  grant_put = GrantPut, 
-							  grant_delete = GrantDelete}} ->
-			case Type of
-				<<"GET">> -> GrantGet == true;
-				<<"POST">> -> GrantPost == true;
-				<<"PUT">> -> GrantPut == true;
-				<<"DELETE">> -> GrantDelete == true
-			end;
-		_ -> false
+	
+	%% Tenta buscar no cache primeiro
+	case ems_permission_cache:get(Hash) of
+		{ok, HasPermission} ->
+			%% Cache hit!
+			ems_logger:info("ems_user_permission has_grant_permission cache hit for user ~s, rowid ~p.", [Login, Rowid]),
+			HasPermission;
+		_ ->
+			%% Cache miss, consulta Mnesia
+			Result = case find_by_hash(Hash) of
+				{ok, #user_permission{grant_get = GrantGet, 
+									  grant_post = GrantPost, 
+									  grant_put = GrantPut, 
+									  grant_delete = GrantDelete}} ->
+					case Type of
+						<<"GET">> -> GrantGet == true;
+						<<"POST">> -> GrantPost == true;
+						<<"PUT">> -> GrantPut == true;
+						<<"DELETE">> -> GrantDelete == true
+					end;
+				_ -> false
+			end,
+			%% Armazena no cache para próximas verificações
+			ems_permission_cache:put(Hash, Result),
+			ems_logger:info("ems_user_permission has_grant_permission cache miss for user ~s, rowid ~p, cached result: ~p.", [Login, Rowid, Result]),
+			Result
 	end.
 

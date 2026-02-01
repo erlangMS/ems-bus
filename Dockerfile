@@ -65,24 +65,16 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copia arquivos de configuração ODBC
-COPY ./priv/conf/odbcinst.ini /tmp/odbcinst.ini
-COPY ./priv/conf/odbc.ini /tmp/odbc.ini
-
-# Configura ODBC
-RUN cp /tmp/odbc.ini /etc/odbc.ini && \
-    cp /tmp/odbcinst.ini /etc/odbcinst.ini && \
-    rm -f /tmp/odbc.ini /tmp/odbcinst.ini
-
 # Copia e instala o barramento
 COPY ./ems-bus.tar.gz /tmp/
 RUN tar -xzf /tmp/ems-bus.tar.gz -C /app && \
     ln -sf /app/lib/ems_bus-2.0.26/priv /app/priv && \
-    mkdir -p /app/lib/ems_bus-2.0.26/priv/conf /app/catalogo && \
     rm -f /tmp/ems-bus.tar.gz && \
     chown -R erlangms:erlangms /app /var/opt/erlangms /var/log/erlangms && \
     echo "'127.0.0.1'." > /app/.hosts.erlang && \
-    echo "'127.0.0.1'." > /root/.hosts.erlang
+    echo "'127.0.0.1'." > /root/.hosts.erlang && \
+    ln -sf /app/priv/conf/odbc.ini /etc/odbc.ini && \
+    ln -sf /app/priv/conf/odbcinst.ini /etc/odbcinst.ini
 
 WORKDIR /app
 

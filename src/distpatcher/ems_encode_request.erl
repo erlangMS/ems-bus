@@ -36,6 +36,37 @@ step1_init(CowboyReq, WorkerSend, State) ->
     put(encode_request_cowboy_step, step1_init),
     Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
     Url = binary_to_list(cowboy_req:path(CowboyReq)),
+    
+    % Validate URI length to prevent DoS attacks
+    UriSize = byte_size(Uri),
+    case UriSize > ?HTTP_MAX_URI_LENGTH of
+        true ->
+            % URI too long - return 414 URI Too Long
+            Latency = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            Request = #request{
+                rid = erlang:system_time(),
+                type = cowboy_req:method(CowboyReq),
+                url = Url,
+                uri = Uri,
+                t1 = trunc(erlang:system_time() / 1.0e6),
+                code = 414,
+                reason = euri_too_long,
+                response_data = iolist_to_binary([
+                    <<"{\"error\":\"uri_too_long\",\"message\":\"URI length ">>, 
+                    integer_to_binary(UriSize), 
+                    <<" bytes exceeds maximum allowed ">>, 
+                    integer_to_binary(?HTTP_MAX_URI_LENGTH), 
+                    <<" bytes\"}">>
+                ]),
+                content_type_out = <<"application/json; charset=utf-8">>,
+                response_header = State#encode_request_state.http_header_default,
+                latency = Latency
+            },
+            erlang:throw({error, request, Request, CowboyReq});
+        false ->
+            ok
+    end,
+    
     step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url).
 
 step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url) ->
@@ -47,6 +78,34 @@ step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url) ->
 step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, QuerystringBin, QuerystringMap0) ->
     put(encode_request_cowboy_step, step3_parse_headers),
     Method = cowboy_req:method(CowboyReq),
+    
+    % Validate HTTP method to prevent function_clause errors in catalog lookup
+    case Method of
+        <<"GET">> -> ok;
+        <<"POST">> -> ok;
+        <<"PUT">> -> ok;
+        <<"DELETE">> -> ok;
+        <<"OPTIONS">> -> ok;
+        <<"HEAD">> -> ok;
+        _ -> 
+            % Unsupported method - return 405 Method Not Allowed
+            Latency = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            Request = #request{
+                rid = erlang:system_time(),
+                type = Method,
+                url = Url2,
+                uri = Uri,
+                t1 = trunc(erlang:system_time() / 1.0e6),
+                code = 405,
+                reason = emethod_not_allowed,
+                response_data = iolist_to_binary([<<"{\"error\":\"method_not_allowed\",\"message\":\"HTTP method ">>, Method, <<" is not supported\"}">>]),
+                content_type_out = <<"application/json; charset=utf-8">>,
+                response_header = State#encode_request_state.http_header_default,
+                latency = Latency
+            },
+            erlang:throw({error, request, Request, CowboyReq})
+    end,
+    
     {Ip, _} = cowboy_req:peer(CowboyReq),
     IpBin = list_to_binary(inet_parse:ntoa(Ip)),
     
@@ -140,9 +199,25 @@ step6_read_payload(CowboyReq, _WorkerSend, State, Request, Service, ParamsMap, Q
     
     if 
         ContentLength > HttpMaxContentLength ->
-            ems_logger:error("ems_encode_request: ContentLength ~p exceeds max ~p for ~p ~p", 
-                             [ContentLength, HttpMaxContentLength, Request#request.type, Request#request.url]),
-            erlang:error(ehttp_max_content_length_error);
+            % Payload too large - return 413 Payload Too Large
+            ems_logger:warn("ems_encode_request: ContentLength ~p exceeds max ~p for ~p ~p", 
+                            [ContentLength, HttpMaxContentLength, Request#request.type, Request#request.url]),
+            Latency = ems_util:get_milliseconds() - Request#request.t1,
+            RequestError = Request#request{
+                code = 413,
+                reason = epayload_too_large,
+                response_data = iolist_to_binary([
+                    <<"{\"error\":\"payload_too_large\",\"message\":\"Content-Length ">>, 
+                    integer_to_binary(ContentLength), 
+                    <<" bytes exceeds maximum allowed ">>, 
+                    integer_to_binary(HttpMaxContentLength), 
+                    <<" bytes\"}">>
+                ]),
+                content_type_out = <<"application/json; charset=utf-8">>,
+                response_header = State#encode_request_state.http_header_default,
+                latency = Latency
+            },
+            erlang:throw({error, request, RequestError, CowboyReq});
         true -> ok
     end,
 

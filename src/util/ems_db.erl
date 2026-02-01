@@ -794,7 +794,6 @@ get_qlc_query_handle(Tab, FilterList) ->
 	F = fun() ->
 			ExprWhere = filter_condition(Tab, FilterList),
 			ExprQuery = binary_to_list(iolist_to_binary([<<"[R || R <- mnesia:table(">>, atom_to_binary(Tab, utf8), <<"), ">>, ExprWhere, <<"].">>])),
-			?DEBUG("ems_db filter generate expression query ~p to access table ~p.", [ExprQuery, Tab]),
 			qlc:string_to_handle(ExprQuery)
 		end,
 	ems_cache:get(ems_db_parsed_query_cache, ?CACHE_MAX_TTL, {filter, Tab, FilterList}, F).

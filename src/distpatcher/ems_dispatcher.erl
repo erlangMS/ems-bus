@@ -134,7 +134,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														   user = User,
 														   access_token = AccessToken},
 								case Type of
-									"HEAD" -> 
+									<<"HEAD">> -> 
 										{ok, request, Request2#request{code = 200, 
 																	   latency = Latency}
 										};
@@ -192,7 +192,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 								ems_logger:info("ems_dispatcher does not authorize call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 								Latency = ems_util:get_milliseconds() - T1,
 								case Type of
-									"HEAD" -> 
+									<<"HEAD">> -> 
 										{ok, request, Request#request{code = 200, 
 																	  latency = Latency}};
 									 _ -> 

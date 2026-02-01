@@ -64,7 +64,6 @@
          get_user_request_by_login/1,
          get_param_or_variable/3,
          get_www_path/0,
- 		 get_log_file_path/0,
          get_auth_default_scope/0,
          get_auth_password_check_between_scope/0,
          date_add_minute/2,
@@ -292,9 +291,6 @@ get_priv_dir() ->
 
 get_www_path() ->
 	ems_db:get_param(www_path, filename:join(get_priv_dir_default(), "www")).
-
-get_log_file_path() ->
-	ems_db:get_param(log_file_path, filename:join(get_priv_dir_default(), "log")).
 
 get_auth_default_scope() ->	
 	ems_db:get_param(auth_default_scope, ?AUTH_DEFAULT_SCOPE).

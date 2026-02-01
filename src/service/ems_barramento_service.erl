@@ -49,11 +49,11 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 						<<"\"app_id\":"/utf8>>, integer_to_binary(ClientId), <<","/utf8>>,
 						<<"\"app_name\":\""/utf8>>, AppName, <<"\","/utf8>>,
 						<<"\"app_version\":\""/utf8>>, ClientVersion, <<"\","/utf8>>,
-						<<"\"url_mask\":"/utf8>>, ems_util:boolean_to_binary(Conf#config.rest_url_mask), <<","/utf8>>,
+						<<"\"url_mask\":"/utf8>>, ems_util:boolean_to_binary(Conf#config.rest_url_mask),
 						<<"}"/utf8>>]),
 					ems_logger:info("ems_barramento_service call for app ~p success.", [AppName]),
 					{ok, Request#request{code = 200,
-										 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_NO_CACHE},
+										 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_1_MIN},
 										 response_data = ContentData}
 					}
 			end

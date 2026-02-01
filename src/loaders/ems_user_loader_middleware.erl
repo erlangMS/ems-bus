@@ -77,9 +77,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentUser = #user{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_user_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								%type, subtype são atualizado somente pelo dataloader de dados funcionais
-							   
 							    OldLogin = case NewUser#user.login =/= CurrentUser#user.login of
 												true -> CurrentUser#user.login;
 												false -> CurrentUser#user.old_login

@@ -16,7 +16,6 @@
     <<"node_search">> => [<<"127.0.0.1">>],
     <<"priv_path">> => <<"priv">>,
     <<"database_path">> => <<"priv/db">>,
-    <<"log_file_path">> => <<"priv/log">>,
     <<"authorization">> => <<"oauth2">>,
     <<"oauth2_with_check_constraint">> => false,
     <<"oauth2_refresh_token">> => 7200,
@@ -49,7 +48,7 @@
     <<"hostname">> => <<>>,
     <<"tcp_listen_prefix_interface_names">> => ?TCP_LISTEN_PREFIX_INTERFACE_NAMES,
     <<"http_headers">> => #{
-        <<"cache-control">> => <<"max-age=31536000, private, no-cache, no-store, must-revalidate">>,
+        <<"cache-control">> => <<"no-store, no-cache, must-revalidate, private">>,
         <<"access-control-allow-origin">> => <<"*">>,
         <<"access-control-max-age">> => <<"31536000">>,
         <<"access-control-allow-headers">> => <<"accept, accept-language, content-language, content-type, x-access_token, x-csrf-token, access-control-allow-origin, authorization, origin, x-requested-with, content-range, content-disposition, content-description">>,
@@ -60,7 +59,7 @@
         <<"x-content-type-options">> => <<"nosniff">>
     },
     <<"http_headers_options">> => #{
-        <<"cache-control">> => <<"max-age=31536000, private, no-cache, no-store, must-revalidate">>,
+        <<"cache-control">> => <<"no-store, no-cache, must-revalidate, private">>,
         <<"access-control-allow-origin">> => <<"*">>,
         <<"access-control-max-age">> => <<"31536000">>,
         <<"access-control-allow-headers">> => <<"accept, accept-language, content-language, content-type, x-access_token, x-csrf-token, access-control-allow-origin, authorization, origin, x-requested-with, content-range, content-disposition, content-description">>,

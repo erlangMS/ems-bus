@@ -104,6 +104,16 @@ init(_Service = #service{properties = Props}) ->
 	ems_db:set_param(sql_select_passport_code, SqlSelectPassportCode),
 	ems_db:set_param(sql_disable_passport_code, SqlDisablePassportCode),
 
+	% Inicializa cache de tokens ETS
+	ems_auth_token_cache:start(),
+	
+	% Inicializa cache de permissões ETS
+	ems_permission_cache:start(),
+	
+	% Agenda limpeza periódica dos caches (a cada 60 segundos)
+	erlang:send_after(60000, self(), cleanup_token_cache),
+	erlang:send_after(60000, self(), cleanup_permission_cache),
+
 	NewState = #state{},
     {ok, NewState}. 
     
@@ -118,6 +128,16 @@ handle_call(_Msg, _From, State) ->
 
 handle_info({expire, Table, Key}, State) ->
 	ems_db:delete(Table, Key),
+	{noreply, State};
+
+handle_info(cleanup_token_cache, State) ->
+	ems_auth_token_cache:cleanup_expired(),
+	erlang:send_after(60000, self(), cleanup_token_cache),
+	{noreply, State};
+
+handle_info(cleanup_permission_cache, State) ->
+	ems_permission_cache:cleanup_expired(),
+	erlang:send_after(60000, self(), cleanup_permission_cache),
 	{noreply, State};
 
 handle_info(_Msg, State) ->
@@ -560,7 +580,9 @@ revoke_access_token(AccessToken, _) ->
 	try
 		case ems_db:get(auth_oauth2_access_token_table, AccessToken) of
 			{ok, Record} -> 
-				ems_db:delete(Record);
+				ems_db:delete(Record),
+				%% Remove do cache também
+				ems_auth_token_cache:invalidate(AccessToken);
 			_ -> ok
 		end,
 		{ok, []}

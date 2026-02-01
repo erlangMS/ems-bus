@@ -119,11 +119,10 @@ do_bearer_authorization(Service, Request = #request{authorization = Authorizatio
 	try
 		case ems_util:parse_bearer_authorization_header(Authorization) of
 			{ok, AccessToken} -> 
-				ems_logger:info("ems_auth_user do_bearer_authorization success for authorization: ~p, AccessToken: ~p.", [binary_to_list(Authorization), AccessToken]),
+				ems_logger:info("ems_auth_user do_bearer_authorization success for authorization: ~p.", [binary_to_list(Authorization)]),
 				do_oauth2_check_access_token(AccessToken, Service, Request);
 			Error -> 
 				ems_logger:error("ems_auth_user do_bearer_authorization failed on parse authorization: ~p.", [binary_to_list(Authorization)]),
-
 				Error
 		end
 	catch
@@ -139,24 +138,38 @@ do_oauth2_check_access_token(<<>>, _, _) ->
 	{error, access_denied, eaccess_token_required};
 do_oauth2_check_access_token(AccessToken, Service, Req) ->
 	try
-		case byte_size(AccessToken) > 32 of
+		T1 = ems_util:get_timestamp(),
+		
+		%% Tenta buscar no cache primeiro
+		case ems_auth_token_cache:get(AccessToken) of
+			{ok, {Client, User, Scope, State, _ExpiryTime}} ->
+				%% Cache hit! Pula validação OAuth2
+				T2 = ems_util:get_timestamp(),
+				ems_logger:info("ems_auth_user do_oauth2_check_access_token cache hit. Time: ~p ms.", [T2 - T1]),
+				do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
+			_ ->
+				%% Cache miss, valida normalmente
+				case byte_size(AccessToken) > 32 of
 			true -> 
 				ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due invalid token length, AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
-
 				{error, access_denied, einvalid_access_token_size};
 			false -> 
 				case oauth2:verify_access_token(AccessToken, undefined) of
-					{ok, {[], [{<<"client">>, Client}, 
-							   {<<"resource_owner">>, User}, 
-							   {<<"expiry_time">>, _ExpityTime}, 
-							   {<<"scope">>, Scope},
-							   {<<"state">>, State}]}} -> 
+					true ->	{ok, {[], [{<<"client">>, Client}, 
+								   {<<"resource_owner">>, User}, 
+								   {<<"expiry_time">>, ExpiryTime}, 
+								   {<<"scope">>, Scope},
+								   {<<"state">>, State}]}} -> 
+							%% Armazena no cache para próximas requisições
+							ems_auth_token_cacher:put(AccessToken, Client, User, Scope, State, ExpiryTime),
+							T2 = ems_util:get_timestamp(),
+							ems_logger:info("ems_auth_user do_oauth2_check_access_token cache miss, validated and cached. Time: ~p ms.", [T2 - T1]),
 							do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
-				_ -> 
-					ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
-
-					{error, access_denied, einvalid_access_token}
-				end
+					_ -> 
+						em_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
+						{error, access_denied, einvalid_access_token}
+					end
+			end
 		end
 	catch
 		_:ReasonException ->
@@ -177,6 +190,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 						  State, 
 						  _) ->
 	try
+		T1 = ems_util:get_timestamp(),
 		case Client of
 			public -> 
 				ClientName = "public",
@@ -214,7 +228,7 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 			false -> PermiteAcessarWsOAuth2 = ServiceName =:= <<"/authorize">> orelse ServiceName =:= <<"/code_request">> orelse ServiceName =:= <<"/resource">>;   
 			true -> PermiteAcessarWsOAuth2 = true
 		end,
-		case PermiteAcessarComoAdmin orelse PermiteAcessarWebserviceDoOwner orelse PermiteAcessarWsOAuth2 of
+		Result = case PermiteAcessarComoAdmin orelse PermiteAcessarWebserviceDoOwner orelse PermiteAcessarWsOAuth2 of
 			true -> 
 				case not RestrictedService of
 					true ->
@@ -230,7 +244,6 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 				end,
 				{ok, Client, User, AccessToken, Scope, State};
 			false -> 
-
 				case not RestrictedService of
 					true -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
 					false -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for restricted service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])
@@ -239,7 +252,10 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 					true ->	{error, access_denied, erestricted_service};
 					false -> {error, access_denied, eno_grant_permission}
 				end
-		end
+		end,
+		T2 = ems_util:get_timestamp(),
+		ems_logger:info("ems_auth_user do_check_grant_permission execution time: ~p ms.", [T2 - T1]),
+		Result
 	catch
 		_:ReasonException ->
 			ems_logger:error("ems_auth_user do_check_grant_permission failed. Reason: ~p.", [ReasonException]),

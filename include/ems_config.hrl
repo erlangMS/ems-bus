@@ -184,7 +184,7 @@
 -define(CACHE_CONTROL_1_MIN, <<"max-age=60, public"/utf8>>).
 -define(CACHE_CONTROL_1_DAYS, <<"max-age=86400, public"/utf8>>).
 -define(CACHE_CONTROL_30_DAYS, <<"max-age=2592000, private"/utf8>>).
--define(CACHE_CONTROL_NO_CACHE, <<"max-age=31536000, private, no-cache, no-store, must-revalidate"/utf8>>).
+-define(CACHE_CONTROL_NO_CACHE, <<"no-store, no-cache, must-revalidate, private"/utf8>>).
 
 -define(OK_JSON, <<"{\"ok\": true}"/utf8>>).
 -define(ENOENT_JSON, <<"{\"error\": \"enoent\"}"/utf8>>).
@@ -226,6 +226,7 @@
 -define(HTTP_MAX_CONNECTIONS, 100000).
 -define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
+-define(HTTP_MAX_URI_LENGTH, 8192).  % Limite máximo de 8KB para URI (previne ataques de DoS)
 
 % TCP
 -define(TCP_PORT_MIN, 1024).
