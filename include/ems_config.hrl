@@ -9,11 +9,9 @@
 -define(DEBUG(Msg), ems_logger:debug(Msg)).
 -define(DEBUG(Msg, Params), ems_logger:debug(Msg, Params)).
 
--ifdef(native_json).
-	-define(JSON_LIB, jiffy).
--else.
-	-define(JSON_LIB, jsx).
--endif.
+
+%-define(JSON_LIB, jiffy).
+-define(JSON_LIB, native).
 
 -define(UTF8_STRING(Text), ems_util:utf8_string_linux(Text)).
 

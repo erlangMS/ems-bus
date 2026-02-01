@@ -561,14 +561,27 @@ item_to_binary(I) ->
 json_encode([]) -> <<"null">>;
 json_encode(T) when is_tuple(T) ->
 	L = tuple_to_binlist(T),
-	?JSON_LIB:encode(L);
+	json_lib_encode(L);
 json_encode(L) when is_list(L) ->
 	case io_lib:printable_list(L) of
 		true -> L2 = iolist_to_binary(L);
 		false -> L2 = list_to_binlist(L)
 	end,
-	?JSON_LIB:encode(L2);
-json_encode(Value)-> ?JSON_LIB:encode(Value).
+	json_lib_encode(L2);
+json_encode(Value)-> json_lib_encode(Value).
+
+
+json_lib_encode(Value) ->
+	case ?JSON_LIB of
+		native -> iolist_to_binary(json:encode(Value));
+		_ -> ?JSON_LIB:encode(Value)
+	end.
+
+json_lib_decode(Value) ->
+	case ?JSON_LIB of
+		native -> json:decode(Value);
+		_ -> ?JSON_LIB:decode(Value, [return_maps])
+	end.
 
 
 json_decode_as_map_file(Filename) ->
@@ -584,7 +597,7 @@ json_decode_as_map(JSON) ->
 		Dados1 = binary_to_list(JSON),
 		Dados2 = lists:flatten(re:replace(Dados1, "[\t\r\n]", "", [global, {return,list}])),
 		Dados3 = list_to_binary(Dados2),
-		Result = ?JSON_LIB:decode(Dados3, [return_maps]),
+		Result = json_lib_decode(Dados3),
 		{ok, Result}
 	catch
 		_Exception:Reason -> {error, Reason}
@@ -598,7 +611,7 @@ json_decode(JSON) ->
 			utf8 -> JSON;
 			_ -> erlang:error(einvalid_json_encoding)
 		end,
-		T = ?JSON_LIB:decode(JSON2, [return_maps]),
+		T = json_lib_decode(JSON2),
 		{ok, T}
 	catch
 		_Exception:Reason -> {error, Reason}
