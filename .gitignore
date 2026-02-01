@@ -29,3 +29,4 @@ contrib/login_webpack/node_modules/**
 .idea/**
 tools/
 **.bak
+*.crashdump

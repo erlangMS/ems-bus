@@ -17,6 +17,7 @@
 # 28/11/2016  Everton Agilar     Release inicial do script de release
 # 06/07/2017  Everton Agilar     New: --skip_build
 # 28/09/2017  Everton Agilar     New: --clean
+# 01/02/2026  Everton Agilar     Refatorado para usar rebar3
 #
 ########################################################################################################
 

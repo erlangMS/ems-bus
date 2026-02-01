@@ -1,0 +1,275 @@
+#!/bin/bash
+#
+# Setup script for Erlang environment using asdf
+# Installs asdf, Erlang 28, required packages, database drivers, and ODBC configuration
+#
+# Author: Everton de Vargas Agilar <evertonagilar@gmail.com>
+#
+
+set -e
+
+echo "=== Erlang Environment Setup with asdf ==="
+echo ""
+
+# Check if NOT running as root
+if [ "$EUID" -eq 0 ]; then 
+    echo "ERROR: Do not run this script as root or with sudo"
+    echo "Run as a regular user: ./install-erlang.sh"
+    exit 1
+fi
+
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PRIV_CONF_DIR="$SCRIPT_DIR/priv/conf"
+
+echo "Script directory: $SCRIPT_DIR"
+echo "Configuration directory: $PRIV_CONF_DIR"
+echo "User: $USER"
+echo "Home: $HOME"
+echo ""
+
+# ############## Check for existing Erlang installation ##############
+
+echo "[1/7] Checking for existing Erlang installation..."
+
+if command -v erl &> /dev/null; then
+    EXISTING_VERSION=$(erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell 2>/dev/null | sed 's/[^0-9]//g')
+    echo "ERROR: Erlang $EXISTING_VERSION is already installed on this system"
+    echo ""
+    echo "Please remove the existing Erlang installation first:"
+    echo "  - If installed via apt: sudo apt remove erlang*"
+    echo "  - If installed via asdf: asdf uninstall erlang $EXISTING_VERSION"
+    echo "  - Check with: which erl"
+    echo ""
+    exit 1
+fi
+
+echo "No existing Erlang installation found"
+echo ""
+
+# ############## Install asdf dependencies ##############
+
+echo "[2/7] Installing asdf and build dependencies..."
+echo "This step requires sudo privileges for apt-get"
+echo ""
+
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    build-essential `# Compiler and build tools (gcc, g++, make)` \
+    autoconf `# Automatic configure script builder` \
+    m4 `# Macro processor required by autoconf` \
+    libncurses5-dev `# Terminal handling library (development files)` \
+    libssl-dev `# SSL/TLS cryptographic library (development files)` \
+    libncurses-dev `# New curses library for terminal UI` \
+    libwxgtk3.2-dev `# wxWidgets GUI library for Erlang Observer` \
+    libwxgtk-webview3.2-dev `# wxWidgets WebView component` \
+    libgl1-mesa-dev `# OpenGL library for graphics` \
+    libglu1-mesa-dev `# OpenGL utility library` \
+    libpng-dev `# PNG image library (development files)` \
+    libssh-dev `# SSH library for Erlang SSH support` \
+    unixodbc-dev `# ODBC database connectivity (development files)` \
+    xsltproc `# XSLT processor for documentation` \
+    fop `# Apache FOP for PDF documentation generation` \
+    libxml2-utils `# XML utilities` \
+    openjdk-11-jdk `# Java Development Kit for jinterface`
+
+echo "Build dependencies installed"
+echo ""
+
+# ############## Install asdf ##############
+
+echo "[3/7] Installing asdf version manager..."
+
+ASDF_DIR="$HOME/.asdf"
+
+# Check if asdf is already installed
+if [ -d "$ASDF_DIR" ]; then
+    echo "asdf already installed at $ASDF_DIR"
+else
+    # Clone asdf repository
+    git clone https://github.com/asdf-vm/asdf.git "$ASDF_DIR" --branch v0.18.0
+    echo "asdf cloned to $ASDF_DIR"
+fi
+
+# Configure asdf in shell profiles
+configure_shell_profile() {
+    local SHELL_RC="$1"
+    local SHELL_NAME="$2"
+    
+    if [ ! -f "$SHELL_RC" ]; then
+        touch "$SHELL_RC"
+    fi
+    
+    # Check if asdf shims are already configured
+    if ! grep -q "asdf/shims" "$SHELL_RC" 2>/dev/null; then
+        echo "" >> "$SHELL_RC"
+        echo "# Add asdf shims to PATH for Erlang and other tools" >> "$SHELL_RC"
+        echo "export PATH=\"\$HOME/.asdf/shims:\$PATH\"" >> "$SHELL_RC"
+        echo "Added asdf shims to PATH in $SHELL_RC"
+    else
+        echo "asdf shims already configured in $SHELL_RC"
+    fi
+}
+
+# Configure both bash and zsh if they exist
+if [ -f "$HOME/.bashrc" ] || [ ! -f "$HOME/.zshrc" ]; then
+    configure_shell_profile "$HOME/.bashrc" "bash"
+fi
+
+if [ -f "$HOME/.zshrc" ]; then
+    configure_shell_profile "$HOME/.zshrc" "zsh"
+fi
+
+echo "asdf installed and configured"
+echo ""
+
+# ############## Install Erlang plugin and Erlang 28 ##############
+
+echo "[4/7] Installing Erlang 28 via asdf..."
+
+# Set up asdf for this script execution
+export ASDF_DIR="$ASDF_DIR"
+export ASDF_DATA_DIR="$ASDF_DIR"
+export PATH="$ASDF_DIR/shims:$ASDF_DIR/bin:$PATH"
+
+# Source asdf
+source "$ASDF_DIR/asdf.sh"
+
+# Add Erlang plugin if not already added
+if ! asdf plugin list | grep -q "erlang"; then
+    asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
+    echo "Erlang plugin added to asdf"
+else
+    echo "Erlang plugin already installed"
+fi
+
+# Install Erlang 28.0
+ERLANG_VERSION="28.0"
+if ! asdf list erlang 2>/dev/null | grep -q "$ERLANG_VERSION"; then
+    echo "Installing Erlang $ERLANG_VERSION (this may take 10-20 minutes)..."
+    asdf install erlang "$ERLANG_VERSION"
+    echo "Erlang $ERLANG_VERSION installed"
+else
+    echo "Erlang $ERLANG_VERSION already installed"
+fi
+
+# Set global Erlang version
+asdf global erlang "$ERLANG_VERSION"
+echo "Erlang $ERLANG_VERSION set as global version"
+
+# Reshim to update shims
+asdf reshim erlang
+
+echo "Erlang 28 installed and configured"
+echo ""
+
+# ############## Install Microsoft ODBC Driver 17 for SQL Server ##############
+
+echo "[5/7] Installing Microsoft ODBC Driver 17 for SQL Server..."
+echo "This step requires sudo privileges"
+echo ""
+
+sudo apt-get install -y --no-install-recommends \
+    gnupg2 `# GNU Privacy Guard for package verification` \
+    apt-transport-https `# HTTPS transport for APT`
+
+# Add Microsoft repository
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
+
+sudo apt-get update
+ACCEPT_EULA=Y sudo apt-get install -y msodbcsql17 `# Microsoft ODBC Driver 17 for SQL Server`
+
+echo "Microsoft ODBC Driver 17 installed"
+echo ""
+
+# ############## Install additional ODBC packages ##############
+
+echo "[6/7] Installing additional ODBC packages..."
+echo ""
+
+sudo apt-get install -y --no-install-recommends \
+    zip `# ZIP archive utility` \
+    unzip `# ZIP extraction utility` \
+    net-tools `# Network tools (ifconfig, netstat, etc.)` \
+    tdsodbc `# FreeTDS ODBC driver for SQL Server/Sybase` \
+    freetds-common `# FreeTDS common files` \
+    libltdl7 `# GNU libtool dynamic module loader` \
+    ldap-utils `# LDAP client utilities` \
+    odbc-postgresql `# PostgreSQL ODBC driver`
+
+echo "Additional packages installed"
+echo ""
+
+# ############## Configure ODBC and .hosts.erlang ##############
+
+echo "[7/7] Configuring ODBC and .hosts.erlang..."
+
+# Check if configuration files exist
+if [ ! -f "$PRIV_CONF_DIR/odbc.ini" ]; then
+    echo "ERROR: odbc.ini not found in $PRIV_CONF_DIR"
+    exit 1
+fi
+
+if [ ! -f "$PRIV_CONF_DIR/odbcinst.ini" ]; then
+    echo "ERROR: odbcinst.ini not found in $PRIV_CONF_DIR"
+    exit 1
+fi
+
+# Create symbolic links for ODBC configuration files in /etc
+echo "Creating ODBC configuration symbolic links (requires sudo)..."
+sudo ln -sf "$PRIV_CONF_DIR/odbcinst.ini" /etc/odbcinst.ini
+sudo ln -sf "$PRIV_CONF_DIR/odbc.ini" /etc/odbc.ini
+echo "Created symbolic links in /etc for ODBC configuration"
+
+# Create symbolic links in user home directory
+ln -sf /etc/odbc.ini "$HOME/.odbc.ini"
+echo "Created symbolic link: $HOME/.odbc.ini -> /etc/odbc.ini"
+
+# Create .hosts.erlang file
+echo "'127.0.0.1'." > "$SCRIPT_DIR/.hosts.erlang"
+
+# Create symbolic link in user home directory
+ln -sf "$SCRIPT_DIR/.hosts.erlang" "$HOME/.hosts.erlang"
+echo "Created symbolic link: $HOME/.hosts.erlang -> $SCRIPT_DIR/.hosts.erlang"
+
+echo "ODBC and .hosts.erlang configured"
+echo ""
+
+# ############## Cleanup ##############
+
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+
+# ############## Verification ##############
+
+echo "=== Verifying installation ==="
+echo ""
+
+# Verify Erlang installation
+ERLANG_VERSION_CHECK=$(erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell 2>/dev/null | sed 's/[^0-9]//g')
+
+if [ "$ERLANG_VERSION_CHECK" = "28" ]; then
+    echo "Erlang 28 verified successfully"
+else
+    echo "WARNING: Erlang version check returned: $ERLANG_VERSION_CHECK (expected: 28)"
+fi
+
+echo ""
+echo "=== Setup completed successfully! ==="
+echo ""
+echo "Summary:"
+echo "  - asdf version manager installed"
+echo "  - Erlang 28.0 installed via asdf"
+echo "  - Microsoft ODBC Driver 17 installed"
+echo "  - Additional dependencies installed"
+echo "  - ODBC configuration symbolic links created in /etc"
+echo "  - Symbolic links created for .odbc.ini and .hosts.erlang in $HOME"
+echo ""
+echo "Next steps:"
+echo "  1. Open a new terminal or run: source ~/.bashrc (or source ~/.zshrc)"
+echo "  2. Verify Erlang: erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell"
+echo "  3. Build the project: ./build.sh"
+echo ""
