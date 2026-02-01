@@ -109,11 +109,9 @@ find_by_user_and_client(UserId, ClientId, Fields) ->
 -spec find_by_user_and_client(non_neg_integer(), non_neg_integer()) -> {ok, list(#user_perfil{})} | {error, enoent}.
 find_by_user_and_client(UserId, ClientId) -> find_by_user_and_client(UserId,ClientId, []).
 
-find_by_cpf_and_client_com_perfil_permission(<<>>, _, _) -> {ok, []};
-find_by_cpf_and_client_com_perfil_permission(undefined, _, _) -> {ok, []};
 find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) -> 
 	try
-		Value = case ems_client:find_by_id(ClientId) of
+		case ems_client:find_by_id(ClientId) of
 			{ok, Client} ->
 				case ems_db:find(Client#client.scope, [id, remap_user_id, type, cpf, name], [{cpf, "==", User#user.cpf}]) of
 					{ok, UserCpfList} ->  
@@ -121,12 +119,11 @@ find_by_cpf_and_client_com_perfil_permission(User, ClientId, Fields) ->
 					{error, enoent} -> {ok, []}
 				end;
 			{error, enoent} -> {ok, []}
-		end,
-		{ok, Value}
+		end
 	catch
 		_Exception:Reason ->	
 			ems_logger:warn("ems_user_perfil find_by_cpf_and_client_com_perfil_permission failed. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, Reason]),
-			{ok, #{}}
+			{ok, []}
 	end.
 
 
@@ -135,40 +132,39 @@ find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_([], _, _, Result) ->
 	{ok, Result};
 find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_([H|T], ClientId, Fields, Result) ->
 	try
-		case find_by_user_and_client_com_permissao(maps:get(<<"id">>, H), ClientId, Fields) of
+		ItemResult = case find_by_user_and_client_com_permissao(maps:get(<<"id">>, H), ClientId, Fields) of
 			{ok, []} ->
-				{ok, Result2} = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields);
+				case find_by_client_com_perfil_permission_aluno(H, ClientId, Fields) of
+					{ok, Map} -> Map;
+					_ -> []
+				end;
 			{ok, Records} -> 
 				case ems_user_dados_funcionais:find_by_id(maps:get(<<"id">>, H)) of 
 					{ok, TypeResolveList} ->
 						TypeResolve = ems_util:hd_or_empty(TypeResolveList),		
-						ListTypePerfilPermisson = change_user_type_to_atom(maps:get(<<"type">>, TypeResolve), Records),
-						Result2 = lists:append(Result, [ListTypePerfilPermisson]);
-				{error, enoent} -> 
-						{ok, Result2} = find_by_client_com_perfil_permission_aluno(H, ClientId, Fields)
+						change_user_type_to_atom(maps:get(<<"type">>, TypeResolve), Records);
+					{error, enoent} -> 
+						case find_by_client_com_perfil_permission_aluno(H, ClientId, Fields) of
+							{ok, Map} -> Map;
+							_ -> []
+						end
 				end;		
 			_ ->
-				{ok, Result2} = lists:append(Result, find_by_client_com_perfil_permission_aluno(H, ClientId, Fields))		
-		end,
-		case Result2 of 
-			#{} ->
-				case map_size(Result2) of 
-					0 ->
-						FinalResult = Result;
-					_ -> FinalResult = Result ++ Result2
-				end; 
-			[] ->  FinalResult = Result;
-			Response ->
-				case length(Response) of 
-					0 -> FinalResult = Result;
-					_ -> FinalResult = Result ++ Result2
+				case find_by_client_com_perfil_permission_aluno(H, ClientId, Fields) of
+					{ok, Map} -> Map;
+					_ -> []
 				end
+		end,
+		FinalResult = case ItemResult of
+			[] -> Result;
+			#{} when map_size(ItemResult) == 0 -> Result;
+			_ -> [ItemResult | Result]
 		end,
 		find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_(T, ClientId, Fields, FinalResult)
 	catch
 		_Exception:Reason ->	
-			ems_logger:warn("ems_user_perfil find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_ failed. Cpf: ~p  Clientid: ~p Reason: ~p.\n", [H, ClientId, Reason]),
-			{ok, #{}}
+			ems_logger:warn("ems_user_perfil find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_ failed. H: ~p  Clientid: ~p Reason: ~p.\n", [H, ClientId, Reason]),
+			find_by_cpf_and_client_com_perfil_permission_aluno_tecnico_(T, ClientId, Fields, Result)
 	end.
 
 find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
@@ -176,22 +172,22 @@ find_by_client_com_perfil_permission_aluno(User, ClientId, Fields) ->
 		case ems_db:find_by_id([user_aluno_ativo_db, user_aluno_inativo_db], maps:get(<<"id">>, User)) of 
 			{ok, UserAlunoById} ->
 				case find_by_user_and_client_com_permissao(UserAlunoById#user.remap_user_id, ClientId, Fields) of
-					{ok,[]} -> 
-						{ok, #{}};
+					{ok, []} -> 
+						{ok, []};
 					{ok, RecordsAluno} -> 
 						AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),	
 						ListTypePerfilPermissonAluno = change_user_type_to_atom(maps:get(<<"type">>, User), AlunosRecordsMap),
 						{ok , ListTypePerfilPermissonAluno};
 					_ -> 
-						{ok, #{}}
+						{ok, []}
 				end;
 			_ -> 
-				{ok, #{}}
+				{ok, []}
 		end
 	catch
 		_Exception:Reason ->	
 			ems_logger:warn("ems_user_perfil find_by_client_com_perfil_permission_aluno failed. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, Reason]),
-			{ok, #{}}
+			{ok, []}
 	end.
 
 
@@ -199,7 +195,7 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 	try
 		case ems_db:find([user_aluno_ativo_db, user_aluno_inativo_db], [id, name, remap_user_id], [{cpf, "==", User#user.cpf}]) of 
 			{ok, []} -> 
-				{ok, #{}};
+				{ok, []};
 			{ok, UserAluno} -> 
 					case find_by_user_and_client_com_permissao(UserAluno#user.remap_user_id, ClientId, Fields) of
 						{ok, []} -> 
@@ -208,14 +204,14 @@ find_by_id_and_client_com_perfil_permission(User, ClientId, Fields) ->
 							AlunosRecordsMap = ems_util:hd_or_empty(RecordsAluno),
 							ListTypePerfilPermissonAluno = change_user_type_to_atom(UserAluno#user.type, AlunosRecordsMap),
 							{ok , ListTypePerfilPermissonAluno};
-						_ -> {ok, #{}}
+						_ -> {ok, []}
 					end;
-			_ -> {ok, #{}}
+			_ -> {ok, []}
 		end
 	catch
 		_Exception:Reason ->	
 			ems_logger:warn("ems_user_perfil find_by_id_and_client_com_perfil_permission failed. User: ~p  Clientid: ~p Reason: ~p.\n", [User, ClientId, Reason]),
-			{ok, #{}}
+			{ok, []}
 	end.
 
 

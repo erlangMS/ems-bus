@@ -566,7 +566,19 @@ get_user_info(User, ClientId) ->
 
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
-to_resource_owner(User, ClientId) ->
+to_resource_owner(User = #user{resource_owner_json_cache = Cache}, ClientId) ->
+	% Check cache first
+	case Cache of
+		undefined ->
+			% Cache miss - compute JSON
+			to_resource_owner_compute(User, ClientId);
+		CachedJson ->
+			% Cache hit - return cached JSON
+			CachedJson
+	end.
+
+% Internal function to compute resource owner JSON
+to_resource_owner_compute(User, ClientId) ->
 	try
 		put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass1),
 		OAuth2ResourceOwnerFields = ems_db:get_param(oauth2_resource_owner_fields),
@@ -610,26 +622,9 @@ to_resource_owner(User, ClientId) ->
 						case ShowListaPerfilPermission of
 							true -> 
 								put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass16),
-								{ok, ListaPerfilPermission} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
+								{ok, ListaPerfilPermissionFinal} = ems_user_perfil:find_by_cpf_and_client_com_perfil_permission(User, ClientId, [perfil_id, name]),
 								put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass17),
-								{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermission, 
-								case ListaPerfilPErmissionWithouthOk of
-									[] -> 
-										put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass18),
-										ResultList = false;
-									_ ->
-										put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass19),
-										ResultList = is_list(ListaPerfilPErmissionWithouthOk)
-								end,
-								put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass20),
-								case ResultList of
-									true ->
-										ListaPerfilPermissionCorrect = lists:nth(1,ListaPerfilPErmissionWithouthOk);
-									false ->
-										ListaPerfilPermissionCorrect = ListaPerfilPErmissionWithouthOk
-									end,
-								put(ems_user_to_resource_owner_step, ems_user_to_resource_owner_pass21),
-								ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermissionCorrect);
+								ListaPerfilPermissionJson  = ems_schema:to_json(ListaPerfilPermissionFinal);
 							false ->
 								ListaPerfilPermissionJson = <<"[]">>
 						end
@@ -780,20 +775,7 @@ to_resource_owner(User, ClientId) ->
 																end
 														end
 												end,
-								{ok, ListaPerfilPErmissionWithouthOk} = ListaPerfilPermissionFinal,
-								case ListaPerfilPErmissionWithouthOk of
-									[] -> 
-										ResultList = false;
-									_ ->
-										ResultList = is_list(ListaPerfilPErmissionWithouthOk)
-								end,
-								case ResultList of
-									true ->
-										ListaPerfilPermissionCorrect = lists:nth(1,ListaPerfilPErmissionWithouthOk);
-									false ->
-										ListaPerfilPermissionCorrect = ListaPerfilPErmissionWithouthOk
-									end,
-						ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPermissionCorrect);
+								ListaPerfilPermissionJson = ems_schema:to_json(ListaPerfilPermissionFinal);
 					false ->
 						ListaPerfilPermissionJson = <<"[]">>
 				end,

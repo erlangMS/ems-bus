@@ -66,7 +66,8 @@
 			   ctrl_login_count = 0 :: non_neg_integer(),	%% 43 - ctrl_login_count		-> Incrementado toda vez que ems_user:find_index_by_login_and_password é executado
 			   ctrl_last_login_scope :: atom(),				%% 44 - ctrl_last_login_scope	-> Qual tabela que encontrou o usuário
 			   ctrl_last_login_client :: binary(),			%% 45 - ctrl_last_login_client	-> Em qual cliente logou
-			   ctrl_source_type :: atom()					%% 46 - ctrl_source_type		-> nome da tabela onde os dados são armazenados
+			   ctrl_source_type :: atom(),					%% 46 - ctrl_source_type		-> nome da tabela onde os dados são armazenados
+			   resource_owner_json_cache = undefined :: binary() | undefined	%% 47 - resource_owner_json_cache	-> Cache da serialização JSON resource owner
 		}).
 		
 -define(USER_SCHEMA_DESCRIPTOR, {
@@ -343,7 +344,8 @@
 			     ctrl_insert :: binary(),					%% 19 - ctrl_insert				-> Data que foi inserido no banco mnesia
 			     ctrl_update :: binary(), 					%% 20 - ctrl_update				-> Data que foi atualiado no banco mnesia			
 			     ctrl_modified :: binary(),					%% 21 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-			     ctrl_hash :: non_neg_integer()				%% 22 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+			     ctrl_hash :: non_neg_integer(),				%% 22 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
+			     json_cache = undefined :: binary() | undefined	%% 23 - json_cache				-> Cache da serialização JSON do cliente
 		}).
 
 

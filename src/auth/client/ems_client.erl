@@ -77,15 +77,22 @@ find_by_name(Name) ->
 
 -spec to_json(binary() | undefined) -> binary().
 to_json(undefined) -> <<"{}"/utf8>>;
-to_json(Client) ->
-	iolist_to_binary([
-		<<"{"/utf8>>,
-			<<"\"id\":"/utf8>>, integer_to_binary(Client#client.id), <<","/utf8>>,
-			<<"\"name\":\""/utf8>>, Client#client.name, <<"\","/utf8>>,
-			<<"\"description\":\""/utf8>>, Client#client.description, <<"\","/utf8>>,
-			<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(Client#client.active), 
-		<<"}"/utf8>>
-		]).
+to_json(Client = #client{json_cache = JsonCache}) ->
+	case JsonCache of
+		undefined ->
+			% Cache miss - compute JSON
+			iolist_to_binary([
+				<<"{"/utf8>>,
+					<<"\"id\":"/utf8>>, integer_to_binary(Client#client.id), <<","/utf8>>,
+					<<"\"name\":\""/utf8>>, Client#client.name, <<"\","/utf8>>,
+					<<"\"description\":\""/utf8>>, Client#client.description, <<"\","/utf8>>,
+					<<"\"active\":"/utf8>>, ems_util:boolean_to_binary(Client#client.active), 
+				<<"}"/utf8>>
+			]);
+		CachedJson ->
+			% Cache hit - return cached JSON
+			CachedJson
+	end.
 
 	
 -spec new_from_map(map(), #config{}) -> {ok, #client{}} | {error, atom()}.

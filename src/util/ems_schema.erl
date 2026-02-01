@@ -108,8 +108,11 @@ to_json([Map|_] = Value) when is_map(Map) ->
 	ems_util:json_encode(Value);
 to_json(Value) when is_list(Value) -> 
 	iolist_to_binary([<<"["/utf8>>, to_json_list(Value, []), <<"]"/utf8>>]);
+to_json(Value) when is_binary(Value) -> Value;
+to_json(Value) when is_atom(Value) -> atom_to_binary(Value, utf8);
 to_json(Value) -> 
-	Value.
+	ems_logger:warn("ems_schema:to_json unsupported type: ~p", [Value]),
+	iolist_to_binary(io_lib:format("~p", [Value])).
 
 
 	

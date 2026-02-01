@@ -150,26 +150,26 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 			_ ->
 				%% Cache miss, valida normalmente
 				case byte_size(AccessToken) > 32 of
-			true -> 
-				ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due invalid token length, AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
-				{error, access_denied, einvalid_access_token_size};
-			false -> 
-				case oauth2:verify_access_token(AccessToken, undefined) of
-					true ->	{ok, {[], [{<<"client">>, Client}, 
-								   {<<"resource_owner">>, User}, 
-								   {<<"expiry_time">>, ExpiryTime}, 
-								   {<<"scope">>, Scope},
-								   {<<"state">>, State}]}} -> 
-							%% Armazena no cache para próximas requisições
-							ems_auth_token_cacher:put(AccessToken, Client, User, Scope, State, ExpiryTime),
-							T2 = ems_util:get_timestamp(),
-							ems_logger:info("ems_auth_user do_oauth2_check_access_token cache miss, validated and cached. Time: ~p ms.", [T2 - T1]),
-							do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
-					_ -> 
-						em_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
-						{error, access_denied, einvalid_access_token}
-					end
-			end
+					true -> 
+						ems_logger:error("ems_auth_user do_oauth2_check_access_token failed due invalid token length, AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
+						{error, access_denied, einvalid_access_token_size};
+					false -> 
+						case oauth2:verify_access_token(AccessToken, undefined) of
+							{ok, {[], [{<<"client">>, Client}, 
+										{<<"resource_owner">>, User}, 
+										{<<"expiry_time">>, ExpiryTime}, 
+										{<<"scope">>, Scope},
+										{<<"state">>, State}]}} -> 
+									%% Armazena no cache para próximas requisições
+									ems_auth_token_cache:put(AccessToken, Client, User, Scope, State, ExpiryTime),
+									T2 = ems_util:get_timestamp(),
+									ems_logger:info("ems_auth_user do_oauth2_check_access_token cache miss, validated and cached. Time: ~p ms.", [T2 - T1]),
+									do_check_grant_permission(Service, Req, Client, User, AccessToken, Scope, State, oauth2);
+							_ -> 
+								ems_logger:error("ems_auth_user do_oauth2_check_access_token denied invalid access token for AccessToken: ~p, referer: ~s.", [AccessToken, binary_to_list(Req#request.referer)]),
+								{error, access_denied, einvalid_access_token}
+						end
+				end
 		end
 	catch
 		_:ReasonException ->
