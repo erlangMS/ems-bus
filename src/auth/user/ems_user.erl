@@ -566,16 +566,11 @@ get_user_info(User, ClientId) ->
 
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
-to_resource_owner(User = #user{resource_owner_json_cache = Cache}, ClientId) ->
-	% Check cache first
-	case Cache of
-		undefined ->
-			% Cache miss - compute JSON
-			to_resource_owner_compute(User, ClientId);
-		CachedJson ->
-			% Cache hit - return cached JSON
-			CachedJson
-	end.
+to_resource_owner(User = #user{id = UserId}, ClientId) ->
+	CacheKey = {to_resource_owner, UserId, ClientId},
+	FindFun = fun() -> to_resource_owner_compute(User, ClientId) end,
+	% 300000ms = 5 minutes TTL
+	ems_cache:get(ems_user_cache, 300000, CacheKey, FindFun).
 
 % Internal function to compute resource owner JSON
 to_resource_owner_compute(User, ClientId) ->

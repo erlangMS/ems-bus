@@ -1,0 +1,12 @@
+{
+    "name": "ems_node_discovery",
+    "comment": "Proactive Node Discovery Service",
+    "owner": "emsbus",
+    "version": "1.0.0",
+    "service": "ems_node_discovery:start",
+    "url": "/emsbus/ems_node_discovery",
+    "type": "KERNEL",
+    "lang": "erlang",
+    "pool_size": 1,
+    "pool_max": 1
+}

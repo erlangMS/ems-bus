@@ -34,5 +34,9 @@
 	{
 		"catalog": "/emsbus/barramento",
 		"file": "ems_barramento_service.json"
+	},
+	{
+		"catalog": "/emsbus/ems_node_discovery",
+		"file": "ems_node_discovery.json"
 	}
 ]

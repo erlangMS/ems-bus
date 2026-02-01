@@ -728,59 +728,26 @@ filter(Tab, []) ->
 		  )
 	   end,
 	mnesia:activity(async_dirty, F);
-filter(Tab, FilterList = [{F1, "==", V1}]) ->
-	Fields =  mnesia:table_info(Tab, attributes),
-	FieldPosition = field_position(F1, Fields, 1),
-	FieldType = ems_schema:get_data_type_field(Tab, FieldPosition),
-	case filter_condition_parse_value(V1, FieldType) of
-		{ok, FieldValue} -> 
-			case field_has_index(FieldPosition, Tab) of
-				false ->
-					FieldPositionTable = FieldPosition + 1, 
-					Fun = fun() -> 
-								qlc:e(qlc:q([R || R <- mnesia:table(Tab), element(FieldPositionTable, R) == FieldValue])) 
-						  end,
-					mnesia:activity(async_dirty, Fun);
-				true ->
-					case FieldPosition of
-						1 -> mnesia:dirty_read(Tab, FieldValue);
-						_ -> 
-							FieldPositionTable = FieldPosition + 1, 
-							mnesia:dirty_index_read(Tab, FieldValue, FieldPositionTable)  
-					end
-			end;	
-		{error, Reason} -> 
-			ems_logger:warn("ems_db filter invalid query on table ~p with filter ~p. Reason: ~p.", [Tab, FilterList, Reason]),
-			[]
-	end;
-filter(Tab, FilterList = [{F1, "==", V1}, {F2, "==", V2}]) ->
-	Fields =  mnesia:table_info(Tab, attributes),
-	FieldPositionF1 = field_position(F1, Fields, 1),
-	FieldTypeF1 = ems_schema:get_data_type_field(Tab, FieldPositionF1),
-	case filter_condition_parse_value(V1, FieldTypeF1) of
-		{ok, FieldValueF1} -> 
-			FieldPositionF2 = field_position(F2, Fields, 1),
-			FieldTypeF2 = ems_schema:get_data_type_field(Tab, FieldPositionF2),
-			case filter_condition_parse_value(V2, FieldTypeF2) of
-				{ok, FieldValueF2} -> 
-					FieldPositionTableF1 = FieldPositionF1 + 1, 
-					FieldPositionTableF2 = FieldPositionF2 + 1, 
-					Fun = fun() -> 
-								qlc:e(qlc:q([R || R <- mnesia:table(Tab), element(FieldPositionTableF1, R) == FieldValueF1, element(FieldPositionTableF2, R) == FieldValueF2])) 
-						  end,
-					mnesia:activity(async_dirty, Fun);
-				{error, Reason} -> 
-					ems_logger:warn("ems_db filter invalid query on table ~p with filter ~p. Reason: ~p.", [Tab, FilterList, Reason]),
-					[]
-			end;
-		{error, Reason} -> 
-			ems_logger:warn("ems_db filter invalid query on table ~p with filter ~p. Reason: ~p.", [Tab, FilterList, Reason]),
-			[]
-	end;
 filter(Tab, FilterList) when is_list(FilterList) -> 
 	try
-		ParsedQuery = get_qlc_query_handle(Tab, FilterList),
-		mnesia:activity(async_dirty, fun () -> qlc:eval(ParsedQuery) end)
+		case is_simple_equality_filter(FilterList) of
+			true ->
+				case find_indexed_filter(Tab, FilterList) of
+					{ok, {F, Op, V}, RestFilters} ->
+						% Use index for the first indexed field found
+						Records = filter_indexed(Tab, F, Op, V),
+						% Filter the rest in memory
+						filter_in_memory(Tab, Records, RestFilters);
+					false ->
+						% fallback to QLC string handle (stored in cache)
+						ParsedQuery = get_qlc_query_handle(Tab, FilterList),
+						mnesia:activity(async_dirty, fun () -> qlc:eval(ParsedQuery) end)
+				end;
+			false ->
+				% fallback to QLC string handle (stored in cache)
+				ParsedQuery = get_qlc_query_handle(Tab, FilterList),
+				mnesia:activity(async_dirty, fun () -> qlc:eval(ParsedQuery) end)
+		end
 	catch
 		_Exception:Reason -> 
 			ems_logger:warn("ems_db filter invalid query on table ~p with filter ~p. Reason: ~p.", [Tab, FilterList, Reason]),
@@ -1472,6 +1439,63 @@ select_count(Datasource, Sql) when is_tuple(Datasource) ->
 		_:Reason-> ems_logger:format_error("ems_db select_count exception. Reason: ~p.\n", [Reason])
 	end.
 
+
+is_simple_equality_filter([]) -> true;
+is_simple_equality_filter([{_, "==", _}|T]) -> is_simple_equality_filter(T);
+is_simple_equality_filter(_) -> false.
+
+find_indexed_filter(_, []) -> false;
+find_indexed_filter(Tab, [H = {F, "==", _}|T]) ->
+    Fields = mnesia:table_info(Tab, attributes),
+    FieldAtom = filter_condition_parse_field(F),
+    FieldPos = field_position(FieldAtom, Fields, 1),
+    case field_has_index(FieldPos, Tab) of
+        true -> {ok, H, T};
+        false -> 
+            case find_indexed_filter(Tab, T) of
+                {ok, Found, Rest} -> {ok, Found, [H|Rest]};
+                false -> false
+            end
+    end.
+
+filter_indexed(Tab, F1, "==", V1) ->
+	Fields =  mnesia:table_info(Tab, attributes),
+	FieldPosition = field_position(F1, Fields, 1),
+	FieldType = ems_schema:get_data_type_field(Tab, FieldPosition),
+	case filter_condition_parse_value(V1, FieldType) of
+		{ok, FieldValue} -> 
+			case field_has_index(FieldPosition, Tab) of
+				false ->
+					FieldPositionTable = FieldPosition + 1, 
+					Fun = fun() -> 
+								qlc:e(qlc:q([R || R <- mnesia:table(Tab), element(FieldPositionTable, R) == FieldValue])) 
+						  end,
+					mnesia:activity(async_dirty, Fun);
+				true ->
+					case FieldPosition of
+						1 -> mnesia:dirty_read(Tab, FieldValue);
+						_ -> 
+							FieldPositionTable = FieldPosition + 1, 
+							mnesia:dirty_index_read(Tab, FieldValue, FieldPositionTable)  
+					end
+			end;
+		{error, Reason} -> erlang:error(Reason)
+	end.
+
+filter_in_memory(_, [], _) -> [];
+filter_in_memory(_, Records, []) -> Records;
+filter_in_memory(Tab, Records, [Filter|T]) ->
+    Records2 = filter_in_memory_(Tab, Records, Filter),
+    filter_in_memory(Tab, Records2, T).
+
+filter_in_memory_(Tab, Records, {F, "==", V}) ->
+    Fields = mnesia:table_info(Tab, attributes),
+    Pos = field_position(F, Fields, 1) + 1,
+    FieldType = ems_schema:get_data_type_field(Tab, Pos - 1),
+    case filter_condition_parse_value(V, FieldType) of
+        {ok, FieldValue} -> [R || R <- Records, element(Pos, R) == FieldValue];
+        {error, _} -> []
+    end.
 
 is_database_in_restricted_mode(Reason) when is_list(Reason) ->
 	string:str(Reason, "security context") > 0;

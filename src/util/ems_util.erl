@@ -47,6 +47,7 @@
  		 get_free_tcp_port/0,
  		 get_host_list/0,
 		 get_node_name/0,
+		 get_node_name_binary/0,
 		 get_params_from_url/1,
 		 get_priv_dir/0,
 		 get_priv_dir_default/0,
@@ -744,6 +745,8 @@ parse_parte_url([H|_] = UrlParte, SeqId) ->
 
 % Retorna somente a parte do name do node sem a parte do hostname após @
 get_node_name() -> hd(string:tokens(atom_to_list(node()), "@")).
+
+get_node_name_binary() -> list_to_binary(get_node_name()).
 
 json_field_format_table(null) -> [<<"\""/utf8>>, <<"\""/utf8>>];
 json_field_format_table(V) when is_float(V) -> list_to_binary(mochinum:digits(V));

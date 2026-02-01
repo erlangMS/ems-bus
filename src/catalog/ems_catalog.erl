@@ -306,26 +306,43 @@ parse_node_service(<<>>) -> <<>>;
 parse_node_service(List) -> List.
 
 %% @doc O host pode ser um alias definido no arquivo de configuração
-parse_host_service(<<>>, _,_,_) -> {'', atom_to_list(node())};
-parse_host_service(_Host, ModuleName, Node, Conf) ->
-	ModuleNameCanonical = [case X of 46 -> 95; _ -> X end || X <- ModuleName], % Troca . por _
-	ListHost = case net_adm:host_file() of
-		{error, _Reason} -> [Conf#config.ems_host];
-		Hosts -> Hosts
-	end,
-	case erlang:is_list(Node) of
-		true  -> ListNode = Node;
-		false -> ListNode = [Node]
-	end,
-	ListHost2 = [case string:tokens(atom_to_list(X), ".") of
-					[N, _] -> N;
-					[N] -> N;
-                    _ -> atom_to_list(X)
-				 end || X <- ListHost],
-	ListNode2 = [binary_to_list(X) || X <- ListNode],
-	ClusterName = [ModuleNameCanonical ++ "@" ++ Y || _X <- ListNode2, Y <- ListHost2],
-	ClusterNode = [list_to_atom(X) || X <- ClusterName],
-	{ClusterNode, ClusterName}.
+parse_host_service(Host, ModuleName, Node, _Conf) ->
+    ModuleNameStr = if is_binary(ModuleName) -> binary_to_list(ModuleName);
+					   is_list(ModuleName) -> ModuleName;
+					   true -> ""
+					end,
+    ModuleNameCanonical = [case X of 46 -> 95; _ -> X end || X <- ModuleNameStr], % Troca . por _
+	
+	Host2 = case Host of
+				H when H == <<>>; H == undefined; H == null; H == "local"; H == ["local"]; H == [<<"local">>] -> 
+					case Node of
+						[] -> node();
+						_ -> hd_or_empty(Node)
+					end;
+				H when is_list(H) -> hd_or_empty(H);
+				H -> H
+			end,
+
+    HostStr = if is_binary(Host2) -> binary_to_list(Host2);
+				 is_list(Host2) -> Host2;
+				 is_atom(Host2) -> atom_to_list(Host2);
+				 true -> atom_to_list(node())
+			  end,
+    case string:tokens(HostStr, "@") of
+        [_Name, _Domain] -> 
+            NodeAtom = list_to_atom(HostStr),
+            {NodeAtom, list_to_binary(HostStr)};
+        [Name] ->
+            NodeName = ModuleNameCanonical ++ "@" ++ Name,
+            {list_to_atom(NodeName), list_to_binary(NodeName)};
+        _ ->
+            {'', ems_util:get_node_name_binary()}
+    end.
+
+
+hd_or_empty([]) -> "";
+hd_or_empty([H|_]) -> H;
+hd_or_empty(Value) -> Value.
 
 
 get_p(ParamName, Map, DefaultValue) ->

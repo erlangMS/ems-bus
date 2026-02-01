@@ -254,6 +254,7 @@ dispatch_service_work(Request = #request{type = Type,
 										  url_masked = UrlMasked, 
 										  user_agent = UserAgent},
 					  #service{host = '',
+							    lang = <<"erlang">>,
 							    module_name = ModuleName,
 							    module = Module,
 							    function = Function},
@@ -322,7 +323,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 		end,
 		case erlang:is_tuple(User) of
 			false -> 
-				UserJson = <<"{id:0, codigo:0, name:\"public\", login:null, email:null, type:null, subtype:null, cpf:null, scope:"", active:true, lista_perfil:{}, lista_permission:{}}">>;
+				UserJson = <<"{id:0, codigo:0, name:\"public\", login:null, email:null, type:null, subtype:null, cpf:null, scope:\"\", active:true, lista_perfil:{}, lista_permission:{}}">>;
 			_ -> 
 				case erlang:is_tuple(Client) of
 					true -> UserJson = ems_user:to_resource_owner(User, Client#client.id);
