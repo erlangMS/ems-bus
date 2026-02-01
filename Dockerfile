@@ -40,7 +40,7 @@ RUN apt-get update && \
     tzdata \
     zip \
     unzip \
-    net-tools \
+    # net-tools \
     unixodbc \
     tdsodbc \
     freetds-common \
@@ -52,9 +52,9 @@ RUN apt-get update && \
     ldap-utils \
     odbc-postgresql \
     vim \
-    less \
-    iputils-ping \
-    dnsutils && \
+    # less \
+    # iputils-ping \
+    # dnsutils && \
     sed -i 's/^# *pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
     update-locale LANG=pt_BR.UTF-8 LANGUAGE=pt_BR:pt:en && \
