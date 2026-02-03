@@ -574,13 +574,13 @@ json_encode(Value)-> json_lib_encode(Value).
 json_lib_encode(Value) ->
 	case ?JSON_LIB of
 		native -> iolist_to_binary(json:encode(Value));
-		_ -> ?JSON_LIB:encode(Value)
+		Lib -> apply(Lib, encode, [Value])
 	end.
 
 json_lib_decode(Value) ->
 	case ?JSON_LIB of
 		native -> json:decode(Value);
-		_ -> ?JSON_LIB:decode(Value, [return_maps])
+		Lib -> apply(Lib, decode, [Value, [return_maps]])
 	end.
 
 
