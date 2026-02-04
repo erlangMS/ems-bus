@@ -42,9 +42,7 @@ size_table(user3_db) -> mnesia:table_info(user3_db, size).
 -spec clear_table(atom()) -> ok | {error, efail_clear_ets_table}.
 clear_table(SourceType) ->	
 	case mnesia:clear_table(SourceType) of
-		{atomic, ok} -> 
-			mnesia:clear_table(user_cache_lru),
-			ok;
+		{atomic, ok} -> ok;
 		_ -> {error, efail_clear_ets_table}
 	end.
 	
@@ -72,7 +70,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{error, enoent} -> 
 						User = NewUser#user{ctrl_insert = CtrlDate, 
 											ctrl_source_type = SourceType},
-						ems_db:delete(user_cache_lru, Id),
 						{ok, User, SourceType, insert};
 					{ok, CurrentUser = #user{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
@@ -142,7 +139,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 ctrl_hash = NewUser#user.ctrl_hash,
 												 ctrl_source_type = SourceType
 											},
-								ems_db:delete(user_cache_lru, Id),
 								{ok, User, SourceType, update};
 							false -> 
 								{ok, skip}
