@@ -28,52 +28,106 @@ echo "User: $USER"
 echo "Home: $HOME"
 echo ""
 
+# Check command line arguments
+USE_WX=false
+ONLY_ASDF=false
+
+for arg in "$@"; do
+    if [ "$arg" == "--use-wx" ]; then
+        USE_WX=true
+    fi
+    if [ "$arg" == "--asdf" ]; then
+        ONLY_ASDF=true
+    fi
+    if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        echo "Usage: ./install-erlang.sh [OPTIONS]"
+        echo ""
+        echo "Options:"
+        echo "  --use-wx    Install optional wxWidgets GUI dependencies (Observer, Debugger)"
+        echo "  --asdf      Install/Update ONLY asdf and exit (skips Erlang/ODBC install)"
+        echo "  --help, -h  Show this help message"
+        echo ""
+        exit 0
+    fi
+done
+
 # ############## Check for existing Erlang installation ##############
 
-echo "[1/7] Checking for existing Erlang installation..."
+if [ "$ONLY_ASDF" = false ]; then
+    echo "[1/7] Checking for existing Erlang installation..."
 
-if command -v erl &> /dev/null; then
-    EXISTING_VERSION=$(erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell 2>/dev/null | sed 's/[^0-9]//g')
-    echo "ERROR: Erlang $EXISTING_VERSION is already installed on this system"
+    if command -v erl &> /dev/null; then
+        EXISTING_VERSION=$(erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell 2>/dev/null | sed 's/[^0-9]//g')
+        echo "ERROR: Erlang $EXISTING_VERSION is already installed on this system"
+        echo ""
+        echo "Please remove the existing Erlang installation first:"
+        echo "  - If installed via apt: sudo apt remove erlang*"
+        echo "  - If installed via asdf: asdf uninstall erlang $EXISTING_VERSION"
+        echo "  - Check with: which erl"
+        echo ""
+        exit 1
+    else
+        echo "No existing Erlang installation found"
+    fi
     echo ""
-    echo "Please remove the existing Erlang installation first:"
-    echo "  - If installed via apt: sudo apt remove erlang*"
-    echo "  - If installed via asdf: asdf uninstall erlang $EXISTING_VERSION"
-    echo "  - Check with: which erl"
-    echo ""
-    exit 1
 fi
-
-echo "No existing Erlang installation found"
-echo ""
 
 # ############## Install asdf dependencies ##############
 
+
+
+if [ "$ONLY_ASDF" = true ]; then
+  echo "Installing ONLY asdf (skipping Erlang and ODBC)..."
+fi
+
 echo "[2/7] Installing asdf and build dependencies..."
 echo "This step requires sudo privileges for apt-get"
+if [ "$USE_WX" = true ]; then
+    echo "Files for wxWidgets GUI enabled..."
+fi
 echo ""
 
+PACKAGES=(
+    curl
+    git
+    build-essential
+    autoconf
+    m4
+    libncurses5-dev
+    libssl-dev
+    libncurses-dev
+    libssh-dev
+    unixodbc-dev
+    xsltproc
+    fop
+    libxml2-utils
+    openjdk-11-jdk
+)
+
+if [ "$USE_WX" = true ]; then
+    echo "Including wxWidgets dependencies..."
+    PACKAGES+=(
+        libgl1-mesa-dev
+        libglu1-mesa-dev
+        libpng-dev
+    )
+    
+    # Detect Ubuntu version for wxWidgets
+    # lsb_release -rs returns version like "22.04"
+    UBUNTU_RELEASE=$(lsb_release -rs)
+    UBUNTU_MAJOR=$(echo "$UBUNTU_RELEASE" | cut -d. -f1)
+    
+    if [ "$UBUNTU_MAJOR" -ge 24 ]; then
+        echo "Detected Ubuntu $UBUNTU_RELEASE >= 24. Using libwxgtk3.2..."
+        PACKAGES+=(libwxgtk3.2-dev libwxgtk-webview3.2-dev)
+    else
+        echo "Detected Ubuntu $UBUNTU_RELEASE < 24. Using libwxgtk3.0..."
+        PACKAGES+=(libwxgtk3.0-gtk3-dev libwxgtk-webview3.0-gtk3-dev)
+    fi
+fi
+
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends \
-    curl \
-    git \
-    build-essential `# Compiler and build tools (gcc, g++, make)` \
-    autoconf `# Automatic configure script builder` \
-    m4 `# Macro processor required by autoconf` \
-    libncurses5-dev `# Terminal handling library (development files)` \
-    libssl-dev `# SSL/TLS cryptographic library (development files)` \
-    libncurses-dev `# New curses library for terminal UI` \
-    libwxgtk3.2-dev `# wxWidgets GUI library for Erlang Observer` \
-    libwxgtk-webview3.2-dev `# wxWidgets WebView component` \
-    libgl1-mesa-dev `# OpenGL library for graphics` \
-    libglu1-mesa-dev `# OpenGL utility library` \
-    libpng-dev `# PNG image library (development files)` \
-    libssh-dev `# SSH library for Erlang SSH support` \
-    unixodbc-dev `# ODBC database connectivity (development files)` \
-    xsltproc `# XSLT processor for documentation` \
-    fop `# Apache FOP for PDF documentation generation` \
-    libxml2-utils `# XML utilities` \
-    openjdk-11-jdk `# Java Development Kit for jinterface`
+sudo apt-get install -y --no-install-recommends "${PACKAGES[@]}"
 
 echo "Build dependencies installed"
 echo ""
@@ -89,7 +143,7 @@ if [ -d "$ASDF_DIR" ]; then
     echo "asdf already installed at $ASDF_DIR"
 else
     # Clone asdf repository
-    git clone https://github.com/asdf-vm/asdf.git "$ASDF_DIR" --branch v0.18.0
+    git clone https://github.com/asdf-vm/asdf.git "$ASDF_DIR" --branch v0.15.0
     echo "asdf cloned to $ASDF_DIR"
 fi
 
@@ -123,7 +177,14 @@ if [ -f "$HOME/.zshrc" ]; then
 fi
 
 echo "asdf installed and configured"
+echo "asdf installed and configured"
 echo ""
+
+if [ "$ONLY_ASDF" = true ]; then
+  echo "=== asdf setup completed successfully! ==="
+  echo "Skipping Erlang and ODBC installation as requested."
+  exit 0
+fi
 
 # ############## Install Erlang plugin and Erlang 28 ##############
 
@@ -176,8 +237,9 @@ sudo apt-get install -y --no-install-recommends \
     apt-transport-https `# HTTPS transport for APT`
 
 # Add Microsoft repository
+UBUNTU_VERSION=$(lsb_release -rs)
 curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
+curl https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
 
 sudo apt-get update
 ACCEPT_EULA=Y sudo apt-get install -y msodbcsql17 `# Microsoft ODBC Driver 17 for SQL Server`
