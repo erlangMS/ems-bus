@@ -72,9 +72,19 @@ do_basic_authorization(Service = #service{auth_allow_user_inative_credentials = 
 				ClientName = "public",
 				Client = public
 		end,
+
+		case ems_logger:in_debug() andalso Client =/= public of
+			true -> 
+				ems_logger:info("ems_auth_user client debug details: ~p.", [Client]);
+			false -> ok
+		end,
 		case ems_util:parse_basic_authorization_header(Authorization) of
 			{ok, Login, Password} ->
-				case ems_user:find_by_login_and_password(Login, Password) of
+				Client2 = case Client of
+					public -> undefined;
+					_ -> Client
+				end,
+				case ems_user:find_by_login_and_password(Login, Password, Client2) of
 					{ok, User = #user{active = Active, ctrl_source_type = Table}} -> 
 						case Active orelse AuthAllowUserInativeCredentials of
 							true -> 

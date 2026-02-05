@@ -21,6 +21,7 @@ data_pump([], _, _, _, _, _, InsertCount, UpdateCount, ErrorCount, DisabledCount
 data_pump([H|T], CtrlDate, Conf, Name, Middleware, insert, InsertCount, UpdateCount, ErrorCount, DisabledCount, SkipCount, SourceType, Fields) ->
 	case do_insert_record(H, CtrlDate, Conf, Name, Middleware, SourceType, Fields) of
 		{ok, insert} -> data_pump(T, CtrlDate, Conf, Name, Middleware, insert, InsertCount+1, UpdateCount, ErrorCount, DisabledCount, SkipCount, SourceType, Fields);
+		{ok, update} -> data_pump(T, CtrlDate, Conf, Name, Middleware, insert, InsertCount, UpdateCount+1, ErrorCount, DisabledCount, SkipCount, SourceType, Fields);
 		{ok, skip} -> data_pump(T, CtrlDate, Conf, Name, Middleware, insert, InsertCount, UpdateCount, ErrorCount, DisabledCount, SkipCount+1, SourceType, Fields);
 		{error, edisabled} -> data_pump(T, CtrlDate, Conf, Name, Middleware, insert, InsertCount, UpdateCount, ErrorCount, DisabledCount+1, SkipCount, SourceType, Fields);
 		_Error -> data_pump(T, CtrlDate, Conf, Name, Middleware, insert, InsertCount, UpdateCount, ErrorCount+1, DisabledCount, SkipCount, SourceType, Fields)
@@ -45,9 +46,9 @@ do_insert_record(Map, CtrlInsert, Conf, Name, Middleware, SourceType, _Fields) -
 		{ok, Record, Table, insert} ->
 			db_write(Table, Record),
 			{ok, insert};
-		{ok, Record, _, update} ->
-			?DEBUG("~s skips data with duplicate key: ~p.", [Name, Record]),
-			{ok, skip};
+		{ok, Record, Table, update} ->
+			db_write(Table, Record),
+			{ok, update};
 		{ok, skip} -> {ok, skip};
 		{error, edisabled} -> {error, edisabled};
 		{error, Reason} = Error ->

@@ -164,6 +164,7 @@
 		 detect_payload_is_json/1,
 		 compile_modulo_erlang/2,
 		 to_lower_and_remove_backslash/1,
+		 normalize_url/1,
 		 check_type_email/2,
 		 is_email_institucional/2,
 		 invoque_service/3,
@@ -2468,6 +2469,13 @@ to_lower_and_remove_backslash(Uri) when is_binary(Uri) ->
 	to_lower_and_remove_backslash(binary_to_list(Uri));
 to_lower_and_remove_backslash(Uri) ->	
 	list_to_binary(string:to_lower(remove_ult_backslash_url(Uri))).
+
+-spec normalize_url(string() | binary()) -> binary().
+normalize_url(undefined) -> <<>>;
+normalize_url(<<>>) -> <<>>;
+normalize_url(Url) ->
+	Url1 = to_lower_and_remove_backslash(Url),
+	re:replace(Url1, "([^:])//+", "\\1/", [global, {return, binary}]).
 	
 	
 -spec check_type_email(binary(), binary()) -> 1 | 2.

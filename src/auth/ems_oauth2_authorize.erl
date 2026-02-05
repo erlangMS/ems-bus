@@ -41,6 +41,7 @@ execute(Request = #request{type = Type,
 						<<"password">> -> 
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} -> 
+									log_client_debug(Client0),
 									PasswordGrantResult = password_grant(Request, Client0),
 									PasswordGrantResult;
 								_ -> 
@@ -50,6 +51,7 @@ execute(Request = #request{type = Type,
 						<<"client_credentials">> ->
 							case ems_util:get_client_request_by_id_and_secret(Request) of
 								{ok, Client0} ->
+									log_client_debug(Client0),
 									case OAuth2AllowClientCredentials of
 										true ->
 											ClientCredentialResult = client_credentials_grant(Request, Client0),
@@ -64,6 +66,7 @@ execute(Request = #request{type = Type,
 						<<"token">> -> 
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									log_client_debug(Client0),
 									TokenResult = authorization_request(Request, Client0),
 									TokenResult;
 								{error, ReasonAuthorizationCode, ReasonDetailToken} = Error -> 
@@ -73,6 +76,7 @@ execute(Request = #request{type = Type,
 						<<"code">> ->	
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									log_client_debug(Client0),
 									CodeResult = authorization_request(Request, Client0),
 									CodeResult;
 								{error, ReasonAuthorizationCode, ReasonDetailCode} = Error -> 
@@ -82,6 +86,7 @@ execute(Request = #request{type = Type,
 						<<"authorization_code">> ->	
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									log_client_debug(Client0),
 									AuthorizationCodeResult = access_token_request(Request, Client0),
 									AuthorizationCodeResult;
 								{error, ReasonAuthorizationCode, ReasonDetailAuthorizationCode} = Error -> 
@@ -91,6 +96,7 @@ execute(Request = #request{type = Type,
 						<<"refresh_token">> ->	
 							case ems_util:get_client_request_by_id(Request) of
 								{ok, Client0} -> 
+									log_client_debug(Client0),
 									RefreshTokenResult = refresh_token_request(Request, Client0),
 									RefreshTokenResult;
 								{error, ReasonAuthorizationCode, ReasonDetailRefreshToken} = Error -> 
@@ -102,6 +108,7 @@ execute(Request = #request{type = Type,
 							{error, access_denied, einvalid_grant_type}
 				end;
 			{ok, PassportCodeInt, Client0, User0} ->
+				log_client_debug(Client0),
 				ems_logger:info("ems_oauth2_authorize autenticate by passport PassportCodeInt: ~p Client: ~p User: ~p.", [PassportCodeInt, Client0, User0]),
 				_GrantType = <<"authorization_code">>,
 				Result = password_grant_passport(Request, binary_to_list(PassportCodeBinBase64), PassportCodeInt, Client0, User0),
@@ -253,9 +260,10 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 	try
 		case ems_util:get_client_request_by_id(Request) of
 			{ok, Client} ->
+				log_client_debug(Client),
 				case ems_util:get_user_request_by_login_and_password(Request, Client) of
 					{ok, User} ->
-						RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
+						RedirectUri = ems_util:normalize_url(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 						case get_code_by_user_and_client(User, Client, Request) of
 							{ok, Code} ->
 								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&">>, QuerystringBin]),
@@ -422,9 +430,10 @@ password_grant_passport(Request = #request{querystring_map = StateProp}, Passpor
 %% Verifica a URI do Cliente e redireciona para a página de autorização - Implicit Grant e Authorization Code Grant
 %% URL de teste: GET http://127.0.0.1:2301/authorize?response_type=code&client_id=s6BhdRkqt3&state=xyz%20&redirect_uri=http%3A%2F%2Flocalhost%3A2301%2Fportal%2Findex.html
 -spec authorization_request(#request{}, #client{}) -> {ok, list()} | {error, access_denied, atom()}.
+
 authorization_request(Request, Client) ->
     try
-		RedirectUri = ems_util:to_lower_and_remove_backslash(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
+		RedirectUri = ems_util:normalize_url(ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)),
 		case ems_oauth2_backend:verify_redirection_uri(Client, RedirectUri, []) of
 			{ok, _} -> 
 				{redirect, Client};
@@ -489,7 +498,7 @@ access_token_request(Request, Client) ->
 				{error, access_denied, ecode_empty};
 			_ -> 
 				% Obtém redirect_uri do request (pode ser vazio, undefined ou um valor)
-				RedirectUriFromRequest = ems_util:to_lower_and_remove_backslash(
+				RedirectUriFromRequest = ems_util:normalize_url(
 					ems_util:get_querystring(<<"redirect_uri">>, <<>>, Request)
 				),
 				
@@ -720,4 +729,11 @@ disable_passport_code_sgbd(PassportCodeBinBase64, PassportCodeInt) ->
 			end;
 		false -> 
 			ok   %% desabilitar o passport eh opcional
+	end.
+
+log_client_debug(Client) ->
+	case ems_logger:in_debug() andalso Client =/= undefined of
+		true -> 
+			ems_logger:info("ems_oauth2_authorize client debug details: ~p.", [Client]);
+		false -> ok
 	end.

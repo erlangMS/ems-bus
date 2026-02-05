@@ -102,7 +102,7 @@ new_from_map(Map, Conf) ->
 				id = maps:get(<<"id">>, Map),
 				name = ?UTF8_STRING(maps:get(<<"name">>, Map)),
 				secret = ?UTF8_STRING(maps:get(<<"secret">>, Map, <<"CPD">>)),
-				redirect_uri = ems_util:to_lower_and_remove_backslash(?UTF8_STRING(maps:get(<<"redirect_uri">>, Map, <<>>))),
+				redirect_uri = ems_util:normalize_url(?UTF8_STRING(maps:get(<<"redirect_uri">>, Map, <<>>))),
 				description = ?UTF8_STRING(maps:get(<<"description">>, Map, <<>>)),
 				scope =  ems_util:parse_oauth2_scope(maps:get(<<"scope">>, Map, <<>>)),
 				state =  ?UTF8_STRING(maps:get(<<"state">>, Map, <<>>)),
