@@ -134,18 +134,27 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
         false -> UserAgent0
     end,
 
+    % Override URI for Zabbix
+    {UrlFinal, UriFinal, RowidFinal, ParamsUrlFinal} = case binary:match(UserAgent, <<"Zabbix">>) of
+        nomatch -> 
+            {Url2, Uri, Rowid, Params_url};
+        _ -> 
+            {RowidZ, ParamsZ} = ems_util:hashsym_and_params("/"),
+            {"/", <<"/">>, RowidZ, ParamsZ}
+    end,
+
     Request0 = #request{
         rid = RID,
-        rowid = Rowid,
+        rowid = RowidFinal,
         type = Method,
-        uri = Uri,
-        url = Url2,
+        uri = UriFinal,
+        url = UrlFinal,
         version = Version,
         content_type_in = ContentTypeIn,
         content_length = 0,
         querystring = QuerystringBin,
         querystring_map = QuerystringMap0,
-        params_url = Params_url,
+        params_url = ParamsUrlFinal,
         accept = get_header(<<"accept">>, CowboyReq, <<"*/*">>),
         user_agent = UserAgent,
         accept_encoding = get_header(<<"accept-encoding">>, CowboyReq, <<"*">>),
