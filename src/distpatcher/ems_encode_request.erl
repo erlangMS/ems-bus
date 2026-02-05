@@ -107,7 +107,18 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     end,
     
     {Ip, _} = cowboy_req:peer(CowboyReq),
-    IpBin = list_to_binary(inet_parse:ntoa(Ip)),
+    IpBin0 = list_to_binary(inet_parse:ntoa(Ip)),
+    
+    % Prioritize X-Forwarded-For for IP if available (fix e-invalid-peer-token in legacy bus)
+    IpBin = case cowboy_req:header(<<"x-forwarded-for">>, CowboyReq) of
+        undefined -> IpBin0;
+        XFF -> 
+            % XFF can be a list "client, proxy1, proxy2". We want the first one.
+            case binary:split(XFF, <<",">>) of
+                [ClientIP|_] -> string:trim(ClientIP);
+                _ -> XFF
+            end
+    end,
     
     Host = case cowboy_req:header(<<"host">>, CowboyReq) of
         undefined -> cowboy_req:host(CowboyReq);
@@ -129,10 +140,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     {Rowid, Params_url} = ems_util:hashsym_and_params(Url2),
 
     UserAgent0 = get_header(<<"user-agent">>, CowboyReq, <<>>),
-    UserAgent = case byte_size(UserAgent0) > 32 of
-        true -> binary:part(UserAgent0, 0, 32);
-        false -> UserAgent0
-    end,
+    UserAgent = UserAgent0,
 
     % Override URI for Zabbix
     {UrlFinal, UriFinal, RowidFinal, ParamsUrlFinal} = case binary:match(UserAgent, <<"Zabbix">>) of

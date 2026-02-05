@@ -201,7 +201,8 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 							{ok, Ds} -> 
 								case ems_odbc_pool:get_connection(Ds) of
 									{ok, Ds2} ->
-										Context1 = term_to_binary(Context),
+										Context1 = term_to_binary(sanitize_context_for_legacy(Context)),
+                                        ems_logger:info("DEBUG: Sanitized Context. Original Client Size: ~p. Sanitized: ~p", [tuple_size(proplists:get_value(<<"client">>, Context)), tuple_size(proplists:get_value(<<"client">>, sanitize_context_for_legacy(Context)))]),
 										Context2 = base64:encode(Context1),
 										ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
 													{{sql_varchar, 4000}, [binary_to_list(Context2)]}
@@ -255,7 +256,7 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 							{ok, Ds} -> 
 								case ems_odbc_pool:get_connection(Ds) of
 									{ok, Ds2} ->
-										Context1 = term_to_binary(Context),
+										Context1 = term_to_binary(sanitize_context_for_legacy(Context)),
 										Context2 = base64:encode(Context1),
 										ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
 													{{sql_varchar, 4000}, [binary_to_list(Context2)]}
@@ -310,7 +311,7 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 							{ok, Ds} -> 
 								case ems_odbc_pool:get_connection(Ds) of
 									{ok, Ds2} ->
-										Context1 = term_to_binary(Context),
+										Context1 = term_to_binary(sanitize_context_for_legacy(Context)),
 										Context2 = base64:encode(Context1),
 										ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
 													{{sql_varchar, 4000}, [binary_to_list(Context2)]}
@@ -647,6 +648,79 @@ authorize_refresh_token(Client, RefreshToken, Scope, State) ->
 			ems_logger:error("ems_oauth2_backend authorize_refresh_token exception. Client: ~p  RefreshToken: ~p. Reason: ~p.", [Client, RefreshToken, ReasonException]),
 			{error, eparse_authorize_refresh_token}
 	end.
-		
 
+sanitize_context_for_legacy(Context) when is_list(Context) ->
+    [sanitize_context_item(Item) || Item <- Context];
+sanitize_context_for_legacy(Context) -> Context.
 
+sanitize_context_item({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user, tuple_size(User) == 48 ->
+    ems_logger:info("DEBUG: Sanitized #user. Original Size: 48. Sanitized: 47"),
+    {<<"resource_owner">>, erlang:delete_element(48, User)};
+sanitize_context_item({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user ->
+    ems_logger:info("DEBUG: Skipping #user sanitization. Size: ~p", [tuple_size(User)]),
+    {<<"resource_owner">>, User};
+sanitize_context_item({<<"client">>, Client}) when is_tuple(Client), element(1, Client) == client ->
+    % Detect if we need to sanitize size (25 -> 24)
+    ClientUpdatedUA = case tuple_size(Client) == 25 of
+        true ->
+            case is_binary(Client#client.user_agent) of
+                true ->
+                    LegacyUA = parse_user_agent_legacy(Client#client.user_agent),
+                    ems_logger:info("DEBUG: Sanitized #client.user_agent. Original: ~p. Sanitized: ~p", [Client#client.user_agent, LegacyUA]),
+                    Client#client{user_agent = LegacyUA};
+                false ->
+                    Client
+            end;
+        false ->
+            Client
+    end,
+    
+    % 2. Sanitize tuple size (25 -> 24) by removing json_cache (last element)
+    ClientFinal = case tuple_size(ClientUpdatedUA) == 25 of
+        true -> 
+            ems_logger:info("DEBUG: Sanitized #client size. Original Size: 25. Sanitized: 24"),
+            erlang:delete_element(25, ClientUpdatedUA);
+        false -> 
+            ems_logger:info("DEBUG: Skipping #client tuple size sanitization. Size: ~p", [tuple_size(ClientUpdatedUA)]),
+            ClientUpdatedUA
+    end,
+    
+    {<<"client">>, ClientFinal};
+
+sanitize_context_item(Item) -> Item.
+
+parse_user_agent_legacy(UserAgentBin) ->
+    UA = string:to_lower(binary_to_list(UserAgentBin)),
+    ems_logger:info("DEBUG: parse_user_agent_legacy Input: ~p Lower: ~p", [UserAgentBin, UA]),
+    case string:str(UA, "firefox") > 0 of
+        true -> browser_firefox;
+        false ->
+            case string:str(UA, "chrome") > 0 of
+                true -> browser_chrome;
+                false ->
+                    case string:str(UA, "safari") > 0 of
+                        true -> browser_safari;
+                        false ->
+                            case string:str(UA, "msie") > 0 orelse string:str(UA, "trident") > 0 of
+                                true -> browser_ie;
+                                false ->
+                                    case string:str(UA, "edge") > 0 of
+                                        true -> browser_edge;
+                                        false ->
+                                            case string:str(UA, "opera") > 0 of
+                                                true -> browser_opera;
+                                                false ->
+                                                     case string:str(UA, "android") > 0 of
+                                                        true -> browser_android;
+                                                        false ->
+                                                            case string:str(UA, "iphone") > 0 orelse string:str(UA, "ipad") > 0 of
+                                                                true -> browser_ios;
+                                                                false -> other
+                                                             end
+                                                     end
+                                            end
+                                    end
+                            end
+                    end
+            end
+    end.

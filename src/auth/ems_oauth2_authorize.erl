@@ -600,7 +600,7 @@ persist_token_sgbd(
 									  {sql_integer, [IdUsuario]},
 									  {{sql_varchar, 32}, [AccessToken2]},					% Token
 									  {{sql_varchar, 32}, [AccessCode2]},					% Device ID (Code) 
-									  {{sql_varchar, 32}, [binary_to_list(UserAgentBin)]}],	% Device Info
+									  {{sql_varchar, 32}, [format_user_agent_legacy(UserAgentBin)]}],	% Device Info
 
 						ems_odbc_pool:param_query(Ds2, SqlPersist, ParamsSql),
 
@@ -736,4 +736,39 @@ log_client_debug(Client) ->
 		true -> 
 			ems_logger:info("ems_oauth2_authorize client debug details: ~p.", [Client]);
 		false -> ok
+	end.
+
+format_user_agent_legacy(UserAgentBin) ->
+	{Atom, Version} = parse_user_agent_legacy(UserAgentBin),
+	atom_to_list(Atom) ++ " " ++ binary_to_list(Version).
+
+parse_user_agent_legacy(UserAgentBin) ->
+	UA = string:to_lower(binary_to_list(UserAgentBin)),
+	case string:str(UA, "chrome") > 0 of
+		true -> {chrome, parse_version(UA, "chrome/")};
+		false ->
+			case string:str(UA, "firefox") > 0 of
+				true -> {firefox, parse_version(UA, "firefox/")};
+				false ->
+				   case string:str(UA, "safari") > 0 of
+						true -> {safari, parse_version(UA, "version/")}; 
+						false ->
+							case string:str(UA, "opera") > 0 orelse string:str(UA, "opr") > 0 of
+								true -> {opera, parse_version(UA, "opr/")};
+								false -> {others, <<"0.0">>}
+							end
+				   end
+			end
+	end.
+
+parse_version(UA, Token) ->
+	case string:str(UA, Token) of
+		0 -> <<"0.0">>;
+		Index ->
+			Start = Index + length(Token) - 1,
+			Rest = string:substr(UA, Start + 1),
+			case string:tokens(Rest, " ;") of
+				[Ver | _] -> list_to_binary(Ver);
+				_ -> <<"0.0">>
+			end
 	end.
