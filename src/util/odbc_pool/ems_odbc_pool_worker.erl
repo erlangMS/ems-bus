@@ -284,6 +284,10 @@ do_param_query(Sql, Params, #state{datasource = Datasource = #service_datasource
 		case odbc:param_query(ConnRef, Sql, Params, Timeout) of
 			{error, Reason} ->
 				ems_logger:error("ems_odbc_pool_worker param_query failed (Ds: ~p Reason: ~p)\n\tSQL: ~s", [Id, Reason, Sql]),
+				case ems_logger:in_debug() of
+					true -> ems_logger:error("   Params: ~p", [Params]);
+					false -> ok
+				end,
 				case ems_db:is_database_in_restricted_mode(Reason) of	
 					true ->  {error, eodbc_restricted_connection};
 					false -> {error, eodbc_connection_closed}

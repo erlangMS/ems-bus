@@ -7,7 +7,7 @@
 	"url": "/emsbus/ems_user2_loader_db",
 	"type": "KERNEL",
 	"lang": "erlang",
-	"update_checkpoint": 30000,
+	"update_checkpoint": 18000,
 	"datasource": "sig_unb",
 	"start_timeout": 8000,
 	"middleware": "ems_user_loader_middleware",

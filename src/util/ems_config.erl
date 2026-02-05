@@ -244,31 +244,28 @@ parse_cat_path_search(CatPathSearch, StaticFilePath, StaticFilePathProbing) ->
 			CatPathSearch2 = CatPathSearch
 	end,
 
-	% Processar as entradas da lista. Pode ser um arquivo .zip
-	CatPathSearch3 = parse_cat_path_search_(CatPathSearch2, []),
+	% Ignora parametro catalog_path para ems-bus informado no arquivo de configuracao
+	CatPathSearch3 = lists:filter(fun({K, _}) -> 
+		K =/= <<"ems-bus">> andalso K =/= <<"ems_bus">> andalso K =/= <<"emsbus">>
+	end, CatPathSearch2),
 
-	% Adiciona o catálogo do barramento se necessário
-	case lists:keymember(<<"ems-bus">>, 1, CatPathSearch3) orelse 
-		 lists:keymember(<<"ems_bus">>, 1, CatPathSearch3) orelse 
-		 lists:keymember(<<"emsbus">>, 1, CatPathSearch3) of
-			true -> CatPathSearch3;
-			false -> [{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch3]
-	end.
+	% Processar as entradas da lista. Pode ser um arquivo .zip
+	CatPathSearch4 = parse_cat_path_search_(CatPathSearch3, []),
+
+	% Adiciona o catálogo do barramento
+	[{<<"ems-bus">>, ?CATALOGO_ESB_PATH} | CatPathSearch4].
 
 
 -spec parse_static_file_path(map()) -> list().
 parse_static_file_path(StaticFilePathMap) ->
-	StaticFilePathList = maps:to_list(StaticFilePathMap),
-	StaticFilePathList2 = case lists:keymember(<<"www_path">>, 1, StaticFilePathList) of
-						     true -> 
-								{_, WWWPathBin} = lists:keyfind(<<"www_path">>, 1, StaticFilePathList),
-								WWWPathStr = ems_util:parse_file_name_path(binary_to_list(WWWPathBin)),
-								StaticFilePathList;
-							 false -> 
-								WWWPathStr = ems_util:parse_file_name_path(filename:join(ems_db:get_param(priv_path), "www")),
-								WWWPathBin = list_to_binary(WWWPathStr),
-								[{<<"www_path">>, WWWPathBin} | StaticFilePathList]
-						  end,
+	% Ignora parametro www_path informado no arquivo de configuracao
+	StaticFilePathMap2 = maps:remove(<<"www_path">>, StaticFilePathMap),
+	StaticFilePathList = maps:to_list(StaticFilePathMap2),
+
+	% Adiciona o default
+	WWWPathStr = ems_util:parse_file_name_path(filename:join(ems_db:get_param(priv_path), "www")),
+	WWWPathBin = list_to_binary(WWWPathStr),
+	StaticFilePathList2 = [{<<"www_path">>, WWWPathBin} | StaticFilePathList],
 	ems_db:set_param(www_path, WWWPathStr),
 	LoginPath = list_to_binary(filename:join(WWWPathStr, "login")),
 	ems_db:set_param(login_path, LoginPath),
@@ -298,17 +295,19 @@ parse_http_headers(HttpHeaders, ShowDebugResponseHeaders, Hostname) ->
 
 parse_http_headers_([], _ShowDebugResponseHeaders, _Hostname, Result) ->
 	maps:from_list(Result);
-parse_http_headers_([{Key, Value} = Item|T], ShowDebugResponseHeaders, Hostname, Result) when is_binary(Value) ->
+parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result) when is_binary(Value) ->
+	KeyLower = list_to_binary(string:to_lower(binary_to_list(Key))),
 	case byte_size(Key) =< 100 andalso Value =/= undefined andalso Value =/= <<>> andalso byte_size(Value) =< 450 of
 		true -> 
-			parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [Item | Result]);
+			parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value} | Result]);
 		false -> 
 			erlang:error(einvalid_http_response_header)
 	end;
-parse_http_headers_([{Key, _} = Item|T], ShowDebugResponseHeaders, Hostname, Result) ->
+parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result) ->
+	KeyLower = list_to_binary(string:to_lower(binary_to_list(Key))),
 	case byte_size(Key) =< 100 of
 		true -> 
-			parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [Item | Result]);
+			parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value} | Result]);
 		false -> 
 			erlang:error(einvalid_http_response_header)
 	end.
@@ -365,7 +364,7 @@ parse_config(Json, Filename) ->
 
 		
 		put(parse_step, priv_path),
-		PrivPath0 = binary_to_list(get_p(<<"priv_path">>, Json, list_to_binary(ems_util:get_priv_dir_default()))),
+		PrivPath0 = ems_util:get_priv_dir_default(),
 		PrivPath = ems_util:parse_file_name_path(PrivPath0, [], undefined),
 		
 		case filelib:is_dir(PrivPath) of
@@ -376,7 +375,7 @@ parse_config(Json, Filename) ->
 		end,
 		
 		put(parse_step, database_path),
-		DatabasePath0 = binary_to_list(get_p(<<"database_path">>, Json, list_to_binary(filename:join(PrivPath, "db")))),
+		DatabasePath0 = filename:join(PrivPath, "db"),
 		DatabasePath = ems_util:parse_file_name_path(DatabasePath0, [], undefined),
 
 		put(parse_step, database_path_check),
@@ -693,10 +692,11 @@ parse_config(Json, Filename) ->
 		SslKeyfile = get_p(<<"ssl_keyfile">>, Json, undefined),
 
 		put(parse_step, host_search),
-		HostSearch = get_p(<<"host_search">>, Json, <<>>),	
+		HostSearch = maps:get(<<"host_search">>, ?CONFIG_DEFAULTS),
 		
 		put(parse_step, node_search),
-		NodeSearch0 = get_p(<<"node_search">>, Json, <<>>), NodeSearch = case is_list(NodeSearch0) of true -> [ case N of <<"localhost">> -> <<"127.0.0.1">>; _ -> N end || N <- NodeSearch0 ]; false -> NodeSearch0 end,		
+		NodeSearch = maps:get(<<"node_search">>, ?CONFIG_DEFAULTS),
+
 
 		WWWPath = ems_db:get_param(www_path),
 		

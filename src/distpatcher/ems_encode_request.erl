@@ -128,6 +128,12 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     T1 = trunc(RID / 1.0e6),
     {Rowid, Params_url} = ems_util:hashsym_and_params(Url2),
 
+    UserAgent0 = get_header(<<"user-agent">>, CowboyReq, <<>>),
+    UserAgent = case byte_size(UserAgent0) > 32 of
+        true -> binary:part(UserAgent0, 0, 32);
+        false -> UserAgent0
+    end,
+
     Request0 = #request{
         rid = RID,
         rowid = Rowid,
@@ -141,7 +147,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
         querystring_map = QuerystringMap0,
         params_url = Params_url,
         accept = get_header(<<"accept">>, CowboyReq, <<"*/*">>),
-        user_agent = get_header(<<"user-agent">>, CowboyReq, <<>>),
+        user_agent = UserAgent,
         accept_encoding = get_header(<<"accept-encoding">>, CowboyReq, <<"*">>),
         cache_control = get_header(<<"cache-control">>, CowboyReq, <<>>),
         authorization = get_header(<<"authorization">>, CowboyReq, <<>>),
@@ -289,9 +295,10 @@ decode_masked_url(UrlEncoded) ->
 
 parse_content_type_header(undefined) -> <<>>;
 parse_content_type_header(Val) ->
-    case binary:split(Val, <<";">>) of
+    ValLower = list_to_binary(string:to_lower(binary_to_list(Val))),
+    case binary:split(ValLower, <<";">>) of
         [CT|_] -> CT;
-        _ -> Val
+        _ -> ValLower
     end.
 
 parse_protocol(<<"http">>) -> http;

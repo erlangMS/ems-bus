@@ -24,10 +24,6 @@
 		"file": "ems_favicon_service.json"
 	},
 	{
-		"catalog": "/emsbus/auth",
-		"file": "auth/ems_auth.json"
-	},
-	{
 		"catalog": "/emsbus/tcp_servers",
 		"file": "tcp_servers/ems_tcp_servers.json"
 	},
@@ -38,5 +34,13 @@
 	{
 		"catalog": "/emsbus/ems_node_discovery",
 		"file": "ems_node_discovery.json"
+	},
+	{
+		"catalog": "/emsbus/oauth2",
+		"file": "auth/ems_oauth2.json"
+	},
+	{
+		"catalog": "/emsbus/auth/ems_auth_login",
+		"file": "auth/ems_auth_login.json"
 	}
 ]

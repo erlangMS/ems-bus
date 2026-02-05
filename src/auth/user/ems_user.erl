@@ -99,6 +99,11 @@ find_index_by_login_and_password([Table|_] = Tables,
 											PasswordBin, 
 											Client,
 											AuthPasswordCheckBetweenScope) ->
+	case ems_logger:in_debug() of
+		true -> ems_logger:info("find_index_by_login_and_password table: ~p, crypto: ~p.", [Table, PasswdCrypto]);
+		false -> ok
+	end,
+
 	% Lazy hash computation based on stored crypto type
 	IsMatch = case PasswdCrypto of
 		undefined ->
@@ -108,7 +113,7 @@ find_index_by_login_and_password([Table|_] = Tables,
 		<<"SHA1">> ->
 			PasswordUser =:= ems_util:criptografia_sha1(PasswordStr);
 		<<"MD5">> ->
-			PasswordUser =:= ems_util:criptografia_md5(PasswordStr);
+			string:to_lower(binary_to_list(PasswordUser)) =:= string:to_lower(binary_to_list(ems_util:criptografia_md5(PasswordStr)));
 		_ ->
 			% Default fallback
 			PasswordUser =:= PasswordBin
