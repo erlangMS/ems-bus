@@ -850,7 +850,11 @@ check_encoding_bin(Bin) when is_binary(Bin) ->
 % Prepara um campo texto para o formato JSON UTF 8
 normalize_field_utf8("") ->	"";
 normalize_field_utf8(<<>>) -> "";
-normalize_field_utf8(V) when is_binary(V) -> normalize_field_utf8(unicode:characters_to_list(V));
+normalize_field_utf8(V) when is_binary(V) -> 
+	case unicode:characters_to_list(V) of
+		List when is_list(List) -> normalize_field_utf8(List);
+		_ -> normalize_field_utf8(binary_to_list(V))
+	end;
 normalize_field_utf8(V) -> 
 	Text = case string:strip(V) of
 				[] -> "";
