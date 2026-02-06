@@ -159,6 +159,7 @@
 		 decode_http_request/1,
 		 tuple_to_maps_with_keys/2,
 		 parse_querystring/1,
+		 check_url_denylist/1,
 		 decode_payload_as_json/1,
 		 decode_payload_as_xml/1,
 		 detect_payload_is_json/1,
@@ -224,12 +225,9 @@ version() ->
 		undefined -> "1.0.0"
 	end.
 
--spec server_name() -> string().
+-spec server_name() -> binary().
 server_name() ->
-	iolist_to_binary([<<"ems-bus-">>, [case application:get_key(ems_bus, vsn) of 
-											{ok, Version} -> list_to_binary(Version);
-											undefined -> <<"1.0.0">>
-									  end]]).
+	?HTTP_SERVER_HEADER.
 
 %% Retorna o hash da url e os parâmetros do request
 hashsym_and_params(S) when is_binary(S) -> hashsym_and_params(binary_to_list(S), 1, 0, []);
@@ -1681,21 +1679,55 @@ parse_if_modified_since(undefined) -> undefined;
 parse_if_modified_since(IfModifiedSince) -> cow_date:parse_date(IfModifiedSince).
 
 						
+%% @doc Parses a query string and returns a map of parameters.
+%%
+%% Supported Query String Formats:
+%% 1. Standard Key-Value: "?key=value" -> #{<<"key">> => <<"value">>}
+%% 2. Multiple Parameters: "?key1=val1&key2=val2" -> #{<<"key1">> => <<"val1">>, <<"key2">> => <<"val2">>}
+%% 3. URL Encoded: "?key=hello%20world" -> #{<<"key">> => <<"hello world">>}
+%% 4. Empty Value: "?key=" -> #{<<"key">> => <<>>}
+%% 5. Flag (No Value): "?flag" -> #{<<"flag">> => <<>>} (treated as empty string)
+%% 6. Duplicate Keys: "?key=1&key=2" -> #{<<"key">> => <<"2">>} (last value wins)
+%%
+%% @throws equerystring_limit_exceeded if parameters count exceeds ?HTTP_MAX_QUERYSTRING_LIMIT
 -spec parse_querystring(list()) -> list(tuple()).
 parse_querystring(Q) ->
-	Q1 = uri_string:dissect_query(Q),
-	Q2 = [{iolist_to_binary(P), 
-		   list_to_binary(case V of
-										[34|_] -> remove_quoted_str(utf8_list_to_string(V));
-										_  -> utf8_list_to_string(V)
-						    end)}  || {P,V} <- Q1],
-	maps:from_list(Q2).
+	try
+		Q1 = uri_string:dissect_query(Q),
+		case length(Q1) > ?HTTP_MAX_QUERYSTRING_LIMIT of
+			true -> erlang:error(equerystring_limit_exceeded);
+			false -> ok
+		end,
+		Q2 = [{iolist_to_binary(remove_quoted_str(utf8_list_to_string(P))), 
+			   list_to_binary(case V of
+											true -> "";
+											[34|_] -> remove_quoted_str(utf8_list_to_string(V));
+											_  -> utf8_list_to_string(V)
+							    end)}  || {P,V} <- Q1],
+		maps:from_list(Q2)
+	catch
+		_Exception:Reason -> 
+			ems_logger:error("ems_util parse_querystring error ~p with value ~p.\n", [Reason, Q]),
+			#{}
+	end.
 
 
 
 
 method_to_string(Method) when is_atom(Method) -> atom_to_list(Method);
 method_to_string(Method) -> Method.
+
+%% @doc Checks if the URL matches any pattern in the deny list
+-spec check_url_denylist(string()) -> boolean().
+check_url_denylist(Url) ->
+    check_url_denylist(Url, ?HTTP_URL_DENY_LIST_RE).
+
+check_url_denylist(_, []) -> false;
+check_url_denylist(Url, [Pattern | T]) ->
+    case re:run(Url, Pattern, [{capture, none}]) of
+        match -> true;
+        nomatch -> check_url_denylist(Url, T)
+    end.
 
 decode_http_header(Headers, Params) ->
     case erlang:decode_packet(httph, Headers, []) of

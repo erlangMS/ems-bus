@@ -49,24 +49,25 @@ RUN apt-get update && \
     libltdl7 \
     libcppdb0 \
     ldap-utils \
-    odbc-postgresql \
-    vim && \
+    odbc-postgresql && \
     sed -i 's/^# *pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
     update-locale LANG=pt_BR.UTF-8 LANGUAGE=pt_BR:pt:en && \
     ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime && \
     echo "America/Sao_Paulo" > /etc/timezone && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
-    mkdir -p /var/opt/erlangms/log /var/opt/erlangms/archive_log /var/log/erlangms/db /app && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copia e instala o barramento
 COPY ./ems-bus.tar.gz /tmp/
-RUN tar -xzf /tmp/ems-bus.tar.gz -C /app && \
-    ln -sf /app/lib/ems_bus-2.0.26/priv /app/priv && \
+RUN mkdir -p /app && \
+    tar -xzf /tmp/ems-bus.tar.gz -C /app && \
+    ln -sf /app/lib/ems_bus-*/priv /app/priv && \
     rm -f /tmp/ems-bus.tar.gz && \
-    chown -R erlangms:erlangms /app /var/opt/erlangms /var/log/erlangms && \
+    mkdir /app/priv/db && \
+    chown -R erlangms:erlangms /app && \
+    chmod 775 /app/priv/db && \
     echo "'127.0.0.1'." > /app/.hosts.erlang && \
     echo "'127.0.0.1'." > /root/.hosts.erlang && \
     ln -sf /app/priv/conf/odbc.ini /etc/odbc.ini && \

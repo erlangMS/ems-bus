@@ -6,7 +6,7 @@
 VERSION_SCRIPT="3.0.1"
 
 # Erlang Runtime version required
-ERLANG_VERSION=25
+ERLANG_VERSION=28
 
 # Erlang Runtime version installled
 ERLANG_VERSION_OS=`erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell 2> /dev/null | sed 's/[^0-9]//g'`

@@ -1,7 +1,7 @@
 services:
   # Barramento Erlang (ems-bus)
   ems-bus:
-    image: hub.sti.unb.br/sas/erlangms:v2026.1
+    image: hub.sti.unb.br/sas/erlangms:v2026.2
     container_name: ems-bus
     hostname: node01
     build:

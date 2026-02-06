@@ -299,7 +299,18 @@ parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result
 	KeyLower = list_to_binary(string:to_lower(binary_to_list(Key))),
 	case byte_size(Key) =< 100 andalso Value =/= undefined andalso Value =/= <<>> andalso byte_size(Value) =< 450 of
 		true -> 
-			parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value} | Result]);
+			case lists:member(KeyLower, ?HTTP_HEADERS_PROHIBITED_LIST) of
+				true -> 
+					ems_logger:format_warn("ems_config ignored prohibited header ~p.", [KeyLower]),
+					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, Result);				
+				false ->
+					Value2 = case KeyLower of
+								<<"cache-control">> -> normalize_cache_control(Value);
+								<<"access-control-max-age">> -> normalize_max_age_value(Value);
+								_ -> Value
+							 end,
+					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value2} | Result])
+			end;
 		false -> 
 			erlang:error(einvalid_http_response_header)
 	end;
@@ -307,10 +318,52 @@ parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result
 	KeyLower = list_to_binary(string:to_lower(binary_to_list(Key))),
 	case byte_size(Key) =< 100 of
 		true -> 
-			parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value} | Result]);
+			case lists:member(KeyLower, ?HTTP_HEADERS_PROHIBITED_LIST) of
+				true -> 
+					ems_logger:format_warn("ems_config ignored prohibited header ~p.", [KeyLower]),
+					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, Result);
+				false ->
+					Value2 = case KeyLower of
+								<<"cache-control">> -> normalize_cache_control(Value);
+								<<"access-control-max-age">> -> normalize_max_age_value(Value);
+								_ -> Value
+							 end,
+					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value2} | Result])
+			end;
 		false -> 
 			erlang:error(einvalid_http_response_header)
 	end.
+
+normalize_max_age_value(Value) when is_binary(Value) ->
+	ValueStr = binary_to_list(Value),
+	case string:to_integer(ValueStr) of
+		{Int, _} when Int > ?HTTP_MAX_CACHE_CONTROL_AGE -> 
+			list_to_binary(integer_to_list(?HTTP_MAX_CACHE_CONTROL_AGE));
+		_ -> Value
+	end;
+normalize_max_age_value(Value) -> Value.
+
+normalize_cache_control(Value) when is_binary(Value) ->
+	ValueStr = binary_to_list(Value),
+	ValueLower = string:to_lower(ValueStr),
+	case string:str(ValueLower, "no-cache") > 0 of
+		true -> <<"max-age=0, no-cache, no-store, must-revalidate, private">>;
+		false ->
+			case string:str(ValueLower, "max-age=") of
+				0 -> Value;
+				Index ->
+					MaxAgeStr = string:substr(ValueLower, Index + 8),
+					MaxAge = case string:to_integer(MaxAgeStr) of
+								 {Int, _} -> Int;
+								 _ -> 0
+							 end,
+					case MaxAge > ?HTTP_MAX_CACHE_CONTROL_AGE of
+						true -> <<"max-age=86400, public">>;
+						false -> Value
+					end
+			end
+	end;
+normalize_cache_control(Value) -> Value.
 	
 
 	
@@ -359,8 +412,7 @@ parse_config(Json, Filename) ->
 	try
 		{ok, InetHostname} = inet:gethostname(),
 		
-		put(parse_step, instance_type),
-		InstanceType =  binary_to_atom(get_p(<<"instance_type">>, Json, <<"production">>), utf8),
+
 
 		
 		put(parse_step, priv_path),
@@ -382,15 +434,13 @@ parse_config(Json, Filename) ->
 		case ems_util:ensure_dir_writable(DatabasePath) == ok of
 			true -> ems_logger:format_info("ems_config using database_path \033[01;34m\"~s\"\033[0m.", [DatabasePath]);
 			false ->
-				ems_logger:format_error("ems_config cannot initialize read-only database path \033[01;34m\"~s\"\033[0m.", [DatabasePath]),
+				ems_logger:format_error("ems_config database_path \033[01;34m\"~s\"\033[0m is read-only.", [DatabasePath]),
 				erlang:error(ecannot_use_read_only_database_path)
 		end,
 		
 		%% precisa ser chamado neste ponto para salvar PrivPath em ems_db:set_param
 		put(parse_step, start_db),
 		ems_db:start(PrivPath, DatabasePath),  
-		
-		ems_db:set_param(instance_type, InstanceType),
 		
 		% Instala o módulo de criptografia blowfish se necessário
 		put(parse_step, blowfish_crypto_modpath),
@@ -542,10 +592,7 @@ parse_config(Json, Filename) ->
 		ResultCache = ems_util:parse_result_cache(get_p(<<"result_cache">>, Json, ?TIMEOUT_DISPATCHER_CACHE)),
 
 		put(parse_step, result_cache_enabled),
-		case InstanceType of
-			production -> ResultCacheEnabledDefault = true;
-			_ -> ResultCacheEnabledDefault = false
-		end,
+		ResultCacheEnabledDefault = ?RESULT_CACHE_ENABLED_DEFAULT,
 		ResultCacheEnabled = ems_util:parse_bool(get_p(<<"result_cache_enabled">>, Json, ResultCacheEnabledDefault)),
 
 		put(parse_step, tcp_allowed_address),
@@ -797,7 +844,6 @@ parse_config(Json, Filename) ->
 				 auth_default_scope = AuthDefaultScopesAtom,
 				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
 				 crypto_blowfish_module_path = BlowfishCryptoModPath,
-				 instance_type = InstanceType,
 				 oauth2_resource_owner_find_permission_with_cpf = OAuth2ResourceOwnerFindPermissionWithCPF,
 				 oauth2_resource_owner_fields = OAuth2ResourceOwnerFields,
 				 user_agent_denied_list = UserAgentDeniedList

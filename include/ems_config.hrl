@@ -164,7 +164,7 @@
 -define(ACCESS_CONTROL_MAX_AGE, <<"31536000">>).
 -define(ACCESS_CONTROL_ALLOW_ORIGIN, <<"*">>).
 -define(ACCESS_CONTROL_ALLOW_METHODS, <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>).
--define(ACCESS_CONTROL_EXPOSE_HEADERS, <<"Cache-Control, Content-Language, Content-Type, Expires, Last-Modified, Pragma, Content-Length">>).
+-define(ACCESS_CONTROL_EXPOSE_HEADERS, <<"Cache-Control, Content-Language, Content-Type, Expires, Last-Modified, Content-Length">>).
 
 % Oauth2
 -define(OAUTH2_DEFAULT_AUTHORIZATION, oauth2).
@@ -179,9 +179,9 @@
 % Mensagens de saída json comuns
 -define(CONTENT_TYPE_JSON, <<"application/json">>).
 
--define(CACHE_CONTROL_1_MIN, <<"max-age=60, public"/utf8>>).
--define(CACHE_CONTROL_1_DAYS, <<"max-age=86400, public"/utf8>>).
--define(CACHE_CONTROL_30_DAYS, <<"max-age=2592000, private"/utf8>>).
+-define(CACHE_CONTROL_1_MIN, <<"max-age=0, no-cache, no-store, must-revalidate, private"/utf8>>).
+-define(CACHE_CONTROL_1_DAYS, <<"max-age=0, no-cache, no-store, must-revalidate, private"/utf8>>).
+-define(CACHE_CONTROL_30_DAYS, <<"max-age=0, no-cache, no-store, must-revalidate, private"/utf8>>).
 -define(CACHE_CONTROL_NO_CACHE, <<"no-store, no-cache, must-revalidate, private"/utf8>>).
 
 -define(OK_JSON, <<"{\"ok\": true}"/utf8>>).
@@ -225,6 +225,22 @@
 -define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
 -define(HTTP_MAX_URI_LENGTH, 8192).  % Limite máximo de 8KB para URI (previne ataques de DoS)
+-define(HTTP_MAX_QUERYSTRING_LIMIT, 100).  % Limite máximo de 100 parâmetros na querystring (previne ataques de DoS)
+-define(HTTP_TARPIT_DELAY, 30000).  % Delay de 30 segundos para requisições maliciosas (Tarpit)
+-define(HTTP_URL_DENY_LIST_RE, [
+    "\\.php$", "\\.jsp$", "\\.asp$", "\\.aspx$", "\\.exe$", "\\.pl$", "\\.cgi$", "\\.sh$", "\\.yaml$", "\\.env$"
+]).
+-define(RESULT_CACHE_ENABLED_DEFAULT, true).
+-define(HTTP_SERVER_HEADER, <<"Okatsu">>).  % Obfuscated Server header
+-define(HTTP_MAX_CACHE_CONTROL_AGE, 86400).   % 1 day in seconds
+-define(HTTP_HEADERS_PROHIBITED_LIST, [
+    <<"x-powered-by">>, 
+    <<"x-aspnet-version">>, 
+    <<"public-key-pins">>,              % HPKP is deprecated and dangerous
+    <<"x-runtime">>, 
+    <<"x-version">>,
+    <<"pragma">>                        % Deprecated
+]).
 
 % TCP
 -define(TCP_PORT_MIN, 1024).
@@ -269,8 +285,7 @@
 -define(BLUE_SPACE_COLOR, 		<<" ">>).
 
 %  Definição para o arquivo de configuração
--record(config, {instance_type :: atom(),							%% Tipo de instância: production, development, test
-				 cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
+-record(config, {cat_host_alias :: map(),							%% Lista (Chave-Valor) com os names alternativos para os hosts. Ex.: ["negocio01", "192.168.0.103", "negocio02", "puebla"]
 				 cat_host_search,									%% Lista de hosts para pesquisar os serviços
 				 cat_node_search,									%% Lista de nodes para pesquisar os serviços
 				 cat_path_search :: list(tuple()),					%% Lista de tuplas com caminhos alternativos para catálogos

@@ -54,7 +54,6 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("Erlang Runtime: ~p", [erlang:system_info(otp_release)]),
 			ems_logger:info("ems-bus PID: ~p", [os:getpid()]),
 			ems_logger:info("Parameters:"),
-			ems_logger:info("  instance_type: ~p.", [Conf#config.instance_type]),
 			ems_logger:info("  config_file: ~p.", [Conf#config.config_file]),
 			ems_logger:info("  priv_path: ~p.", [Conf#config.priv_path]),
 			ems_logger:info("  database_path: ~p.", [Conf#config.database_path]),

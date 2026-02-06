@@ -43,7 +43,7 @@ cd "$WORKING_DIR" || die "Could not change to working directory $WORKING_DIR"
 SKIP_BUILD="false"
 
 # Get ErlangMS version in the file src/ems_bus.app.src
-VERSION_RELEASE=$(cat src/ems_bus.app.src | sed -rn  's/^.*\{vsn.*([0-9]{1,2}\.[0-9]{1,2}.[0-9]{1,2}).*$/\1/p')
+VERSION_RELEASE=$(cat src/ems_bus.app.src | sed -rn  's/^.*\{vsn, "(.+)".*$/\1/p')
 [ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in src/ems_bus.app.src"
 
 RELEASE_FILE="ems-bus-$VERSION_RELEASE.tar.gz"

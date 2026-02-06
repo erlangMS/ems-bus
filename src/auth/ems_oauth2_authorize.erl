@@ -209,25 +209,15 @@ execute(Request = #request{type = Type,
 							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?">>, QuerystringBin, RedirectUri])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect to ~p.", [binary_to_list(LocationPath)]),
-					case Config#config.instance_type == production of
-						true ->
-							ExpireDate = ems_util:date_add_minute(calendar:local_time(), 1 + 180), % add +120min (2h) para ser horário GMT
-							Expires = cowboy_clock:rfc1123(ExpireDate),
-							Request2 = Request#request{code = 302, 
-													   reason = ok,
-													   client = Client,
-													   response_header = ResponseHeader#{<<"location">> => LocationPath,
-																						 <<"cache-control">> => ?CACHE_CONTROL_1_MIN,
-																						 <<"expires">> => Expires}
-													};
-						false ->
-							Request2 = Request#request{code = 302, 
-													   reason = ok,
-													   client = Client,
-													   response_header = ResponseHeader#{<<"location">> => LocationPath,
-																						 <<"cache-control">> => ?CACHE_CONTROL_NO_CACHE}
-														}
-					end,
+					ExpireDate = ems_util:date_add_minute(calendar:local_time(), 1 + 180), % add +120min (2h) para ser horário GMT
+					Expires = cowboy_clock:rfc1123(ExpireDate),
+					Request2 = Request#request{code = 302, 
+											   reason = ok,
+											   client = Client,
+											   response_header = ResponseHeader#{<<"location">> => LocationPath,
+																				 <<"cache-control">> => ?CACHE_CONTROL_1_MIN,
+																				 <<"expires">> => Expires}
+											},
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log

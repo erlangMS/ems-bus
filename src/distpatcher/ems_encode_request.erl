@@ -37,13 +37,41 @@ step1_init(CowboyReq, WorkerSend, State) ->
     Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
     Url = binary_to_list(cowboy_req:path(CowboyReq)),
     
+    % Tarpit: Check for malicious URLs and delay response
+    case ems_util:check_url_denylist(Url) of
+        true ->
+            ems_logger:warn("Tarpit: Detected malicious request to ~s from client. Delaying response by ~p ms.", [Url, ?HTTP_TARPIT_DELAY]),
+            timer:sleep(?HTTP_TARPIT_DELAY),
+            
+            % Malicious Request - return 409 Conflict (as requested)
+            Latency = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            Request = #request{
+                rid = erlang:system_time(),
+                type = cowboy_req:method(CowboyReq),
+                url = Url,
+                uri = Uri,
+                t1 = trunc(erlang:system_time() / 1.0e6),
+                code = 409,
+                reason = emalicious_request,
+                response_data = iolist_to_binary([
+                    <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}">>
+                ]),
+                content_type_out = <<"application/json; charset=utf-8">>,
+                response_header = State#encode_request_state.http_header_default,
+                latency = Latency
+            },
+            erlang:throw({error, request, Request, CowboyReq});
+        false ->
+            ok
+    end,
+
     % Validate URI length to prevent DoS attacks
     UriSize = byte_size(Uri),
     case UriSize > ?HTTP_MAX_URI_LENGTH of
         true ->
             % URI too long - return 414 URI Too Long
-            Latency = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
-            Request = #request{
+            Latency2 = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            Request2 = #request{
                 rid = erlang:system_time(),
                 type = cowboy_req:method(CowboyReq),
                 url = Url,
@@ -60,9 +88,9 @@ step1_init(CowboyReq, WorkerSend, State) ->
                 ]),
                 content_type_out = <<"application/json; charset=utf-8">>,
                 response_header = State#encode_request_state.http_header_default,
-                latency = Latency
+                latency = Latency2
             },
-            erlang:throw({error, request, Request, CowboyReq});
+            erlang:throw({error, request, Request2, CowboyReq});
         false ->
             ok
     end,

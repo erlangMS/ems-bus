@@ -379,8 +379,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 debug = _DebugDefault,
 								 log_show_response = LogShowResponseDefault,
 								 log_show_response_header = LogShowResponseHeaderDefault,
-								 log_show_payload = LogShowPayloadDefault, 
-								 instance_type = InstanceType}) ->
+								 log_show_payload = LogShowPayloadDefault}) ->
 	try
 		put(parse_step, name),
 		Name = ems_util:parse_name_service(get_p(<<"name">>, Map, <<>>)),
@@ -556,16 +555,11 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				Middleware = parse_middleware(get_p(<<"middleware">>, Map, undefined)),
 				
 				put(parse_step, cache_control),
-				case InstanceType of
-					production ->
-						CacheControlValue = get_p(<<"cache_control">>, Map, ?CACHE_CONTROL_NO_CACHE),
-						case CacheControlValue of
-							<<"no-cache">> -> 
-								CacheControl = ?CACHE_CONTROL_NO_CACHE;
-							_ -> CacheControl = CacheControlValue
-						end;
-					_ -> 
-						CacheControl = ?CACHE_CONTROL_NO_CACHE
+				CacheControlValue = get_p(<<"cache_control">>, Map, ?CACHE_CONTROL_NO_CACHE),
+				case CacheControlValue of
+					<<"no-cache">> -> 
+						CacheControl = ?CACHE_CONTROL_NO_CACHE;
+					_ -> CacheControl = CacheControlValue
 				end,
 
 				put(parse_step, expires_minute),

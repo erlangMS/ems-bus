@@ -4,11 +4,59 @@
 		"comment": "Show Its works!!!",
 		"owner": "emsbus",
 		"version": "1.0.0",
-		"service" : "ems_info_service:info",
+		"service": "ems_info_service:info",
 		"url": "/",
 		"async": "false",
 		"type": "GET",
-		"authorization" : "public",
-		"lang" : "erlang"
+		"authorization": "public",
+		"lang": "erlang"
+	},
+	{
+		"name": "/",
+		"comment": "Show Its works!!!",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service": "ems_info_service:info",
+		"url": "/",
+		"async": "false",
+		"type": "POST",
+		"authorization": "public",
+		"lang": "erlang"
+	},
+	{
+		"name": "/",
+		"comment": "Show Its works!!!",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service": "ems_info_service:info",
+		"url": "/",
+		"async": "false",
+		"type": "PUT",
+		"authorization": "public",
+		"lang": "erlang"
+	},
+	{
+		"name": "/",
+		"comment": "Show Its works!!!",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service": "ems_info_service:info",
+		"url": "/",
+		"async": "false",
+		"type": "DELETE",
+		"authorization": "public",
+		"lang": "erlang"
+	},
+	{
+		"name": "/",
+		"comment": "Show Its works!!!",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service": "ems_info_service:info",
+		"url": "/",
+		"async": "false",
+		"type": "OPTIONS",
+		"authorization": "public",
+		"lang": "erlang"
 	}
 ]

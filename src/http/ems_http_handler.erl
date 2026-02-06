@@ -78,17 +78,13 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 	end,
 	{ok, Response, State}.
 
-
-
-
-
-
-
-
-
 normalize_headers(Headers, DefaultHeaders) ->
 	HeadersLower = maps:fold(fun(K, V, Acc) ->
-		Acc#{string:lowercase(K) => V}
+		KeyLower = string:lowercase(K),
+		case lists:member(KeyLower, ?HTTP_HEADERS_PROHIBITED_LIST) of
+			true -> Acc;
+			false -> Acc#{KeyLower => V}
+		end
 	end, #{}, Headers),
 	Merged = maps:merge(DefaultHeaders, HeadersLower),
 	Merged.
