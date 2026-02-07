@@ -54,7 +54,7 @@ step1_init(CowboyReq, WorkerSend, State) ->
                 code = 409,
                 reason = emalicious_request,
                 response_data = iolist_to_binary([
-                    <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}">>
+                    <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}"/utf8>>
                 ]),
                 content_type_out = <<"application/json; charset=utf-8">>,
                 response_header = State#encode_request_state.http_header_default,
@@ -135,18 +135,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     end,
     
     {Ip, _} = cowboy_req:peer(CowboyReq),
-    IpBin0 = list_to_binary(inet_parse:ntoa(Ip)),
-    
-    % Prioritize X-Forwarded-For for IP if available (fix e-invalid-peer-token in legacy bus)
-    IpBin = case cowboy_req:header(<<"x-forwarded-for">>, CowboyReq) of
-        undefined -> IpBin0;
-        XFF -> 
-            % XFF can be a list "client, proxy1, proxy2". We want the first one.
-            case binary:split(XFF, <<",">>) of
-                [ClientIP|_] -> string:trim(ClientIP);
-                _ -> XFF
-            end
-    end,
+    IpBin = list_to_binary(inet_parse:ntoa(Ip)),
     
     Host = case cowboy_req:header(<<"host">>, CowboyReq) of
         undefined -> cowboy_req:host(CowboyReq);
@@ -170,19 +159,19 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     UserAgent0 = get_header(<<"user-agent">>, CowboyReq, <<>>),
     UserAgent = UserAgent0,
 
-    % Override URI for Zabbix
-    {UrlFinal, UriFinal, RowidFinal, ParamsUrlFinal} = case binary:match(UserAgent, <<"Zabbix">>) of
+    % Override URI and Method for Zabbix
+    {UrlFinal, UriFinal, RowidFinal, ParamsUrlFinal, MethodFinal} = case binary:match(UserAgent, <<"Zabbix">>) of
         nomatch -> 
-            {Url2, Uri, Rowid, Params_url};
+            {Url2, Uri, Rowid, Params_url, Method};
         _ -> 
             {RowidZ, ParamsZ} = ems_util:hashsym_and_params("/"),
-            {"/", <<"/">>, RowidZ, ParamsZ}
+            {"/", <<"/">>, RowidZ, ParamsZ, <<"GET">>}
     end,
 
     Request0 = #request{
         rid = RID,
         rowid = RowidFinal,
-        type = Method,
+        type = MethodFinal,
         uri = UriFinal,
         url = UrlFinal,
         version = Version,

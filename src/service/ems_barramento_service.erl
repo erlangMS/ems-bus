@@ -13,7 +13,7 @@
 
 -export([execute/1]).
   
-execute(Request = #request{response_header = ResponseHeader}) -> 
+execute(Request) ->
 	Conf = ems_config:getConfig(),
 	case ems_util:get_param_url(<<"name">>, undefined, Request) of
 		undefined ->
@@ -26,10 +26,11 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 		AppName ->
 			case ems_client:find_by_name(AppName) of
 				{error, _} ->
-					ems_logger:error("ems_barramento_service call for app ~p failed.\nReason: eunknow_client.", [AppName]),
-					{error, Request#request{code = 400, 
-											reason = eunknow_client,
-											response_data = <<"{\"error\": \"eunknow_client\"}"/utf8>>}
+					ems_logger:warn("Tarpit: Detected invalid client ~p. Delaying response by ~p ms.", [AppName, ?HTTP_TARPIT_DELAY]),
+					timer:sleep(?HTTP_TARPIT_DELAY),
+					{error, Request#request{code = 409, 
+											reason = emalicious_request,
+											response_data = <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}"/utf8>>}
 					};
 				{ok, ClientLocal} ->
 					ClientId = ClientLocal#client.id,
@@ -53,7 +54,6 @@ execute(Request = #request{response_header = ResponseHeader}) ->
 						<<"}"/utf8>>]),
 					ems_logger:info("ems_barramento_service call for app ~p success.", [AppName]),
 					{ok, Request#request{code = 200,
-										 response_header = ResponseHeader#{<<"cache-control">> => ?CACHE_CONTROL_1_MIN},
 										 response_data = ContentData}
 					}
 			end

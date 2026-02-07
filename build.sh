@@ -23,7 +23,8 @@
 #
 ########################################################################################################
 
-VERSION_SCRIPT="3.0.2"
+VERSION_SCRIPT="3.0.3"
+set -e
 
 # Erlang Runtime version required
 ERLANG_VERSION=28
