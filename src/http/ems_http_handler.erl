@@ -67,14 +67,19 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 										ResponseData, 
 										CowboyReq2),
 			ems_logger:log_request(Request);
-		{error, Reason} -> 
-			Type = binary_to_list(cowboy_req:method(CowboyReq)),
-			Url = binary_to_list(cowboy_req:path(CowboyReq)),
-			Protocol = binary_to_list(cowboy_req:scheme(CowboyReq)),
-			{Ip, _} = cowboy_req:peer(CowboyReq),
-			Ip2 = inet_parse:ntoa(Ip),
-			ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, Reason]),
-			Response = cowboy_req:reply(400, normalize_headers(HttpHeaderDefault, HttpHeaderDefault), ?EINVALID_HTTP_REQUEST, CowboyReq)
+	{error, Reason} -> 
+		Type = binary_to_list(cowboy_req:method(CowboyReq)),
+		Url = binary_to_list(cowboy_req:path(CowboyReq)),
+		Protocol = binary_to_list(cowboy_req:scheme(CowboyReq)),
+		{Ip, _} = cowboy_req:peer(CowboyReq),
+		Ip2 = inet_parse:ntoa(Ip),
+		% Extract simple reason to avoid verbose logging
+		SimpleReason = case Reason of
+			{error, request, #request{reason = R}, _} -> R;
+			_ -> Reason
+		end,
+		ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, SimpleReason]),
+		Response = cowboy_req:reply(400, normalize_headers(HttpHeaderDefault, HttpHeaderDefault), ?EINVALID_HTTP_REQUEST, CowboyReq)
 	end,
 	{ok, Response, State}.
 

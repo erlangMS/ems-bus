@@ -809,14 +809,20 @@ filter_condition_or(Tab, [{F, Op, V}|T], FieldsTable, Result) ->
 	Condition = filter_condition_create(Tab, F, Op, V, FieldsTable, <<" orelse ">>),
 	filter_condition_or(Tab, T, FieldsTable, [Condition | Result]).
 
+% Helper function to normalize operator to binary format
+normalize_operator(Op) when is_binary(Op) -> Op;
+normalize_operator(Op) when is_list(Op) -> list_to_binary(Op);
+normalize_operator(Op) when is_atom(Op) -> atom_to_binary(Op, utf8).
+
 filter_condition_create(Tab, F, Op, V, FieldsTable, BoolOp) ->
 	FieldAtom = filter_condition_parse_field(F),
 	FieldPosition = field_position(FieldAtom, FieldsTable, 1),
 	FieldType = ems_schema:get_data_type_field(Tab, FieldPosition),
+	OpBinary = normalize_operator(Op),
 	case filter_condition_parse_value_with_scape(V, FieldType) of
 		{ok, FieldValue} -> 
 			FieldPositionTable = integer_to_binary(FieldPosition + 1),
-			[ <<"element(">>, FieldPositionTable, <<", R) ">>, Op, <<" ">>, FieldValue, BoolOp ];
+			[ <<"element(">>, FieldPositionTable, <<", R) ">>, OpBinary, <<" ">>, FieldValue, BoolOp ];
 		{error, Reason} -> erlang:error(Reason)
 	end.
 	

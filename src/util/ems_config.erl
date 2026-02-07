@@ -307,6 +307,8 @@ parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result
 					Value2 = case KeyLower of
 								<<"cache-control">> -> normalize_cache_control(Value);
 								<<"access-control-max-age">> -> normalize_max_age_value(Value);
+								<<"access-control-expose-headers">> -> sanitize_header_list(Value);
+								<<"access-control-allow-headers">> -> sanitize_header_list(Value);
 								_ -> Value
 							 end,
 					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value2} | Result])
@@ -326,6 +328,8 @@ parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result
 					Value2 = case KeyLower of
 								<<"cache-control">> -> normalize_cache_control(Value);
 								<<"access-control-max-age">> -> normalize_max_age_value(Value);
+								<<"access-control-expose-headers">> -> sanitize_header_list(Value);
+								<<"access-control-allow-headers">> -> sanitize_header_list(Value);
 								_ -> Value
 							 end,
 					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value2} | Result])
@@ -364,6 +368,53 @@ normalize_cache_control(Value) when is_binary(Value) ->
 			end
 	end;
 normalize_cache_control(Value) -> Value.
+
+%% @doc Normalize HTTP header name to Title-Case format
+%% Examples: "cache-control" -> "Cache-Control"
+%%           "x-frame-options" -> "X-Frame-Options"
+-spec normalize_header_name(binary()) -> binary().
+normalize_header_name(HeaderName) ->
+	Parts = binary:split(HeaderName, <<"-">>, [global]),
+	NormalizedParts = [capitalize_word(Part) || Part <- Parts],
+	iolist_to_binary(lists:join(<<"-">>, NormalizedParts)).
+
+%% @doc Capitalize first letter of a word
+-spec capitalize_word(binary()) -> binary().
+capitalize_word(<<>>) -> <<>>;
+capitalize_word(<<First:8, Rest/binary>>) ->
+	FirstUpper = string:to_upper([First]),
+	<<(list_to_binary(FirstUpper))/binary, Rest/binary>>.
+
+%% @doc Sanitize header list by removing prohibited headers and normalizing names
+%% Used for access-control-expose-headers and access-control-allow-headers
+-spec sanitize_header_list(binary()) -> binary().
+sanitize_header_list(HeaderList) ->
+	% Split by comma and trim whitespace
+	Headers = binary:split(HeaderList, <<",">>, [global, trim_all]),
+	HeadersTrimmed = [string:trim(H, both) || H <- Headers],
+	
+	% Normalize each header name to Title-Case
+	HeadersNormalized = [normalize_header_name(H) || H <- HeadersTrimmed],
+	
+	% Filter out prohibited headers
+	ProhibitedList = ?HTTP_HEADERS_PROHIBITED_LIST,
+	HeadersFiltered = lists:filter(
+		fun(Header) ->
+			HeaderLower = list_to_binary(string:to_lower(binary_to_list(Header))),
+			not lists:member(HeaderLower, ProhibitedList)
+		end,
+		HeadersNormalized
+	),
+	
+	% Log removed headers if any
+	RemovedHeaders = HeadersNormalized -- HeadersFiltered,
+	case RemovedHeaders of
+		[] -> ok;
+		_ -> ems_logger:format_warn("ems_config removed prohibited headers from header list: ~p", [RemovedHeaders])
+	end,
+	
+	% Join back with proper formatting
+	iolist_to_binary(lists:join(<<", ">>, HeadersFiltered)).
 	
 
 	

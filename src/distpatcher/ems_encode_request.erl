@@ -23,8 +23,13 @@ new_from_cowboy_req(CowboyReq, WorkerSend, State) ->
     try
         step1_init(CowboyReq, WorkerSend, State)
     catch
-        Class:Reason:Stacktrace ->
-            ems_logger:error("ems_encode_request failed. Class: ~p. Reason: ~p. Stack: ~p", [Class, Reason, Stacktrace]),
+        Class:Reason:_ ->
+            % Extract simple reason to avoid verbose logging
+            SimpleReason = case Reason of
+                {error, request, #request{reason = R}, _} -> R;
+                _ -> Reason
+            end,
+            ems_logger:error("ems_encode_request failed. Class: ~p. Reason: ~p.", [Class, SimpleReason]),
             {error, Reason}
     end.
 
@@ -154,6 +159,30 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     RID = erlang:system_time(),
     _Timestamp = calendar:local_time(),
     T1 = trunc(RID / 1.0e6),
+    
+    % Validate URL path characters before processing to avoid exceptions in hashsym_and_params
+    case ems_util:is_valid_url_path(Url2) of
+        false ->
+            % Invalid URL - return 400 Bad Request
+            LatencyUrlValidation = ems_util:get_milliseconds() - T1,
+            RequestUrlValidation = #request{
+                rid = RID,
+                type = Method,
+                url = Url2,
+                uri = Uri,
+                t1 = T1,
+                code = 400,
+                reason = einvalid_url,
+                response_data = <<"{\"error\":\"bad_request\",\"message\":\"Invalid URL format\"}"/utf8>>,
+                content_type_out = <<"application/json; charset=utf-8">>,
+                response_header = State#encode_request_state.http_header_default,
+                latency = LatencyUrlValidation
+            },
+            erlang:throw({error, request, RequestUrlValidation, CowboyReq});
+        true ->
+            ok
+    end,
+    
     {Rowid, Params_url} = ems_util:hashsym_and_params(Url2),
 
     UserAgent0 = get_header(<<"user-agent">>, CowboyReq, <<>>),

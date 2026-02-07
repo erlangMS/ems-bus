@@ -89,6 +89,7 @@
 		 ip_list/0,
 		 ip_list/1,
 		 is_url_valido/1,
+	 is_valid_url_path/1,
  		 is_email_valido/1, 
  		 is_range_valido/3,
 		 is_letter/1,
@@ -1794,6 +1795,21 @@ is_url_valido(Url) ->
 		_ -> true
 	end.
 
+%% @doc Validates URL path characters using the same rules as hashsym_and_params
+%% Allowed characters: a-z, A-Z, 0-9, -, _, /, @
+-spec is_valid_url_path(string()) -> boolean().
+is_valid_url_path([]) -> true;
+is_valid_url_path([H|[N|_]]) when H == 47 andalso N == 45 -> 
+	false; % Reject /-
+is_valid_url_path([H|T]) when H == 47 -> % Ascii /
+	is_valid_url_path(T);
+is_valid_url_path([H|T]) when (H >= 97 andalso H =< 122)  % Ascii a-z
+							orelse H == 95 % Ascii _
+							orelse (H >= 45 andalso H =< 57) % Ascii - to 9
+							orelse (H >= 64 andalso H =< 90) -> % Ascii @ to Z
+	is_valid_url_path(T);
+is_valid_url_path(_) -> false.
+
 
 -spec mask_ipaddress_to_tuple(binary()) -> tuple().
 mask_ipaddress_to_tuple(<<IpAddress/binary>>) ->
@@ -2183,6 +2199,32 @@ get_querystring(QueryName, OrQueryName2, Default, #request{querystring_map = Que
 	end.
 
 
+%% @doc Validates that a file path is safe and within the allowed base directory
+%% Prevents path traversal attacks by normalizing paths and checking boundaries
+-spec validate_safe_path(string(), string()) -> boolean().
+validate_safe_path(Filename, BasePath) ->
+	try
+		% Convert to absolute paths for proper comparison
+		AbsFilename = filename:absname(Filename),
+		AbsBasePath = filename:absname(BasePath),
+		
+		% Split paths into components
+		FileComponents = filename:split(AbsFilename),
+		BaseComponents = filename:split(AbsBasePath),
+		
+		% Check if file path starts with base path
+		case lists:prefix(BaseComponents, FileComponents) of
+			true ->
+				% Additional check: ensure no ".." components remain after normalization
+				not lists:member("..", FileComponents);
+			false ->
+				false
+		end
+	catch
+		_:_ -> false  % Any error in path processing = reject
+	end.
+
+
 load_from_file_req(Request = #request{url = Url,
 									  if_modified_since = IfModifiedSinceReq, 
 									  if_none_match = IfNoneMatchReq,
@@ -2195,6 +2237,23 @@ load_from_file_req(Request = #request{url = Url,
 		true -> Filename = Path ++ string:substr(Url, string:len(hd(string:tokens(Url, "/")))+2);
 		false -> Filename = FilenameService
 	end,
+	% Security check: validate path to prevent traversal attacks
+	case validate_safe_path(Filename, Path) of
+		false ->
+			% Path traversal attempt detected - log and reject
+			ems_logger:warn("ems_static_file_service SECURITY: Path traversal attempt blocked. URL: ~p, Attempted path: ~p, IP: ~p", 
+							[Url, Filename, Request#request.ip_bin]),
+			{error, Request#request{code = 403, 
+									reason = eforbidden,
+									content_type_out = ?CONTENT_TYPE_JSON,
+									response_data = ?EFORBIDDEN_JSON}};
+		true ->
+			% Path is safe, proceed with file access
+			do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, ResponseHeader, ExpiresService)
+	end.
+
+%% @doc Internal function to load file after security validation
+do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, ResponseHeader, ExpiresService) ->
 	case file:read_file_info(Filename, [{time, universal}]) of
 		{ok,{file_info, FSize, _Type, _Access, _ATime, MTime, _CTime, _Mode,_,_,_,_,_,_}} -> 
 			MimeType = mime_type(filename:extension(Filename)),
@@ -2228,21 +2287,52 @@ load_from_file_req(Request = #request{url = Url,
 											      response_data = FileData, 
 											      response_header = ResponseHeader2}
 							};
-						{error, Reason} = Error -> 
-							ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
-							{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
-												     reason = Reason,
-												     content_type_out = ?CONTENT_TYPE_JSON,
-												     response_data = ems_schema:to_json(Error)}
-							}
+						{error, Reason} -> 
+							% Don't expose directory structure - treat eisdir as enoent
+							case Reason of
+								eisdir ->
+									ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: eisdir (hidden as enoent).", [Filename, Url]),
+									{error, Request#request{code = 404, 
+														 reason = enoent,
+														 content_type_out = ?CONTENT_TYPE_JSON,
+														 response_data = ?ENOENT_JSON}};
+								enoent ->
+									ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
+									{error, Request#request{code = 404, 
+														 reason = Reason,
+														 content_type_out = ?CONTENT_TYPE_JSON,
+														 response_data = ?ENOENT_JSON}};
+								_ ->
+									ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
+									{error, Request#request{code = 400, 
+														 reason = Reason,
+														 content_type_out = ?CONTENT_TYPE_JSON,
+														 response_data = ?ENOENT_JSON}}
+							end
 					end
 			end;
-		{error, Reason} = Error -> 
-			ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
-			{error, Request#request{code = case Reason of enoent -> 404; _ -> 400 end, 
-									 reason = Reason,	
-									 response_data = ems_schema:to_json(Error)}
-			 }
+		{error, Reason} -> 
+			% Don't expose directory structure - treat eisdir as enoent
+			case Reason of
+				eisdir ->
+					ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: eisdir (hidden as enoent).", [Filename, Url]),
+					{error, Request#request{code = 404, 
+											 reason = enoent,
+											 content_type_out = ?CONTENT_TYPE_JSON,
+											 response_data = ?ENOENT_JSON}};
+				enoent ->
+					ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
+					{error, Request#request{code = 404, 
+											 reason = Reason,
+											 content_type_out = ?CONTENT_TYPE_JSON,
+											 response_data = ?ENOENT_JSON}};
+				_ ->
+					ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
+					{error, Request#request{code = 400, 
+											 reason = Reason,
+											 content_type_out = ?CONTENT_TYPE_JSON,
+											 response_data = ?ENOENT_JSON}}
+			end
 	end.
 
 

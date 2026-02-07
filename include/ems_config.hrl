@@ -191,6 +191,7 @@
 -define(ACCESS_DENIED_JSON, <<"{\"error\": \"access_denied\"}"/utf8>>).
 -define(EINVALID_DATA_LOADER, <<"{\"error\": \"einvalid_data_loader\"}"/utf8>>).
 -define(HOST_DENIED_JSON, <<"{\"error\": \"host_denied\"}"/utf8>>).
+-define(EFORBIDDEN_JSON, <<"{\"error\": \"eforbidden\"}"/utf8>>).
 -define(OAUTH2_DEFAULT_TOKEN_EXPIRY, 3600).  % 1 hour
 -define(OAUTH2_MAX_TOKEN_EXPIRY, 2592000).   % 30 days
 
