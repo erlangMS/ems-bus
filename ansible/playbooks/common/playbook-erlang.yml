@@ -1,46 +1,114 @@
 ---
-- name: Instala Erlang
+- name: Instala Erlang 28 via ASDF
   hosts: all
-  become: true
+  become: false
   vars:
-    erlang_packages:
+    erlang_version: "28.0"
+    asdf_version: "v0.15.0"
+    asdf_dir: "{{ ansible_env.HOME }}/.asdf"
+    build_packages:
+      - curl
+      - git
       - build-essential
-      - ldap-utils
-      - erlang-asn1
-      - erlang-base
-      - erlang-crypto
-      - erlang-dev
-      - erlang-dialyzer
-      - erlang-diameter
-      - erlang-edoc
-      - erlang-eunit
-      - erlang-ftp
-      - erlang-inets
-      - erlang-jiffy
-      - erlang-mnesia
-      - erlang-odbc
-      - erlang-proper
-      - erlang-public-key
-      - erlang-reltool
-      - erlang-runtime-tools
-      - erlang-snmp
-      - erlang-ssl
-      - erlang-syntax-tools
-      - erlang-tftp
-      - erlang-tools
-      - erlang-wx
-      - erlang-xmerl
+      - autoconf
+      - m4
+      - libncurses5-dev
+      - libssl-dev
+      - libncurses-dev
+      - libssh-dev
+      - unixodbc-dev
+      - xsltproc
+      - fop
+      - libxml2-utils
+      - openjdk-11-jdk
 
   tasks:
-    - name: Coletar fatos manualmente
+    - name: Coletar fatos do sistema
       ansible.builtin.setup:
 
-    - name: Garante que o sistema está atualizado
+    - name: Verifica se Erlang já está instalado (fora do ASDF)
+      ansible.builtin.command: which erl
+      register: existing_erlang
+      failed_when: false
+      changed_when: false
+
+    - name: Falha se Erlang já existe fora do ASDF
+      ansible.builtin.fail:
+        msg: |
+          Erlang já está instalado no sistema.
+          Por favor, remova a instalação existente primeiro:
+            - Se instalado via apt: sudo apt remove erlang*
+            - Se instalado via asdf: asdf uninstall erlang <version>
+            - Verifique com: which erl
+      when: existing_erlang.rc == 0 and '/asdf/shims/erl' not in existing_erlang.stdout
+
+    - name: Instala dependências de build do Erlang
       ansible.builtin.apt:
+        name: "{{ build_packages }}"
+        state: present
         update_cache: true
         cache_valid_time: 3600
+      become: true
 
-    - name: Instala os pacotes Erlang
-      ansible.builtin.apt:
-        name: "{{ erlang_packages }}"
+    - name: Verifica se ASDF já está instalado
+      ansible.builtin.stat:
+        path: "{{ asdf_dir }}"
+      register: asdf_installed
+
+    - name: Clona repositório do ASDF
+      ansible.builtin.git:
+        repo: https://github.com/asdf-vm/asdf.git
+        dest: "{{ asdf_dir }}"
+        version: "{{ asdf_version }}"
+      when: not asdf_installed.stat.exists
+
+    - name: Configura ASDF no .bashrc
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        line: "export PATH=\"$HOME/.asdf/shims:$PATH\""
+        create: true
         state: present
+        mode: '0644'
+
+    - name: Adiciona plugin Erlang ao ASDF
+      ansible.builtin.shell: |
+        set -o pipefail
+        source {{ asdf_dir }}/asdf.sh
+        asdf plugin list | grep -q erlang || asdf plugin add erlang https://github.com/asdf-vm/asdf-erlang.git
+      args:
+        executable: /bin/bash
+      register: plugin_add
+      changed_when: "'already' not in plugin_add.stdout"
+
+    - name: Instala Erlang via ASDF - {{ erlang_version }}
+      ansible.builtin.shell: |
+        set -o pipefail
+        source {{ asdf_dir }}/asdf.sh
+        asdf list erlang | grep -q "{{ erlang_version }}" || asdf install erlang {{ erlang_version }}
+      args:
+        executable: /bin/bash
+      register: erlang_install
+      changed_when: "'already' not in erlang_install.stdout"
+
+    - name: Define Erlang como versão global - {{ erlang_version }}
+      ansible.builtin.shell: |
+        set -o pipefail
+        source {{ asdf_dir }}/asdf.sh
+        asdf global erlang {{ erlang_version }}
+        asdf reshim erlang
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Verifica instalação do Erlang
+      ansible.builtin.shell: |
+        source {{ asdf_dir }}/asdf.sh
+        erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell
+      args:
+        executable: /bin/bash
+      register: erlang_version_check
+      changed_when: false
+
+    - name: Exibe versão do Erlang instalada
+      ansible.builtin.debug:
+        msg: "Erlang instalado com sucesso: {{ erlang_version_check.stdout }}"

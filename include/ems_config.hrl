@@ -179,9 +179,6 @@
 % Mensagens de saída json comuns
 -define(CONTENT_TYPE_JSON, <<"application/json">>).
 
--define(CACHE_CONTROL_1_MIN, <<"max-age=0, no-cache, no-store, must-revalidate, private"/utf8>>).
--define(CACHE_CONTROL_1_DAYS, <<"max-age=0, no-cache, no-store, must-revalidate, private"/utf8>>).
--define(CACHE_CONTROL_30_DAYS, <<"max-age=0, no-cache, no-store, must-revalidate, private"/utf8>>).
 -define(CACHE_CONTROL_NO_CACHE, <<"no-store, no-cache, must-revalidate, private"/utf8>>).
 
 -define(OK_JSON, <<"{\"ok\": true}"/utf8>>).
