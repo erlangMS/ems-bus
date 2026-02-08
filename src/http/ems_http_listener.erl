@@ -45,12 +45,12 @@ init({IpAddress,
 						   tcp_ssl_cacertfile = SslCaCertFile,
 						   tcp_ssl_certfile = SslCertFile,
 						   tcp_ssl_keyfile = SslKeyFile,
+						   tcp_max_connections = MaxConnections,
 						   http_max_content_length = HttpMaxContentLength},
 	  ListenerName}) ->
     Conf = ems_config:getConfig(),
     State = #encode_request_state{http_max_content_length = HttpMaxContentLength,
-									http_header_default = Conf#config.http_headers,
-									http_header_options = Conf#config.http_headers_options,
+
 									debug = Conf#config.debug,
 									current_node = ems_util:node_binary()},
 	Dispatch = cowboy_router:compile([
@@ -65,6 +65,7 @@ init({IpAddress,
 		true -> 
 			Ret = cowboy:start_tls(ListenerName, #{
 													num_acceptors => 100,
+													max_connections => MaxConnections,
 													socket_opts => [ {ip, IpAddress},
 																	 {port, Port},
 																	 {cacertfile, binary_to_list(SslCaCertFile)},
@@ -83,6 +84,7 @@ init({IpAddress,
 			Ret = cowboy:start_clear(ListenerName, 
 										#{
 										  num_acceptors => 100,
+										  max_connections => MaxConnections,
 										  socket_opts => [{ip, IpAddress}, 
 										 				  {port, Port},
 										 				  {nodelay, true},

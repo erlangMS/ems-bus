@@ -7,8 +7,7 @@
 %%********************************************************************
 
 -record(encode_request_state, {http_max_content_length,
-							   http_header_default,
-							   http_header_options,
+
 							   debug,
 							   current_node}).
 
@@ -535,14 +534,13 @@
 					ctrl_modified :: binary(),								%% 71 - ctrl_modified							-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
 					ctrl_hash :: non_neg_integer(),							%% 72 - ctrl_hash 								-> Hash gerado para poder comparar dois registros	
 					start_timeout :: non_neg_integer(),						%% 73 - start_timeout							-> Define um timeout inicial para aguardar antes de iniciar o processo do serviço
-					service_resend_msg1 :: atom(),								%% 74 - service_resend_msg1
-					http_max_content_length :: non_neg_integer(),				%% 75 - http_max_content_length
-					http_headers :: map(),%% 76 - http_headers
-					restricted = false :: boolean(),%% 77 - restricted-> Serviço restrito aos admins
-					glyphicon :: binary(),%% 78 - glyphicon-> classe css do glyphicon
-					metadata :: binary(),%% 79 - metadata -> Representação em json do que será enviado para o web service /catalog
-					log_show_response_header = true :: boolean(),				%% 82 - log_show_response_header				-> true if show response header in logger
-					log_show = true :: boolean()								%% 82 - log_show								
+					service_resend_msg1 :: atom(),							%% 74 - service_resend_msg1
+					http_max_content_length :: non_neg_integer(),			%% 75 - http_max_content_length
+					restricted = false :: boolean(),						%% 76 - restricted-> Serviço restrito aos admins
+					glyphicon :: binary(),									%% 77 - glyphicon-> classe css do glyphicon
+					metadata :: binary(),									%% 78 - metadata -> Representação em json do que será enviado para o web service /catalog
+					log_show_response_header = true :: boolean(),			%% 79 - log_show_response_header				-> true if show response header in logger
+					log_show = true :: boolean()							%% 80 - log_show								
 				}).
 
 

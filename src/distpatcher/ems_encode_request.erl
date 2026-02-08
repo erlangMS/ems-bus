@@ -62,7 +62,7 @@ step1_init(CowboyReq, WorkerSend, State) ->
                     <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}"/utf8>>
                 ]),
                 content_type_out = <<"application/json; charset=utf-8">>,
-                response_header = State#encode_request_state.http_header_default,
+                response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = Latency
             },
             erlang:throw({error, request, Request, CowboyReq});
@@ -92,7 +92,7 @@ step1_init(CowboyReq, WorkerSend, State) ->
                     <<" bytes\"}">>
                 ]),
                 content_type_out = <<"application/json; charset=utf-8">>,
-                response_header = State#encode_request_state.http_header_default,
+                response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = Latency2
             },
             erlang:throw({error, request, Request2, CowboyReq});
@@ -133,7 +133,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
                 reason = emethod_not_allowed,
                 response_data = iolist_to_binary([<<"{\"error\":\"method_not_allowed\",\"message\":\"HTTP method ">>, Method, <<" is not supported\"}">>]),
                 content_type_out = <<"application/json; charset=utf-8">>,
-                response_header = State#encode_request_state.http_header_default,
+                response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = Latency
             },
             erlang:throw({error, request, Request, CowboyReq})
@@ -152,7 +152,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     Protocol = parse_protocol(cowboy_req:scheme(CowboyReq)),
     _Port = cowboy_req:port(CowboyReq),
     
-    _HttpHeaderDefault = State#encode_request_state.http_header_default,
+    % _HttpHeaderDefault = ?HTTP_HEADERS_DEFAULT,
     _CurrentNode = State#encode_request_state.current_node,
     
     % Initialize basic Request record
@@ -175,7 +175,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
                 reason = einvalid_url,
                 response_data = <<"{\"error\":\"bad_request\",\"message\":\"Invalid URL format\"}"/utf8>>,
                 content_type_out = <<"application/json; charset=utf-8">>,
-                response_header = State#encode_request_state.http_header_default,
+                response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = LatencyUrlValidation
             },
             erlang:throw({error, request, RequestUrlValidation, CowboyReq});
@@ -253,7 +253,7 @@ step5_process_lookup(CowboyReq, WorkerSend, State, Request, LookupResult) ->
             handle_enoent(CowboyReq, Request, State)
     end.
 
-step6_read_payload(CowboyReq, _WorkerSend, State, Request, Service, ParamsMap, QuerystringMap) ->
+step6_read_payload(CowboyReq, _WorkerSend, _State, Request, Service, ParamsMap, QuerystringMap) ->
     put(encode_request_cowboy_step, step6_read_payload),
     
     HttpMaxContentLength = case Service#service.http_max_content_length of
@@ -283,7 +283,7 @@ step6_read_payload(CowboyReq, _WorkerSend, State, Request, Service, ParamsMap, Q
                     <<" bytes\"}">>
                 ]),
                 content_type_out = <<"application/json; charset=utf-8">>,
-                response_header = State#encode_request_state.http_header_default,
+                response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = Latency
             },
             erlang:throw({error, request, RequestError, CowboyReq});
@@ -317,7 +317,7 @@ step6_read_payload(CowboyReq, _WorkerSend, State, Request, Service, ParamsMap, Q
         params_url = ParamsMap,
         req_hash = ReqHash,
         service = Service,
-        response_header = State#encode_request_state.http_header_options
+        response_header = ?HTTP_HEADERS_DEFAULT
     },
     
     {ok, Request2, Service, CowboyReq2}.
@@ -374,11 +374,11 @@ get_header(Name, Req, Default) ->
         Val -> Val
     end.
 
-handle_enoent(CowboyReq, Request, State) ->
+handle_enoent(CowboyReq, Request, _State) ->
     ReqHash = erlang:phash2([Request#request.url, Request#request.querystring_map, 0, Request#request.content_type_in]),
     Latency = ems_util:get_milliseconds() - Request#request.t1,
-    Options = State#encode_request_state.http_header_options,
-    DefaultHeaders = State#encode_request_state.http_header_default,
+    Options = ?HTTP_HEADERS_DEFAULT,
+    DefaultHeaders = ?HTTP_HEADERS_DEFAULT,
     
     {Code, RespData, Headers} = 
         if 

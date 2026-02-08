@@ -185,7 +185,11 @@
 		 add_spaces_all_elements_list/2,
 		 jwt_encode/2,
 		 get_timestamp/0,
-		 encode_request/2
+		 encode_request/2,
+		 is_unb_domain/1,
+	 matches_any_domain/2,
+	 check_domain_match/2,
+	 extract_domain_from_origin/1
 		]).
 
 %% @doc Gera um JWT (JSON Web Token) usando algoritmo HS256
@@ -229,6 +233,90 @@ version() ->
 -spec server_name() -> binary().
 server_name() ->
 	?HTTP_SERVER_HEADER.
+
+%% @doc Validates if an origin domain is from allowed domain (e.g., *.unb.br or unb.br)
+%% Returns true if the domain ends with the configured suffix or is exactly the domain
+%% Special case: if cors_domain is "*", all origins are allowed (no restriction)
+%% Supports both single domain string and list of domains
+-spec is_unb_domain(binary()) -> boolean().
+is_unb_domain(<<>>) -> false;
+is_unb_domain(Origin) when is_binary(Origin) ->
+	Domain = extract_domain_from_origin(Origin),
+	DomainLower = string:lowercase(Domain),
+
+	case DomainLower of
+		<<"localhost">> -> true;
+		<<"127.0.0.1">> -> true;
+		_ ->
+			% Get allowed domain(s) from configuration (default: ".unb.br")
+			% Can be a single domain string or a list of domains
+			AllowedDomains = ems_db:get_param(cors_domain, ?CORS_DOMAIN),
+			matches_any_domain(DomainLower, AllowedDomains)
+	end;
+is_unb_domain(_) -> false.
+
+%% @doc Check if domain matches any in the allowed list
+%% Supports wildcard "*", single domain string, or list of domains
+-spec matches_any_domain(binary(), binary() | list(binary())) -> boolean().
+matches_any_domain(_, <<"*">>) -> 
+	true;
+matches_any_domain(Domain, AllowedDomain) when is_binary(AllowedDomain) ->
+	check_domain_match(Domain, AllowedDomain);
+matches_any_domain(Domain, AllowedDomains) when is_list(AllowedDomains) ->
+	lists:any(fun(AllowedDomain) -> 
+		check_domain_match(Domain, AllowedDomain) 
+	end, AllowedDomains);
+matches_any_domain(_, _) -> 
+	false.
+
+%% @doc Check if domain matches a specific allowed domain suffix
+%% Handles both exact match and suffix match (e.g., ".unb.br" matches "servicos.unb.br")
+-spec check_domain_match(binary(), binary()) -> boolean().
+check_domain_match(Domain, AllowedDomainSuffix) ->
+	AllowedDomainSuffixLower = string:lowercase(AllowedDomainSuffix),
+	
+	% Extract base domain without leading dot (e.g., ".unb.br" -> "unb.br")
+	BaseDomain = case binary:first(AllowedDomainSuffixLower) of
+		$. -> binary:part(AllowedDomainSuffixLower, 1, byte_size(AllowedDomainSuffixLower) - 1);
+		_ -> AllowedDomainSuffixLower
+	end,
+	
+	% Check if domain is exactly the base domain or ends with the suffix
+	case Domain of
+		BaseDomain -> 
+			true;
+		_ ->
+			% Check if ends with the allowed domain suffix
+			SuffixSize = byte_size(AllowedDomainSuffixLower),
+			DomainSize = byte_size(Domain),
+			case DomainSize >= SuffixSize of
+				true ->
+					StartPos = DomainSize - SuffixSize,
+					case binary:part(Domain, StartPos, SuffixSize) of
+						AllowedDomainSuffixLower -> true;
+						_ -> false
+					end;
+				false -> 
+					false
+			end
+	end.
+
+%% @doc Extracts domain from origin URL
+%% Example: "https://servicos.unb.br:443" -> "servicos.unb.br"
+-spec extract_domain_from_origin(binary()) -> binary().
+extract_domain_from_origin(Origin) ->
+	% Remove protocol (http:// or https://)
+	WithoutProtocol = case binary:split(Origin, <<"://">>) of
+		[_, Rest] -> Rest;
+		[Rest] -> Rest
+	end,
+	
+	% Remove port if present
+	case binary:split(WithoutProtocol, <<":">>) of
+		[Domain, _Port] -> Domain;
+		[Domain] -> Domain
+	end.
+
 
 %% Retorna o hash da url e os parâmetros do request
 hashsym_and_params(S) when is_binary(S) -> hashsym_and_params(binary_to_list(S), 1, 0, []);

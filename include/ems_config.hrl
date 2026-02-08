@@ -161,10 +161,15 @@
 %Define the checkpoint to update permission for ems_user_permission_l
 % HTTP access control (CORS) headers
 -define(ACCESS_CONTROL_ALLOW_HEADERS, <<"Accept, Accept-Language, Content-Language, Content-Type, X-ACCESS_TOKEN, X-CSRF-Token, Access-Control-Allow-Origin, Authorization, Origin, x-requested-with, Content-Range, Content-Disposition, Content-Description">>).
--define(ACCESS_CONTROL_MAX_AGE, <<"31536000">>).
+-define(ACCESS_CONTROL_MAX_AGE_DEFAULT_CHROME, <<"7200">>).  % 2 hours - Chrome maximum
+-define(ACCESS_CONTROL_MAX_AGE, ?ACCESS_CONTROL_MAX_AGE_DEFAULT_CHROME).
 -define(ACCESS_CONTROL_ALLOW_ORIGIN, <<"*">>).
 -define(ACCESS_CONTROL_ALLOW_METHODS, <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>).
 -define(ACCESS_CONTROL_EXPOSE_HEADERS, <<"Cache-Control, Content-Language, Content-Type, Expires, Last-Modified, Content-Length">>).
+
+% CORS domain suffix (default: .unb.br)
+% Requests from domains ending with this suffix will be allowed
+-define(CORS_DOMAIN, <<".unb.br">>).
 
 % Oauth2
 -define(OAUTH2_DEFAULT_AUTHORIZATION, oauth2).
@@ -197,11 +202,15 @@
 
 -define(HTTP_HEADERS_DEFAULT, #{<<"server">> => ?SERVER_NAME,
 							    <<"cache-control">> => ?CACHE_CONTROL_NO_CACHE,
-							    <<"access-control-allow-origin">> => ?ACCESS_CONTROL_ALLOW_ORIGIN,
+							    <<"x-frame-options">> => <<"DENY">>,
+							    <<"x-content-type-options">> => <<"nosniff">>,
 							    <<"access-control-max-age">> => ?ACCESS_CONTROL_MAX_AGE,
 							    <<"access-control-allow-headers">> => ?ACCESS_CONTROL_ALLOW_HEADERS,
 							    <<"access-control-allow-methods">> => ?ACCESS_CONTROL_ALLOW_METHODS,
-							    <<"access-control-expose-headers">> => ?ACCESS_CONTROL_EXPOSE_HEADERS
+							    <<"access-control-expose-headers">> => ?ACCESS_CONTROL_EXPOSE_HEADERS,
+							    <<"strict-transport-security">> => <<"max-age=31536000; includeSubDomains; preload">>,
+							    <<"content-security-policy">> => <<"default-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self';">>,
+							    <<"referrer-policy">> => <<"strict-origin-when-cross-origin">>
 							  }).
 
 % LDAP
@@ -219,7 +228,7 @@
 
 % HTTP
 -define(HTTP_SERVER_PORT, 2381).
--define(HTTP_MAX_CONNECTIONS, 100000).
+-define(HTTP_MAX_CONNECTIONS, 1024).
 -define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
 -define(HTTP_MAX_URI_LENGTH, 8192).  % Limite máximo de 8KB para URI (previne ataques de DoS)
@@ -345,8 +354,7 @@
 				 ssl_certfile :: binary(),
 				 ssl_keyfile :: binary(),
 				 sufixo_email_institucional :: binary(),
-				 http_headers :: map(),
-				 http_headers_options :: map(),
+
 				 log_show_response = ?LOG_SHOW_RESPONSE :: boolean(),						%% Se true, imprime o response no log
 				 log_show_response_header = ?LOG_SHOW_RESPONSE_HEADER :: boolean(),			%% Se true, imprime o response no log
 				 log_show_payload = ?LOG_SHOW_PAYLOAD :: boolean(),				%% Se true, imprime o payload no log

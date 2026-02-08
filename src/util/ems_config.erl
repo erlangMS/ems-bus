@@ -290,131 +290,9 @@ parse_tcp_allowed_address(V) -> V.
 parse_user_agent_denied_list(undefined) -> [];
 parse_user_agent_denied_list(V) -> V.
 
-parse_http_headers(HttpHeaders, ShowDebugResponseHeaders, Hostname) ->
-	parse_http_headers_(maps:to_list(HttpHeaders), ShowDebugResponseHeaders, Hostname, []).
 
-parse_http_headers_([], _ShowDebugResponseHeaders, _Hostname, Result) ->
-	maps:from_list(Result);
-parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result) when is_binary(Value) ->
-	KeyLower = list_to_binary(string:to_lower(binary_to_list(Key))),
-	case byte_size(Key) =< 100 andalso Value =/= undefined andalso Value =/= <<>> andalso byte_size(Value) =< 450 of
-		true -> 
-			case lists:member(KeyLower, ?HTTP_HEADERS_PROHIBITED_LIST) of
-				true -> 
-					ems_logger:format_warn("ems_config ignored prohibited header ~p.", [KeyLower]),
-					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, Result);				
-				false ->
-					Value2 = case KeyLower of
-								<<"cache-control">> -> normalize_cache_control(Value);
-								<<"access-control-max-age">> -> normalize_max_age_value(Value);
-								<<"access-control-expose-headers">> -> sanitize_header_list(Value);
-								<<"access-control-allow-headers">> -> sanitize_header_list(Value);
-								_ -> Value
-							 end,
-					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value2} | Result])
-			end;
-		false -> 
-			erlang:error(einvalid_http_response_header)
-	end;
-parse_http_headers_([{Key, Value}|T], ShowDebugResponseHeaders, Hostname, Result) ->
-	KeyLower = list_to_binary(string:to_lower(binary_to_list(Key))),
-	case byte_size(Key) =< 100 of
-		true -> 
-			case lists:member(KeyLower, ?HTTP_HEADERS_PROHIBITED_LIST) of
-				true -> 
-					ems_logger:format_warn("ems_config ignored prohibited header ~p.", [KeyLower]),
-					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, Result);
-				false ->
-					Value2 = case KeyLower of
-								<<"cache-control">> -> normalize_cache_control(Value);
-								<<"access-control-max-age">> -> normalize_max_age_value(Value);
-								<<"access-control-expose-headers">> -> sanitize_header_list(Value);
-								<<"access-control-allow-headers">> -> sanitize_header_list(Value);
-								_ -> Value
-							 end,
-					parse_http_headers_(T, ShowDebugResponseHeaders, Hostname, [{KeyLower, Value2} | Result])
-			end;
-		false -> 
-			erlang:error(einvalid_http_response_header)
-	end.
 
-normalize_max_age_value(Value) when is_binary(Value) ->
-	ValueStr = binary_to_list(Value),
-	case string:to_integer(ValueStr) of
-		{Int, _} when Int > ?HTTP_MAX_CACHE_CONTROL_AGE -> 
-			list_to_binary(integer_to_list(?HTTP_MAX_CACHE_CONTROL_AGE));
-		_ -> Value
-	end;
-normalize_max_age_value(Value) -> Value.
 
-normalize_cache_control(Value) when is_binary(Value) ->
-	ValueStr = binary_to_list(Value),
-	ValueLower = string:to_lower(ValueStr),
-	case string:str(ValueLower, "no-cache") > 0 of
-		true -> <<"max-age=0, no-cache, no-store, must-revalidate, private">>;
-		false ->
-			case string:str(ValueLower, "max-age=") of
-				0 -> Value;
-				Index ->
-					MaxAgeStr = string:substr(ValueLower, Index + 8),
-					MaxAge = case string:to_integer(MaxAgeStr) of
-								 {Int, _} -> Int;
-								 _ -> 0
-							 end,
-					case MaxAge > ?HTTP_MAX_CACHE_CONTROL_AGE of
-						true -> <<"max-age=86400, public">>;
-						false -> Value
-					end
-			end
-	end;
-normalize_cache_control(Value) -> Value.
-
-%% @doc Normalize HTTP header name to Title-Case format
-%% Examples: "cache-control" -> "Cache-Control"
-%%           "x-frame-options" -> "X-Frame-Options"
--spec normalize_header_name(binary()) -> binary().
-normalize_header_name(HeaderName) ->
-	Parts = binary:split(HeaderName, <<"-">>, [global]),
-	NormalizedParts = [capitalize_word(Part) || Part <- Parts],
-	iolist_to_binary(lists:join(<<"-">>, NormalizedParts)).
-
-%% @doc Capitalize first letter of a word
--spec capitalize_word(binary()) -> binary().
-capitalize_word(<<>>) -> <<>>;
-capitalize_word(<<First:8, Rest/binary>>) ->
-	FirstUpper = string:to_upper([First]),
-	<<(list_to_binary(FirstUpper))/binary, Rest/binary>>.
-
-%% @doc Sanitize header list by removing prohibited headers and normalizing names
-%% Used for access-control-expose-headers and access-control-allow-headers
--spec sanitize_header_list(binary()) -> binary().
-sanitize_header_list(HeaderList) ->
-	% Split by comma and trim whitespace
-	Headers = binary:split(HeaderList, <<",">>, [global, trim_all]),
-	HeadersTrimmed = [string:trim(H, both) || H <- Headers],
-	
-	% Normalize each header name to Title-Case
-	HeadersNormalized = [normalize_header_name(H) || H <- HeadersTrimmed],
-	
-	% Filter out prohibited headers
-	ProhibitedList = ?HTTP_HEADERS_PROHIBITED_LIST,
-	HeadersFiltered = lists:filter(
-		fun(Header) ->
-			HeaderLower = list_to_binary(string:to_lower(binary_to_list(Header))),
-			not lists:member(HeaderLower, ProhibitedList)
-		end,
-		HeadersNormalized
-	),
-	
-	% Log removed headers if any
-	RemovedHeaders = HeadersNormalized -- HeadersFiltered,
-	case RemovedHeaders of
-		[] -> ok;
-		_ -> ems_logger:format_warn("ems_config removed prohibited headers from header list: ~p", [RemovedHeaders])
-	end,
-	
-	% Join back with proper formatting
-	iolist_to_binary(lists:join(<<", ">>, HeadersFiltered)).
 	
 
 	
@@ -569,19 +447,11 @@ parse_config(Json, Filename) ->
 		{TcpListenMainIp, TcpListenMainIp_t} = get_tcp_listen_main_ip(TcpListenAddress_t),
 
 		put(parse_step, debug),
-		ShowDebugResponseHeaders = ems_util:parse_bool(get_p(<<"debug">>, Json, ?SHOW_DEBUG_RESPONSE_HEADERS)),
+		_ShowDebugResponseHeaders = ems_util:parse_bool(get_p(<<"debug">>, Json, ?SHOW_DEBUG_RESPONSE_HEADERS)),
 
-		put(parse_step, http_headers),
-		HttpHeaders0 = maps:merge(?HTTP_HEADERS_DEFAULT, get_p(<<"http_headers">>, Json, #{})),
 
-		put(parse_step, http_headers_options),
-		HttpHeadersOptions0 = maps:merge(?HTTP_HEADERS_DEFAULT, get_p(<<"http_headers_options">>, Json, #{})),
 
-		put(parse_step, parse_http_headers),
-		HttpHeaders = parse_http_headers(HttpHeaders0, ShowDebugResponseHeaders, HostnameBin),
 
-		put(parse_step, parse_http_headers_options),
-		HttpHeadersOptions = parse_http_headers(HttpHeadersOptions0, ShowDebugResponseHeaders, HostnameBin),
 
 		put(parse_step, rest_default_querystring),
 		{Querystring, _QtdQuerystringRequired} = ems_util:parse_querystring_def(get_p(<<"rest_default_querystring">>, Json, []), []),
@@ -839,8 +709,7 @@ parse_config(Json, Filename) ->
 				 tcp_listen_prefix_interface_names = TcpListenPrefixInterfaceNames,
 				 tcp_allowed_address = TcpAllowedAddress,
 				 http_max_content_length = HttpMaxContentLength,
-				 http_headers = HttpHeaders,
-				 http_headers_options = HttpHeadersOptions,
+
 				 authorization = Authorization,
 				 oauth2_with_check_constraint = OAuth2WithCheckConstraint,
 				 oauth2_refresh_token = OAuth2RefreshToken,

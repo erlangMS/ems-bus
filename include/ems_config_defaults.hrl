@@ -49,8 +49,9 @@
     <<"tcp_listen_prefix_interface_names">> => ?TCP_LISTEN_PREFIX_INTERFACE_NAMES,
     <<"http_headers">> => #{
         <<"cache-control">> => <<"no-store, no-cache, must-revalidate, private">>,
+        <<"content-type">> => <<"application/json; charset=utf-8">>,
         <<"access-control-allow-origin">> => <<"*">>,
-        <<"access-control-max-age">> => <<"31536000">>,
+        <<"access-control-max-age">> => ?ACCESS_CONTROL_MAX_AGE_DEFAULT_CHROME,
         <<"access-control-allow-headers">> => <<"accept, accept-language, content-language, content-type, x-access_token, x-csrf-token, access-control-allow-origin, authorization, origin, x-requested-with, content-range, content-disposition, content-description">>,
         <<"access-control-allow-methods">> => <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>,
         <<"access-control-expose-headers">> => <<"cache-control, content-language, content-type, expires, last-modified, content-length">>,
@@ -60,8 +61,9 @@
     },
     <<"http_headers_options">> => #{
         <<"cache-control">> => <<"no-store, no-cache, must-revalidate, private">>,
+        <<"content-type">> => <<"application/json; charset=utf-8">>,
         <<"access-control-allow-origin">> => <<"*">>,
-        <<"access-control-max-age">> => <<"31536000">>,
+        <<"access-control-max-age">> => ?ACCESS_CONTROL_MAX_AGE_DEFAULT_CHROME,
         <<"access-control-allow-headers">> => <<"accept, accept-language, content-language, content-type, x-access_token, x-csrf-token, access-control-allow-origin, authorization, origin, x-requested-with, content-range, content-disposition, content-description">>,
         <<"access-control-allow-methods">> => <<"GET, POST, PUT, DELETE, OPTIONS, HEAD">>,
         <<"access-control-expose-headers">> => <<"cache-control, content-language, content-type, expires, last-modified, content-length">>,
@@ -105,7 +107,8 @@
     <<"ssl_certfile">> => undefined,
     <<"ssl_keyfile">> => undefined,
     <<"crypto_blowfish_module_path">> => <<>>,
-    <<"user_agent_denied_list">> => [<<"sqlmap">>, <<"nikto">>, <<"nmap">>, <<"nessus">>, <<"masscan">>, <<"zgrab">>, <<"w3af">>, <<"acunetix">>, <<"havij">>, <<"dirbuster">>, <<"gobuster">>, <<"hydra">>, <<"metasploit">>, <<"netsparker">>]
+    <<"user_agent_denied_list">> => [<<"sqlmap">>, <<"nikto">>, <<"nmap">>, <<"nessus">>, <<"masscan">>, <<"zgrab">>, <<"w3af">>, <<"acunetix">>, <<"havij">>, <<"dirbuster">>, <<"gobuster">>, <<"hydra">>, <<"metasploit">>, <<"netsparker">>],
+    <<"cors_domain">> => <<".unb.br">>
 }).
 
 -endif.

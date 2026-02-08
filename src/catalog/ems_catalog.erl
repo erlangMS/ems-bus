@@ -96,7 +96,7 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 			   CtrlPath, CtrlFile, CtrlModified, StartTimeout, CtrlHash,
 			   ServiceResendMsg1, 
 			   AuthorizationPublicCheckCredential,
-			   HttpMaxContentLength, HttpHeaders, 
+			   HttpMaxContentLength, 
 			   LogShowResponse, LogShowResponseHeader, LogShowPayload, Restricted,
 			   LogShow, Version) ->
 	PatternKey = ems_util:make_rowid_from_url(Url, Type),
@@ -169,7 +169,6 @@ new_service_re(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, F
 					service_resend_msg1 = ServiceResendMsg1,
 					authorization_public_check_credential = AuthorizationPublicCheckCredential,
 					http_max_content_length = HttpMaxContentLength,
-					http_headers = HttpHeaders,
 					log_show_response = LogShowResponse,
 					log_show_response_header = LogShowResponseHeader,
 					log_show_payload = LogShowPayload,
@@ -193,7 +192,7 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 			CtrlPath, CtrlFile, CtrlModified, StartTimeout, CtrlHash,
 		    ServiceResendMsg1, 
 			AuthorizationPublicCheckCredential,
-			HttpMaxContentLength, HttpHeaders, 
+			HttpMaxContentLength, 
 			LogShowResponse, LogShowResponseHeader, LogShowPayload, 
 			Restricted, LogShow, Version) ->
 	Contract = #service{
@@ -262,7 +261,6 @@ new_service(Rowid, Id, Name, Url, Service, ModuleName, ModuleNameCanonical, Func
 				service_resend_msg1 = ServiceResendMsg1,
 				authorization_public_check_credential = AuthorizationPublicCheckCredential,
 				http_max_content_length = HttpMaxContentLength,
-				http_headers = HttpHeaders,
 				log_show_response = LogShowResponse,
 				log_show_response_header = LogShowResponseHeader,
 				log_show_payload = LogShowPayload,
@@ -373,7 +371,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 								 ssl_certfile = SslCertFileDefault,
 								 ssl_keyfile = SslKeyFileDefault,
 								 http_max_content_length = HttpMaxContentLengthDefault,
-								 http_headers = HttpHeadersDefault,
+
 								 rest_default_querystring = RestDefaultQuerystring,
 								 auth_allow_user_inative_credentials = AuthAllowUserInativeCredentialsDefault,
 								 debug = _DebugDefault,
@@ -628,9 +626,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				put(parse_step, http_max_content_length),
 				HttpMaxContentLength = ems_util:parse_range(get_p(<<"http_max_content_length">>, Map, HttpMaxContentLengthDefault), 0, ?HTTP_MAX_CONTENT_LENGTH_BY_SERVICE),
 				
-				put(parse_step, http_headers),
-				HttpHeaders0 = get_p(<<"http_headers">>, Map, #{}),
-				HttpHeaders = maps:merge(HttpHeaders0, HttpHeadersDefault),
+
 				
 				put(parse_step, log_show_response),
 				LogShowResponse = ems_util:parse_bool(get_p(<<"log_show_response">>, Map, LogShowResponseDefault)),
@@ -716,7 +712,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												   CtrlPath, CtrlFile, CtrlModified, StartTimeout, CtrlHash,
 												   ServiceResendMsg1,
 												   AuthorizationPublicCheckCredential,
-												   HttpMaxContentLength, HttpHeaders, 
+												   HttpMaxContentLength, 
 												   LogShowResponse, LogShowResponseHeader, LogShowPayload,
 												   Restricted, LogShow, Version);
 					false -> 
@@ -743,7 +739,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 												CtrlPath, CtrlFile, CtrlModified, StartTimeout, CtrlHash,
 												ServiceResendMsg1,
 												AuthorizationPublicCheckCredential,
-												HttpMaxContentLength, HttpHeaders, 
+												HttpMaxContentLength, 
 												LogShowResponse, LogShowResponseHeader, LogShowPayload,
 												Restricted, LogShow, Version)
 				end,

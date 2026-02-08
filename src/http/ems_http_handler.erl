@@ -13,17 +13,16 @@
 
 -export([init/2]).
 
-init(CowboyReq, State = #encode_request_state{http_header_options = HttpHeaderOptions}) ->
+init(CowboyReq, State) ->
 	case cowboy_req:method(CowboyReq) of
 		<<"OPTIONS">> ->
-			Response = cowboy_req:reply(200, HttpHeaderOptions, <<>>, CowboyReq),
+			Response = cowboy_req:reply(200, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), <<>>, CowboyReq),
 			{ok, Response, State};
 		_ ->
 			init_common(CowboyReq, State)
 	end.
 
-init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpHeaderDefault,
-													debug = Debug}) ->
+init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 	case ems_encode_request:new_from_cowboy_req(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
 			case ems_dispatcher:dispatch_request(Request, Service, Debug) of
@@ -33,7 +32,7 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 												  content_type_out = ContentTypeOut}} ->
 					Code = case Code0 of undefined -> 200; _ -> Code0 end,
 					Response = cowboy_req:reply(Code, 
-												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, HttpHeaderDefault), 
+												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, ?HTTP_HEADERS_DEFAULT, CowboyReq2), 
 												ResponseData, 
 												CowboyReq2),
 					ems_logger:log_request(Request2);
@@ -42,7 +41,7 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 													 response_data = ResponseData}} ->
 					Code = case Code0 of undefined -> 500; _ -> Code0 end,
 					Response = cowboy_req:reply(Code, 
-												normalize_headers(ResponseHeader, HttpHeaderDefault),
+												normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 												ResponseData, 
 												CowboyReq2),
 					ems_logger:log_request(Request2);
@@ -54,7 +53,7 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 											   latency = ems_util:get_milliseconds() - T1},
 					ResponseHeader = Request2#request.response_header,
 					Response = cowboy_req:reply(Request2#request.code, 
-												normalize_headers(ResponseHeader, HttpHeaderDefault),
+												normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 												Request2#request.response_data, CowboyReq2),
 					ems_logger:log_request(Request2)
 			end;
@@ -63,7 +62,7 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 									     response_data = ResponseData}, CowboyReq2} ->
 			Code = case Code0 of undefined -> 500; _ -> Code0 end,
 			Response = cowboy_req:reply(Code, 
-										normalize_headers(ResponseHeader, HttpHeaderDefault),
+										normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 										ResponseData, 
 										CowboyReq2),
 			ems_logger:log_request(Request);
@@ -79,11 +78,31 @@ init_common(CowboyReq, State = #encode_request_state{http_header_default = HttpH
 			_ -> Reason
 		end,
 		ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, SimpleReason]),
-		Response = cowboy_req:reply(400, normalize_headers(HttpHeaderDefault, HttpHeaderDefault), ?EINVALID_HTTP_REQUEST, CowboyReq)
+		Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
 	end,
 	{ok, Response, State}.
 
-normalize_headers(Headers, DefaultHeaders) ->
+normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
+	% Extract Origin header from request
+	Origin = cowboy_req:header(<<"origin">>, CowboyReq, <<>>),
+	
+	% Validate and set CORS header
+	CorsHeader = case ems_util:is_unb_domain(Origin) of
+		true -> 
+			% Valid domain - allow CORS by echoing the origin
+			ems_logger:debug("CORS: Origin ~p allowed by cors_domain configuration.", [Origin]),
+			#{<<"access-control-allow-origin">> => Origin};
+		false when Origin =:= <<>> ->
+			% No Origin header - not a browser request, no CORS header needed
+			ems_logger:debug("CORS: No Origin header present, skipping CORS headers."),
+			#{};
+		false ->
+			% Invalid domain - do not set CORS header (browser will block)
+			ems_logger:warn("CORS Blocked: Origin ~p is not allowed by cors_domain configuration.", [Origin]),
+			#{}
+	end,
+	
+	% Process incoming headers
 	HeadersLower = maps:fold(fun(K, V, Acc) ->
 		KeyLower = string:lowercase(K),
 		case lists:member(KeyLower, ?HTTP_HEADERS_PROHIBITED_LIST) of
@@ -91,5 +110,17 @@ normalize_headers(Headers, DefaultHeaders) ->
 			false -> Acc#{KeyLower => V}
 		end
 	end, #{}, Headers),
-	Merged = maps:merge(DefaultHeaders, HeadersLower),
-	Merged.
+	
+	% Merge DefaultHeaders and Incoming Headers first
+	Merged1 = maps:merge(DefaultHeaders, HeadersLower),
+
+	% Apply the validated CorsHeader (if validation failed, CorsHeader is empty, so no header is sent)
+	Merged2 = maps:merge(Merged1, CorsHeader),
+	
+	% Ensure Content-Type is always present (security requirement - prevents MIME sniffing)
+	case maps:is_key(<<"content-type">>, Merged2) of
+		true -> Merged2;
+		false -> Merged2#{<<"content-type">> => <<"application/json; charset=utf-8">>}
+	end.
+
+

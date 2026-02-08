@@ -102,10 +102,10 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  disable_services_owner: ~p.", [Conf#config.cat_disable_services_owner]),
 			ems_logger:info("  enable_services: ~300p.", [Conf#config.cat_enable_services]),
 			ems_logger:info("  datasources: ~p.", [Conf#config.ems_datasources]),
+			ems_logger:info("  cors_domain: ~p.", [ems_db:get_param(cors_domain, ?CORS_DOMAIN)]),
 			ems_logger:info("  sufixo_email_institucional: ~p.", [Conf#config.sufixo_email_institucional]),
 			ems_logger:info("  http_max_content_length: ~p bytes (~p KB, ~p MB, ~p GB).", [Conf#config.http_max_content_length, round(Conf#config.http_max_content_length/1024), round(Conf#config.http_max_content_length/1048576), round(Conf#config.http_max_content_length/1073741824)]),
-			ems_logger:info("  http_headers: ~p.", [Conf#config.http_headers]),
-			ems_logger:info("  http_headers_options: ~p.", [Conf#config.http_headers_options]),
+
 			ems_logger:info("  ssl_cacertfile: ~p.", [Conf#config.ssl_cacertfile]),
 			ems_logger:info("  ssl_certfile: ~p.", [Conf#config.ssl_certfile]),
 			ems_logger:info("  ssl_keyfile: ~p.", [Conf#config.ssl_keyfile]),
