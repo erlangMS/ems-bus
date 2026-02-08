@@ -617,7 +617,19 @@ parse_config(Json, Filename) ->
 		LdapPasswdAdminCrypto = get_p(<<"ldap_password_admin_crypto">>, Json, <<>>),
 
 		put(parse_step, ldap_base_search),
-		LdapBaseSearch = get_p(<<"ldap_base_search">>, Json, <<>>),
+		LdapBaseSearch = binary_to_list(get_p(<<"ldap_base_search">>, Json, <<>>)),
+
+		put(parse_step, rate_limit_interno),
+		RateLimitInterno = get_p(<<"rate_limit_interno">>, Json, 50),
+
+		put(parse_step, rate_limit_externo),
+		RateLimitExterno = get_p(<<"rate_limit_externo">>, Json, 15),
+
+		put(parse_step, rate_limit_cidr_interno),
+		RateLimitCidrInterno = ems_util:parse_cidr(get_p(<<"rate_limit_cidr_interno">>, Json, <<"164.41.0.0/16">>)),
+
+		put(parse_step, force_https),
+		ForceHttps = ems_util:parse_bool(get_p(<<"force_https">>, Json, false)),
 
 		put(parse_step, ldap_password_admin),
 		LdapPasswordAdmin0 = get_p(<<"ldap_password_admin">>, Json, <<>>),
@@ -758,6 +770,9 @@ parse_config(Json, Filename) ->
 				 ldap_password_admin_crypto = <<"SHA1">>,
 				 ldap_base_search = LdapBaseSearch,
 				 custom_variables = CustomVariables,
+				 rate_limit_interno = RateLimitInterno,
+				 rate_limit_externo = RateLimitExterno,
+				 rate_limit_cidr_interno = RateLimitCidrInterno,
 				 www_path = WWWPath,
 				 database_path = DatabasePath,
 				 priv_path = PrivPath,
@@ -765,8 +780,9 @@ parse_config(Json, Filename) ->
 				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
 				 crypto_blowfish_module_path = BlowfishCryptoModPath,
 				 oauth2_resource_owner_find_permission_with_cpf = OAuth2ResourceOwnerFindPermissionWithCPF,
-				 oauth2_resource_owner_fields = OAuth2ResourceOwnerFields,
-				 user_agent_denied_list = UserAgentDeniedList
+ 				 oauth2_resource_owner_fields = OAuth2ResourceOwnerFields,
+				 user_agent_denied_list = UserAgentDeniedList,
+				 force_https = ForceHttps
 				 
 			},
 

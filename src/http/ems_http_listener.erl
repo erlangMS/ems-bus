@@ -79,6 +79,7 @@ init({IpAddress,
 																  ]
 												   },
 												 #{env => #{dispatch => Dispatch},
+												   max_url_length => ?HTTP_MAX_URI_LENGTH,
 												   idle_timeout => 300000});
 		false ->
 			Ret = cowboy:start_clear(ListenerName, 
@@ -93,6 +94,7 @@ init({IpAddress,
 										 				 ]}, 
 										#{compress => true,
 										  env => #{dispatch => Dispatch},
+										  max_url_length => ?HTTP_MAX_URI_LENGTH,
 										  idle_timeout => 300000
 									})
 	end,

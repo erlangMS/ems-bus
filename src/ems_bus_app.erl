@@ -109,6 +109,10 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  ssl_cacertfile: ~p.", [Conf#config.ssl_cacertfile]),
 			ems_logger:info("  ssl_certfile: ~p.", [Conf#config.ssl_certfile]),
 			ems_logger:info("  ssl_keyfile: ~p.", [Conf#config.ssl_keyfile]),
+			ems_logger:info("  rate_limit_cidr_interno: ~p.", [Conf#config.rate_limit_cidr_interno]),
+			ems_logger:info("  rate_limit_interno: ~p req/s.", [Conf#config.rate_limit_interno]),
+			ems_logger:info("  rate_limit_externo: ~p req/s.", [Conf#config.rate_limit_externo]),
+			ems_logger:info("  force_https: ~p.", [Conf#config.force_https]),
 			ems_logger:info("  debug: ~p.", [Conf#config.debug]),
 			erlang:set_cookie(node(), erlangms), ems_logger:info("Cookie loaded: ~p", [erlang:get_cookie()]), Ret;
 		{error, Reason} ->

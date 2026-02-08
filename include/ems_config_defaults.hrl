@@ -108,7 +108,11 @@
     <<"ssl_keyfile">> => undefined,
     <<"crypto_blowfish_module_path">> => <<>>,
     <<"user_agent_denied_list">> => [<<"sqlmap">>, <<"nikto">>, <<"nmap">>, <<"nessus">>, <<"masscan">>, <<"zgrab">>, <<"w3af">>, <<"acunetix">>, <<"havij">>, <<"dirbuster">>, <<"gobuster">>, <<"hydra">>, <<"metasploit">>, <<"netsparker">>],
-    <<"cors_domain">> => <<".unb.br">>
+    <<"cors_domain">> => <<".unb.br">>,
+     <<"rate_limit_interno">> => 60,
+    <<"rate_limit_externo">> => 30,
+    <<"force_https">> => false,
+    <<"rate_limit_cidr_interno">> => <<"164.41.0.0/16">>
 }).
 
 -endif.

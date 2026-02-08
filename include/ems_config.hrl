@@ -197,6 +197,7 @@
 -define(EINVALID_DATA_LOADER, <<"{\"error\": \"einvalid_data_loader\"}"/utf8>>).
 -define(HOST_DENIED_JSON, <<"{\"error\": \"host_denied\"}"/utf8>>).
 -define(EFORBIDDEN_JSON, <<"{\"error\": \"eforbidden\"}"/utf8>>).
+-define(ERATE_LIMIT_EXCEEDED, <<"{\"error\": \"erate_limit_exceeded\"}"/utf8>>).
 -define(OAUTH2_DEFAULT_TOKEN_EXPIRY, 3600).  % 1 hour
 -define(OAUTH2_MAX_TOKEN_EXPIRY, 2592000).   % 30 days
 
@@ -231,12 +232,15 @@
 -define(HTTP_MAX_CONNECTIONS, 1024).
 -define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
--define(HTTP_MAX_URI_LENGTH, 8192).  % Limite máximo de 8KB para URI (previne ataques de DoS)
+-define(HTTP_MAX_URI_LENGTH, 16384).  % Limite máximo de 16KB para URI (previne ataques de DoS)
 -define(HTTP_MAX_QUERYSTRING_LIMIT, 100).  % Limite máximo de 100 parâmetros na querystring (previne ataques de DoS)
 -define(HTTP_TARPIT_DELAY, 30000).  % Delay de 30 segundos para requisições maliciosas (Tarpit)
 -define(HTTP_URL_DENY_LIST_RE, [
     "\\.php$", "\\.jsp$", "\\.asp$", "\\.aspx$", "\\.exe$", "\\.pl$", "\\.cgi$", "\\.sh$", "\\.yaml$", "\\.env$"
 ]).
+-define(RATE_LIMIT_CIDR_INTERNO, <<"164.41.0.0/16">>).
+-define(RATE_LIMIT_INTERNO, 50).
+-define(RATE_LIMIT_EXTERNO, 15).
 -define(RESULT_CACHE_ENABLED_DEFAULT, true).
 -define(HTTP_SERVER_HEADER, <<"Okatsu">>).  % Obfuscated Server header
 -define(HTTP_MAX_CACHE_CONTROL_AGE, 86400).   % 1 day in seconds
@@ -338,9 +342,10 @@
 				 config_file,
 				 http_port_offset :: non_neg_integer(),
 				 https_port_offset :: non_neg_integer(),
-				 http_enable :: boolean(),
-				 https_enable :: boolean(),
-				 http_max_content_length :: non_neg_integer(),
+ 				 http_enable :: boolean(),
+ 				 https_enable :: boolean(),
+ 				 force_https :: boolean(),
+ 				 http_max_content_length :: non_neg_integer(),
 				 params :: map(),
 				 client_path_search :: string(),
 				 user_path_search :: string(),
@@ -354,7 +359,6 @@
 				 ssl_certfile :: binary(),
 				 ssl_keyfile :: binary(),
 				 sufixo_email_institucional :: binary(),
-
 				 log_show_response = ?LOG_SHOW_RESPONSE :: boolean(),						%% Se true, imprime o response no log
 				 log_show_response_header = ?LOG_SHOW_RESPONSE_HEADER :: boolean(),			%% Se true, imprime o response no log
 				 log_show_payload = ?LOG_SHOW_PAYLOAD :: boolean(),				%% Se true, imprime o payload no log
@@ -373,7 +377,10 @@
 				 ldap_password_admin_crypto :: string(),
 				 ldap_base_search :: string(),
  				 custom_variables :: list(binary()),						%% Lista de variáveis genéricas
- 				 priv_path :: string(),
+ 				 rate_limit_interno :: non_neg_integer(),
+ 				 rate_limit_externo :: non_neg_integer(),
+ 				 rate_limit_cidr_interno :: any(),
+  				 priv_path :: string(),
  				 database_path :: string(),
  				 log_path :: string(),
  				 www_path :: string(),

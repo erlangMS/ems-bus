@@ -1,0 +1,12 @@
+{
+    "name": "ems_rate_limiter",
+    "comment": "Rate limiter service",
+    "owner": "emsbus",
+    "version": "1.0.0",
+    "service": "ems_rate_limiter:start",
+    "url": "/emsbus/ems_rate_limiter",
+    "type": "KERNEL",
+    "lang": "erlang",
+    "pool_size": 1,
+    "pool_max": 1
+}

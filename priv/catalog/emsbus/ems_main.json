@@ -24,10 +24,6 @@
 		"file": "ems_favicon_service.json"
 	},
 	{
-		"catalog": "/emsbus/tcp_servers",
-		"file": "tcp_servers/ems_tcp_servers.json"
-	},
-	{
 		"catalog": "/emsbus/barramento",
 		"file": "ems_barramento_service.json"
 	},
@@ -42,5 +38,13 @@
 	{
 		"catalog": "/emsbus/auth/ems_auth_login",
 		"file": "auth/ems_auth_login.json"
+	},
+	{
+		"catalog": "/emsbus/ems_rate_limiter",
+		"file": "ems_rate_limiter.json"
+	},
+	{
+		"catalog": "/emsbus/tcp_servers",
+		"file": "tcp_servers/ems_tcp_servers.json"
 	}
 ]

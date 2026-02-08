@@ -14,12 +14,48 @@
 -export([init/2]).
 
 init(CowboyReq, State) ->
-	case cowboy_req:method(CowboyReq) of
-		<<"OPTIONS">> ->
-			Response = cowboy_req:reply(200, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), <<>>, CowboyReq),
+	{_Ip, _Port} = cowboy_req:peer(CowboyReq),
+	Conf = ems_config:getConfig(),
+	case {cowboy_req:scheme(CowboyReq), Conf#config.force_https} of
+		{<<"http">>, true} ->
+			Host = cowboy_req:host(CowboyReq),
+			Path = cowboy_req:path(CowboyReq),
+			Qs = cowboy_req:qs(CowboyReq),
+			RedirectUrl = case Qs of
+				<<>> -> iolist_to_binary([<<"https://">>, Host, Path]);
+				_ -> iolist_to_binary([<<"https://">>, Host, Path, <<"?">>, Qs])
+			end,
+			ems_logger:info("ems_http_handler redirecting http to https: ~s", [RedirectUrl]),
+			Response = cowboy_req:reply(307, #{<<"location">> => RedirectUrl}, <<>>, CowboyReq),
 			{ok, Response, State};
 		_ ->
-			init_common(CowboyReq, State)
+			init_rate_limit(CowboyReq, State)
+	end.
+
+init_rate_limit(CowboyReq, State) ->
+	{Ip, _Port} = cowboy_req:peer(CowboyReq),
+	case ems_rate_limiter:check(Ip) of
+		block ->
+			Response = cowboy_req:reply(429, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?ERATE_LIMIT_EXCEEDED, CowboyReq),
+			{ok, Response, State};
+		{tarpit, Delay} ->
+			ems_logger:warn("ems_http_handler tarpit delay ~p ms for IP ~p.", [Delay, Ip]),
+			timer:sleep(Delay),
+			case cowboy_req:method(CowboyReq) of
+				<<"OPTIONS">> ->
+					Response = cowboy_req:reply(200, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), <<>>, CowboyReq),
+					{ok, Response, State};
+				_ ->
+					init_common(CowboyReq, State)
+			end;
+		allow ->
+			case cowboy_req:method(CowboyReq) of
+				<<"OPTIONS">> ->
+					Response = cowboy_req:reply(200, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), <<>>, CowboyReq),
+					{ok, Response, State};
+				_ ->
+					init_common(CowboyReq, State)
+			end
 	end.
 
 init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->

@@ -189,7 +189,10 @@
 		 is_unb_domain/1,
 	 matches_any_domain/2,
 	 check_domain_match/2,
-	 extract_domain_from_origin/1
+	 extract_domain_from_origin/1,
+	 parse_cidr/1,
+	 match_cidr/2,
+	 match_cidr/3
 		]).
 
 %% @doc Gera um JWT (JSON Web Token) usando algoritmo HS256
@@ -1928,6 +1931,34 @@ match_ip_address({O1, O2, O3, O4}, {X1, X2, X3, X4}) ->
    (O2 == '_' orelse O2 == X2) andalso
    (O3 == '_' orelse O3 == X3) andalso
    (O4 == '_' orelse O4 == X4).
+
+%% @doc Parses a CIDR binary (e.g., <<"164.41.0.0/16">>) and returns {Ip, Mask}
+-spec parse_cidr(binary()) -> {tuple(), integer()}.
+parse_cidr(Cidr) when is_binary(Cidr) ->
+    case binary:split(Cidr, <<"/">>) of
+        [IpBin, MaskBin] ->
+            {ok, Ip} = inet:parse_address(binary_to_list(IpBin)),
+            {Ip, binary_to_integer(MaskBin)};
+        [IpBin] ->
+            {ok, Ip} = inet:parse_address(binary_to_list(IpBin)),
+            {Ip, 32}
+    end.
+
+%% @doc Checks if an IP address (tuple) matches a CIDR (binary)
+-spec match_cidr(tuple(), binary()) -> boolean().
+match_cidr(Ip, Cidr) ->
+    {TargetIp, Mask} = parse_cidr(Cidr),
+    match_cidr(Ip, TargetIp, Mask).
+
+%% @doc Internal function to match IP against target IP with mask
+match_cidr({I1,I2,I3,I4}, {T1,T2,T3,T4}, Mask) ->
+    IpInt = (I1 bsl 24) bor (I2 bsl 16) bor (I3 bsl 8) bor I4,
+    TargetInt = (T1 bsl 24) bor (T2 bsl 16) bor (T3 bsl 8) bor T4,
+    FullMask = (1 bsl 32) - 1,
+    CidrMask = (FullMask bsl (32 - Mask)) band FullMask,
+    (IpInt band CidrMask) == (TargetInt band CidrMask);
+match_cidr(_, _, _) -> false.
+
 	
 	
 -spec parse_basic_authorization_header(Header :: binary()) -> {ok, string(), string()} | 
