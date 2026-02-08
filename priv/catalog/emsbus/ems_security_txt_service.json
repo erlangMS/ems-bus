@@ -1,0 +1,38 @@
+[
+    {
+        "name": "/security.txt",
+        "comment": "security.txt",
+        "owner": "emsbus",
+        "version": "1.0.0",
+        "service": "ems_static_file_service:execute",
+        "url": "/security.txt",
+        "path": "{{ www_path }}",
+        "filename": "{{ www_path }}/security.txt",
+        "async": "false",
+        "type": "GET",
+        "result_cache": 60000,
+        "authorization": "public",
+        "cache_control": "max-age=86400, private",
+        "expires_minute": 1440,
+        "log_show_response": false,
+        "lang": "erlang"
+    },
+    {
+        "name": "/.well-known/security.txt",
+        "comment": "security.txt",
+        "owner": "emsbus",
+        "version": "1.0.0",
+        "service": "ems_static_file_service:execute",
+        "url": "/.well-known/security.txt",
+        "path": "{{ www_path }}",
+        "filename": "{{ www_path }}/.well-known/security.txt",
+        "async": "false",
+        "type": "GET",
+        "result_cache": 60000,
+        "authorization": "public",
+        "cache_control": "max-age=86400, private",
+        "expires_minute": 1440,
+        "log_show_response": false,
+        "lang": "erlang"
+    }
+]

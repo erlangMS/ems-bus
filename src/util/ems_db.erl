@@ -911,14 +911,22 @@ filter_condition_parse_value(Value, undefined) when is_atom(Value) -> {ok, atom_
 filter_condition_parse_value(_, undefined) -> {error, einvalid_fieldtype}.
 
 
+-spec escape_binary(binary()) -> binary().
+escape_binary(Bin) ->
+	<< <<(case C of 34 -> <<"\\\"">>; 92 -> <<"\\\\">>; _ -> <<C>> end)/binary>> || <<C>> <= Bin >>.
+
+-spec escape_list(list()) -> list().
+escape_list(List) ->
+	binary_to_list(escape_binary(list_to_binary(List))).
+
 -spec filter_condition_parse_value_with_scape(any(), atom()) -> {ok, any()} | {error, einvalid_fieldtype}.
 filter_condition_parse_value_with_scape(Value, binary_type) ->
 	try
 		case is_binary(Value) of
-			true -> {ok, iolist_to_binary([ <<"<<\"">>, Value, <<"\">>">>])};
+			true -> {ok, iolist_to_binary([ <<"<<\"">>, escape_binary(Value), <<"\">>">>])};
 			false ->
 				case is_list(Value) of
-					true -> {ok, iolist_to_binary([ <<"<<\"">>, list_to_binary(Value), <<"\">>">>])};
+					true -> {ok, iolist_to_binary([ <<"<<\"">>, escape_binary(list_to_binary(Value)), <<"\">>">>])};
 					false -> 
 						case is_integer(Value) of
 							true -> {ok, iolist_to_binary([ <<"<<\"">>, integer_to_binary(Value), <<"\">>">>])};
@@ -932,10 +940,10 @@ filter_condition_parse_value_with_scape(Value, binary_type) ->
 filter_condition_parse_value_with_scape(Value, string_type) ->
 	try
 		case is_list(Value) of
-			true -> {ok, binary_to_list(iolist_to_binary([ <<"\"">>, Value, <<"\"">>]))};
+			true -> {ok, binary_to_list(iolist_to_binary([ <<"\"">>, escape_list(Value), <<"\"">>]))};
 			false ->
 				case is_binary(Value) of
-					true -> {ok, binary_to_list(iolist_to_binary([ <<"\"">>, Value, <<"\"">>]))};
+					true -> {ok, binary_to_list(iolist_to_binary([ <<"\"">>, escape_binary(Value), <<"\"">>]))};
 					false -> 
 						case is_integer(Value) of
 							true -> {ok, binary_to_list(iolist_to_binary([ <<"\"">>, integer_to_binary(Value), <<"\"">>]))};
@@ -981,8 +989,8 @@ filter_condition_parse_value_with_scape(Value, atom_type) ->
 	catch 
 		_Exception:_Reason -> {error, einvalid_fieldtype}
 	end;
-filter_condition_parse_value_with_scape(Value, undefined) when is_binary(Value) -> {ok, iolist_to_binary([ <<"<<\"">>, Value, <<"\">>">>])};
-filter_condition_parse_value_with_scape(Value, undefined) when is_list(Value) -> {ok, iolist_to_binary([ <<"\"">>, list_to_binary(Value), <<"\"">>])};
+filter_condition_parse_value_with_scape(Value, undefined) when is_binary(Value) -> {ok, iolist_to_binary([ <<"<<\"">>, escape_binary(Value), <<"\">>">>])};
+filter_condition_parse_value_with_scape(Value, undefined) when is_list(Value) -> {ok, iolist_to_binary([ <<"\"">>, escape_list(Value), <<"\"">>])};
 filter_condition_parse_value_with_scape(Value, undefined) when is_integer(Value) -> {ok, integer_to_binary(Value)};
 filter_condition_parse_value_with_scape(Value, undefined) when is_atom(Value) -> {ok, atom_to_binary(Value, utf8)};
 filter_condition_parse_value_with_scape(_, undefined) -> {error, einvalid_fieldtype}.

@@ -378,7 +378,7 @@ resolve_access_code_sgbd(AccessCode) ->
 										Res = case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 											{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 												Context1 = base64:decode(list_to_binary(Context)),
-												Context2 = binary_to_term(Context1),
+												Context2 = binary_to_term(Context1, [safe]),
 												ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
 												AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context2},
 												mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
@@ -451,7 +451,7 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 										Res = case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 											{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 												Context1 = base64:decode(list_to_binary(Context)),
-												Context2 = binary_to_term(Context1),
+												Context2 = binary_to_term(Context1, [safe]),
 												ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
 												AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
 												mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
@@ -523,7 +523,7 @@ resolve_access_token_sgbd(AccessToken) ->
 										Res = case ems_odbc_pool:param_query(Ds2, SqlSelect, ParamsSql) of
 											{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 												Context1 = base64:decode(list_to_binary(Context)),
-												Context2 = binary_to_term(Context1),
+												Context2 = binary_to_term(Context1, [safe]),
 												ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
 												AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
 												mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),

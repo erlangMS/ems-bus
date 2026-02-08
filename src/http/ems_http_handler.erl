@@ -26,7 +26,8 @@ init(CowboyReq, State) ->
 				_ -> iolist_to_binary([<<"https://">>, Host, Path, <<"?">>, Qs])
 			end,
 			ems_logger:info("ems_http_handler redirecting http to https: ~s", [RedirectUrl]),
-			Response = cowboy_req:reply(307, #{<<"location">> => RedirectUrl}, <<>>, CowboyReq),
+			Headers = (normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq))#{<<"location">> => RedirectUrl},
+			Response = cowboy_req:reply(307, Headers, <<>>, CowboyReq),
 			{ok, Response, State};
 		_ ->
 			init_rate_limit(CowboyReq, State)
@@ -109,12 +110,14 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 		{Ip, _} = cowboy_req:peer(CowboyReq),
 		Ip2 = inet_parse:ntoa(Ip),
 		% Extract simple reason to avoid verbose logging
-		SimpleReason = case Reason of
-			{error, request, #request{reason = R}, _} -> R;
-			_ -> Reason
-		end,
-		ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, SimpleReason]),
-		Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
+		case Reason of
+			{error, request, Request = #request{code = Code, response_data = ResponseData, response_header = ResponseHeader}, _} ->
+				Response = cowboy_req:reply(Code, normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq), ResponseData, CowboyReq),
+				ems_logger:log_request(Request);
+			_ ->
+				ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, Reason]),
+				Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
+		end
 	end,
 	{ok, Response, State}.
 
