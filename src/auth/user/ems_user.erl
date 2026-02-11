@@ -130,7 +130,7 @@ find_index_by_login_and_password([Table|_] = Tables,
 				spawn(fun() -> mnesia:dirty_write(Table, User2) end),
 				
 				% Update cache immediately with the new state
-				ems_cache:add(ems_user_cache, 60000, {Table, LoginBin}, [User2]),
+				ems_cache:add(ems_user_cache, ?USER_CACHE_POSITIVE_TTL, {Table, LoginBin}, [User2]),
 				{ok, User2};
 			false -> 
 				% Eh tabela user_aluno_ativo_db e encontrou o login mas não bateu a senha, vamos tentar buscar a 
@@ -145,7 +145,7 @@ find_index_by_login_and_password([Table|_] = Tables,
 							end
 						end,
 						
-						case ems_cache:get(ems_user_cache, ?USER_CACHE_POSITIVE_TTL, ?USER_CACHE_NEGATIVE_TTL, {user_db, LoginBin}, FindUserDbFun) of
+						case ems_cache:get(ems_user_cache, {?USER_CACHE_POSITIVE_TTL, ?USER_CACHE_NEGATIVE_TTL}, {user_db, LoginBin}, FindUserDbFun) of
 							[#user{password = PasswordUserEmOutraTabela}|_] -> 
 								% Simple check against user_db password (assuming same crypto logic or just simple equality for now to save complexity)
 								IsMatchOther = PasswordUserEmOutraTabela =:= ems_util:criptografia_sha1(PasswordStr),
@@ -160,7 +160,7 @@ find_index_by_login_and_password([Table|_] = Tables,
 											spawn(fun() -> mnesia:dirty_write(Table, User2) end),
 											
 											% Update cache immediately
-											ems_cache:add(ems_user_cache, 60000, {Table, LoginBin}, [User2]),
+											ems_cache:add(ems_user_cache, ?USER_CACHE_POSITIVE_TTL, {Table, LoginBin}, [User2]),
 											{ok, User2};
 									false -> 
 											find_index_by_login_and_password(Tables, T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
@@ -172,6 +172,10 @@ find_index_by_login_and_password([Table|_] = Tables,
 						find_index_by_login_and_password(Tables, T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope) 
 				end
 	end.
+	
+find_index_by_login_and_password([], _, _, _, _, _) ->
+	{error, access_denied, enoent};
+	
 
 %% Wrapper to check cache before hitting Mnesia
 find_index_by_login_and_password([Table|T] = Tables, 
@@ -189,7 +193,7 @@ find_index_by_login_and_password([Table|T] = Tables,
 		end
 	end,
 	% TTL for dataloader protection and negative results
-	case ems_cache:get(ems_user_cache, ?USER_CACHE_POSITIVE_TTL, ?USER_CACHE_NEGATIVE_TTL, CacheKey, FindFun) of
+	case ems_cache:get(ems_user_cache, {?USER_CACHE_POSITIVE_TTL, ?USER_CACHE_NEGATIVE_TTL}, CacheKey, FindFun) of
 		[] -> 
 			find_index_by_login_and_password(T, LoginBin, PasswordStr, PasswordBin, Client, AuthPasswordCheckBetweenScope);
 		Users ->
@@ -575,7 +579,7 @@ to_resource_owner(User = #user{id = UserId}, ClientId) ->
 	CacheKey = {to_resource_owner, UserId, ClientId},
 	FindFun = fun() -> to_resource_owner_compute(User, ClientId) end,
 	% TTL for resource owner cache
-	ems_cache:get(ems_user_cache, ?USER_RESOURCE_OWNER_CACHE_TTL, ?USER_CACHE_NEGATIVE_TTL, CacheKey, FindFun).
+	ems_cache:get(ems_user_cache, {?USER_RESOURCE_OWNER_CACHE_TTL, ?USER_CACHE_NEGATIVE_TTL}, CacheKey, FindFun).
 
 % Internal function to compute resource owner JSON
 to_resource_owner_compute(User, ClientId) ->
