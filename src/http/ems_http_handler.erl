@@ -71,7 +71,7 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 					Response = cowboy_req:reply(Code, 
 												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, ?HTTP_HEADERS_DEFAULT, CowboyReq2), 
 												ResponseData, 
-												CowboyReq2)
+												CowboyReq2),
 					ems_logger:log_request(Request2);
 				{error, request, Request2 = #request{code = Code0,
 													 response_header = ResponseHeader,
