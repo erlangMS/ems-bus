@@ -49,8 +49,8 @@ authenticate(Service = #service{authorization = AuthorizationMode,
 				end
 		end
 	catch
-		_:ReasonException ->
-			ems_logger:error("ems_auth_user authenticate exception. Request: ~p. Reason: ~p.", [Request, ReasonException]),
+		Exception:ReasonException ->
+			ems_logger:error("ems_auth_user authenticate exception. Request: ~p. Error: ~p\n Reason: ~p.", [Request, Exception, ReasonException]),
 			{error, access_denied, eauthenticate_failed}
 	end.
 
@@ -73,7 +73,7 @@ do_basic_authorization(Service = #service{auth_allow_user_inative_credentials = 
 				Client = public
 		end,
 
-		case ems_logger:in_debug() andalso Client =/= public of
+		case ems_logger:in_debug() of
 			true -> 
 				ems_logger:info("ems_auth_user client debug details: ~p.", [Client]);
 			false -> ok
@@ -115,8 +115,8 @@ do_basic_authorization(Service = #service{auth_allow_user_inative_credentials = 
 				Error
 		end
 	catch
-		_:ReasonException ->
-			ems_logger:error("ems_auth_user do_basic_authorization failed. Reason: ~p.", [ReasonException]),
+		Exception:ReasonException ->
+			ems_logger:error("ems_auth_user do_basic_authorization failed. Error: ~p\n Reason: ~p.", [Exception, ReasonException]),
 			{error, access_denied, edo_basic_authorization_failed}
 	end.
 
@@ -136,8 +136,8 @@ do_bearer_authorization(Service, Request = #request{authorization = Authorizatio
 				Error
 		end
 	catch
-		_:ReasonException ->
-			ems_logger:error("ems_auth_user do_bearer_authorization failed. Reason: ~p.", [ReasonException]),
+		Exception:ReasonException ->
+			ems_logger:error("ems_auth_user do_bearer_authorization failed. Error: ~p\n Reason: ~p.", [Exception, ReasonException]),
 			{error, access_denied, edo_bearer_authorization_failed}
 	end.
 		
@@ -188,19 +188,23 @@ do_oauth2_check_access_token(AccessToken, Service, Req) ->
 	end.
 	
 
--spec do_check_grant_permission(#service{}, #request{}, #client{} | public, #user{}, binary(), binary(), binary(), atom()) -> {ok, #client{}, #user{}, binary(), binary()} | {error, access_denied}.
+-spec do_check_grant_permission(#service{}, #request{}, #client{} | public, #user{} | public, binary(), binary(), binary(), atom()) -> {ok, #client{}, #user{}, binary(), binary()} | {error, access_denied}.
 do_check_grant_permission(Service = #service{name = ServiceName, 
 											 restricted = RestrictedService, 
 											 owner = Owner}, 
 						  Req, 
 						  Client, 
-						  User = #user{admin = Admin}, 
+						  User, 
 						  AccessToken, 
 						  Scope, 
 						  State, 
 						  _) ->
 	try
 		T1 = ems_util:get_timestamp(),
+		{Admin, UserLogin} = case User of
+			#user{admin = Admin0, login = UserLogin0} -> {Admin0, UserLogin0};
+			public -> {false, <<"public">>}
+		end,
 		case Client of
 			public -> 
 				ClientName = "public",
@@ -243,20 +247,20 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 				case not RestrictedService of
 					true ->
 						case PermiteAcessarComoAdmin of
-							true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for service: ~s, admin user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
-							false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])
+							true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for service: ~s, admin user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
+							false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])
 						end;
 					false ->
 						case PermiteAcessarComoAdmin of
-							true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for restricted service: ~s, admin user login: ~s, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), ClientName, OwnerStr, AuthorizationOwnerStr]);
-							false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for restricted service: ~s, user login: ~s, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), ClientName, OwnerStr, AuthorizationOwnerStr])
+							true -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for restricted service: ~s, admin user login: ~s, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), ClientName, OwnerStr, AuthorizationOwnerStr]);
+							false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for restricted service: ~s, user login: ~s, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), ClientName, OwnerStr, AuthorizationOwnerStr])
 						end
 				end,
 				{ok, Client, User, AccessToken, Scope, State};
 			false -> 
 				case not RestrictedService of
-					true -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
-					false -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for restricted service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(User#user.login), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])
+					true -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), Admin, ClientName, OwnerStr, AuthorizationOwnerStr]);
+					false -> ems_logger:error("ems_auth_user do_check_grant_permission denied grant for restricted service: ~s, user login: ~s, is_admin: ~p, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), Admin, ClientName, OwnerStr, AuthorizationOwnerStr])
 				end,
 				case RestrictedService of
 					true ->	{error, access_denied, erestricted_service};
@@ -267,8 +271,8 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 		ems_logger:info("ems_auth_user do_check_grant_permission execution time: ~p ms.", [T2 - T1]),
 		Result
 	catch
-		_:ReasonException ->
-			ems_logger:error("ems_auth_user do_check_grant_permission failed. Reason: ~p.", [ReasonException]),
+		Exception:ReasonException ->
+			ems_logger:error("ems_auth_user do_check_grant_permission failed. Error: ~p\nReason: ~p.", [Exception, ReasonException]),
 			{error, access_denied, edo_check_grant_permission}
 	end.
 		

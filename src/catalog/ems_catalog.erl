@@ -407,7 +407,7 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 
 		case Enable of
 			true ->
-				ems_logger:debug("ems_catalog loading catalog ~p of owner ~p.", [binary_to_list(Name), binary_to_list(Owner)]),
+				%%ems_logger:debug("ems_catalog loading catalog ~p of owner ~p.", [binary_to_list(Name), binary_to_list(Owner)]),
 				
 				put(parse_step, ctrl_path),
 				CtrlPath = get_p(<<"ctrl_path">>, Map, <<>>),

@@ -71,7 +71,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentRecord = #user_endereco{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_user_endereco_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_user_endereco_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								Record = CurrentRecord#user_endereco{
 												 codigo = CodigoPessoa,
 												 endereco = NewRecord#user_endereco.endereco,

@@ -227,7 +227,11 @@ make_hash(Rowid, Id) -> erlang:phash2([Rowid, Id]).
 has_grant_permission(#service{oauth2_with_check_constraint = false}, _, _) -> true;
 has_grant_permission(#service{oauth2_with_check_constraint = true},
 					 #request{rowid = Rowid, type = Type}, 
-					 #user{id = Id, login = Login}) ->
+					 User) ->
+	{Id, Login} = case User of
+		#user{id = Id0, login = Login0} -> {Id0, Login0};
+		public -> {0, <<"public">>}
+	end,
 	Hash = make_hash(Rowid, Id),
 	
 	%% Tenta buscar no cache primeiro

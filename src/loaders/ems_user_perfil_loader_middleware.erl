@@ -71,7 +71,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentRecord = #user_perfil{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_user_perfil_perfil_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_user_perfil_perfil_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								UserPerfil = CurrentRecord#user_perfil{
 												 perfil_id = NewRecord#user_perfil.perfil_id,
 												 user_id = NewRecord#user_perfil.user_id,

@@ -84,7 +84,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentRecord = #user_dados_funcionais{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_user_dados_funcionais_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_user_dados_funcionais_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								Record = CurrentRecord#user_dados_funcionais{
 												 type = NewRecord#user_dados_funcionais.type,
 												 subtype = NewRecord#user_dados_funcionais.subtype,

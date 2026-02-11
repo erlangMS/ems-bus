@@ -70,7 +70,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentRecord = #user_telefone{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_user_telefone_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_user_telefone_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								Record = CurrentRecord#user_telefone{
 												 codigo = CodigoPessoa,
 												 numero = NewRecord#user_telefone.numero,

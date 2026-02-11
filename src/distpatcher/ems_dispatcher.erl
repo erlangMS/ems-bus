@@ -116,7 +116,8 @@ dispatch_request(Request = #request{req_hash = ReqHash,
  								    url_masked = UrlMasked, 
 									url = Url,
 									user_agent = UserAgent
-},
+									content_type = contentType
+				},
 				Service = #service{tcp_allowed_address_t = AllowedAddress,
 									module = Module,
 									result_cache = ResultCacheOrig},
@@ -126,10 +127,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 					false -> ResultCacheOrig
 				  end,
 	try
-		case Debug of
-			true -> ems_logger:info("ems_dispatcher begin execute. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
-			false -> ok
-		end,
+		true -> ems_logger:info("ems_dispatcher call: Method: ~p ContentType: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ContentType, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
 		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
 		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
 			true ->
@@ -138,7 +136,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 						case ems_auth_user:authenticate(Service, Request) of
 							{ok, Client, User, AccessToken, _Scope, _State} -> 	
 								case Debug of
-									true -> ems_logger:info("ems_dispatcher authenticate ok. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+									true -> ems_logger:info("ems_dispatcher authenticated.");
 									false -> ok
 								end,
 								Latency = ems_util:get_milliseconds() - T1,
@@ -201,7 +199,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 										ResultDispatServiceWork
 								end;
 							{error, Reason, ReasonDetail} -> 
-								ems_logger:info("ems_dispatcher does not authorize call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+								ems_logger:info("ems_dispatcher authenticate unauthorized!"),
 								Latency = ems_util:get_milliseconds() - T1,
 								case Type of
 									<<"HEAD">> -> 
@@ -223,7 +221,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 								end
 						end;
 					false -> 
-						ems_logger:info("ems_dispatcher execute restrict IP to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+						ems_logger:info("ems_dispatcher unauthorized IP"),
 						Latency = ems_util:get_milliseconds() - T1,
 						% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
 						case ems_util:get_user_request_by_login(Request) of
@@ -239,7 +237,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														 latency = Latency}}
 				end;
 			false ->
-				ems_logger:info("ems_dispatcher execute restrict User-Agent to call webservice. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+				ems_logger:info("ems_dispatcher unauthorized User-Agent"),
 				Latency = ems_util:get_milliseconds() - T1,
 				RequestUA = Request#request{code = 400, 
 										   content_type_out = ?CONTENT_TYPE_JSON,
@@ -252,7 +250,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_request exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_request exception url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - T1,
 			{error, request, Request#request{code = 500, 
 											 reason = edispatch_request_exception, 

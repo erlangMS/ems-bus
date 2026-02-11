@@ -70,7 +70,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentClient = #client{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_client_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_client_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								Client = CurrentClient#client{
 												 name = NewClient#client.name,
 												 secret = NewClient#client.secret,

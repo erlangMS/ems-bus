@@ -127,7 +127,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					[CurrentCatalog = #service{ctrl_hash = CurrentCtrlHash}] ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_catalog_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_catalog_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								Catalog = CurrentCatalog#service{
 												name = NewCatalog#service.name,
 												url = NewCatalog#service.url,

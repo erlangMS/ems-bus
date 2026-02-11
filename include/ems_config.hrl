@@ -124,10 +124,10 @@
 
 % Quanto tempo o dispatcher aguardar um serviço
 -define(SERVICE_TIMEOUT, 60000). 		 % 1 minuto é o tempo padrão que o dispatcher aguarda um serviço executar
--define(SERVICE_MIN_TIMEOUT, 1000). 	 % 1 segundo é o tempo mínimo que o dispatcher aguarda um serviço executar
+-define(SERVICE_MIN_TIMEOUT, 30000). 	 % 30 segundos é o tempo mínimo que o dispatcher aguarda um serviço executar
 -define(SERVICE_MAX_TIMEOUT, 120000). 	 % 2 minutos é o tempo máximo que o dispatcher aguarda um serviço executar
 -define(SERVICE_MIN_EXPIRE_MINUTE, 0).	 % 0 minutos é o tempo mínimo que o dispatcher aguarda um serviço expirar
--define(SERVICE_MAX_EXPIRE_MINUTE, 525601). % 1 ano é o tempo máximo que o dispatcher aguarda um serviço expirar
+-define(SERVICE_MAX_EXPIRE_MINUTE, 1440). % 24 horas é o tempo máximo que o dispatcher aguarda um serviço expirar
 
 % Range de tempo para iniciar processos kernel
 -define(START_TIMEOUT, 1000).

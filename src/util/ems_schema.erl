@@ -101,23 +101,23 @@ to_list([H|T], FieldList, Result) ->
 % to_json
 -spec to_json(tuple() | map() | list(map()) | list() | binary()) -> binary().
 to_json(Value) when is_tuple(Value) -> 
-	?DEBUG("ems_schema:to_json tuple: ~p", [Value]),
+	%%?DEBUG("ems_schema:to_json tuple: ~p", [Value]),
 	ListTuple = to_list(Value),
 	iolist_to_binary([<<"{"/utf8>>, to_json_rec(ListTuple, []), <<"}"/utf8>>]);
 to_json(Value) when is_map(Value) -> 
-	?DEBUG("ems_schema:to_json map: ~p", [Value]),
+	%%?DEBUG("ems_schema:to_json map: ~p", [Value]),
 	ems_util:json_encode(Value);
 to_json([Map|_] = Value) when is_map(Map) -> 
-	?DEBUG("ems_schema:to_json list map: ~p", [Value]),
+	%%?DEBUG("ems_schema:to_json list map: ~p", [Value]),
 	ems_util:json_encode(Value);
 to_json(Value) when is_list(Value) -> 
-	?DEBUG("ems_schema:to_json list: ~p", [Value]),
+	%%?DEBUG("ems_schema:to_json list: ~p", [Value]),
 	iolist_to_binary([<<"["/utf8>>, to_json_list(Value, []), <<"]"/utf8>>]);
 to_json(Value) when is_binary(Value) -> 
-	?DEBUG("ems_schema:to_json binary: ~p", [Value]),
+	%%?DEBUG("ems_schema:to_json binary: ~p", [Value]),
 	Value;
 to_json(Value) when is_atom(Value) -> 
-	?DEBUG("ems_schema:to_json atom: ~p", [Value]),
+	%%?DEBUG("ems_schema:to_json atom: ~p", [Value]),
 	atom_to_binary(Value, utf8);
 to_json(Value) -> 
 	ems_logger:warn("ems_schema:to_json unsupported type: ~p", [Value]),

@@ -70,7 +70,7 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 					{ok, CurrentRecord = #user_permission{ctrl_hash = CurrentCtrlHash}} ->
 						case CtrlHash =/= CurrentCtrlHash of
 							true ->
-								?DEBUG("ems_user_permission_perfil_loader_middleware update ~p from ~p.", [Map, SourceType]),
+								%%?DEBUG("ems_user_permission_perfil_loader_middleware update ~p from ~p.", [Map, SourceType]),
 								UserPermission = CurrentRecord#user_permission{
 												 user_id = NewRecord#user_permission.user_id,
 												 client_id = NewRecord#user_permission.client_id,

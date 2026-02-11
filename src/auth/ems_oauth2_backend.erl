@@ -201,8 +201,8 @@ associate_access_code_sgbd(#auth_oauth2_access_code{id = AccessCode, context = C
 							{ok, Ds} -> 
 								case ems_odbc_pool:get_connection(Ds) of
 									{ok, Ds2} ->
-										Context1 = term_to_binary(sanitize_context_for_legacy(Context)),
-                                        ems_logger:info("DEBUG: Sanitized Context. Original Client Size: ~p. Sanitized: ~p", [tuple_size(proplists:get_value(<<"client">>, Context)), tuple_size(proplists:get_value(<<"client">>, sanitize_context_for_legacy(Context)))]),
+										Context1 = term_to_binary(sanitize_context_for_save(Context)),
+                                        ems_logger:info("DEBUG: Sanitized Context. Original Client Size: ~p. Sanitized: ~p", [tuple_size(proplists:get_value(<<"client">>, Context)), tuple_size(proplists:get_value(<<"client">>, sanitize_context_for_save(Context)))]),
 										Context2 = base64:encode(Context1),
 										ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessCode)]},
 													{{sql_varchar, 4000}, [binary_to_list(Context2)]}
@@ -256,7 +256,7 @@ associate_refresh_token_sgbd(#auth_oauth2_refresh_token{id = RefreshToken, conte
 							{ok, Ds} -> 
 								case ems_odbc_pool:get_connection(Ds) of
 									{ok, Ds2} ->
-										Context1 = term_to_binary(sanitize_context_for_legacy(Context)),
+										Context1 = term_to_binary(sanitize_context_for_save(Context)),
 										Context2 = base64:encode(Context1),
 										ParamsSql = [{{sql_varchar, 32}, [binary_to_list(RefreshToken)]},
 													{{sql_varchar, 4000}, [binary_to_list(Context2)]}
@@ -311,7 +311,7 @@ associate_access_token_sgbd(#auth_oauth2_access_token{id = AccessToken, context 
 							{ok, Ds} -> 
 								case ems_odbc_pool:get_connection(Ds) of
 									{ok, Ds2} ->
-										Context1 = term_to_binary(sanitize_context_for_legacy(Context)),
+										Context1 = term_to_binary(sanitize_context_for_save(Context)),
 										Context2 = base64:encode(Context1),
 										ParamsSql = [{{sql_varchar, 32}, [binary_to_list(AccessToken)]},
 													{{sql_varchar, 4000}, [binary_to_list(Context2)]}
@@ -379,8 +379,9 @@ resolve_access_code_sgbd(AccessCode) ->
 											{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 												Context1 = base64:decode(list_to_binary(Context)),
 												Context2 = binary_to_term(Context1, [safe]),
+												Context3 = sanitize_context_for_load(Context2),
 												ems_logger:debug("ems_oauth2_backend resolve_access_code_sgbd success to access_code ~p.", [AccessCode]),
-												AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context2},
+												AuthOAuth2AccessCode = #auth_oauth2_access_code{id = AccessCode, context = Context3},
 												mnesia:dirty_write(auth_oauth2_access_code_table, AuthOAuth2AccessCode),
 												{ok, AuthOAuth2AccessCode};
 											_ ->
@@ -452,8 +453,9 @@ resolve_refresh_token_sgbd(RefreshToken) ->
 											{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 												Context1 = base64:decode(list_to_binary(Context)),
 												Context2 = binary_to_term(Context1, [safe]),
+												Context3 = sanitize_context_for_load(Context2),
 												ems_logger:debug("ems_oauth2_backend resolve_refresh_token_sgbd success to refresh_token ~p.", [RefreshToken]),
-												AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context2},
+												AuthOauth2RefreshToken = #auth_oauth2_refresh_token{id = RefreshToken, context = Context3},
 												mnesia:dirty_write(auth_oauth2_refresh_token_table, AuthOauth2RefreshToken),
 												{ok, AuthOauth2RefreshToken};
 											_ ->
@@ -524,8 +526,9 @@ resolve_access_token_sgbd(AccessToken) ->
 											{selected,_Fields, [{_AccessCode, _DtRegistro, Context}]} ->
 												Context1 = base64:decode(list_to_binary(Context)),
 												Context2 = binary_to_term(Context1, [safe]),
+												Context3 = sanitize_context_for_load(Context2),
 												ems_logger:debug("ems_oauth2_backend resolve_access_token_sgbd success to access_token ~p.", [AccessToken]),
-												AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context2},
+												AuthOauth2AccessToken = #auth_oauth2_access_token{id = AccessToken, context = Context3},
 												mnesia:dirty_write(auth_oauth2_access_token_table, AuthOauth2AccessToken),
 												{ok, AuthOauth2AccessToken};
 											_ ->
@@ -649,45 +652,72 @@ authorize_refresh_token(Client, RefreshToken, Scope, State) ->
 			{error, eparse_authorize_refresh_token}
 	end.
 
-sanitize_context_for_legacy(Context) when is_list(Context) ->
-    [sanitize_context_item(Item) || Item <- Context];
-sanitize_context_for_legacy(Context) -> Context.
+sanitize_context_for_save(Context) when is_list(Context) ->
+    [sanitize_context_item_save(Item) || Item <- Context];
+sanitize_context_for_save(Context) -> Context.
 
-sanitize_context_item({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user, tuple_size(User) == 48 ->
-    ems_logger:info("DEBUG: Sanitized #user. Original Size: 48. Sanitized: 47"),
-    {<<"resource_owner">>, erlang:delete_element(48, User)};
-sanitize_context_item({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user ->
-    ems_logger:info("DEBUG: Skipping #user sanitization. Size: ~p", [tuple_size(User)]),
-    {<<"resource_owner">>, User};
-sanitize_context_item({<<"client">>, Client}) when is_tuple(Client), element(1, Client) == client ->
-    % Detect if we need to sanitize size (25 -> 24)
-    ClientUpdatedUA = case tuple_size(Client) == 25 of
-        true ->
-            case is_binary(Client#client.user_agent) of
-                true ->
-                    LegacyUA = parse_user_agent_legacy(Client#client.user_agent),
-                    ems_logger:info("DEBUG: Sanitized #client.user_agent. Original: ~p. Sanitized: ~p", [Client#client.user_agent, LegacyUA]),
-                    Client#client{user_agent = LegacyUA};
-                false ->
-                    Client
-            end;
-        false ->
-            Client
-    end,
-    
-    % 2. Sanitize tuple size (25 -> 24) by removing json_cache (last element)
-    ClientFinal = case tuple_size(ClientUpdatedUA) == 25 of
+sanitize_context_for_load(Context) when is_list(Context) ->
+    [sanitize_context_item_load(Item) || Item <- Context];
+sanitize_context_for_load(Context) -> Context.
+
+% SAVE LOGIC (Backward Compatibility)
+% Target User: Size 47
+% Target Client: Size 24
+sanitize_context_item_save({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user ->
+    case tuple_size(User) of
+        48 -> 
+             ems_logger:info("DEBUG: Sanitizing #user for SAVE. Size 48 -> 47"),
+             {<<"resource_owner">>, erlang:delete_element(48, User)};
+        49 -> 
+             ems_logger:info("DEBUG: Sanitizing #user for SAVE. Size 49 -> 47"),
+             User1 = erlang:delete_element(49, User),
+             {<<"resource_owner">>, erlang:delete_element(48, User1)};
+        _ ->
+             {<<"resource_owner">>, User}
+    end;
+sanitize_context_item_save({<<"client">>, Client}) when is_tuple(Client), element(1, Client) == client ->
+    case tuple_size(Client) of
+        25 -> 
+             ems_logger:info("DEBUG: Sanitizing #client for SAVE. Size 25 -> 24"),
+             {<<"client">>, erlang:delete_element(25, Client)};
+        _ ->
+             {<<"client">>, Client}
+    end;
+sanitize_context_item_save(Item) -> Item.
+
+% LOAD LOGIC (Forward Compatibility)
+% Target User: Size 48
+% Target Client: Size 25
+sanitize_context_item_load({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user ->
+    case tuple_size(User) of
+        47 -> 
+             ems_logger:info("DEBUG: Sanitizing #user for LOAD. Size 47 -> 48"),
+             {<<"resource_owner">>, erlang:append_element(User, undefined)};
+        49 -> 
+             ems_logger:info("DEBUG: Sanitizing #user for LOAD. Size 49 -> 48"),
+             {<<"resource_owner">>, erlang:delete_element(49, User)};
+        _ ->
+             {<<"resource_owner">>, User}
+    end;
+sanitize_context_item_load({<<"client">>, Client}) when is_tuple(Client), element(1, Client) == client ->
+    % Handle User-Agent first (legacy conversion)
+    Client1 = case tuple_size(Client) >= 15 andalso is_binary(element(15, Client)) of
         true -> 
-            ems_logger:info("DEBUG: Sanitized #client size. Original Size: 25. Sanitized: 24"),
-            erlang:delete_element(25, ClientUpdatedUA);
-        false -> 
-            ems_logger:info("DEBUG: Skipping #client tuple size sanitization. Size: ~p", [tuple_size(ClientUpdatedUA)]),
-            ClientUpdatedUA
+            LegacyUA = parse_user_agent_legacy(element(15, Client)),
+            ems_logger:info("DEBUG: Sanitizing #client.user_agent for LOAD."),
+            setelement(15, Client, LegacyUA);
+        false -> Client
     end,
-    
-    {<<"client">>, ClientFinal};
 
-sanitize_context_item(Item) -> Item.
+    case tuple_size(Client1) of
+        24 -> 
+             ems_logger:info("DEBUG: Sanitizing #client for LOAD. Size 24 -> 25"),
+             {<<"client">>, erlang:append_element(Client1, undefined)};
+        _ ->
+             {<<"client">>, Client1}
+    end;
+sanitize_context_item_load(Item) -> Item.
+
 
 parse_user_agent_legacy(UserAgentBin) ->
     UA = string:to_lower(binary_to_list(UserAgentBin)),
