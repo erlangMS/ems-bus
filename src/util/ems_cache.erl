@@ -203,7 +203,7 @@ get(CacheName, LifeTime, Key, FunResult) ->
 		[{Key, R}] -> R
 	end.
 
-get(CacheName, LifeTime, Key, FunResult, FunAfterFlush) ->
+get(CacheName, LifeTime, Key, FunResult, FunAfterFlush) when is_function(FunAfterFlush) ->
 	case ets:lookup(CacheName, Key) of
 		[] ->
 		  % Not found, create it.
@@ -218,6 +218,34 @@ get(CacheName, LifeTime, Key, FunResult, FunAfterFlush) ->
 				  ems_logger:warn("ems_cache: object too large (~p bytes) for ~p, not caching", [Size, CacheName]);
 			  {_, false} ->
 				  ok  % Entry limit reached, don't cache
+		  end,
+		  V;
+		[{Key, R}] -> R
+	end;
+
+%% @doc Tries to lookup Key in the cache, and execute the given FunResult
+%% on a miss. Uses different TTL for positive and negative results.
+get(CacheName, PositiveLifeTime, NegativeLifeTime, Key, FunResult) when is_integer(NegativeLifeTime), is_function(FunResult) ->
+	case ets:lookup(CacheName, Key) of
+		[] ->
+		  % Not found, create it.
+		  V = FunResult(),
+		  LifeTime = case V of
+						 [] -> NegativeLifeTime;
+						 _ -> PositiveLifeTime
+					 end,
+		  % Validate size and entry limit before caching
+		  case {should_cache_object(V), can_add_entry(CacheName), LifeTime > 0} of
+			  {{ok, _Size}, true, true} ->
+				  CappedTTL = cap_ttl(LifeTime),
+				  ets:insert(CacheName, {Key, V}),
+				  flush_future(CacheName, CappedTTL, Key);
+			  {{too_large, Size}, _, _} ->
+				  ems_logger:warn("ems_cache: object too large (~p bytes) for ~p, not caching", [Size, CacheName]);
+			  {_, false, _} ->
+				  ok;  % Entry limit reached, don't cache
+			  {_, _, false} ->
+				  ok
 		  end,
 		  V;
 		[{Key, R}] -> R

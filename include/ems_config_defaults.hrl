@@ -10,6 +10,16 @@
 -ifndef(EMS_CONFIG_DEFAULTS_HRL).
 -define(EMS_CONFIG_DEFAULTS_HRL, true).
 
+-define(OAUTH2_REFRESH_TOKEN_DEFAULT, 7200).
+-define(HTTP_MAX_CONTENT_LENGTH_DEFAULT, 524288).
+-define(LOG_SHOW_RESPONSE_MAX_LENGTH_DEFAULT, 120).
+-define(LOG_SHOW_PAYLOAD_MAX_LENGTH_DEFAULT, 120).
+-define(RESULT_CACHE_DEFAULT, 10000).
+-define(SMTP_PORT_DEFAULT, 587).
+-define(RATE_LIMIT_INTERNO_DEFAULT, 60).
+-define(RATE_LIMIT_EXTERNO_DEFAULT, 30).
+
+
 -define(CONFIG_DEFAULTS, #{
     <<"instance_type">> => <<"production">>,
     <<"host_search">> => [<<"local">>],
@@ -18,15 +28,15 @@
     <<"database_path">> => <<"priv/db">>,
     <<"authorization">> => <<"oauth2">>,
     <<"oauth2_with_check_constraint">> => false,
-    <<"oauth2_refresh_token">> => 7200,
+    <<"oauth2_refresh_token">> => ?OAUTH2_REFRESH_TOKEN_DEFAULT,
     <<"auth_default_scope">> => [<<"user_fs">>],
     <<"debug">> => false,
     <<"sufixo_email_institucional">> => <<"@unb.br">>,
-    <<"http_max_content_length">> => 524288,
+    <<"http_max_content_length">> => ?HTTP_MAX_CONTENT_LENGTH_DEFAULT,
     <<"log_show_response">> => false,
     <<"log_show_payload">> => false,
-    <<"log_show_response_max_length">> => 120,
-    <<"log_show_payload_max_length">> => 120,
+    <<"log_show_response_max_length">> => ?LOG_SHOW_RESPONSE_MAX_LENGTH_DEFAULT,
+    <<"log_show_payload_max_length">> => ?LOG_SHOW_PAYLOAD_MAX_LENGTH_DEFAULT,
     <<"log_show_content_static_file">> => false,
     <<"log_show_odbc_pool_activity">> => false,
     <<"log_show_data_loader_activity">> => true,
@@ -35,13 +45,13 @@
     <<"rest_use_host_in_redirect">> => true,
     <<"rest_user">> => <<"erlangms">>,
     <<"rest_passwd">> => <<"5outLag1">>,
-    <<"result_cache">> => 10000,
+    <<"result_cache">> => ?RESULT_CACHE_DEFAULT,
     <<"result_cache_enabled">> => true,
     <<"tcp_listen_address">> => [<<"0.0.0.0">>],
     <<"tcp_allowed_address">> => [<<"*.*.*.*">>],
     <<"static_file_path_probing">> => false,
     <<"static_file_path">> => #{<<"www_path">> => <<"priv/www">>},
-    <<"smtp_port">> => 587,
+    <<"smtp_port">> => ?SMTP_PORT_DEFAULT,
     <<"oauth2_resource_owner_find_permission_with_cpf">> => true,
     <<"oauth2_resource_owner_fields">> => ?OAUTH2_RESOURCE_OWNER_FIELDS,
     <<"custom_variables">> => #{},
@@ -109,8 +119,8 @@
     <<"crypto_blowfish_module_path">> => <<>>,
     <<"user_agent_denied_list">> => [<<"sqlmap">>, <<"nikto">>, <<"nmap">>, <<"nessus">>, <<"masscan">>, <<"zgrab">>, <<"w3af">>, <<"acunetix">>, <<"havij">>, <<"dirbuster">>, <<"gobuster">>, <<"hydra">>, <<"metasploit">>, <<"netsparker">>],
     <<"cors_domain">> => <<".unb.br">>,
-     <<"rate_limit_interno">> => 60,
-    <<"rate_limit_externo">> => 30,
+     <<"rate_limit_interno">> => ?RATE_LIMIT_INTERNO_DEFAULT,
+    <<"rate_limit_externo">> => ?RATE_LIMIT_EXTERNO_DEFAULT,
     <<"force_https">> => false,
     <<"rate_limit_cidr_interno">> => <<"164.41.0.0/16">>
 }).

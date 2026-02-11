@@ -270,6 +270,9 @@
 -define(CACHE_MAX_OBJECT_SIZE, 5242880).      % 5MB max per object
 -define(CACHE_MAX_TTL, 31536000000).          % 1 year
 -define(CACHE_MAX_ENTRIES, 1000).            % 1000 entries max per cache
+-define(USER_CACHE_POSITIVE_TTL, 15000).      % 15 segundos
+-define(USER_CACHE_NEGATIVE_TTL, 5000).       % 5 segundos
+-define(USER_RESOURCE_OWNER_CACHE_TTL, 300000). % 5 minutos
 
 -define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user_fs">>]).
 
@@ -362,8 +365,8 @@
 				 log_show_response = ?LOG_SHOW_RESPONSE :: boolean(),						%% Se true, imprime o response no log
 				 log_show_response_header = ?LOG_SHOW_RESPONSE_HEADER :: boolean(),			%% Se true, imprime o response no log
 				 log_show_payload = ?LOG_SHOW_PAYLOAD :: boolean(),				%% Se true, imprime o payload no log
-				 log_show_response_max_length :: boolean(),			%% show response if content length < show_response_max_length
-				 log_show_payload_max_length :: boolean(),			%% show payload if content length < show_response_max_length
+				 log_show_response_max_length :: non_neg_integer(),			%% show response if content length < show_response_max_length
+				 log_show_payload_max_length :: non_neg_integer(),			%% show payload if content length < show_response_max_length
 				 log_show_odbc_pool_activity = true :: boolean(),	%% Se true, vai mostrar a atividade do pool de conexões
 				 log_show_data_loader_activity = true :: boolean(),	%% Se true, vai mostrar a atividade dos data loaders
 				 log_show_content_static_file = ?LOG_SHOW_CONTENT_STATIC_FILE :: boolean(),				%% Se true, imprime o conteúdo do arquivo no log

@@ -55,9 +55,9 @@ stop() ->
  
 init({IpAddress, 
 	  #service{protocol = Protocol,
-			   tcp_port = Port, 
-			   tcp_allowed_address_t = AllowedAddress,
-			   auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, 
+						  tcp_port = Port, 
+						  tcp_allowed_address_t = AllowedAddress,
+						  auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials}, 
 	  ListenerName,
 	  ServerName}) ->
 	Conf = ems_config:getConfig(),

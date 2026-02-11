@@ -115,8 +115,8 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 								    worker_send = WorkerSend,
  								    url_masked = UrlMasked, 
 									url = Url,
-									user_agent = UserAgent
-									content_type = contentType
+									user_agent = UserAgent,
+									content_type_in = ContentType
 				},
 				Service = #service{tcp_allowed_address_t = AllowedAddress,
 									module = Module,
@@ -127,7 +127,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 					false -> ResultCacheOrig
 				  end,
 	try
-		true -> ems_logger:info("ems_dispatcher call: Method: ~p ContentType: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ContentType, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+		ems_logger:info("ems_dispatcher call Method: ~p ContentType: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ContentType, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
 		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
 		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
 			true ->

@@ -104,7 +104,7 @@ do_sweep() ->
                                                     [] -> 
                                                         case is_alive_node(Host) of
                                                             true -> 
-                                                                ems_logger:info("Dispatcher background discovery: Module ~p on Node ~p.", [Module, Host]),
+                                                                ems_logger:info("Dispatcher discovery: ~p.", [Host]),
                                                                 ets:insert(ctrl_node_dispatch, {Module, Host});
                                                             false -> ok
                                                         end;
