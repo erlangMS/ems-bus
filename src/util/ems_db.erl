@@ -749,8 +749,8 @@ filter(Tab, FilterList) when is_list(FilterList) ->
 				mnesia:activity(async_dirty, fun () -> qlc:eval(ParsedQuery) end)
 		end
 	catch
-		_Exception:Reason -> 
-			ems_logger:warn("ems_db filter invalid query on table ~p with filter ~p. Reason: ~p.", [Tab, FilterList, Reason]),
+		Exception:Reason -> 
+			ems_logger:warn("ems_db filter invalid query on table ~p with filter ~p. Exception: ~p Reason: ~p.", [Tab, FilterList, Exception, Reason]),
 			[]
 	end;
 filter(Tab, FilterTuple) when is_tuple(FilterTuple) ->
@@ -1361,7 +1361,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 								  SqlCheckValidConnection, CloseIdleConnectionTimeout, 
 								  CheckValidConnectionTimeout, RemapFields, ShowRemapFields]),
 
-		case ems_db:find_first(service_datasource, [{ctrl_hash, "==", CtrlHash}]) of
+		case ems_db:find_first(service_datasource, [{ctrl_hash, '==', CtrlHash}]) of
 			  {error, enoent} ->										
 					Id = ems_db:inc_counter(service_datasource),
 					

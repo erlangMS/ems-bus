@@ -8,8 +8,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "192.168.1.9:2301:2301"
-      - "192.168.1.9:2344:2344"
+      - "2301:2301"
+      - "2344:2344"
     volumes:
       - ./priv/conf:/app/lib/ems_bus-2.0.26/priv/conf
     networks:
@@ -30,7 +30,7 @@ services:
       context: ./dashboard
       dockerfile: Dockerfile
     ports:
-      - "192.168.1.9:5000:5000"
+      - "5000:5000"
     environment:
       # Define que vai fazer listener na porta 5000
       - HTTP_PORT=5000

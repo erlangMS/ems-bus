@@ -11,7 +11,7 @@
 		"pool_size": 1,
 		"pool_max": 1,
 		"protocol": "http",
-		"tcp_max_connections": 100000,
+		"tcp_max_connections": 1024,
 		"tcp_port": 2301,
 		"tcp_keepalive": true,
 		"tcp_nodelay": true,
@@ -20,7 +20,7 @@
 		"tcp_backlog": 1024,
 		"tcp_buffer": 8000,
 		"tcp_delay_send": false,
-		"start_timeout": 6000,
+		"start_timeout": 12000,
 		"enable": true
 	},
 	{
@@ -35,22 +35,22 @@
 		"pool_size": 1,
 		"pool_max": 1,
 		"protocol": "https",
-		"tcp_max_connections": 100000,
+		"tcp_max_connections": 2048,
 		"tcp_port": 2344,
 		"tcp_keepalive": true,
 		"tcp_nodelay": true,
 		"tcp_accept_timeout": 12000,
 		"tcp_send_timeout": 12000,
 		"tcp_backlog": 1024,
-		"tcp_buffer": 4000,
+		"tcp_buffer": 8000,
 		"tcp_delay_send": false,
 		"tcp_ssl": {
-			"cacertfile": "cowboy-ca.crt",
-			"certfile": "server.crt",
-			"keyfile": "server.key",
+			"cacertfile": "",
+			"certfile": "",
+			"keyfile": "",
 			"depth": 0
 		},
-		"start_timeout": 8500,
+		"start_timeout": 12000,
 		"enable": false
 	}
 ]

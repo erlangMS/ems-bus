@@ -300,6 +300,32 @@ parse_user_agent_denied_list(V) -> V.
 parse_variables(V) when is_map(V) -> maps:to_list(V);
 parse_variables(_) -> erlang:error(einvalid_variables).
 
+% Lê variáveis de ambiente do sistema operacional
+% Retorna uma lista de tuplas {Nome, Valor}
+get_env_variables() ->
+	% Obtém todas as variáveis de ambiente
+	EnvList = os:getenv(),
+	% Converte para o formato esperado (lista de tuplas com binários)
+	lists:filtermap(fun(S) ->
+		Bin = list_to_binary(S),
+		case binary:split(Bin, <<"=">>) of
+			[K, V] -> {true, {K, V}};
+			[K] -> {true, {K, <<>>}};
+			_ -> false
+		end
+	end, EnvList).
+
+% Mescla variáveis de ambiente com custom_variables
+% Variáveis de ambiente têm precedência sobre custom_variables
+merge_env_and_custom_variables(CustomVariables) ->
+	EnvVariables = get_env_variables(),
+	% Converte custom_variables para map para facilitar merge
+	CustomVarsMap = maps:from_list(CustomVariables),
+	EnvVarsMap = maps:from_list(EnvVariables),
+	% Merge: env vars sobrescrevem custom vars
+	MergedMap = maps:merge(CustomVarsMap, EnvVarsMap),
+	maps:to_list(MergedMap).
+
 get_p(ParamName, Map, DefaultValue) ->
 	ResultDefault = maps:get(ParamName, ?CONFIG_DEFAULTS, DefaultValue),
 	case maps:find(ParamName, Map) of
@@ -419,7 +445,10 @@ parse_config(Json, Filename) ->
 
 		% este primeiro parâmetro é usado em todos os demais que é do tipo string
 		put(parse_step, variables),
-		CustomVariables = parse_variables(get_p(<<"custom_variables">>, Json, #{})),
+		CustomVariablesFromFile = parse_variables(get_p(<<"custom_variables">>, Json, #{})),
+		% Mescla com variáveis de ambiente do sistema operacional
+		% Variáveis de ambiente têm precedência
+		CustomVariables = merge_env_and_custom_variables(CustomVariablesFromFile),
 		ems_db:set_param(custom_variables, CustomVariables),
 
 		put(parse_step, hostname),

@@ -82,7 +82,7 @@ if [ "$PROFILE" = "local" ]; then
 	current_dir=$(dirname $0)
 	cd $current_dir
 	deps=$(ls -d /tmp/ems-bus/_build/default/lib/*/ebin)
-	odbcinst -i -s -f ~/.odbc.ini  2> /dev/null
+	# odbcinst -i -s -f ~/.odbc.ini  2> /dev/null
 	
 	if [ "$OBSERVER" = "true" ]; then
 		echo "Start with observer daemon..."

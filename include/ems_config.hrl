@@ -315,7 +315,6 @@
 				 ems_hostname :: binary(),							%% Nome da maquina onde o barramento está sendo executado
 				 ems_host :: atom(),								%% Atom do name da maquina onde o barramento está sendo executado
 				 ems_file_dest :: string(),							%% Nome do arquivo de configuração (útil para saber o local do arquivo)
-				 debug = false :: boolean(),					%% Habilita o modo debug
 				 ems_result_cache  :: non_neg_integer(),
 				 ems_result_cache_enabled = true :: boolean(),
 				 ems_datasources :: map(),
@@ -391,5 +390,6 @@
  				 auth_password_check_between_scope :: boolean(),
  				 oauth2_jwt_secret :: binary(),
  				 crypto_blowfish_module_path :: string(),
-				 user_agent_denied_list :: list(binary())
+				 user_agent_denied_list :: list(binary()),
+				 debug = false :: boolean()
 		 }). 	
