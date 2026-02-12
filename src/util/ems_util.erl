@@ -1090,7 +1090,6 @@ replace_config_and_custom_variables(Str) ->
 	Result = ems_util:replace_all_vars_and_custom_variables(Str, 
 		[{<<"HOSTNAME">>, binary_to_list(Conf#config.ems_hostname)},
 		 {<<"REST_BASE_URL">>, binary_to_list(Conf#config.rest_base_url)},
-		 {<<"REST_ENVIRONMENT">>, Conf#config.rest_environment},
 		 {<<"REST_USER">>, Conf#config.rest_user},
 		 {<<"REST_PASSWD">>, Conf#config.rest_passwd},
 		 {<<"LDAP_URL">>, Conf#config.ldap_url},

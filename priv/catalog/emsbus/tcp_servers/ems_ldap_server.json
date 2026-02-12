@@ -8,10 +8,10 @@
 	"type": "KERNEL",
 	"lang": "erlang",
 	"tcp_port": 2389,
-	"tcp_max_connections": 100000,
+	"tcp_max_connections": 1024,
 	"protocol": "ldap",
 	"pool_size": 1,
 	"pool_max": 1,
 	"enable": false,
-	"start_timeout": 7000
+	"start_timeout": 12000
 }

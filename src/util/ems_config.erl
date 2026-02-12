@@ -595,8 +595,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, log_show_data_loader_activity),
 		LogShowDataLoaderActivity = ems_util:parse_bool(get_p(<<"log_show_data_loader_activity">>, Json, ?LOG_SHOW_DATA_LOADER_ACTIVITY)),
 
-		put(parse_step, rest_environment),
-		RestEnvironment = ems_util:get_param_or_variable(<<"rest_environment">>, Json, get_p(<<"rest_environment">>, Json, HostnameBin)),
 		
 		put(parse_step, sufixo_email_institucional),
 		SufixoEmailInstitucional0 = binary_to_list(get_p(<<"sufixo_email_institucional">>, Json, ?SUFIXO_EMAIL_INSTITUCIONAL)),
@@ -706,7 +704,6 @@ parse_config(Json, Filename) ->
 		put(parse_step, node_search),
 		NodeSearch = maps:get(<<"node_search">>, ?CONFIG_DEFAULTS),
 
-
 		WWWPath = ems_db:get_param(www_path),
 		
 		put(parse_step, oauth2_resource_owner_find_permission_with_cpf),
@@ -760,7 +757,6 @@ parse_config(Json, Filename) ->
 				 rest_auth_url = RestAuthUrl,
 				 rest_login_url = RestLoginUrl,
 				 rest_url_mask = RestUrlMask,
-				 rest_environment = RestEnvironment,
 				 rest_user = RestUser,
 				 rest_passwd = RestPasswd,
 				 rest_base_url_defined = RestBaseUrlDefined,

@@ -89,7 +89,6 @@
     <<"rest_base_url">> => <<"http://localhost:2301/">>,
     <<"rest_auth_url">> => <<"http://localhost:2301/authorize">>,
     <<"rest_login_url">> => <<>>,
-    <<"rest_environment">> => <<>>,
     <<"auth_password_check_between_scope">> => true,
     <<"disable_services">> => [],
     <<"enable_services">> => [],

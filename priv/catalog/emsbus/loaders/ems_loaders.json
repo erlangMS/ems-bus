@@ -65,11 +65,6 @@
 	},
 
 	{
-		"catalog": "/emsbus/loaders/ems_catalog_loader_db", 
-		"file": "ems_catalog_loader_db.json"
-	},
-
-	{
 		"catalog": "/emsbus/loaders/ems_user_perfil_loader_db", 
 		"file": "ems_user_perfil_loader_db.json"
 	},

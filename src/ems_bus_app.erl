@@ -57,9 +57,6 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  config_file: ~p.", [Conf#config.config_file]),
 			ems_logger:info("  priv_path: ~p.", [Conf#config.priv_path]),
 			ems_logger:info("  database_path: ~p.", [Conf#config.database_path]),
-			ems_logger:info("  host_search: ~p.", [Conf#config.cat_host_search]),
-			ems_logger:info("  node_search: ~p.", [Conf#config.cat_node_search]),
-			ems_logger:info("  hostname: ~p.", [Conf#config.ems_hostname]),
 			ems_logger:info("  catalog_path: ~p.", [Conf#config.cat_path_search]),
 			ems_logger:info("  custom_variables: ~p.", [Conf#config.custom_variables]),
 			ems_logger:info("  static_file_path: ~p.", [Conf#config.static_file_path]),
@@ -72,7 +69,6 @@ start(_StartType, StartArgs) ->
 				true -> ems_logger:info("  rest_authorization: ~p <<with check constraint>>.", [AuthorizationMode]);
 				false -> ems_logger:info("  rest_authorization: ~p.", [AuthorizationMode])
 			end,
-			ems_logger:info("  rest_environment: ~p.", [Conf#config.rest_environment]),
 			ems_logger:info("  rest_default_querystring: ~p.", [Conf#config.rest_default_querystring]),
 			ems_logger:info("  rest_use_host_in_redirect: ~p.", [Conf#config.rest_use_host_in_redirect]),
 			ems_logger:info("  auth_allow_user_inative_credentials: ~p.", [Conf#config.auth_allow_user_inative_credentials]),

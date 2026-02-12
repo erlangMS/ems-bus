@@ -337,7 +337,6 @@
 				 rest_use_host_in_redirect :: boolean(),			%% Ao gerar a url de redirect, usa o host para a o dominio 
 				 rest_url_mask :: boolean(),
 				 rest_default_querystring :: map(),					%% querystring default
-				 rest_environment :: binary(),
 				 rest_user :: string(),
 				 rest_passwd :: string(),
 				 rest_base_url_defined = false :: boolean(),
