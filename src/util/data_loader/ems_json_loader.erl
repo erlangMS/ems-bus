@@ -196,7 +196,7 @@ do_check_load_or_update(State = #state{name = Name,
 					ems_db:set_param(LastUpdateParamName, NextUpdate),
 					State2 = State#state{last_update = NextUpdate},
 					ems_util:flush_messages(),
-					erlang:garbage_collect(self(), [{async, undefined}]),
+					erlang:garbage_collect(),
 					{ok, State2};
 				Error -> Error
 			end;
@@ -207,6 +207,7 @@ do_check_load_or_update(State = #state{name = Name,
 					ems_db:set_param(LastUpdateParamName, NextUpdate),
 					State2 = State#state{last_update = NextUpdate},
 					ems_util:flush_messages(),
+					erlang:garbage_collect(self(), [{async, undefined}]),
 					{ok, State2};
 				Error -> Error
 			end

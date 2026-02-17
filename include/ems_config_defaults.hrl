@@ -21,7 +21,6 @@
 
 
 -define(CONFIG_DEFAULTS, #{
-    <<"instance_type">> => <<"production">>,
     <<"host_search">> => [<<"local">>],
     <<"node_search">> => [<<"127.0.0.1">>],
     <<"priv_path">> => <<"priv">>,
@@ -40,7 +39,6 @@
     <<"log_show_content_static_file">> => false,
     <<"log_show_odbc_pool_activity">> => false,
     <<"log_show_data_loader_activity">> => true,
-    <<"log_show_user_notify_activity">> => false,
     <<"rest_url_mask">> => false,
     <<"rest_use_host_in_redirect">> => true,
     <<"rest_user">> => <<"erlangms">>,

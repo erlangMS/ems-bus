@@ -153,6 +153,7 @@ handle_call(notify_return_pool, _From, State = #state{datasource = InternalDatas
 				false -> CheckValidConnectionRef = undefined
 			end,
 			CloseIdleConnectionRef = erlang:send_after(CloseIdleConnectionTimeout, self(), close_idle_connection),
+			erlang:garbage_collect(),
 			{reply, ok, State#state{datasource = InternalDatasource#service_datasource{pid_module = undefined,
 																					   pid_module_ref = undefined},
 									last_error = undefined,

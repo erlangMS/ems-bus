@@ -265,12 +265,14 @@ handle_info(check_sync_full, State = #state{name = Name,
 								ems_data_loader_ctl:notify_finish_work(Name, check_sync_full, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, undefined),
 								ems_logger:info("~s sync full checkpoint successfully", [Name], LogShowDataLoaderActivity),
 								ems_util:flush_messages(),
+								erlang:garbage_collect(),
 								erlang:send_after(3600000, self(), check_sync_full),
 								{noreply, State3#state{wait_count = 0}, UpdateCheckpoint + 180000};  % adiciona 180 segundos para priorizar os demais loaders
 							{error, Reason} -> 
 								ems_data_loader_ctl:notify_finish_work(Name, check_sync_full, WaitCount, 0, 0, 0, 0, 0, Reason),
 								ems_db:inc_counter(ErrorCheckpointMetricName),
 								ems_util:flush_messages(),
+								erlang:garbage_collect(),
 								erlang:send_after(3600000, self(), check_sync_full),
 								ems_logger:error("~s sync full wait ~pms for next checkpoint while has database connection error. Reason: ~p.", [Name, TimeoutOnError, Reason], LogShowDataLoaderActivity),
 								{noreply, State#state{wait_count = 0}, TimeoutOnError}
@@ -305,6 +307,7 @@ handle_info(check_count_records, State = #state{name = Name,
 				{ok, State2} -> 
 					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, undefined),
 					ems_util:flush_messages(),
+					erlang:garbage_collect(self(), [{async, undefined}]),
 					ThrottledTimeout5 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
 					erlang:send_after(ThrottledTimeout5, self(), check_count_records),
 					{noreply, State2#state{wait_count = 0}, UpdateCheckpoint};
@@ -361,6 +364,7 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 						ems_data_loader_ctl:notify_finish_work(Name, check_load_or_update_checkpoint, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, undefined),
 						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass5),
 						ems_util:flush_messages(),
+						erlang:garbage_collect(self(), [{async, undefined}]),
 						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass6),
 						case Loading of
 							true -> {noreply, State2#state{wait_count = 0, error_db_count = 0}, UpdateCheckpoint + 90000};
@@ -781,23 +785,28 @@ do_reset_sequence(#state{middleware = Middleware, source_type = SourceType}) ->
 do_check_remove_records([], _) -> 0;
 do_check_remove_records(Ids, #state{middleware = Middleware, source_type = SourceType}) ->
 	Table = apply(Middleware, get_table, [SourceType]),
-	case not is_integer(hd(Ids)) of
-		true -> Ids2 = [list_to_integer(R) || R <- Ids]; % os ids estão vindo como string
-		false -> Ids2 = Ids
-	end,
-	IdsDB = ordsets:from_list(Ids2), 
-	IdsMnesia = ordsets:from_list(mnesia:dirty_all_keys(Table)),
-	IdsDiff = ordsets:subtract(IdsMnesia, IdsDB),
-	%io:format("listas IdsDB ~p   IdsMnesia ~p   IdsDiff ~p\n",  [IdsDB, IdsMnesia, IdsDiff]),
-	do_remove_records_(IdsDiff, Table),
-	length(IdsDiff).
+	TempSet = ets:new(temp_db_ids, [set, private]),
+	try
+		case Ids of
+			[H|_] when is_integer(H) -> [ets:insert(TempSet, {Id}) || Id <- Ids];
+			_ -> [ets:insert(TempSet, {list_to_integer(R)}) || R <- Ids]
+		end,
+		do_check_remove_records_iterate(mnesia:dirty_first(Table), Table, TempSet, 0)
+	after
+		ets:delete(TempSet)
+	end.
 
-
--spec do_remove_records_(list(non_neg_integer()), atom()) -> ok.
-do_remove_records_([], _) -> ok;
-do_remove_records_([Id|T], Table) ->
-	mnesia:dirty_delete(Table, Id),
-	do_remove_records_(T, Table).
+-spec do_check_remove_records_iterate(any(), atom(), reference(), non_neg_integer()) -> non_neg_integer().
+do_check_remove_records_iterate('$end_of_table', _Table, _TempSet, Count) -> Count;
+do_check_remove_records_iterate(Key, Table, TempSet, Count) ->
+	NextKey = mnesia:dirty_next(Table, Key),
+	case ets:lookup(TempSet, Key) of
+		[] -> 
+			mnesia:dirty_delete(Table, Key),
+			do_check_remove_records_iterate(NextKey, Table, TempSet, Count + 1);
+		[_] -> 
+			do_check_remove_records_iterate(NextKey, Table, TempSet, Count)
+	end.
 
 
 -spec do_after_load_or_update_checkpoint(#state{}) -> ok.
