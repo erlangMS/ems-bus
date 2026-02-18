@@ -35,7 +35,6 @@ all(Table) -> {ok, ets:tab2list(Table)}.
 
 -spec lookup(#request{}) -> {error, enoent} | {#service{}, map(), map()}.
 lookup(Request) ->	
-	ems_data_loader_ctl:register_activity(?MODULE),
 	case lookup(Request, false, db) of
 		{error, enoent} -> 
 			case lookup(Request, false, fs) of
@@ -85,7 +84,6 @@ lookup(Request = #request{type = Type, rowid = Rowid, params_url = ParamsMap}, F
 	end.
 
 lookup(Method, Uri) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	case ems_util:encode_request(Method, Uri) of
 		{ok, Request} -> lookup(Request);
 		Error -> Error

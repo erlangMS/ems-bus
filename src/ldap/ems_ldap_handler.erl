@@ -49,6 +49,7 @@ init(Ref, Transport, [State]) ->
 loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress}) ->
 	case Transport:recv(Socket, 0, ?LDAP_MAX_SIZE_PACKET) of
 		{ok, Data} ->
+			ems_data_loader_ctl:register_activity(auth),
 			case inet:peername(Socket) of
 				{ok, {IpTuple, Port}} ->
 					IpBin = list_to_binary(inet_parse:ntoa(IpTuple)),

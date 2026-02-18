@@ -32,7 +32,6 @@
 
 -spec find_by_id(non_neg_integer(), list(atom())) -> {ok, #user{}} | {error, enoent}.
 find_by_id(Id, Tables) -> 
-	ems_data_loader_ctl:register_activity(?MODULE),
 	case ems_db:get(Tables, Id) of
 		{ok, Record} -> {ok, Record};
 		_ -> {error, enoent}
@@ -40,7 +39,7 @@ find_by_id(Id, Tables) ->
 
 
 find_by_filter_and_scope(Fields, Filter, TableScope) -> 
-	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_data_loader_ctl:register_activity(auth),
 	ems_db:find(TableScope, Fields, Filter).
 
 
@@ -177,7 +176,7 @@ find_by_login_and_password(<<>>, _, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_password(_, "", _) -> {error, access_denied, epassword_empty};
 find_by_login_and_password("", _, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_password(Login, Password, Client)  ->
-	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_data_loader_ctl:register_activity(auth),
 	T1 = ems_util:get_timestamp(),
 	Result = try
 		PasswordStr = case is_list(Password) of
@@ -256,7 +255,7 @@ find_by_login_and_scope(<<>>, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_scope("", _) -> {error, access_denied, elogin_empty};	
 find_by_login_and_scope(undefined, _) -> {error, access_denied, elogin_empty};	
 find_by_login_and_scope(Login, AuthScope) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_data_loader_ctl:register_activity(auth),
 	LoginStr = case is_list(Login) of
 					true -> string:to_lower(Login);
 					false -> string:to_lower(binary_to_list(Login))
@@ -271,7 +270,7 @@ find_by_login(<<>>) -> {error, access_denied, elogin_empty};
 find_by_login("") -> {error, access_denied, elogin_empty};	
 find_by_login(undefined) -> {error, access_denied, elogin_empty};	
 find_by_login(Login) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_data_loader_ctl:register_activity(auth),
 	LoginStr = case is_list(Login) of
 					true -> string:to_lower(Login);
 					false -> string:to_lower(binary_to_list(Login))
@@ -311,7 +310,7 @@ find_by_cpf(<<>>) -> {error, enoent};
 find_by_cpf("") -> {error, enoent};	
 find_by_cpf(undefined) -> {error, enoent};	
 find_by_cpf(Cpf) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_data_loader_ctl:register_activity(auth),
 	case is_list(Cpf) of
 		true -> 
 			CpfStr = Cpf,
@@ -378,14 +377,13 @@ find_by_name(undefined) -> {error, enoent};
 find_by_name(Name) when is_list(Name) -> 
 	find_by_name(list_to_binary(Name));
 find_by_name(Name) -> 
-	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_data_loader_ctl:register_activity(auth),
 	case ems_db:find_first(?CLIENT_DEFAULT_SCOPE, [{name, "==", Name}]) of
 		{ok, Record} -> {ok, Record};
 		_ -> {error, enoent}
 	end.
 	
 get_user_info(User, ClientId) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	try
 		put(get_user_info, get_user_info_pass1),
 		put(get_user_info, get_user_info_pass2),
@@ -445,7 +443,6 @@ get_user_info(User, ClientId) ->
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;
 to_resource_owner(User = #user{id = UserId}, ClientId) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	CacheKey = {to_resource_owner, UserId, ClientId},
 	FindFun = fun() -> to_resource_owner_compute(User, ClientId) end,
 	% TTL for resource owner cache
@@ -682,7 +679,6 @@ to_resource_owner_compute(User, ClientId) ->
 -spec to_resource_owner(#user{}) -> binary().
 to_resource_owner(undefined) -> <<"{}"/utf8>>;
 to_resource_owner(User) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	case User#user.remap_user_id == undefined orelse User#user.remap_user_id == null of
 		true -> 
 			iolist_to_binary([<<"{"/utf8>>,
@@ -721,7 +717,6 @@ to_resource_owner(User) ->
 
 -spec new_from_map(map(), #config{}) -> {ok, #user{}} | {error, atom()}.
 new_from_map(Map, Conf) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	try
 		put(parse_step, login),
 		Login = list_to_binary(string:to_lower(binary_to_list(?UTF8_STRING(maps:get(<<"login">>, Map))))),
@@ -964,7 +959,6 @@ get_table(SourceType) -> SourceType.
 
 -spec find(user_fs | user_db, non_neg_integer()) -> {ok, #user{}} | {error, enoent}.
 find(Table, Id) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	case mnesia:dirty_read(Table, Id) of
 		[] -> {error, enoent};
 		[Record|_] -> {ok, Record}
@@ -972,7 +966,6 @@ find(Table, Id) ->
 
 -spec exist(user_fs | user_db, non_neg_integer()) -> boolean().
 exist(Table, Id) ->
-	ems_data_loader_ctl:register_activity(?MODULE),
 	case mnesia:dirty_read(Table, Id) of
 		[] -> false;
 		_ -> true

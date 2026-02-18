@@ -44,28 +44,33 @@ stop() ->
 
 
 register_activity(ModuleActivity) ->
-	ActivityType = global,
+	% A atividade é atribuída a uma TAG para que diferentes loaders
+	% possam vigiar apenas atividades relevantes ao seu domínio (ex: auth).
+	% Se o ModuleActivity não definir uma tag, usa 'global'.
+	ActivityTag = get_activity_tag(ModuleActivity),
 	Now = ems_util:get_timestamp(),
-	case ets:lookup(ets_dataloader_activity_ctl, ActivityType) of
+	case ets:lookup(ets_dataloader_activity_ctl, ActivityTag) of
 		[{_, LastActivity}] when (Now - LastActivity) < ?ACTIVITY_THRESHOLD -> 
-			ets:insert(ets_dataloader_activity_ctl, {ActivityType, Now});
+			ets:insert(ets_dataloader_activity_ctl, {ActivityTag, Now});
 		_ -> 
-			ets:insert(ets_dataloader_activity_ctl, {ActivityType, Now}),
-			sync_activity(ModuleActivity)
+			ets:insert(ets_dataloader_activity_ctl, {ActivityTag, Now}),
+			sync_activity(ActivityTag, ModuleActivity)
 	end.
 
 
 is_active(undefined, _) -> true;
-is_active(_, MaxAgeSeconds) ->
-	case ets:lookup(ets_dataloader_activity_ctl, global) of
+is_active(ActivityTag0, MaxAgeSeconds) ->
+	ActivityTag = normalize_tag(ActivityTag0),
+	case ets:lookup(ets_dataloader_activity_ctl, ActivityTag) of
 		[{_, LastActivity}] -> 
 			(ems_util:get_timestamp() - LastActivity) < (MaxAgeSeconds * 1000);
 		[] -> false
 	end.
 
 
-get_last_activity(_) ->
-	case ets:lookup(ets_dataloader_activity_ctl, global) of
+get_last_activity(ActivityTag0) ->
+	ActivityTag = normalize_tag(ActivityTag0),
+	case ets:lookup(ets_dataloader_activity_ctl, ActivityTag) of
 		[{_, LastActivity}] -> LastActivity;
 		[] -> 0
 	end.
@@ -77,14 +82,23 @@ register_loader(ActivityType, LoaderName) ->
 	ets:insert(ets_dataloader_registry_ctl, {ActivityType, LoaderName}).
 
 
-sync_activity(ModuleActivity) ->
-	case ets:tab2list(ets_dataloader_registry_ctl) of
+sync_activity(ActivityTag, ModuleActivity) ->
+	case ets:lookup(ets_dataloader_registry_ctl, ActivityTag) of
 		[] -> ok;
 		Loaders -> 
 			[gen_server:cast(LoaderName, sync) || {_, LoaderName} <- Loaders],
-			ems_logger:debug("ems_data_loader_ctl sync_activity ~p. Loaders: ~p.", [ModuleActivity, Loaders]),
+			ems_logger:debug("ems_data_loader_ctl sync_activity tag ~p module ~p. Loaders: ~p.", [ActivityTag, ModuleActivity, Loaders]),
 			ok
 	end.
+
+
+get_activity_tag(auth) -> auth;
+get_activity_tag(catalog) -> catalog;
+get_activity_tag(_) -> global.
+
+normalize_tag(Tag) when is_binary(Tag) -> binary_to_atom(Tag, utf8);
+normalize_tag(Tag) when is_list(Tag) -> list_to_atom(Tag);
+normalize_tag(Tag) -> Tag.
 
 
 permission_to_execute(DataLoader, [], Operation, WaitCount) -> 

@@ -15,6 +15,7 @@ execute(Request = #request{type = Type,
 						   host = Host,
 						   querystring = QuerystringBin,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
+	ems_data_loader_ctl:register_activity(auth),
 	try
 		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
 		case parse_passport_code(PassportCodeBinBase64) of
