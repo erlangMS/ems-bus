@@ -189,10 +189,10 @@ handle_info({check_valid_connection, QueryCount}, State = #state{datasource = #s
 																								  check_valid_connection_timeout = CheckValidConnectionTimeout}, 
 																 query_count = QueryCountNow,
 																 close_idle_connection_ref = CurrentCloseIdleConnectionRef,
-																 check_valid_connection_ref = CurrentCheckValidConnectionRef}) ->
+																 check_valid_connection_ref = _CurrentCheckValidConnectionRef}) ->
 	case QueryCountNow > QueryCount of
 		true -> 
-			ems_logger:debug("ems_odbc_pool_worker check_valid_connection skip due worker reuse (Ds: ~p Worker: ~p timerRef: ~p QueryCount: ~p).", [Id, ConnRef, CurrentCheckValidConnectionRef, QueryCountNow], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
+			ems_logger:debug("ems_odbc_pool_worker check_valid_connection skip due worker reuse (Ds: ~p Worker: ~p QueryCount: ~p).", [Id, ConnRef, QueryCountNow], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
 			CheckValidConnectionRef = erlang:send_after(CheckValidConnectionTimeout, self(), {check_valid_connection, QueryCount}),
 			{noreply, State#state{check_valid_connection_ref = CheckValidConnectionRef}};
 		false ->
@@ -206,11 +206,11 @@ handle_info({check_valid_connection, QueryCount}, State = #state{datasource = #s
 					case SqlCheckValidConnection =/= undefined andalso SqlCheckValidConnection =/= "" of
 						true ->
 							try
-								ems_logger:debug("ems_odbc_pool_worker check_valid_connection (Ds: ~p Worker: ~p timerRef: ~p QueryCount: ~p).", [Id, ConnRef, CurrentCheckValidConnectionRef, QueryCountNow], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
+								ems_logger:debug("ems_odbc_pool_worker check_valid_connection (Ds: ~p Worker: ~p QueryCount: ~p).", [Id, ConnRef, QueryCountNow], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
 								case odbc:param_query(ConnRef, SqlCheckValidConnection, [], 16000) of
 									{error, Reason} ->
 										erlang:cancel_timer(CurrentCloseIdleConnectionRef),
-										ems_logger:debug("ems_odbc_pool_worker check_valid_connection failed, shutdown worker immediate (Ds: ~p Worker: ~p timerRef: ~p  QueryCount: ~p Reason: ~p).", [Id, ConnRef, CurrentCheckValidConnectionRef, QueryCountNow, Reason], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
+										ems_logger:debug("ems_odbc_pool_worker check_valid_connection failed, shutdown worker immediate (Ds: ~p Worker: ~p QueryCount: ~p Reason: ~p).", [Id, ConnRef, QueryCountNow, Reason], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
 										{stop, shutdown, State#state{close_idle_connection_ref = undefined}};
 									_ -> 
 										{{_, _, _}, {Hour, _, _}} = calendar:local_time(),
@@ -223,7 +223,7 @@ handle_info({check_valid_connection, QueryCount}, State = #state{datasource = #s
 							catch
 								_:Reason2 -> 
 									erlang:cancel_timer(CurrentCloseIdleConnectionRef),
-									ems_logger:debug("ems_odbc_pool_worker check_valid_connection exception, shutdown worker immediate (Ds: ~p Worker: ~p timerRef: ~p QueryCount: ~p Reason: ~p).", [Id, ConnRef, CurrentCheckValidConnectionRef, QueryCountNow, Reason2], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
+									ems_logger:debug("ems_odbc_pool_worker check_valid_connection exception, shutdown worker immediate (Ds: ~p Worker: ~p QueryCount: ~p Reason: ~p).", [Id, ConnRef, QueryCountNow, Reason2], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
 									{stop, shutdown, State#state{close_idle_connection_ref = undefined}}
 							end;
 						false ->

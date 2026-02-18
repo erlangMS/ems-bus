@@ -147,7 +147,7 @@
 -define(TIMEOUT_DISPATCHER_CACHE, 30000).
 
 % Number of datasource entries by odbc connection pool in iddle
--define(MAX_CONNECTION_IDDLE_BY_POOL, 4).
+-define(MAX_CONNECTION_IDDLE_BY_POOL, 7).
 
 % Number of datasource entries by odbc connection pool global limit
 -define(MAX_CONNECTION_LIMIT_BY_POOL, 25).
@@ -160,7 +160,8 @@
 
 
 % Define the default checkpoint to ems_data_loader and ems_json_loader
--define(DATA_LOADER_UPDATE_CHECKPOINT, 90000).
+-define(DATA_LOADER_UPDATE_CHECKPOINT, 30000).
+-define(DATA_LOADER_EXCEPTION_TIMEOUT, 30000).
 
 %Define the checkpoint to update permission for ems_user_permission_l
 % HTTP access control (CORS) headers

@@ -286,17 +286,18 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 do_release_connection(Datasource = #service_datasource{id = Id,
 													   owner = Owner, 
 													   pid_module_ref = PidModuleRef,
-													   max_pool_size = MaxPoolSize,
+													   max_idle_pool_size = _MaxIdlePoolSize,
 													   log_show_odbc_pool_activity = LogShowPoolActivity}) ->
 	try
 		erlang:demonitor(PidModuleRef),
 		erlang:erase(PidModuleRef),
 		Pool = find_pool(Id),
 		PoolSize = queue:len(Pool),
+		MaxIdlePoolSize = Datasource#service_datasource.max_idle_pool_size,
 		case erlang:is_process_alive(Owner) of
 			true ->
 				% Only back to the pool if it did not exceed the connection limit or the connection did not give error
-				case (PoolSize < MaxPoolSize) of
+				case (PoolSize < MaxIdlePoolSize) of
 					true ->
 						case ems_odbc_pool_worker:notify_return_pool(Owner) of
 							{ok, QueryCount} -> 
@@ -317,7 +318,7 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 					false -> 
 						case erlang:is_process_alive(Owner) of
 							true -> 
-								ems_logger:info("ems_odbc_pool shutdown worker due connection limit ~p (Ds: ~p PoolSize: ~p).", [MaxPoolSize, Id, PoolSize], LogShowPoolActivity),
+								ems_logger:info("ems_odbc_pool shutdown worker due connection limit ~p (Ds: ~p PoolSize: ~p).", [MaxIdlePoolSize, Id, PoolSize], LogShowPoolActivity),
 								gen_server:stop(Owner);
 							false -> ok
 						end,

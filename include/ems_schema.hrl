@@ -396,7 +396,8 @@
 							 sql :: binary(),											%% 15 - sql
 							 timeout :: non_neg_integer(),								%% 16 - timeout
 							 max_pool_size :: non_neg_integer(),						%% 17 - max_pool_size
-							 conn_ref,													%% 18 - conn_ref
+							 max_idle_pool_size :: non_neg_integer(),					%% 18 - max_idle_pool_size
+							 conn_ref,													%% 19 - conn_ref
 							 pid_module,												%% 19 - pid_module
 							 pid_module_ref,											%% 20 - pid_module_ref
 							 owner,														%% 21 - owner
@@ -433,7 +434,8 @@
 			   binary_type, 								%% 15 - sql
 			   non_neg_integer_type,						%% 16 - timeout
 			   non_neg_integer_type, 						%% 17 - max_pool_size
-			   undefined,									%% 18 - conn_ref
+			   non_neg_integer_type, 						%% 18 - max_idle_pool_size
+			   undefined,									%% 19 - conn_ref
 			   undefined,									%% 19 - pid_module
 			   undefined, 									%% 20 - pid_module_ref
 			   undefined,									%% 21 - owner

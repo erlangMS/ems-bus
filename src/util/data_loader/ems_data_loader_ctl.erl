@@ -18,9 +18,9 @@
 
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/1, handle_info/2, terminate/2, code_change/3, 
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3, 
 		 permission_to_execute/4, notify_finish_work/9,
-		 register_activity/1, is_active/2, register_loader/2, sync_activity/0]).
+		 register_activity/1, is_active/2, register_loader/2]).
 
 % estado do servidor
 -record(state, {}).
@@ -44,7 +44,6 @@ stop() ->
 
 
 register_activity(ModuleActivity) ->
-	ems_logger:debug("ems_data_loader_ctl register activity by ~p.", [ModuleActivity]),
 	ActivityType = global,
 	Now = ems_util:get_timestamp(),
 	case ets:lookup(ets_dataloader_activity_ctl, ActivityType) of
@@ -52,7 +51,7 @@ register_activity(ModuleActivity) ->
 			ets:insert(ets_dataloader_activity_ctl, {ActivityType, Now});
 		_ -> 
 			ets:insert(ets_dataloader_activity_ctl, {ActivityType, Now}),
-			sync_activity()
+			sync_activity(ModuleActivity)
 	end.
 
 
@@ -67,15 +66,16 @@ is_active(_, MaxAgeSeconds) ->
 
 register_loader(undefined, _) -> ok;
 register_loader(ActivityType, LoaderName) ->
+	ems_logger:debug("ems_data_loader_ctl register_loader ~p ~p.", [ActivityType, LoaderName]),
 	ets:insert(ets_dataloader_registry_ctl, {ActivityType, LoaderName}).
 
 
-sync_activity() ->
+sync_activity(ModuleActivity) ->
 	case ets:tab2list(ets_dataloader_registry_ctl) of
 		[] -> ok;
 		Loaders -> 
 			[gen_server:cast(LoaderName, sync) || {_, LoaderName} <- Loaders],
-			ems_logger:info("ems_data_loader_ctl sync_activity."),
+			ems_logger:debug("ems_data_loader_ctl sync_activity ~p. Loaders: ~p.", [ModuleActivity, Loaders]),
 			ok
 	end.
 
@@ -139,12 +139,12 @@ handle_cast(_Msg, State) ->
 handle_call(Msg, _From, State) ->
 	{reply, Msg, State}.
 		
-handle_info(timeout, State) ->  {noreply, State}.
+handle_info(timeout, State) ->  {noreply, State};
 
-handle_info(State) -> {noreply, State}.
+handle_info(_Msg, State) -> {noreply, State}.
 
-terminate(Reason, #service{name = Name}) ->
-    ems_logger:warn("~s was terminated. Reason: ~p.", [Name, Reason]),
+terminate(Reason, _State) ->
+    ems_logger:info("ems_data_loader_ctl was terminated. Reason: ~p.", [Reason]),
     ok.
  
 code_change(_OldVsn, State, _Extra) ->

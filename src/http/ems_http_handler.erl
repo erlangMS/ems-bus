@@ -63,25 +63,25 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 	case ems_encode_request:new_from_cowboy_req(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
 			case ems_dispatcher:dispatch_request(Request, Service, Debug) of
-				{ok, request, Request2 = #request{code = Code0,
+				{ok, request, _Request2 = #request{code = Code0,
 												  response_header = ResponseHeader,
 												  response_data = ResponseData,
 												  content_type_out = ContentTypeOut}} ->
 					Code = case Code0 of undefined -> 200; _ -> Code0 end,
-					Response = cowboy_req:reply(Code, 
+					_Response = cowboy_req:reply(Code, 
 												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, ?HTTP_HEADERS_DEFAULT, CowboyReq2), 
 												ResponseData, 
 												CowboyReq2),
-					ems_logger:log_request(Request2);
-				{error, request, Request2 = #request{code = Code0,
+					ok;
+				{error, request, _Request2 = #request{code = Code0,
 													 response_header = ResponseHeader,
 													 response_data = ResponseData}} ->
 					Code = case Code0 of undefined -> 500; _ -> Code0 end,
-					Response = cowboy_req:reply(Code, 
+					_Response = cowboy_req:reply(Code, 
 												normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 												ResponseData, 
 												CowboyReq2),
-					ems_logger:log_request(Request2);
+					ok;
 				{error, Reason} = Error ->
 					Request2 = Request#request{code = 400, 
 											   content_type_out = ?CONTENT_TYPE_JSON,
@@ -89,20 +89,20 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 											   response_data = ems_schema:to_json(Error), 
 											   latency = ems_util:get_milliseconds() - T1},
 					ResponseHeader = Request2#request.response_header,
-					Response = cowboy_req:reply(Request2#request.code, 
+					_Response = cowboy_req:reply(Request2#request.code, 
 												normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 												Request2#request.response_data, CowboyReq2),
-					ems_logger:log_request(Request2)
+					ok
 			end;
-		{_, request, Request = #request{code = Code0,
+		{_, request, _Request = #request{code = Code0,
 									     response_header = ResponseHeader,
 									     response_data = ResponseData}, CowboyReq2} ->
 			Code = case Code0 of undefined -> 500; _ -> Code0 end,
-			Response = cowboy_req:reply(Code, 
+			_Response = cowboy_req:reply(Code, 
 										normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 										ResponseData, 
 										CowboyReq2),
-			ems_logger:log_request(Request);
+			ok;
 	{error, Reason} -> 
 		Type = binary_to_list(cowboy_req:method(CowboyReq)),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
@@ -111,15 +111,15 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 
 		% Extract simple reason to avoid verbose logging
 		case Reason of
-			{error, request, Request = #request{code = Code, response_data = ResponseData, response_header = ResponseHeader}, _} ->
-				Response = cowboy_req:reply(Code, normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq), ResponseData, CowboyReq),
-				ems_logger:log_request(Request);
+			{error, request, #request{code = Code, response_data = ResponseData, response_header = ResponseHeader}, _} ->
+				_Response = cowboy_req:reply(Code, normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq), ResponseData, CowboyReq),
+				ok;
 			_ ->
 				ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, ems_util:ntoa(Ip), Reason]),
-				Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
+				_Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
 		end
 	end,
-	{ok, Response, State}.
+	{ok, _Response, State}.
 
 normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
 	% Extract Origin header from request
@@ -161,5 +161,3 @@ normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
 		true -> Merged2;
 		false -> Merged2#{<<"content-type">> => <<"application/json; charset=utf-8">>}
 	end.
-
-

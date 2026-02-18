@@ -38,17 +38,6 @@
 				sql_fields,
 				middleware,
 				fields,
-				check_count_checkpoint_metric_name,
-				check_remove_checkpoint_metric_name,
-				sync_full_checkpoint_metric_name,
-				load_checkpoint_metric_name,
-				update_checkpoint_metric_name,
-				error_checkpoint_metric_name,
-				insert_metric_name,
-				update_metric_name,
-				update_miss_metric_name,
-				error_metric_name,
-				disable_metric_name,
 				skip_metric_name,
 				source_type,
 				loading = false,
@@ -69,9 +58,9 @@
 
 -define(SERVER, ?MODULE).
 
--define(INACTIVITY_TIMEOUT_NORMAL, 180).			% 3 minutes (180s)
+-define(INACTIVITY_TIMEOUT_NORMAL, 300).			% 5 minutes (300s)
 -define(INACTIVITY_TIMEOUT_FORA_EXPEDIENTE, 60).	% 1 minute (60s)
--define(MANDATORY_SYNC_TIMEOUT, 300000).			% 5 minutes (300.000 ms)
+
 
 %%====================================================================
 %% Server API
@@ -145,18 +134,6 @@ init(#service{name = Name,
 	SqlFields = string:join(ems_util:binlist_to_list(Fields), ","),
 	SourceType = binary_to_atom(maps:get(<<"source_type">>, Props, <<"db">>), utf8),
 	TimeoutOnError = maps:get(<<"timeout_on_error">>, Props, 120000) + rand:uniform(60000),
-	SyncFullCheckpointMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_full_checkpoint">>]), utf8),
-	CheckCountCheckpointMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_check_count_checkpoint">>]), utf8),
-	CheckRemoveCheckpointMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_check_remove_checkpoint">>]), utf8),
-	LoadCheckpointMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_load_checkpoint">>]), utf8),
-	UpdateCheckpointMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_update_checkpoint">>]), utf8),
-	ErrorCheckpointMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_error_checkpoint">>]), utf8),
-	InsertMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_inserts">>]), utf8),
-	UpdateMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_updates">>]), utf8),
-	UpdateMissMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_update_miss">>]), utf8),
-	ErrorsMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_errors">>]), utf8),
-	DisabledMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_disabled">>]), utf8),
-	SkipMetricName = erlang:binary_to_atom(iolist_to_binary([Name, <<"_skip">>]), utf8),
 	GroupDataLoader = lists:delete(NameStr, ems_util:binlist_to_list(maps:get(<<"group">>, Props, []))),
 	%erlang:send_after(60000 * 60, self(), check_sync_full),
 	case CheckRemoveRecords andalso CheckRemoveRecordsCheckpoint > 0 of
@@ -181,18 +158,6 @@ init(#service{name = Name,
 				   middleware = Middleware,
 				   fields = Fields,
 				   timeout_on_error = TimeoutOnError,
-   				   check_count_checkpoint_metric_name = CheckCountCheckpointMetricName,
-   				   check_remove_checkpoint_metric_name = CheckRemoveCheckpointMetricName,
-   				   sync_full_checkpoint_metric_name = SyncFullCheckpointMetricName,
-   				   load_checkpoint_metric_name = LoadCheckpointMetricName,
-				   update_checkpoint_metric_name = UpdateCheckpointMetricName,
-				   error_checkpoint_metric_name = ErrorCheckpointMetricName,
-				   insert_metric_name = InsertMetricName,
-				   update_metric_name = UpdateMetricName,
-				   update_miss_metric_name = UpdateMissMetricName,
-				   error_metric_name = ErrorsMetricName,
-				   disable_metric_name = DisabledMetricName,
-				   skip_metric_name = SkipMetricName,
 				   source_type = SourceType,
 				   loading = true,
 				   allow_clear_table_full_sync = false,
@@ -217,8 +182,7 @@ handle_cast(shutdown, State) ->
 
 handle_cast(sync, State) -> handle_do_check_load_or_update_checkpoint(State);
 
-handle_cast(sync_full, State = #state{sync_full_checkpoint_metric_name = SyncFullCheckpointMetricName}) -> 
-	ems_db:inc_counter(SyncFullCheckpointMetricName),
+handle_cast(sync_full, State) -> 
 	handle_do_check_load_or_update_checkpoint(State#state{last_update = undefined, 
 														  allow_clear_table_full_sync = true});
 
@@ -255,8 +219,6 @@ handle_info(State = #state{update_checkpoint = UpdateCheckpoint}) ->
 handle_info(check_sync_full, State = #state{name = Name,
 											update_checkpoint = UpdateCheckpoint,
 											timeout_on_error = TimeoutOnError,
-											sync_full_checkpoint_metric_name = SyncFullCheckpointMetricName,
-											error_checkpoint_metric_name = ErrorCheckpointMetricName,
 											loading = Loading,
 											group = GroupDataLoader,
 											wait_count = WaitCount,
@@ -267,7 +229,6 @@ handle_info(check_sync_full, State = #state{name = Name,
 			true ->
 				case not Loading andalso ems_data_loader_ctl:permission_to_execute(Name, GroupDataLoader, check_sync_full, WaitCount) of
 					true ->
-						ems_db:inc_counter(SyncFullCheckpointMetricName),
 						ems_logger:info("~s sync full begin now.", [Name], LogShowDataLoaderActivity),
 						State2 = State#state{last_update = undefined,
 											 allow_clear_table_full_sync = false},  
@@ -281,7 +242,6 @@ handle_info(check_sync_full, State = #state{name = Name,
 								{noreply, State3#state{wait_count = 0}, UpdateCheckpoint + 180000};  % adiciona 180 segundos para priorizar os demais loaders
 							{error, Reason} -> 
 								ems_data_loader_ctl:notify_finish_work(Name, check_sync_full, WaitCount, 0, 0, 0, 0, 0, Reason),
-								ems_db:inc_counter(ErrorCheckpointMetricName),
 								ems_util:flush_messages(),
 								erlang:garbage_collect(),
 								erlang:send_after(3600000, self(), check_sync_full),
@@ -307,7 +267,6 @@ handle_info(check_count_records, State = #state{name = Name,
 												update_checkpoint = UpdateCheckpoint,
 											    timeout_on_error = TimeoutOnError,
 											    check_remove_records_checkpoint = CheckRemoveRecordsCheckpoint,
-											    error_checkpoint_metric_name = ErrorCheckpointMetricName,
 											    loading = Loading,
 											    group = GroupDataLoader,
 											    wait_count = WaitCount}) ->
@@ -324,7 +283,6 @@ handle_info(check_count_records, State = #state{name = Name,
 					{noreply, State2#state{wait_count = 0}, UpdateCheckpoint};
 				{error, Reason} -> 
 					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
-					ems_db:inc_counter(ErrorCheckpointMetricName),
 					ems_util:flush_messages(),
 					ThrottledTimeout6 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
 					erlang:send_after(ThrottledTimeout6, self(), check_count_records),
@@ -358,9 +316,10 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 														 activity_type = ActivityType}) ->
 	try
 		InactivityTimeout = get_inactivity_timeout(),
+		MandatorySyncTimeout = get_mandatory_sync_timeout(),
 		Now = ems_util:get_timestamp(),
-		% Mandatory sync every 5 minutes
-		IsMandatorySync = (Now - State#state.last_sync_time) >= ?MANDATORY_SYNC_TIMEOUT,
+		% Mandatory sync
+		IsMandatorySync = (Now - State#state.last_sync_time) >= MandatorySyncTimeout,
 		IsActive = IsMandatorySync orelse ems_data_loader_ctl:is_active(ActivityType, InactivityTimeout),
 		case IsActive of
 			true ->
@@ -371,89 +330,63 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = false});
 			false ->
 				case State#state.is_dormant of
-					false -> ems_logger:debug("~s is now dormant.", [Name], LogShowDataLoaderActivity);
-					true -> ok
-				end,
-				ems_logger:debug("~s handle_do_check_load_or_update_checkpoint skip sync due to inactivity on type ~p (timeout ~p).", [Name, ActivityType, InactivityTimeout], LogShowDataLoaderActivity),
-				{noreply, State#state{is_dormant = true}, UpdateCheckpoint}
+					false -> 
+						ems_logger:debug("~s is now dormant.", [Name], LogShowDataLoaderActivity),
+						% Reset last_sync_time to ensure the next mandatory sync only happens after 
+						% a full inactivity period has elapsed since entering dormancy.
+						{noreply, State#state{is_dormant = true, last_sync_time = Now}, UpdateCheckpoint};
+					true -> 
+						ems_logger:debug("~s handle_do_check_load_or_update_checkpoint skip sync due to inactivity (timeout ~p).", [Name, InactivityTimeout], LogShowDataLoaderActivity),
+						{noreply, State#state{is_dormant = true}, UpdateCheckpoint}
+				end
 		end
 	catch
 		_:ReasonException1 ->
 			ems_logger:error("ems_data_loader handle_do_check_load_or_update_checkpoint activity check exception. Reason: ~p.", [ReasonException1]),
-			{noreply, State, 60000}
+			{noreply, State, ?DATA_LOADER_EXCEPTION_TIMEOUT}	% tenta se recuperar para não quebrar o processo
 	end.
 
 
 handle_do_check_load_or_update_checkpoint_execute(State = #state{name = Name,
 																 update_checkpoint = UpdateCheckpoint,
 																 timeout_on_error = TimeoutOnError,
-																 error_checkpoint_metric_name = ErrorCheckpointMetricName,
-																 loading = Loading,
+																 loading = _Loading,
 																 group = DataLoaderGroup,
 																 wait_count = WaitCount,
 																 error_db_count = ErrorDBCount,
 																 log_show_data_loader_activity = LogShowDataLoaderActivity}) ->
 	try
-		put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass1),
 		case ems_data_loader_ctl:permission_to_execute(Name, DataLoaderGroup, check_load_or_update_checkpoint, WaitCount) of
 			true ->
 				ems_logger:debug("~s handle_do_check_load_or_update_checkpoint execute now.", [Name], LogShowDataLoaderActivity),
-				put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass2),
 				case do_check_load_or_update_checkpoint(State) of
 					{ok, State2 = #state{insert_count = InsertCount, update_count = UpdateCount, error_count = ErrorCount, disable_count = DisableCount, skip_count = SkipCount}} ->
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass3),
 						do_after_load_or_update_checkpoint(State2),
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass4),
 						ems_data_loader_ctl:notify_finish_work(Name, check_load_or_update_checkpoint, WaitCount, InsertCount, UpdateCount, ErrorCount, DisableCount, SkipCount, undefined),
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass5),
 						ems_util:flush_messages(),
 						erlang:garbage_collect(self(), [{async, undefined}]),
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass6),
-						case Loading of
-							true -> {noreply, State2#state{wait_count = 0, error_db_count = 0}, UpdateCheckpoint + 90000};
-							false -> {noreply, State2#state{wait_count = 0, error_db_count = 0}, UpdateCheckpoint}
-						end;
+						{noreply, State2#state{wait_count = 0, error_db_count = 0}, UpdateCheckpoint};
 					{error, eodbc_restricted_connection} -> 
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass7),
 						ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, eodbc_restricted_connection),
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass8),
-						case ErrorDBCount > 5 of
-							true -> 
-								TimeoutOnError2 = TimeoutOnError * 6,
-								ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while database in backup or restricted connection. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, eodbc_restricted_connection], LogShowDataLoaderActivity);
-							false -> 
-								TimeoutOnError2 = TimeoutOnError,
-								ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while database in backup or restricted connection. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, eodbc_restricted_connection], LogShowDataLoaderActivity)
-						end,
+						ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while database in backup or restricted connection. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError, ErrorDBCount, eodbc_restricted_connection], LogShowDataLoaderActivity),
 						ems_util:flush_messages(),
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass9),
-						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError2};
+						erlang:garbage_collect(self(), [{async, undefined}]),
+						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError * 3};
 					{error, Reason} -> 
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass10),
 						ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass11),
-						ems_db:inc_counter(ErrorCheckpointMetricName),
+						ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError, ErrorDBCount, Reason], LogShowDataLoaderActivity),
 						ems_util:flush_messages(),
-						case ErrorDBCount > 5 of
-							true -> 
-								TimeoutOnError2 = TimeoutOnError * 3,
-								ems_logger:format_error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, Reason], LogShowDataLoaderActivity);
-							false -> 
-								TimeoutOnError2 = TimeoutOnError,
-								ems_logger:error("~s do_check_load_or_update_checkpoint wait ~pms for next checkpoint while has database connection error. ErrorDBCount: ~p. Reason: ~p.", [Name, TimeoutOnError2, ErrorDBCount, Reason], LogShowDataLoaderActivity)
-						end,
-						put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass12),
-						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError2}
+						erlang:garbage_collect(self(), [{async, undefined}]),
+						{noreply, State#state{wait_count = 0, error_db_count = ErrorDBCount+1}, TimeoutOnError}
 				end;
 			false ->
-				put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass13),
 				TimeoutWait = get_timeout_wait(WaitCount),
 				{noreply, State#state{wait_count = WaitCount + 1}, TimeoutWait}
 		end
 	catch
 		_:ReasonException ->
-			ems_logger:error("ems_data_loader handle_do_check_load_or_update_checkpoint exception. Step: ~p. Reason: ~p.", [get(handle_do_check_load_or_update_checkpoint_step), ReasonException]),
-			{noreply, State, 60000}	% tenta se recuperar para não quebrar o processo
+			ems_logger:error("ems_data_loader handle_do_check_load_or_update_checkpoint exception. Reason: ~p.", [ReasonException]),
+			{noreply, State, ?DATA_LOADER_EXCEPTION_TIMEOUT}	% tenta se recuperar para não quebrar o processo
 	end.
 	
 
@@ -466,12 +399,9 @@ do_check_count_checkpoint(State = #state{name = Name,
 										 datasource = Datasource,
 										 sql_count = SqlCount,
 										 sql_ids = SqlIds,
-										 sql_update = SqlUpdate,
-										 check_count_checkpoint_metric_name = CheckCountCheckpointMetricName,
-										 check_remove_checkpoint_metric_name = CheckRemoveCheckpointMetricName}) ->
+										 sql_update = SqlUpdate}) ->
 	try
 		ems_logger:debug("~s do_check_count_checkpoint execute now.", [Name], State#state.log_show_data_loader_activity),
-		ems_db:inc_counter(CheckCountCheckpointMetricName),
 		case ems_odbc_pool:get_connection(Datasource) of
 			{ok, Datasource2} -> 
 				Result = case ems_odbc_pool:param_query(Datasource2, SqlCount, []) of
@@ -503,7 +433,6 @@ do_check_count_checkpoint(State = #state{name = Name,
 								end;
 							% Se existe menos registros no banco de dados que o que está cadastrado no mnesia
 							CountMnesiaTable > CountDBTable ->
-								ems_db:inc_counter(CheckRemoveCheckpointMetricName),
 								ems_logger:debug("~s do_check_count_checkpoint get ids from table...", [Name], State#state.log_show_data_loader_activity),
 								case ems_odbc_pool:param_query(Datasource2, SqlIds, []) of
 									{_, _, Result2} ->
@@ -588,17 +517,14 @@ do_check_load_or_update_checkpoint(State = #state{name = Name,
 	end.
 
 
--spec do_load(tuple(), #config{}, #state{}) -> ok | {error, atom()}.
 do_load(CtrlInsert, Conf, State = #state{datasource = Datasource,
-										 name = Name,
-										 load_checkpoint_metric_name = LoadCheckpointMetricName}) -> 
+										 name = Name}) -> 
 	try
 		case ems_odbc_pool:get_connection(Datasource) of
 			{ok, Datasource2} -> 
 				Result = do_load_table(CtrlInsert, Conf, State#state{datasource = Datasource2}),
 				%% faz shutdown da conexão em vez de voltar ao pool pois consome muita ram durante as cargas de dados completa
 				ems_odbc_pool:release_connection(Datasource2), 
-				ems_db:inc_counter(LoadCheckpointMetricName),
 				Result;
 			Error3 -> Error3
 		end
@@ -609,10 +535,6 @@ do_load(CtrlInsert, Conf, State = #state{datasource = Datasource,
 	end.
 
 do_load_table(CtrlInsert, Conf, State = #state{name = Name,
-											   insert_metric_name = InsertMetricName,
-											   error_metric_name = ErrorsMetricName,
-											   disable_metric_name = DisabledMetricName,
-											   skip_metric_name = SkipMetricName,
 											   allow_clear_table_full_sync = AllowClearTableFullSync,
 											   log_show_data_loader_activity = LogShowDataLoaderActivity}) -> 
 	try
@@ -624,10 +546,6 @@ do_load_table(CtrlInsert, Conf, State = #state{name = Name,
 						case do_load_data_pump(CtrlInsert, Conf, State, 1, 0, 0, 0, 0) of
 							{ok, InsertCount, ErrorCount, DisabledCount, SkipCount} ->
 								ems_logger:info("~s sync full ~p inserts, ~p disabled, ~p skips, ~p errors.", [Name, InsertCount, DisabledCount, SkipCount, ErrorCount], LogShowDataLoaderActivity),
-								ems_db:counter(InsertMetricName, InsertCount),
-								ems_db:counter(ErrorsMetricName, ErrorCount),
-								ems_db:counter(DisabledMetricName, DisabledCount),
-								ems_db:counter(SkipMetricName, SkipCount),
 								{ok, State#state{insert_count = InsertCount,
 												 error_count = ErrorCount,
 												 disable_count = DisabledCount,
@@ -639,13 +557,9 @@ do_load_table(CtrlInsert, Conf, State = #state{name = Name,
 						Error
 				end;
 			false ->
-				case do_load_data_pump(CtrlInsert, Conf, State, 1, 0, 0, 0, 0) of
+						case do_load_data_pump(CtrlInsert, Conf, State, 1, 0, 0, 0, 0) of
 					{ok, InsertCount, ErrorCount, DisabledCount, SkipCount} ->
 						ems_logger:info("~s sync ~p inserts, ~p disabled, ~p skips, ~p errors.", [Name, InsertCount, DisabledCount, SkipCount, ErrorCount], LogShowDataLoaderActivity),
-						ems_db:counter(InsertMetricName, InsertCount),
-						ems_db:counter(ErrorsMetricName, ErrorCount),
-						ems_db:counter(DisabledMetricName, DisabledCount),
-						ems_db:counter(SkipMetricName, SkipCount),
 						{ok, State#state{insert_count = InsertCount,
 										 update_count = 0,
 										 error_count = ErrorCount,
@@ -728,19 +642,11 @@ do_load_data_pump(CtrlInsert,
 			{error, Reason4}
 	end.
 
--spec do_update(tuple(), tuple(), #config{}, #state{}) -> ok | {error, atom()}.
 do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 													   name = Name,
 													   middleware = Middleware,
 													   sql_update = SqlUpdate,
 													   fields = Fields,
-													   update_checkpoint_metric_name = UpdateCheckpointMetricName,
-													   insert_metric_name = InsertMetricName,
-													   update_metric_name = UpdateMetricName,
-													   update_miss_metric_name = UpdateMissMetricName,
-													   error_metric_name = ErrorsMetricName,
-													   disable_metric_name = DisabledMetricName,
-													   skip_metric_name = SkipMetricName,
 													   source_type = SourceType,
 													   log_show_data_loader_activity = LogShowDataLoaderActivity}) -> 
 	try
@@ -749,7 +655,6 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 			true ->
 				case ems_odbc_pool:get_connection(Datasource) of
 					{ok, Datasource2} -> 
-						ems_db:inc_counter(UpdateCheckpointMetricName),
 						{{Year, Month, Day}, {Hour, Min, _}} = LastUpdate,
 						DateInitial = {{Year, Month, Day}, {Hour, Min, 0}},
 						Params = [{sql_timestamp, [DateInitial]},
@@ -765,7 +670,6 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 						Result = case ems_odbc_pool:param_query(Datasource2, SqlUpdate, Params) of
 							{_,_,[]} -> 
 								ems_odbc_pool:release_connection(Datasource2), 
-								ems_db:inc_counter(UpdateMissMetricName),
 								ems_logger:info("~s sync 0 inserts, 0 updates, 0 disabled, 0 skips, 0 errors since ~s.", [Name, ems_util:timestamp_str(LastUpdate)], LogShowDataLoaderActivity),
 								{ok, State#state{insert_count = 0,
 												 error_count = 0,
@@ -774,11 +678,6 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{datasource = Datasource,
 							{_, _, Records} ->
 								ems_odbc_pool:release_connection(Datasource2), 
 								{ok, InsertCount, UpdateCount, ErrorCount, DisabledCount, SkipCount} = ems_data_pump:data_pump(Records, list_to_binary(CtrlUpdate), Conf, Name, Middleware, update, 0, 0, 0, 0, 0, SourceType, Fields),
-								ems_db:counter(InsertMetricName, InsertCount),
-								ems_db:counter(UpdateMetricName, UpdateCount),
-								ems_db:counter(ErrorsMetricName, ErrorCount),
-								ems_db:counter(DisabledMetricName, DisabledCount),
-								ems_db:counter(SkipMetricName, SkipCount),
 								ems_logger:info("~s sync ~p inserts, ~p updates, ~p disabled, ~p skips, ~p errors since ~s.", [Name, InsertCount, UpdateCount, DisabledCount, SkipCount, ErrorCount, ems_util:timestamp_str(LastUpdate)], LogShowDataLoaderActivity),
 								{ok, State#state{insert_count = InsertCount,
 												 update_count = UpdateCount,
@@ -860,9 +759,19 @@ do_after_load_or_update_checkpoint(#state{middleware = Middleware, source_type =
 get_inactivity_timeout() ->
     {_Date, {Hour, _Minute, _Second}} = calendar:local_time(),
     if
-        Hour >= 5 andalso Hour < 8 -> ?INACTIVITY_TIMEOUT_NORMAL;
+        Hour >= 5 andalso Hour < 21 -> ?INACTIVITY_TIMEOUT_NORMAL;
         true                       -> ?INACTIVITY_TIMEOUT_FORA_EXPEDIENTE
     end.
+
+
+-spec get_mandatory_sync_timeout() -> integer().
+get_mandatory_sync_timeout() ->
+    {_Date, {Hour, _Minute, _Second}} = calendar:local_time(),
+    if
+        Hour >= 5 andalso Hour < 21 -> 120000;		% 2 minutes during business hours
+        true                       -> 3600000		% 1 hour during night
+    end.
+	
 	
 	
 

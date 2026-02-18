@@ -13,28 +13,10 @@
 		 debug/1, debug/2, debug/3,
 		 debug2/1, debug2/2, debug2/3,
 		 in_debug/0, mode_debug/1, 
-		 log_request/1, 
 		 format_info/1, format_info/2, format_info/3,
 		 format_warn/1, format_warn/2, format_warn/3,
-		 format_error/1, format_error/2, format_error/3, 
-		 format_debug/1, format_debug/2, format_debug/3,
-		 format_alert/1, format_alert/2, format_alert/3,
-		 set_level/1, show_response/1
+		 format_error/1, format_error/2, format_error/3
 ]).
-
-
-%  Armazena o estado do ems_logger para uso local no request_log (simulado)
--record(state, {log_level = info,							% log_level of printable messages
-				log_show_response = false,					% show response of request
-				log_show_response_max_length,				% show response if content length < show_response_max_length
-				log_show_payload = false,					% show payload of request
-				log_show_payload_max_length,				% show payload if content length < show_response_max_length
-				log_show_response_url_list = [],			% show response if url in 
-				log_show_payload_url_list = [],				% show payload if url in 
-				log_ult_msg,								% last print message
-				log_ult_reqhash, 							% last reqhash of print message
-				log_show_content_static_file = false
- 			   }). 
 
 
 %%====================================================================
@@ -119,18 +101,6 @@ mode_debug(_) ->
 	info("ems_logger debug mode disabled."),
 	ets:insert(debug_ets, {debug, false}).
 
-log_request(Request) -> 
-	Conf = ems_config:getConfig(),
-	State = #state{
-		 		   log_show_response = Conf#config.log_show_response,
-				   log_show_payload = Conf#config.log_show_payload,
-				   log_show_response_max_length = Conf#config.log_show_response_max_length,
- 				   log_show_payload_max_length = Conf#config.log_show_payload_max_length,
- 				   log_show_content_static_file = Conf#config.log_show_content_static_file},
-	do_log_request(Request, State).
-
-
-
 
 % write direct messages to console
 
@@ -180,39 +150,7 @@ format_error(Msg, Params, true) -> format_error(Msg, Params);
 format_error(_, _, _) -> ok.
 
 
-format_debug(Message) when is_list(Message) ->	
-	format_debug(list_to_binary(Message));
-format_debug(Message) ->	
-	Message2 = iolist_to_binary([?DEBUG_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Message, ?WHITE_BRK_COLOR]),
-	io:format(Message2).
 
-format_debug(Message, Params) ->	
-	Message2 = io_lib:format(Message, Params),
-	Message3 = iolist_to_binary([?DEBUG_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?DEBUG_COLOR, Message2, ?WHITE_BRK_COLOR]),
-	io:format(Message3).
-
-format_debug(Msg, Params, true) -> format_debug(Msg, Params);
-format_debug(_, _, _) -> ok.
-
-
-format_alert(Message) when is_list(Message) ->	
-	format_alert(list_to_binary(Message));
-format_alert(Message) ->	
-	Message2 = iolist_to_binary([?ALERT_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message, <<"\n">>]),
-	io:format(Message2).
-
-format_alert(Message, Params) ->	
-	Message2 = io_lib:format(Message, Params),
-	Message3 = iolist_to_binary([?ALERT_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message2, <<"\n">>]),
-	io:format(Message3).
-
-format_alert(Msg, Params, true) -> format_alert(Msg, Params);
-format_alert(_, _, _) -> ok.
-
-
-set_level(_Level) -> ok.
-
-show_response(_Show) -> ok.
 
 
 
@@ -237,97 +175,11 @@ write_msg(Tipo, Msg)  ->
 			error -> io:format(standard_error, Msg1, []);
 			_ -> io:format(Msg1)
 		end
-	catch
-		_:ReasonException ->
-			format_error("ems_logger write_msg exception. Msg: ~p Reason: ~p.", [Msg, ReasonException])
+	catch 
+		_:ExceptionReason -> 
+			format_error("ems_logger write_msg exception. Msg: ~p Reason: ~p.", [Msg, ExceptionReason])
 	end.
 		
 write_msg(Tipo, Msg, Params) ->
 	Msg1 = io_lib:format(Msg, Params),
 	write_msg(Tipo, Msg1).
-	
-	
-do_log_request(Request = #request{rid = _RID,
-								  req_hash = ReqHash,
-								  type = Type,
-								  uri = Uri,
-								  url = _Url,
-								  url_masked = _UrlMasked,
-								  host = _Host,
-								  version = Version,
-								  content_type_in = _ContentTypeIn,
-								  content_type_out = _ContentTypeOut,
-								  content_length = ContentLength,
-								  accept = _Accept,
-								  ip = Ip,
-								  payload = _Payload,
-								  service = Service,
-								  params_url = _Params,
-								  querystring_map = _Query,
-								  code = Code,
-								  reason = _Reason,
-								  result_cache = _ResultCache,
-								  result_cache_rid = _ResultCacheRid,
-								  response_data = _ResponseData,
-								  authorization = _Authorization,
-							      cache_control = _CacheControl,
-								  etag = _Etag,
-								  if_modified_since = _IfModifiedSince,
-								  if_none_match = _IfNoneMatch,
-							  referer = Referer,
-							  user_agent = UserAgent,
-							  filename = _Filename,
-							  client = _Client,
-							  user = User,
-							  response_header = _ResponseHeader
-			  }, 
-			  State = #state{log_show_response_max_length = _ShowResponseMaxLength, 
-							 log_show_payload_max_length = _ShowPayloadMaxLength, 
-							 log_ult_reqhash = UltReqHash,
-							 log_show_response_url_list = _ShowResponseUrlList,					
-							 log_show_payload_url_list = _ShowPayloadUrlList,
-							 log_show_content_static_file = _LogShowContentStaticFile}) ->
-	try
-		LogShow = case Service of
-						undefined -> true;
-						_ -> Service#service.log_show
-				  end,
-		case LogShow andalso (UltReqHash == undefined orelse UltReqHash =/= ReqHash) of
-			true ->
-				IpBin = list_to_binary(inet_parse:ntoa(Ip)),
-				UserLogin = case User of
-								public -> <<"-">>;
-								undefined -> <<"-">>;
-								_ -> User#user.login
-							end,
-				
-				RefererStr = case Referer of
-								undefined -> <<"-">>;
-								_ -> Referer
-							 end,
-				
-				UserAgentStr = case UserAgent of
-									undefined -> <<"-">>;
-									_ -> UserAgent
-							   end,
-
-				% Nginx format: $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-				TextData = [
-					IpBin, <<" - ">>, UserLogin, <<" [">>, ems_clock:local_time_str(), <<"] \"">>, 
-					Type, <<" ">>, Uri, <<" ">>, atom_to_binary(Version, utf8), <<"\" ">>,
-					integer_to_binary(Code), <<" ">>, integer_to_binary(ContentLength), <<" \"">>,
-					RefererStr, <<"\" \"">>, UserAgentStr, <<"\"\n">>
-				],
-
-				TextBin = iolist_to_binary(TextData),
-				% Request logs usually go to stdout (info)
-				io:format(TextBin),
-				State;
-			false -> 
-				State
-		end
-	catch 
-		_:ExceptionReason -> 
-			format_error("ems_logger do_log_request format invalid message. Reason: ~p.\nRequest: ~p\n.", [ExceptionReason, Request]),
-			State#state{log_ult_reqhash = ReqHash}
-	end.

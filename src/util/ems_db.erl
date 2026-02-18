@@ -11,19 +11,15 @@
 -export([start/2]).
 -export([get/2, exist/2, all/1, 
 		 insert/1, insert/2, update/1, delete/2, delete/1, 
-		 match/2, 
 		 find/1, find/2, find/3, find/4, find/5, 
-		 find_by_id/2, find_by_id/3, filter/2,
-		 find_first/2, find_first/3, find_first/4, filter_condition_parse_value_with_scape/2, 
-		 sort/2, field_position/3]).
--export([init_sequence/2, sequence/1, sequence/2, current_sequence/1]).
--export([init_counter/2, counter/2, current_counter/1, inc_counter/1, dec_counter/1]).
+		 find_by_id/2, find_by_id/3, 
+		 find_first/2, find_first/3, find_first/4, 
+		 field_position/3]).
+-export([init_sequence/2, sequence/1]).
+-export([current_counter/1, inc_counter/1, dec_counter/1]).
 -export([get_connection/1, release_connection/1, create_datasource_from_map/3, create_datasource_from_map/4, 
-		 command/2, select_count/2, is_database_in_restricted_mode/1]).
+		 is_database_in_restricted_mode/1]).
 -export([get_param/1, get_param/2, set_param/2, get_re_param/2]).
--export([get_transient_param/1, get_transient_param/2, set_transient_param/2, get_re_transient_param/2]).
-
--export([filter_with_sort/2]).
 
 
 -include("include/ems_config.hrl").
@@ -303,21 +299,14 @@ init_sequence(Name, Value) ->
 					end),
      ok.
 sequence(Name) ->  mnesia:dirty_update_counter(sequence, Name, 1).
-current_sequence(Name) -> mnesia:dirty_update_counter(sequence, Name, 0).
-sequence(Name, Inc) -> mnesia:dirty_update_counter(sequence, Name, Inc).
+
 
 
 %% ************* Funções para gerar counters *************
 
-init_counter(Name, Value) ->
-     {atomic, ok} =	mnesia:transaction(fun() ->
-						mnesia:write(#counter{key=Name, value=Value})
-					end),
-     ok.
 inc_counter(Name) ->  mnesia:dirty_update_counter(counter, Name, 1).
 dec_counter(Name) ->  mnesia:dirty_update_counter(counter, Name, -1).
 current_counter(Name) -> mnesia:dirty_update_counter(counter, Name, 0).
-counter(Name, Inc) -> mnesia:dirty_update_counter(counter, Name, Inc).
      
 
 %% ************* Funções para armazenar parâmetros em crtl_params *************
@@ -427,44 +416,7 @@ init_params_cache() ->
 
 %% ************* Funções para armazenar parâmetros em crtl_transient_params *************
 
--spec get_transient_param(atom()) -> any().
-get_transient_param(ParamName) -> 
-	case mnesia:dirty_read(ctrl_transient_params, ParamName) of
-		[] -> undefined;
-		[#ctrl_params{value = Value}] -> Value
-	end.
 
--spec get_transient_param(atom(), function() | any()) -> any().
-get_transient_param(ParamName, Fun) when is_function(Fun) -> 
-	case mnesia:dirty_read(ctrl_transient_params, ParamName) of
-		[] -> 
-			Value = Fun(),
-			set_transient_param(ParamName, Value),
-			Value;
-		[#ctrl_params{value = Value}] -> Value
-	end;
-get_transient_param(ParamName, DefaultValue) -> 
-	case mnesia:dirty_read(ctrl_transient_params, ParamName) of
-		[] -> 
-			set_transient_param(ParamName, DefaultValue),
-			DefaultValue;
-		[#ctrl_params{value = Value}] -> Value
-	end.
-	
--spec get_re_transient_param(atom(), string()) -> {re_pattern, term(), term(), term(), term()}.	
-get_re_transient_param(ParamName, DefaultREPattern) -> 
-	case mnesia:dirty_read(ctrl_transient_params, ParamName) of
-		[] -> 
-			{ok, Value} = re:compile(DefaultREPattern),
-			set_transient_param(ParamName, Value),
-			Value;
-		[#ctrl_params{value = Value}] -> Value
-	end.
-	
--spec set_transient_param(atom(), any()) -> ok.
-set_transient_param(ParamName, ParamValue) -> 
-	P = #ctrl_params{name = ParamName, value = ParamValue},
-	mnesia:dirty_write(ctrl_transient_params, P).
 
 
 %% Funções para get and release connection
@@ -996,15 +948,6 @@ filter_condition_parse_value_with_scape(Value, undefined) when is_atom(Value) ->
 filter_condition_parse_value_with_scape(_, undefined) -> {error, einvalid_fieldtype}.
 
 
-filter_with_sort(Tab, []) -> 
-	F = fun() ->
-		  qlc:e(
-			qlc:sort(
-					qlc:q([R || R <- mnesia:table(Tab)]), [{order, descending}]
-				)
-		  )
-	   end,
-	mnesia:activity(async_dirty, F).
 
 
 %	
@@ -1071,26 +1014,6 @@ filter_with_limit(Tab, FilterTuple, Limit, Offset) when is_tuple(FilterTuple) ->
 
 
 
-% match objects and faster than filter
-% Ex.: ems_db:match(catalog_schema, [{id, 1}]).
-% Sample result is like filter function
-match(Tab, FilterList) -> 
-	FieldsTable =  mnesia:table_info(Tab, attributes),
-	Record = ems_schema:new_(Tab),
-	Match = match(Tab, FilterList, FieldsTable, Record),
-	mnesia:activity(async_dirty, fun() -> mnesia:match_object(Match) end).
-		
-match(_, [], _, Record) -> Record;
-match(Tab, [{F, _, V}|T], FieldsTable, Record) -> 
-	Fld = field_position(F, FieldsTable, 1),
-	Record2 = setelement(Fld, Record, field_value(V)),
-    match(Tab, T, FieldsTable, Record2);
-match(Tab, [{F, V}|T], FieldsTable, Record) -> 
-	Fld = field_position(F, FieldsTable, 1),
-	Record2 = setelement(Fld, Record, field_value(V)),
-    match(Tab, T, FieldsTable, Record2).
-
-
 % select fields of object or list objects
 % Ex.: ems_db:select_fields(#user{id = 1, name = "agilar", email = "evertonagilar@gmail.com"}, [name]).
 % Sample result is [#{<<"name">> => "agilar"}]
@@ -1140,8 +1063,6 @@ field_position_search(Field, [F|Fs], Idx) ->
 
 
 % Return the field as binary
-field_value(V) when is_list(V) -> list_to_binary(V);
-field_value(V) -> V.
 
 
 -spec parse_datasource_type(binary()) -> atom().
@@ -1321,7 +1242,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		end,
 		
 		put(parse_step, max_pool_size),
-		MaxPoolSize0 = ems_util:parse_integer(maps:get(<<"max_pool_size">>, M, ?MAX_CONNECTION_IDDLE_BY_POOL)),
+		MaxPoolSize0 = ems_util:parse_integer(maps:get(<<"max_pool_size">>, M, ?MAX_CONNECTION_LIMIT_BY_POOL)),
 		MaxConnectionLimit = ems_db:get_param(max_connection_by_pool, ?MAX_CONNECTION_LIMIT_BY_POOL),
 		MaxPoolSize = if MaxPoolSize0 > MaxConnectionLimit -> 
 							ems_logger:warn("ems_db datasource ~s max_pool_size ~p exceeds global limit ~p. Capping to ~p.", [DsName, MaxPoolSize0, MaxConnectionLimit, MaxConnectionLimit]),
@@ -1329,6 +1250,13 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 						 MaxPoolSize0 < 1 -> 1;
 						 true -> MaxPoolSize0
 					  end,
+		
+		put(parse_step, max_idle_pool_size),
+		MaxIdlePoolSize0 = ems_util:parse_integer(maps:get(<<"max_idle_pool_size">>, M, ?MAX_CONNECTION_IDDLE_BY_POOL)),
+		MaxIdlePoolSize = if MaxIdlePoolSize0 > MaxPoolSize -> MaxPoolSize;
+							 MaxIdlePoolSize0 < 1 -> 1;
+							 true -> MaxIdlePoolSize0
+						  end,
 		
 		put(parse_step, sql_check_valid_connection),
 		SqlCheckValidConnection = parse_datasource_sql_check_validation_connection(Type, maps:get(<<"sql_check_valid_connection">>, M, undefined)),
@@ -1357,7 +1285,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		put(parse_step, ctrlhash),
 		CtrlHash = erlang:phash2([Rowid, Type, Driver, Connection, TableName, Fields, 
 								  PrimaryKey, ForeignKey, ForeignTableName, CsvDelimiter, 
-								  Sql, Timeout, MaxPoolSize, 
+								  Sql, Timeout, MaxPoolSize, MaxIdlePoolSize,
 								  SqlCheckValidConnection, CloseIdleConnectionTimeout, 
 								  CheckValidConnectionTimeout, RemapFields, ShowRemapFields]),
 
@@ -1381,6 +1309,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 												sql = Sql,
 												timeout = Timeout,
 												max_pool_size = MaxPoolSize,
+												max_idle_pool_size = MaxIdlePoolSize,
 												remap_fields = RemapFields,
 												remap_fields_rev = RemapFieldsRev,
 												show_remap_fields = ShowRemapFields,
@@ -1401,57 +1330,6 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 	end.
 	
 
-command(Datasource, Sql) when is_integer(Datasource) ->
-	case ems_db:get(service_datasource, Datasource) of
-		{ok, Record} -> command(Record, Sql);
-		{error, enoent} -> ems_logger:format_error("ems_db test_datasource datasource not found.\n")	
-	end;
-command(Datasource, Sql) when is_tuple(Datasource) ->
-	try
-		case ems_odbc_pool:get_connection(Datasource) of
-			{ok, Datasource2} -> 
-				ems_logger:format_info("ems_db command connection passed."),
-				case ems_odbc_pool:param_query(Datasource2, Sql, []) of
-					{_, _, Records} -> 
-						ems_odbc_pool:release_connection(Datasource2),
-						ems_logger:format_info("ems_db command data:\n"),
-						io:format("~p\n", [Records]);		% não remova!!!
-					Error1 -> 
-						ems_odbc_pool:release_connection(Datasource2),
-						ems_logger:format_error("ems_db command exception. Reason: ~p.\n", [Error1])
-				end;
-			Error2 -> 
-				ems_logger:format_error("ems_db command exception. Reason: ~p.\n", [Error2])
-		end
-	catch
-		_:Reason-> ems_logger:format_error("ems_db command exception. Reason: ~p.\n", [Reason])
-	end.
-		
-
-select_count(Datasource, Sql) when is_integer(Datasource) ->
-	case ems_db:get(service_datasource, Datasource) of
-		{ok, Record} -> select_count(Record, Sql);
-		{error, enoent} -> ems_logger:format_error("ems_db select_count datasource not found.\n")	
-	end;
-select_count(Datasource, Sql) when is_tuple(Datasource) ->
-	try
-		case ems_odbc_pool:get_connection(Datasource) of
-			{ok, Datasource2} -> 
-				ems_logger:format_info("ems_db select_count connection passed."),
-				case ems_odbc_pool:select_count(Datasource2, Sql) of
-					{ok, NumRows} -> 
-						ems_odbc_pool:release_connection(Datasource2),
-						ems_logger:format_info("ems_db select_count: ~p rows\n", [NumRows]);
-					Error1 -> 
-						ems_odbc_pool:release_connection(Datasource2),
-						ems_logger:format_error("ems_db select_count exception. Reason: ~p.", [Error1])
-				end;
-			Error2 -> 
-				ems_logger:format_error("ems_db select_count exception. Reason: ~p.\n", [Error2])
-		end
-	catch
-		_:Reason-> ems_logger:format_error("ems_db select_count exception. Reason: ~p.\n", [Reason])
-	end.
 
 
 is_simple_equality_filter([]) -> true;

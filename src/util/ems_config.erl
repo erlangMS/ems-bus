@@ -586,7 +586,7 @@ parse_config(Json, Filename) ->
 		LogShowPayloadMaxLength = get_p(<<"log_show_payload_max_length">>, Json, ?LOG_SHOW_PAYLOAD_MAX_LENGTH),
 		
 		put(parse_step, max_connection_by_pool),
-		MaxConnectionByPool = ems_util:parse_range(get_p(<<"max_connection_by_pool">>, Json, ?MAX_CONNECTION_IDDLE_BY_POOL), 1, 1000),
+		MaxConnectionByPool = ems_util:parse_range(get_p(<<"max_connection_by_pool">>, Json, ?MAX_CONNECTION_LIMIT_BY_POOL), 1, 1000),
 		ems_db:set_param(max_connection_by_pool, MaxConnectionByPool),
 
 		put(parse_step, log_show_odbc_pool_activity),
