@@ -50,7 +50,6 @@ init({IpAddress,
 	  ListenerName}) ->
     Conf = ems_config:getConfig(),
     State = #encode_request_state{http_max_content_length = HttpMaxContentLength,
-
 									debug = Conf#config.debug,
 									current_node = ems_util:node_binary()},
 	Dispatch = cowboy_router:compile([
@@ -105,9 +104,6 @@ init({IpAddress,
 			ems_logger:error("ems_http_listener cannot listen ~s on port ~p because it is already in use on IP ~s by other process.", [ProtocolStr, Port, IpAddressStr])
 	end,
 	{ok, State}.
-	
-	
-		
 		
 handle_cast(shutdown, State) ->
     {stop, normal, State}.

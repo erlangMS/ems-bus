@@ -236,10 +236,10 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 								Datasource3 = Datasource2#service_datasource{owner = WorkerPid, 
 																			 pid_module = PidModule,
 																			 pid_module_ref = PidModuleRef},
-								ems_odbc_pool_worker:notify_use(WorkerPid, Datasource3),
+								{ok, _QueryCount} = ems_odbc_pool_worker:notify_use(WorkerPid, Datasource3),
 								erlang:put(PidModuleRef, Datasource3),
 								erlang:put(WorkerPid, Datasource3),
-								ems_logger:info("ems_odbc_pool start new worker (Ds: ~p).", [Id], LogShowPoolActivity),
+								ems_logger:info("ems_odbc_pool start new worker (Ds: ~p QueryCount: ~p).", [Id, 0], LogShowPoolActivity),
 								{ok, Datasource3};
 							{error, shutdown} ->								
 								{error, eunavailable_odbc_connection};
@@ -264,10 +264,10 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 															 sql = Sql,
 															 primary_key = PrimaryKey},
 				WorkerPid = Datasource3#service_datasource.owner,
-				ems_odbc_pool_worker:notify_use(WorkerPid, Datasource3),
+				{ok, QueryCount} = ems_odbc_pool_worker:notify_use(WorkerPid, Datasource3),
 				erlang:put(PidModuleRef, Datasource3),
 				erlang:put(WorkerPid, Datasource3),
-				ems_logger:info("ems_odbc_pool reuse worker (Ds: ~p PoolSize: ~p).", [Id, PoolSize-1], LogShowPoolActivity),
+				ems_logger:info("ems_odbc_pool reuse worker (Ds: ~p PoolSize: ~p QueryCount: ~p).", [Id, PoolSize-1, QueryCount], LogShowPoolActivity),
 				{ok, Datasource3}
 		end
 	catch
@@ -293,11 +293,11 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 				case (PoolSize < MaxPoolSize) of
 					true ->
 						case ems_odbc_pool_worker:notify_return_pool(Owner) of
-							ok -> 
+							{ok, QueryCount} -> 
 								Pool2 = queue:in(Datasource#service_datasource{pid_module = undefined, 
 																			   pid_module_ref = undefined}, Pool),
 								erlang:put(Id, Pool2),
-								ems_logger:info("ems_odbc_pool release worker (Ds: ~p PoolSize: ~p).", [Id, PoolSize+1], LogShowPoolActivity),
+								ems_logger:info("ems_odbc_pool release worker (Ds: ~p PoolSize: ~p QueryCount: ~p).", [Id, PoolSize+1, QueryCount], LogShowPoolActivity),
 								ok;
 							_ ->
 								case erlang:is_process_alive(Owner) of

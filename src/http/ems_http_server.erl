@@ -38,8 +38,6 @@ start(Service = #service{name = Name}) ->
  
 stop() ->
     gen_server:cast(?SERVER, shutdown).
- 
-
 
  
 %%====================================================================
@@ -49,7 +47,6 @@ stop() ->
 init(Service = #service{start_timeout = StartTimeout}) ->
  	State = #state{service = Service},
  	{ok, State, StartTimeout}.
-
     
 handle_cast(shutdown, State) ->
     {stop, normal, State};

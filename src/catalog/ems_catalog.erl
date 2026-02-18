@@ -626,8 +626,6 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 				put(parse_step, http_max_content_length),
 				HttpMaxContentLength = ems_util:parse_range(get_p(<<"http_max_content_length">>, Map, HttpMaxContentLengthDefault), 0, ?HTTP_MAX_CONTENT_LENGTH_BY_SERVICE),
 				
-
-				
 				put(parse_step, log_show_response),
 				LogShowResponse = ems_util:parse_bool(get_p(<<"log_show_response">>, Map, LogShowResponseDefault)),
 				
@@ -686,7 +684,6 @@ new_from_map(Map, Conf = #config{cat_enable_services = EnableServices,
 			
 				put(parse_step, metrics),
 				ServiceResendMsg1 = list_to_atom("service_" ++ integer_to_list(Rowid) ++ "_resend_msg1"),
-				
 				
 				case UseRE of
 					true -> 

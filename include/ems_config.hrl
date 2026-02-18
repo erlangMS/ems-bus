@@ -153,6 +153,7 @@
 -define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 2 minutos
 -define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h
 -define(CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h
+-define(CONNECTION_LIMIT_QUERYCOUNT_RELEASE, 100).
 
 
 % Define the default checkpoint to ems_data_loader and ems_json_loader

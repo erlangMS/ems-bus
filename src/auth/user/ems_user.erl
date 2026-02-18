@@ -13,24 +13,18 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 -export([find_by_id/2,		 
-		 find_by_login/1, 
-		 find_by_login_and_scope/2,
-		 find_by_login_and_password/2,
-		 find_by_login_and_password/3,
-		 find_by_filter_and_scope/3,
-		 get_user_info/2,
-		 to_resource_owner/1,
-		 to_resource_owner/2,
+ 		 find_by_login/1, 
+ 		 find_by_login_and_scope/2,
+ 		 find_by_login_and_password/2,
+ 		 find_by_login_and_password/3,
+ 		 find_by_login_and_scope/3,
+ 		 get_user_info/2,
+ 		 to_resource_owner/1,
+ 		 to_resource_owner/2,
  		 new_from_map/2,
-		 find/2,
-		 find_by_codigo_pessoa/1,
-		 find_by_codigo_pessoa/2,
-		 find_by_email/1,
-		 find_by_email_/1,
-		 find_by_email_or_login/2,
-		 find_by_cpf/1,
-		 find_by_name/1,
-		 get_admim_user/0,
+ 		 find/2,
+ 		 find_by_cpf/1,
+ 		 find_by_name/1,
 		 get_table/1,
 		 exist/2,
 		 all/1
@@ -47,40 +41,6 @@ find_by_id(Id, Tables) ->
 
 find_by_filter_and_scope(Fields, Filter, TableScope) -> 
 	ems_db:find(TableScope, Fields, Filter).
-
--spec find_by_codigo_pessoa(non_neg_integer()) -> {ok, list(#user{})} | {error, enoent}.
-find_by_codigo_pessoa(Codigo) ->
-	case Codigo > 0 of
-		true ->
-			case mnesia:dirty_index_read(user_db, Codigo, #user.codigo) of
-				[] -> 
-					case mnesia:dirty_index_read(user2_db, Codigo, #user.codigo) of
-						[] -> 
-							case mnesia:dirty_index_read(user_aluno_ativo_db, Codigo, #user.codigo) of
-									[] -> 
-										case mnesia:dirty_index_read(user_aluno_inativo_db, Codigo, #user.codigo) of
-											[] -> case mnesia:dirty_index_read(user_fs, Codigo, #user.codigo) of
-													[] -> {error, enoent};
-													Records -> {ok, Records}
-												  end;
-											Records -> {ok, Records}
-										end;
-									Records -> {ok, Records}
-								  end;
-						Records -> {ok, Records}
-					end;
-				Records -> {ok, Records}
-			end;
-		false -> {error, enoent}
-	end.
-
-
--spec find_by_codigo_pessoa(atom(), non_neg_integer()) -> {ok, list(#user{})} | {error, enoent}.
-find_by_codigo_pessoa(Table, Codigo) ->
-	case mnesia:dirty_index_read(Table, Codigo, #user.codigo) of
-		[] -> {error, enoent};
-		Records -> {ok, Records}
-	end.
 
 
 find_index_by_login_and_password([], _, _, _, _, _, _) ->
@@ -342,92 +302,6 @@ find_by_login(Login) ->
 	end.
 
 
-
--spec find_by_email(binary()) -> #user{} | {error, enoent}.
-find_by_email(<<>>) -> {error, enoent};	
-find_by_email("") -> {error, enoent};	
-find_by_email(undefined) -> {error, enoent};	
-find_by_email(Email) -> 
-	case is_list(Email) of
-		true -> EmailStr = string:to_lower(Email);
-		false -> EmailStr = string:to_lower(binary_to_list(Email))
-	end,
-	Ch = string:substr(EmailStr, 1, 1),
-	EmailLen = string:len(EmailStr), 
-	case ems_util:is_letter_lower(Ch) andalso EmailLen >= 3 of
-		true ->
-			case string:rchr(EmailStr, $@) > 0 of
-				true ->  
-					case EmailLen >= 10 of
-						true -> find_by_email_(list_to_binary(EmailStr));
-						false -> {error, enoent}
-					end;
-				false -> 
-					EmailUnB = list_to_binary(EmailStr ++ "@unb.br"),
-					case find_by_email_or_login(EmailUnB, #user.email) of
-						{ok, Record} -> {ok, Record};
-						{error, enoent} -> 
-							case find_by_email_or_login(EmailUnB, #user.login) of
-								{ok, Record} -> {ok, Record};
-								{error, enoent} -> 
-									EmailGmail = list_to_binary(EmailStr ++ "@gmail.com"),
-									case find_by_email_or_login(EmailGmail, #user.email) of
-										{ok, Record} -> {ok, Record};
-										{error, enoent} -> find_by_email_or_login(EmailGmail, #user.login)
-									end
-							end
-					end
-			end;
-		false -> {error, enoent}
-	end.
-
--spec find_by_email_(binary()) -> #user{} | {error, enoent}.
-find_by_email_(EmailBin) -> 
-	case mnesia:dirty_index_read(user_db, EmailBin, #user.email) of
-		[] -> 
-			case mnesia:dirty_index_read(user2_db, EmailBin, #user.email) of
-				[] -> 
-					case mnesia:dirty_index_read(user_aluno_ativo_db, EmailBin, #user.email) of
-						[] -> 
-							case mnesia:dirty_index_read(user_aluno_inativo_db, EmailBin, #user.email) of
-								[] -> 
-									case mnesia:dirty_index_read(user_fs, EmailBin, #user.email) of
-										[] -> {error, enoent};
-										[Record|_] -> {ok, Record}
-									end;
-								[Record|_] -> {ok, Record}
-							end;
-						[Record|_] -> {ok, Record}
-					end;
-				[Record|_] -> {ok, Record}
-			end;
-		[Record|_] -> {ok, Record}
-	end.
-
--spec find_by_email_or_login(binary(), non_neg_integer()) -> #user{} | {error, enoent}.
-find_by_email_or_login(EmailBin, Where) -> 
-	case mnesia:dirty_index_read(user_db, EmailBin, Where) of
-		[] -> 
-			case mnesia:dirty_index_read(user2_db, EmailBin, Where) of
-				[] -> 
-					case mnesia:dirty_index_read(user_aluno_ativo_db, EmailBin, Where) of
-						[] -> 
-							case mnesia:dirty_index_read(user_aluno_inativo_db, EmailBin, Where) of
-								[] -> 
-									case mnesia:dirty_index_read(user_fs, EmailBin, Where) of
-										[] -> {error, enoent};
-										[Record|_] -> {ok, Record}
-									end;
-								[Record|_] -> {ok, Record}
-							end;
-						[Record|_] -> {ok, Record}
-					end;
-				[Record|_] -> {ok, Record}	
-			end;
-		[Record|_] -> {ok, Record}
-	end.
-
-
 -spec find_by_cpf(binary() | string()) -> #user{} | {error, enoent}.
 find_by_cpf(<<>>) -> {error, enoent};	
 find_by_cpf("") -> {error, enoent};	
@@ -504,15 +378,6 @@ find_by_name(Name) ->
 		_ -> {error, enoent}
 	end.
 	
-get_admim_user() ->
-	case ems_db:get([user_fs], 1) of
-		{ok, Record} -> {ok, Record};
-		_ -> {error, enoent}
-	end.
-
-
-
-
 get_user_info(User, ClientId) ->
 	try
 		put(get_user_info, get_user_info_pass1),
@@ -521,7 +386,6 @@ get_user_info(User, ClientId) ->
 		FirstName = lists:nth(1,ListaNomeCompleto),
 		ListaSobrenome =  lists:delete(FirstName, ListaNomeCompleto),
 		ListaSobrenomeSpace = ems_util:add_spaces_all_elements_list(ListaSobrenome, <<" ">>),
-
 		UserId = format_user_field(User#user.id),
 		Name =  format_user_field(User#user.name),
 		Codigo =  format_user_field(User#user.codigo),
@@ -570,8 +434,6 @@ get_user_info(User, ClientId) ->
 		_Exception:ReasonException -> 
 			ems_logger:warn("ems_user get_user_info exception to get ListaPerfilJson. User: ~p  Clientid: ~p Step: ~p. Reason: ~p.\n", [User, ClientId, get(get_user_info), ReasonException])			
 	end.
-	
-
 
 -spec to_resource_owner(#user{}, non_neg_integer()) -> binary().
 to_resource_owner(undefined, _) -> <<"{}"/utf8>>;

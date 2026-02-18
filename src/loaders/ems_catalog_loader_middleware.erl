@@ -189,7 +189,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												protocol = NewCatalog#service.protocol,
 												filename = NewCatalog#service.filename,
 												http_max_content_length = NewCatalog#service.http_max_content_length,
-
 												log_show_response = NewCatalog#service.log_show_response,
 												log_show_payload = NewCatalog#service.log_show_payload,
 												restricted = NewCatalog#service.restricted,

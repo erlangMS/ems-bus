@@ -133,7 +133,7 @@ handle_call({notify_use, #service_datasource{pid_module = PidModule,
 	end,
 	Datasource2 = InternalDatasource#service_datasource{pid_module = PidModule,
 														pid_module_ref = PidModuleRef},
-	{reply, ok, State#state{datasource = Datasource2,
+	{reply, {ok, State#state.query_count}, State#state{datasource = Datasource2,
 							last_error = undefined,
 							check_valid_connection_ref = undefined,
 							close_idle_connection_ref = undefined}};
@@ -147,18 +147,24 @@ handle_call(notify_return_pool, _From, State = #state{datasource = InternalDatas
 	% volta ao pool somente se nenhum erro ocorreu
 	case LastError of
 		undefined ->
-			ems_logger:debug("ems_odbc_pool_worker notify_return_pool (Ds: ~p QueryCount: ~p).", [Id, QueryCount], InternalDatasource#service_datasource.log_show_odbc_pool_activity),
-			case SqlCheckValidConnection =/= undefined andalso SqlCheckValidConnection =/= "" of
-				true -> CheckValidConnectionRef = erlang:send_after(CheckValidConnectionTimeout, self(), {check_valid_connection, QueryCount});
-				false -> CheckValidConnectionRef = undefined
-			end,
-			CloseIdleConnectionRef = erlang:send_after(CloseIdleConnectionTimeout, self(), close_idle_connection),
-			erlang:garbage_collect(),
-			{reply, ok, State#state{datasource = InternalDatasource#service_datasource{pid_module = undefined,
-																					   pid_module_ref = undefined},
-									last_error = undefined,
-									check_valid_connection_ref = CheckValidConnectionRef,
-									close_idle_connection_ref = CloseIdleConnectionRef}};
+			case QueryCount >= ?CONNECTION_LIMIT_QUERYCOUNT_RELEASE of
+				true ->
+					ems_logger:info("ems_odbc_pool_worker notify_return_pool shutdown due to use limit (Ds: ~p QueryCount: ~p).", [Id, QueryCount], InternalDatasource#service_datasource.log_show_odbc_pool_activity),
+					{stop, normal, {ok, QueryCount}, State};
+				false ->
+					ems_logger:debug("ems_odbc_pool_worker notify_return_pool (Ds: ~p QueryCount: ~p).", [Id, QueryCount], InternalDatasource#service_datasource.log_show_odbc_pool_activity),
+					case SqlCheckValidConnection =/= undefined andalso SqlCheckValidConnection =/= "" of
+						true -> CheckValidConnectionRef = erlang:send_after(CheckValidConnectionTimeout, self(), {check_valid_connection, QueryCount});
+						false -> CheckValidConnectionRef = undefined
+					end,
+					CloseIdleConnectionRef = erlang:send_after(CloseIdleConnectionTimeout, self(), close_idle_connection),
+					erlang:garbage_collect(),
+					{reply, {ok, QueryCount}, State#state{datasource = InternalDatasource#service_datasource{pid_module = undefined,
+																							   pid_module_ref = undefined},
+											last_error = undefined,
+											check_valid_connection_ref = CheckValidConnectionRef,
+											close_idle_connection_ref = CloseIdleConnectionRef}}
+			end;
 		{error, Reason} ->
 			ems_logger:error("ems_odbc_pool_worker notify_return_pool skip due error (Ds: ~p QueryCount: ~p LastError: ~p).", [Id, QueryCount, Reason]),
 			{reply, LastError, State}

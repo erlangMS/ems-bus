@@ -156,11 +156,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 	end.
 
 
-
-	
-			
-
-
 -spec after_load_or_update_checkpoint(fs | db) -> ok.
 after_load_or_update_checkpoint(_SourceType) ->	ok.
 
