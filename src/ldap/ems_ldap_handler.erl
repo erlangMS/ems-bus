@@ -73,7 +73,7 @@ loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress}) 
 											Transport:send(Socket, Response)
 									end;
 								{error, Reason} ->
-									ems_logger:error("ems_ldap_handler decode invalid message ~p from ~p. Reason: ~p.", [Data, IpBin, Reason]),
+									ems_logger:error("ems_ldap_handler decode invalid message ~p from ~s. Reason: ~p.", [Data, IpBin, Reason]),
 									ResultDone = make_result_done(inappropriateMatching),
 									Response = [ encode_response(1, ResultDone) ],
 									Transport:send(Socket, Response),
@@ -81,7 +81,7 @@ loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress}) 
 									ok
 							end;
 						false ->
-							ems_logger:warn("ems_ldap_handler does not grant access to IP ~p. Reason: IP denied.", [IpBin]),
+							ems_logger:warn("ems_ldap_handler does not grant access to IP ~s. Reason: IP denied.", [ems_util:ntoa(IpBin)]),
 							ResultDone = make_result_done(insufficientAccessRights),
 							Response = [ encode_response(1, ResultDone) ],
 							Transport:send(Socket, Response),
@@ -141,13 +141,13 @@ handle_request({'LDAPMessage', _,
 		{ok, _, UserLogin, _BaseFilter} ->
 			case ems_user:find_by_login(UserLogin) of
 				{error, _Reason, _ReasonDetail} ->
-					ems_logger:error("ems_ldap_handler handle_request search ~p does not exist from ~p.", [UserLogin, Ip]),
+					ems_logger:error("ems_ldap_handler handle_request search ~p does not exist from ~s.", [UserLogin, ems_util:ntoa(Ip)]),
 					ResultDone = make_result_done(invalidCredentials),
 					{ok, [ResultDone]};
 				{ok, User = #user{active = Active}} -> 
 						case Active orelse AuthAllowUserInativeCredentials of
 							true -> 
-								ems_logger:info("ems_ldap_handler handle_request search ~p ~p success from ~p.", [UserLogin, User#user.name, Ip]),
+								ems_logger:info("ems_ldap_handler handle_request search ~p ~p success from ~s.", [UserLogin, User#user.name, ems_util:ntoa(Ip)]),
 								{ok, ListaPerfil} = ems_user_perfil:find_by_user(User#user.id, [id, name]),
 								ListaPerfil2 = [ maps:get(<<"name">>, R) || R <- ListaPerfil ],
 								ResultEntry = {searchResEntry, #'SearchResultEntry'{objectName = ObjectName,
@@ -157,13 +157,13 @@ handle_request({'LDAPMessage', _,
 								ResultDone = make_result_done(success),
 								{ok, [ResultEntry, ResultDone]};
 							false -> 
-								ems_logger:error("ems_ldap_handler handle_request search ~p does not exist from ~p.", [UserLogin, Ip]),
+								ems_logger:error("ems_ldap_handler handle_request search ~p does not exist from ~s.", [UserLogin, ems_util:ntoa(Ip)]),
 								ResultDone = make_result_done(insufficientAccessRights),
 								{ok, [ResultDone]}
 						end
 			end;
 		{error, _Reason} -> 
-			ems_logger:error("ems_ldap_handler handle_request parse invalid name ~p from ~p.", [ObjectName, Ip]),
+			ems_logger:error("ems_ldap_handler handle_request parse invalid name ~p from ~s.", [ObjectName, ems_util:ntoa(Ip)]),
 			ResultDone = make_result_done(invalidCredentials),
 			{ok, [ResultDone]}
 	end;
@@ -249,7 +249,7 @@ handle_request({'LDAPMessage', _,
 handle_request({'LDAPMessage', _, 
 					_UnknowMsg,
 				 _} = LdapMsg, _State, Ip, _Port, _TimestampBin) ->
-	ems_logger:warn("ems_ldap_handler handle_request received unknow msg ~p from ~p.", [LdapMsg, Ip]),
+	ems_logger:warn("ems_ldap_handler handle_request received unknow msg ~p from ~s.", [LdapMsg, ems_util:ntoa(Ip)]),
 	{ok, unbindRequest}.
 	
 
@@ -455,7 +455,7 @@ handle_bind_request(Name,
 	case (Name =:= <<>>) orelse (NameSize < 2) orelse (NameSize > 100) orelse 
 		 (Password =:= <<>>) orelse (PasswordSize < 1) orelse (PasswordSize > 256) of
 		true ->
-			ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~p.", [Name, Ip]),
+			ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~s.", [Name, ems_util:ntoa(Ip)]),
 			BindResponse = make_bind_response(invalidCredentials, Name);
 		false ->
 			case ems_util:parse_ldap_name(Name) of
@@ -464,23 +464,23 @@ handle_bind_request(Name,
 						{ok, IsAdmin} -> 
 							BindReqHash = erlang:phash2([Ip, Port]),
 							put(BindReqHash, {IsAdmin, AdminLogin}),
-							ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s success from ~s.", [atom_to_list(UidOrCn), Name, Ip]),
+							ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s success from ~s.", [atom_to_list(UidOrCn), Name, ems_util:ntoa(Ip)]),
 							BindResponse = make_bind_response(success, Name);
 						_ ->
 						  case do_authenticate_admin_with_list_users(AdminLogin, Password, State, Ip, Port, TimestampBin) of
 							  {ok, #user{admin = IsAdmin, ctrl_source_type = Table}} -> 
 								 BindReqHash = erlang:phash2([Ip, Port]),
 								 put(BindReqHash, {IsAdmin, AdminLogin}),
-								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s on table ~p success from ~s.", [atom_to_list(UidOrCn), Name, Table, Ip]),
+								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s on table ~p success from ~s.", [atom_to_list(UidOrCn), Name, Table, ems_util:ntoa(Ip)]),
 								 BindResponse = make_bind_response(success, Name);
 							  _-> 
-								 ems_logger:error("ems_ldap_handler handle_bind_request bind_~s ~s invalid credential from ~s.", [atom_to_list(UidOrCn), Name, Ip]),
+								 ems_logger:error("ems_ldap_handler handle_bind_request bind_~s ~s invalid credential from ~s.", [atom_to_list(UidOrCn), Name, ems_util:ntoa(Ip)]),
 								 BindResponse = make_bind_response(insufficientAccessRights, Name)
 						   end
 					end,
 					BindResponse;
 				{error, _Reason} -> 
-					ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~s from ~s.", [Name, Ip]),
+					ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~s from ~s.", [Name, ems_util:ntoa(Ip)]),
 					BindResponse = make_bind_response(invalidCredentials, Name)
 			end
 	end,
@@ -500,8 +500,8 @@ handle_request_search_login(Name,
 					case Attribute of
 						<<>> ->
 							case BindRequestName of
-								<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~s does not exist from ~s.", [UserLogin, Ip]);
-								_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~s does not exist by ~s from ~s.", [UserLogin, BindRequestName, Ip])
+								<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~s does not exist from ~s.", [UserLogin, ems_util:ntoa(Ip)]);
+								_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~s does not exist by ~s from ~s.", [UserLogin, BindRequestName, ems_util:ntoa(Ip)])
 							end,
 							ResultDone = make_result_done(noSuchObject),
 							{ok, [ResultDone]};
@@ -511,8 +511,8 @@ handle_request_search_login(Name,
 									do_find_by_filter([{Field, <<"==">>, Name}], State, Ip, Port, TimestampBin, AttributesToReturn, UserLogin);
 								{error, einvalid_field} ->
 									case BindRequestName of
-										<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~s does not exist from ~s.", [UserLogin, Ip]);
-										_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~s does not exist by ~s from ~s.", [UserLogin, BindRequestName, Ip])
+										<<>> -> ems_logger:error("ems_ldap_handler handle_request_search_login unbind search ~s does not exist from ~s.", [UserLogin, ems_util:ntoa(Ip)]);
+										_ -> ems_logger:error("ems_ldap_handler handle_request_search_login search ~s does not exist by ~s from ~s.", [UserLogin, BindRequestName, ems_util:ntoa(Ip)])
 									end,
 									ResultDone = make_result_done(noSuchAttribute),
 									{ok, [ResultDone]}
@@ -521,20 +521,20 @@ handle_request_search_login(Name,
 				{ok, User} -> 
 					case BindRequestName of
 						<<>> -> 
-							ems_logger:info("ems_ldap_handler handle_request_search_login unbind search ~s ~s success from ~s.", [UserLogin, User#user.name, Ip]),
+							ems_logger:info("ems_ldap_handler handle_request_search_login unbind search ~s ~s success from ~s.", [UserLogin, User#user.name, ems_util:ntoa(Ip)]),
 							ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>]);
 						_ -> 
 							case IsAdmin of
 								true -> 
-									ems_logger:info("ems_ldap_handler handle_request_search_login admin search ~p ~p success by ~p from ~p.", [UserLogin, User#user.name, BindRequestName, Ip]),
+									ems_logger:info("ems_ldap_handler handle_request_search_login admin search ~p ~p success by ~p from ~s.", [UserLogin, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 									ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 								false -> 
 									case (BindRequestName =:= UserLogin) of
 										true -> 
-											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~s success by ~s from ~s.", [UserLogin, BindRequestName, Ip]),
+											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~s success by ~s from ~s.", [UserLogin, BindRequestName, ems_util:ntoa(Ip)]),
 											ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 										false ->
-											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~s success by ~s from ~s.", [UserLogin, BindRequestName, Ip]),
+											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~s success by ~s from ~s.", [UserLogin, BindRequestName, ems_util:ntoa(Ip)]),
 											ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>])
 									end
 							end
@@ -543,7 +543,7 @@ handle_request_search_login(Name,
 					{ok, [ResultEntry, ResultDone]}
 			end;
 		{error, _Reason} -> 
-			ems_logger:error("ems_ldap_handler handle_request_search_login inappropriate matching name ~s from ~s.", [Name, Ip]),
+			ems_logger:error("ems_ldap_handler handle_request_search_login inappropriate matching name ~s from ~s.", [Name, ems_util:ntoa(Ip)]),
 			ResultDone = make_result_done(inappropriateMatching),
 			{ok, [ResultDone]}
 	end.
@@ -554,7 +554,7 @@ handle_request_search_filter(FilterLdap, State, Ip, Port, TimestampBin, Attribut
 		{ok, Filter} -> 
 			do_find_by_filter(Filter, State, Ip, Port, TimestampBin, AttributesToReturn, undefined);
 		{error, _Reason} -> 
-			ems_logger:error("ems_ldap_handler handle_request_search_filter parse invalid filter or ~p from ~p.", [FilterLdap, Ip]),
+			ems_logger:error("ems_ldap_handler handle_request_search_filter parse invalid filter or ~p from ~s.", [FilterLdap, ems_util:ntoa(Ip)]),
 			BindResponse = make_bind_response(inappropriateMatching, <<>>),
 			{ok, [BindResponse]}
 	end.
@@ -567,28 +567,28 @@ do_find_by_filter(Filter,
 	case ems_user:find_by_filter_and_scope([], Filter, AuthDefaultScope) of
 		{error, _Reason, _ReasonDetail} ->
 			case BindRequestName of
-				<<>> ->	ems_logger:error("ems_ldap_handler do_find_by_filter unbind search ~p does not exist from ~p.", [Filter, Ip]);
-				_ -> ems_logger:error("ems_ldap_handler do_find_by_filter search ~p does not exist by ~p from ~p.", [Filter, BindRequestName, Ip])
+				<<>> ->	ems_logger:error("ems_ldap_handler do_find_by_filter unbind search ~p does not exist from ~s.", [Filter, ems_util:ntoa(Ip)]);
+				_ -> ems_logger:error("ems_ldap_handler do_find_by_filter search ~p does not exist by ~p from ~s.", [Filter, BindRequestName, ems_util:ntoa(Ip)])
 			end,
 			ResultDone = make_result_done(noSuchObject),
 			{ok, [ResultDone]};
 		{ok, [User|_]} -> 
 			case BindRequestName of
 				<<>> -> 
-					ems_logger:info("ems_ldap_handler do_find_by_filter unbind search ~p ~p success from ~p.", [Filter, User#user.name, Ip]),
+					ems_logger:info("ems_ldap_handler do_find_by_filter unbind search ~p ~p success from ~s.", [Filter, User#user.name, ems_util:ntoa(Ip)]),
 					ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>]);
 				_ -> 
 					case IsAdmin of
 						true -> 
-							ems_logger:info("ems_ldap_handler do_find_by_filter admin search ~p ~p success by ~p from ~p.", [Filter, User#user.name, BindRequestName, Ip]),
+							ems_logger:info("ems_ldap_handler do_find_by_filter admin search ~p ~p success by ~p from ~s.", [Filter, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 							ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 						false -> 
 							case (BindRequestName =:= UserLogin) of
 								true -> 
-									ems_logger:info("ems_ldap_handler do_find_by_filter user search ~p ~p success by ~p from ~p.", [Filter, User#user.name, BindRequestName, Ip]),
+									ems_logger:info("ems_ldap_handler do_find_by_filter user search ~p ~p success by ~p from ~s.", [Filter, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 									ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 								false ->
-									ems_logger:info("ems_ldap_handler do_find_by_filter restricted search ~p ~p success by ~p from ~p.", [Filter, User#user.name, BindRequestName, Ip]),
+									ems_logger:info("ems_ldap_handler do_find_by_filter restricted search ~p ~p success by ~p from ~s.", [Filter, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 									ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>])
 							end
 					end
@@ -597,8 +597,8 @@ do_find_by_filter(Filter,
 			{ok, [ResultEntry, ResultDone]};
 		{ok, []} -> 
 			case BindRequestName of
-				<<>> ->	ems_logger:error("ems_ldap_handler do_find_by_filter unbind search ~p does not exist from ~p.", [Filter, Ip]);
-				_ -> ems_logger:error("ems_ldap_handler do_find_by_filter search ~p does not exist by ~p from ~p.", [Filter, BindRequestName, Ip])
+				<<>> ->	ems_logger:error("ems_ldap_handler do_find_by_filter unbind search ~p does not exist from ~s.", [Filter, ems_util:ntoa(Ip)]);
+				_ -> ems_logger:error("ems_ldap_handler do_find_by_filter search ~p does not exist by ~p from ~s.", [Filter, BindRequestName, ems_util:ntoa(Ip)])
 			end,
 			ResultDone = make_result_done(noSuchObject),
 			{ok, [ResultDone]}

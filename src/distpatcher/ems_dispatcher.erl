@@ -107,7 +107,6 @@ notify_workers_waiting_result_cache_([{_, Worker}|T], RequestDone, ReqHash) ->
 
 dispatch_request(Request = #request{req_hash = ReqHash, 
 								    ip = Ip,
-								    ip_bin = IpBin,
 								    type = Type,
 								    if_modified_since = IfModifiedSince,
 									if_none_match = IfNoneMatch,
@@ -127,7 +126,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 					false -> ResultCacheOrig
 				  end,
 	try
-		ems_logger:info("ems_dispatcher call Method: ~p ContentType: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ContentType, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+		ems_logger:info("ems_dispatcher call Method: ~p ContentType: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~s.", [Type, ContentType, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip)]),
 		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
 		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
 			true ->
@@ -152,7 +151,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 										case check_result_cache(ReqHash, WorkerSend, T1, Url, Debug) of
 											{true, RequestCache} -> 
 												case Debug of
-													true -> ems_logger:info("ems_dispatcher result_cache hit. url: ~p", [Url]);
+													true -> ems_logger:info("ems_dispatcher result_cache hit");
 													false -> ok
 												end,
 												ResponseHeader = RequestCache#request.response_header,
@@ -250,7 +249,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_request exception url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_request exception url_masked: ~p url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - T1,
 			{error, request, Request#request{code = 500, 
 											 reason = edispatch_request_exception, 
@@ -260,7 +259,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 
 dispatch_service_work(Request = #request{type = Type,
 										  url = Url,
-										  ip_bin = IpBin,
+										  ip = Ip,
 										  url_masked = UrlMasked, 
 										  user_agent = UserAgent},
 					  #service{host = '',
@@ -271,7 +270,7 @@ dispatch_service_work(Request = #request{type = Type,
  					  Debug) ->
 	try
 		case Debug of
-			true -> ems_logger:info("ems_dispatcher send ~s to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [Type, ModuleName, UrlMasked, Url, UserAgent, binary_to_list(IpBin)]);
+			true -> ems_logger:info("ems_dispatcher send ~s to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~s.", [Type, ModuleName, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip)]);
 			false -> ok
 		end,
 		%% Retornos possíveis:
@@ -297,7 +296,7 @@ dispatch_service_work(Request = #request{type = Type,
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - Request#request.t1,
 			{error, request, Request#request{code = 500, 
 											 reason = edispatch_service_work_local_exception, 
@@ -315,7 +314,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 										  content_type_out = ContentType,  
 										  params_url = ParamsMap,
 										  querystring_map = QuerystringMap,
-										  ip_bin = IpBin,
+										  ip = Ip,
 										  url_masked = UrlMasked, 
 										  user_agent = UserAgent},
 					  Service = #service{
@@ -346,7 +345,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 		dispatch_service_work_send(Request, Service, Debug, Msg)
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~p Reason: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - Request#request.t1,
 			{error, request, Request#request{code = 500, 
 											 reason = edispatch_service_work_exception, 
@@ -360,7 +359,7 @@ dispatch_service_work_send(Request = #request{type = Type,
 											  url_masked = UrlMasked, 
 											  url = Url,
 											  user_agent = UserAgent,
-											  ip_bin = IpBin},
+											  ip = Ip},
 						   Service = #service{host = Host,
 							 				  host_name = HostName,
 											  module_name = ModuleName,
@@ -374,12 +373,12 @@ dispatch_service_work_send(Request = #request{type = Type,
 			case Debug of
 				true -> 
 					ems_logger:info("get_work_node Host ~p  HostName: ~p  ModuleName: ~p", [Host, HostName, ModuleName]),
-					ems_logger:info("ems_dispatcher send ~s to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~p with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, binary_to_list(IpBin), TimeoutService]);
+					ems_logger:info("ems_dispatcher send ~s to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~s with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), TimeoutService]);
 				false -> ok
 			end,
 			dispatch_service_work_receive(Request, Service, Node, TimeoutService, 0, Debug);
 		_Error ->  
-			ems_logger:info("ems_dispatcher failed to get work node. url_masked: ~p url: ~p  user_agent: ~p IP: ~p.", [UrlMasked, Url, UserAgent, binary_to_list(IpBin)]),
+			ems_logger:info("ems_dispatcher failed to get work node. url_masked: ~p url: ~p  user_agent: ~p IP: ~s.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip)]),
 			Latency = ems_util:get_milliseconds() - T1,
 			{error, request, Request#request{code = 400,
 											 reason = eunavailable_service,

@@ -95,7 +95,6 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 authorization_owner = NewClient#client.authorization_owner,
 												 user_agent = NewClient#client.user_agent,
 												 peer = NewClient#client.peer,
-												 forwarded_for = NewClient#client.forwarded_for,
 												 ctrl_path = NewClient#client.ctrl_path,
 												 ctrl_file = NewClient#client.ctrl_file,
 												 ctrl_update = CtrlDate,

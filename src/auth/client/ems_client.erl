@@ -115,7 +115,6 @@ new_from_map(Map, Conf) ->
 				authorization_owner = maps:get(<<"authorization_owner">>, Map, []),
 				user_agent = maps:get(<<"user_agent">>, Map, []),
 				peer = maps:get(<<"peer">>, Map, []),
-				forwarded_for = maps:get(<<"forwarded_for">>, Map, []),
 				ctrl_path = maps:get(<<"ctrl_path">>, Map, <<>>),
 				ctrl_file = maps:get(<<"ctrl_file">>, Map, <<>>),
 				ctrl_modified = maps:get(<<"ctrl_modified">>, Map, undefined),

@@ -300,7 +300,7 @@ handle_info(check_count_records, State = #state{name = Name,
 											    loading = Loading,
 											    group = GroupDataLoader,
 											    wait_count = WaitCount}) ->
-	?DEBUG("~s handle check_count_records execute now.", [Name]),
+	ems_logger:debug("~s handle check_count_records execute now.", [Name], State#state.log_show_data_loader_activity),
 	case not Loading andalso ems_data_loader_ctl:permission_to_execute(Name, GroupDataLoader, check_count_records, WaitCount) of
 		true ->
 			case do_check_count_checkpoint(State) of
@@ -322,7 +322,7 @@ handle_info(check_count_records, State = #state{name = Name,
 			end;
 		false ->
 			TimeoutWait = get_timeout_wait(WaitCount),
-			?DEBUG("~s handle check_count_records wait ~pms to execute.", [Name, TimeoutWait]),
+			ems_logger:debug("~s handle check_count_records wait ~pms to execute.", [Name, TimeoutWait], State#state.log_show_data_loader_activity),
 			ThrottledTimeout7 = ems_data_loader_throttle:apply_throttle(TimeoutWait),
 			erlang:send_after(ThrottledTimeout7, self(), check_count_records),
 			{noreply, State#state{wait_count = WaitCount + 1}, UpdateCheckpoint}
@@ -354,7 +354,7 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 		put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass1),
 		case ems_data_loader_ctl:permission_to_execute(Name, DataLoaderGroup, check_load_or_update_checkpoint, WaitCount) of
 			true ->
-				?DEBUG("~s handle_do_check_load_or_update_checkpoint execute now.", [Name]),
+				ems_logger:debug("~s handle_do_check_load_or_update_checkpoint execute now.", [Name], LogShowDataLoaderActivity),
 				put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass2),
 				case do_check_load_or_update_checkpoint(State) of
 					{ok, State2 = #state{insert_count = InsertCount, update_count = UpdateCount, error_count = ErrorCount, disable_count = DisableCount, skip_count = SkipCount}} ->
@@ -427,7 +427,7 @@ do_check_count_checkpoint(State = #state{name = Name,
 										 check_count_checkpoint_metric_name = CheckCountCheckpointMetricName,
 										 check_remove_checkpoint_metric_name = CheckRemoveCheckpointMetricName}) ->
 	try
-		?DEBUG("~s do_check_count_checkpoint execute now.", [Name]),
+		ems_logger:debug("~s do_check_count_checkpoint execute now.", [Name], State#state.log_show_data_loader_activity),
 		ems_db:inc_counter(CheckCountCheckpointMetricName),
 		case ems_odbc_pool:get_connection(Datasource) of
 			{ok, Datasource2} -> 
@@ -438,13 +438,13 @@ do_check_count_checkpoint(State = #state{name = Name,
 							true -> CountDiff = CountDBTable - CountMnesiaTable;
 							false -> CountDiff = CountMnesiaTable - CountDBTable
 						end,
-						?DEBUG("~s do_check_count_checkpoint CountDB ~p  CountMnesia ~p  Diff ~p.", [Name, CountDBTable, CountMnesiaTable, CountDiff]),
+						ems_logger:debug("~s do_check_count_checkpoint CountDB ~p  CountMnesia ~p  Diff ~p.", [Name, CountDBTable, CountMnesiaTable, CountDiff], State#state.log_show_data_loader_activity),
 						if 
 							% Atenção: Quando fazer carga completa da tabela
 							% 1) Quando a diferença de registros entre as duas tabelas é muito grande, é melhor fazer uma carga completa
 							% 2) Quando a quantidade de registros no mnesia é menor que a que está no banco e o parâmetro sql_update não foi informado
 							(CountMnesiaTable > 10000 andalso CountDiff > 1000) orelse (CountMnesiaTable < CountDBTable andalso SqlUpdate == "") ->
-								?DEBUG("~s do_check_count_checkpoint sync full (Diff ~p).", [Name, CountDiff]),
+								ems_logger:debug("~s do_check_count_checkpoint sync full (Diff ~p).", [Name, CountDiff], State#state.log_show_data_loader_activity),
 								ems_odbc_pool:release_connection(Datasource2),
 								% Carregar todos os dados novamente
 								case do_check_load_or_update_checkpoint(State#state{last_update = undefined,
@@ -461,7 +461,7 @@ do_check_count_checkpoint(State = #state{name = Name,
 							% Se existe menos registros no banco de dados que o que está cadastrado no mnesia
 							CountMnesiaTable > CountDBTable ->
 								ems_db:inc_counter(CheckRemoveCheckpointMetricName),
-								?DEBUG("~s do_check_count_checkpoint get ids from table...", [Name]),
+								ems_logger:debug("~s do_check_count_checkpoint get ids from table...", [Name], State#state.log_show_data_loader_activity),
 								case ems_odbc_pool:param_query(Datasource2, SqlIds, []) of
 									{_, _, Result2} ->
 										ems_odbc_pool:release_connection(Datasource2),
@@ -469,7 +469,7 @@ do_check_count_checkpoint(State = #state{name = Name,
 										RemoveCount = do_check_remove_records(Codigos, State),
 										case RemoveCount > 0 of
 											true -> 
-												?DEBUG("~s deletes ~p records.", [Name, RemoveCount]),
+												ems_logger:debug("~s deletes ~p records.", [Name, RemoveCount], State#state.log_show_data_loader_activity),
 												case SqlUpdate == "" of
 													true ->
 														% Depois remover os registros apagados, é necessário invocar 
@@ -485,22 +485,22 @@ do_check_count_checkpoint(State = #state{name = Name,
 										{ok, State};
 									Error3 -> 
 										ems_odbc_pool:release_connection(Datasource2),
-										?DEBUG("~s do_check_count_checkpoint exception to execute sql ~p.", [Name, SqlIds]),
+										ems_logger:debug("~s do_check_count_checkpoint exception to execute sql ~p.", [Name, SqlIds], State#state.log_show_data_loader_activity),
 										Error3
 								end;
 							true ->
 								ems_odbc_pool:release_connection(Datasource2),
-								?DEBUG("~s do_check_count_checkpoint skip remove records.", [Name]),
+								ems_logger:debug("~s do_check_count_checkpoint skip remove records.", [Name], State#state.log_show_data_loader_activity),
 								{ok, State}
 						end;
 					Error4 -> 
 						ems_odbc_pool:release_connection(Datasource2),
-						?DEBUG("~s do_check_count_checkpoint exception to execute sql ~p. Reason: ~p.", [Name, SqlCount, Error4]),
+						ems_logger:debug("~s do_check_count_checkpoint exception to execute sql ~p. Reason: ~p.", [Name, SqlCount, Error4], State#state.log_show_data_loader_activity),
 						Error4
 				end,
 				Result;
 			Error5 -> 
-				?DEBUG("~s do_check_count_checkpoint has no connection to check counts.", [Name]),
+				ems_logger:debug("~s do_check_count_checkpoint has no connection to check counts.", [Name], State#state.log_show_data_loader_activity),
 				Error5
 		end
 	catch
@@ -521,7 +521,7 @@ do_check_load_or_update_checkpoint(State = #state{name = Name,
 	Conf = ems_config:getConfig(),
 	case LastUpdate == undefined orelse do_is_empty(State) of
 		true -> 
-			?DEBUG("~s do_check_load_or_update_checkpoint load checkpoint.", [Name]),
+			ems_logger:debug("~s do_check_load_or_update_checkpoint load checkpoint.", [Name], LogShowDataLoaderActivity),
 			case do_load(LastUpdateStr, Conf, State) of
 				{ok, State2} -> 
 					ems_db:set_param(LastUpdateParamName, NextUpdate),
@@ -532,7 +532,7 @@ do_check_load_or_update_checkpoint(State = #state{name = Name,
 				Error -> Error
 			end;
 		false ->
-			?DEBUG("~s do_check_load_or_update_checkpoint update checkpoint.", [Name]),
+			ems_logger:debug("~s do_check_load_or_update_checkpoint update checkpoint.", [Name], LogShowDataLoaderActivity),
 			case do_update(LastUpdate, LastUpdateStr, Conf, State) of
 				{ok, State2} -> 
 					ems_db:set_param(LastUpdateParamName, NextUpdate),

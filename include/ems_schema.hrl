@@ -337,7 +337,6 @@
 			     authorization_owner :: list(binary()),	    %% 13 - authorization_owner		-> permite ao cliente consumir os ws services de owners especificados na lista
 				 user_agent :: atom(),						%% 14 - user_agent
 			     peer :: binary(),							%% 15 - peer
-				 forwarded_for :: binary(),				 	%% 16 - forwarded_for
 			     ctrl_path :: string(),						%% 17 - ctrl_path
 			     ctrl_file :: string(),						%% 18 - ctrl_file
 			     ctrl_insert :: binary(),					%% 19 - ctrl_insert				-> Data que foi inserido no banco mnesia
@@ -365,7 +364,6 @@
 			   binary_type,									%% 12 - rest_auth_url
 			   binary_type,									%% 13 - authorization_owners
 			   atom_type,									%% 14 - user_agent
-			   binary_type,									%% 15 - forwarded_host
 			   binaty_type,									%% 16 - refer
 			   string_type,									%% 17 - ctrl_path
 			   string_type,									%% 18 - ctrl_file
@@ -659,7 +657,6 @@
 					  if_modified_since :: binary(),			%% 26 - if_modified_since		Parâmetro If-Modified-Since
 					  if_none_match :: binary(),			    %% 27 - if_none_match			Parâmetro If-None-Match
 					  ip :: tuple(),							%% 28 - ip
-					  ip_bin :: binary(),						%% 29 - ip_bin	
 					  t1 :: non_neg_integer(),					%% 30 - t1						
 					  authorization :: binary(),				%% 31 - authorization			Dados da autenticação da requisição
 					  client :: #client{},						%% 32 - client
@@ -676,8 +673,7 @@
 					  filename :: string(),						%% 43 - filename				Qual arquivo foi lido do disco para requisições que leêm arquivos no disco
 					  referer :: binary(),						%% 44 - referer
 					  access_token :: binary(),					%% 45 - access_token
-					  scope :: binary(),						%% 46 - scope
-					  forwarded_for :: binary()					%% 47 - x-forwarded-for
+					  scope :: binary()						    %% 46 - scope
 				  }).
 
 

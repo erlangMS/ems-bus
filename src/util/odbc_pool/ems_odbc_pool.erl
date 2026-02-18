@@ -46,7 +46,7 @@ get_connection(Datasource = #service_datasource{id = Id}) ->
 	try
 		case gen_server:call(?SERVER, {create_connection, Datasource}, 16000) of
 			{ok, _Datasource2} = Result ->
-				?DEBUG("ems_odbc_pool get_connection from datasource id ~p.", [Id]),
+				ems_logger:debug("ems_odbc_pool get_connection from datasource id ~p.", [Id], Datasource#service_datasource.log_show_odbc_pool_activity),
 				Result;
 			{error, eodbc_restricted_connection} -> 
 				ems_logger:error("ems_odbc_pool get_connection eodbc_restricted_connection from datasource id ~p.", [Id]),
@@ -78,7 +78,7 @@ shutdown_connection(Datasource = #service_datasource{id = Id}) ->
 		gen_server:call(?SERVER, {shutdown_connection, Datasource}, 16000)
 	catch 
 		_: Reason -> 
-			?DEBUG("ems_odbc_pool shutdown_connection exception from datasource id ~p. Reason: ~p.", [Id, Reason]),
+			ems_logger:debug("ems_odbc_pool shutdown_connection exception from datasource id ~p. Reason: ~p.", [Id, Reason], Datasource#service_datasource.log_show_odbc_pool_activity),
 			ok
 	end.
 
@@ -87,54 +87,54 @@ connection_pool_size(Datasource = #service_datasource{id = Id}) ->
 		gen_server:call(?SERVER, {get_size, Datasource})
 	catch
 		_ : _ ->
-			?DEBUG("ems_odbc_pool connection_pool_size catch timeout exception from datasource id ~p.", [Id]),
+			ems_logger:debug("ems_odbc_pool connection_pool_size catch timeout exception from datasource id ~p.", [Id], Datasource#service_datasource.log_show_odbc_pool_activity),
 			{error, eunavailable_odbc_connection}
 	end.
 
 
-param_query(#service_datasource{id = Id, owner = Owner, timeout = Timeout}, Sql) ->
+param_query(Datasource = #service_datasource{owner = Owner, timeout = Timeout}, Sql) ->
 	try
 		gen_server:call(Owner, {param_query, Sql, []}, Timeout)
 	catch
 		_ : _ ->
-			?DEBUG("ems_odbc_pool param_query catch timeout exception from datasource id ~p.", [Id]),
+			ems_logger:debug("ems_odbc_pool param_query catch timeout exception from datasource id ~p.", [Datasource#service_datasource.id], Datasource#service_datasource.log_show_odbc_pool_activity),
 			{error, eunavailable_odbc_connection}
 	end.
 
 
-param_query(#service_datasource{id = Id, owner = Owner, timeout = Timeout}, Sql, Params) ->
+param_query(Datasource = #service_datasource{owner = Owner, timeout = Timeout}, Sql, Params) ->
 	try
 		gen_server:call(Owner, {param_query, Sql, Params}, Timeout)
 	catch
 		_ : _ ->
-			?DEBUG("ems_odbc_pool param_query catch timeout exception from datasource id ~p.", [Id]),
+			ems_logger:debug("ems_odbc_pool param_query catch timeout exception from datasource id ~p.", [Datasource#service_datasource.id], Datasource#service_datasource.log_show_odbc_pool_activity),
 			{error, eunavailable_odbc_connection}
 	end.
 
-param_query(#service_datasource{id = Id, owner = Owner}, Sql, Params, Timeout) ->
+param_query(Datasource = #service_datasource{owner = Owner}, Sql, Params, Timeout) ->
 	try
 		gen_server:call(Owner, {param_query, Sql, Params}, Timeout)
 	catch
 		_ : _ ->
-			?DEBUG("ems_odbc_pool param_query catch timeout exception from datasource id ~p.", [Id]),
+			ems_logger:debug("ems_odbc_pool param_query catch timeout exception from datasource id ~p.", [Datasource#service_datasource.id], Datasource#service_datasource.log_show_odbc_pool_activity),
 			{error, eunavailable_odbc_connection}
 	end.
 
-select_count(#service_datasource{id = Id, owner = Owner, timeout = Timeout}, Sql) ->
+select_count(Datasource = #service_datasource{owner = Owner, timeout = Timeout}, Sql) ->
 	try
 		gen_server:call(Owner, {select_count, Sql}, Timeout)
 	catch
 		_ : _ ->
-			?DEBUG("ems_odbc_pool select_count timeout exception from datasource id ~p.", [Id]),
+			ems_logger:debug("ems_odbc_pool select_count timeout exception from datasource id ~p.", [Datasource#service_datasource.id], Datasource#service_datasource.log_show_odbc_pool_activity),
 			{error, eunavailable_odbc_connection}
 	end.
 
-select(#service_datasource{id = Id, owner = Owner}, Offset, Limit) ->
+select(Datasource = #service_datasource{owner = Owner}, Offset, Limit) ->
 	try
 		gen_server:call(Owner, {select, Offset, Limit})
 	catch
 		_ : _ ->
-			?DEBUG("ems_odbc_pool select timeout exception from datasource id ~p.", [Id]),
+			ems_logger:debug("ems_odbc_pool select timeout exception from datasource id ~p.", [Datasource#service_datasource.id], Datasource#service_datasource.log_show_odbc_pool_activity),
 			{error, eunavailable_odbc_connection}
 	end.
 

@@ -259,7 +259,7 @@ do_log_request(Request = #request{rid = _RID,
 								  content_type_out = _ContentTypeOut,
 								  content_length = ContentLength,
 								  accept = _Accept,
-								  ip_bin = IpBin,
+								  ip = Ip,
 								  payload = _Payload,
 								  service = Service,
 								  params_url = _Params,
@@ -294,6 +294,7 @@ do_log_request(Request = #request{rid = _RID,
 				  end,
 		case LogShow andalso (UltReqHash == undefined orelse UltReqHash =/= ReqHash) of
 			true ->
+				IpBin = list_to_binary(inet_parse:ntoa(Ip)),
 				UserLogin = case User of
 								public -> <<"-">>;
 								undefined -> <<"-">>;

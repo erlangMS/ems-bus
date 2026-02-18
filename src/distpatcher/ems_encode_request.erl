@@ -139,8 +139,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
             erlang:throw({error, request, Request, CowboyReq})
     end,
     
-    {Ip, _} = cowboy_req:peer(CowboyReq),
-    IpBin = list_to_binary(inet_parse:ntoa(Ip)),
+    {Ip, _} = ems_util:get_real_ip(CowboyReq),
     
     Host = case cowboy_req:header(<<"host">>, CowboyReq) of
         undefined -> cowboy_req:host(CowboyReq);
@@ -217,9 +216,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
         if_modified_since = get_header(<<"if-modified-since">>, CowboyReq, <<>>),
         if_none_match = get_header(<<"if-none-match">>, CowboyReq, <<>>),
         referer = get_header(<<"referer">>, CowboyReq, <<>>),
-        forwarded_for = get_header(<<"x-forwarded-for">>, CowboyReq, <<>>),
         ip = Ip,
-        ip_bin = IpBin,
         host = Host,
         protocol = Protocol,
         result_cache = false,
@@ -230,6 +227,11 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     },
 
     step4_lookup_service(CowboyReq, WorkerSend, State, Request0).
+
+% -----------------------------------------------------------------------------------------------------------------------------------------
+% Private functions
+% -----------------------------------------------------------------------------------------------------------------------------------------
+
 
 step4_lookup_service(CowboyReq, WorkerSend, State, Request) ->
     put(encode_request_cowboy_step, step4_lookup_service),

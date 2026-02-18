@@ -390,5 +390,6 @@
  				 oauth2_jwt_secret :: binary(),
  				 crypto_blowfish_module_path :: string(),
 				 user_agent_denied_list :: list(binary()),
+				 use_forwarded_header = true :: boolean(),
 				 debug = false :: boolean()
 		 }). 	

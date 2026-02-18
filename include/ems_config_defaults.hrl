@@ -116,10 +116,11 @@
     <<"crypto_blowfish_module_path">> => <<>>,
     <<"user_agent_denied_list">> => [<<"sqlmap">>, <<"nikto">>, <<"nmap">>, <<"nessus">>, <<"masscan">>, <<"zgrab">>, <<"w3af">>, <<"acunetix">>, <<"havij">>, <<"dirbuster">>, <<"gobuster">>, <<"hydra">>, <<"metasploit">>, <<"netsparker">>],
     <<"cors_domain">> => <<".unb.br">>,
-     <<"rate_limit_interno">> => ?RATE_LIMIT_INTERNO_DEFAULT,
+    <<"rate_limit_interno">> => ?RATE_LIMIT_INTERNO_DEFAULT,
     <<"rate_limit_externo">> => ?RATE_LIMIT_EXTERNO_DEFAULT,
     <<"force_https">> => false,
-    <<"rate_limit_cidr_interno">> => <<"164.41.0.0/16">>
+    <<"rate_limit_cidr_interno">> => <<"164.41.0.0/16">>,
+    <<"use_forwarded_header">> => true
 }).
 
 -endif.

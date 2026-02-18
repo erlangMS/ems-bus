@@ -88,6 +88,8 @@
 		 is_cnpj_valid/1, 
 		 ip_list/0,
 		 ip_list/1,
+		 ntoa/1,
+		 get_real_ip/1,
 		 is_url_valido/1,
 	 is_valid_url_path/1,
  		 is_email_valido/1, 
@@ -1723,7 +1725,6 @@ invoque_service(Type, Url, QuerystringBin, QuerystringMap, ContentTypeIn) ->
 				accept_encoding = <<"*">>,
 				cache_control = <<>>,
 				ip = {127,0,0,1},
-				ip_bin = <<"127.0.0.1">>,
 				host = <<"localhost">>,
 				authorization = <<>>,
 				worker_send = undefined,
@@ -1960,6 +1961,74 @@ match_cidr(_, _, _) -> false.
 
 	
 	
+ntoa(Ip) when is_tuple(Ip) -> list_to_binary(inet:ntoa(Ip));
+ntoa(Ip) when is_binary(Ip) -> Ip;
+ntoa(Ip) when is_list(Ip) -> list_to_binary(Ip);
+ntoa(Ip) -> Ip.
+
+
+get_real_ip(CowboyReq) ->
+	case ems_db:get_param(use_forwarded_header, true) of
+		false -> cowboy_req:peer(CowboyReq);
+		true ->
+			case cowboy_req:header(<<"x-real-ip">>, CowboyReq) of
+				undefined ->
+					case cowboy_req:header(<<"x-forwarded-for">>, CowboyReq) of
+						undefined ->
+							case cowboy_req:header(<<"forwarded">>, CowboyReq) of
+								undefined -> 
+									cowboy_req:peer(CowboyReq);
+								Forwarded ->
+									parse_forwarded_header(Forwarded, CowboyReq)
+							end;
+						XForwardedFor ->
+							parse_x_forwarded_for(XForwardedFor, CowboyReq)
+					end;
+				XRealIp ->
+					case inet:parse_address(binary_to_list(XRealIp)) of
+						{ok, Ip} -> {Ip, 0};
+						_ -> cowboy_req:peer(CowboyReq)
+					end
+			end
+	end.
+
+parse_x_forwarded_for(XForwardedFor, CowboyReq) ->
+    case binary:split(XForwardedFor, <<",">>) of
+        [ClientIp | _] ->
+            % Clean whitespace
+            ClientIpTrimmed = ems_util:str_trim(ClientIp),
+            case inet:parse_address(binary_to_list(ClientIpTrimmed)) of
+                {ok, Ip} -> {Ip, 0};
+                _ -> cowboy_req:peer(CowboyReq)
+            end;
+        _ ->
+            cowboy_req:peer(CowboyReq)
+    end.
+
+parse_forwarded_header(Forwarded, CowboyReq) ->
+    % Header format: for=192.0.2.60;proto=http;by=203.0.113.43
+    % We need to extract the "for=" part.
+    case binary:match(Forwarded, <<"for=">>) of
+        {Start, Len} ->
+            Rest = binary:part(Forwarded, Start + Len, byte_size(Forwarded) - (Start + Len)),
+            % Extract up to the next semicolon or end of string
+            case binary:split(Rest, <<";">>) of
+                [ForPart | _] ->
+                    % Handle quoted IPv6 or just IP
+                    ForPartTrimmed = ems_util:str_trim(ForPart),
+                    ForPartClean = string:trim(ForPartTrimmed, both, "\""),
+                    case inet:parse_address(binary_to_list(ForPartClean)) of
+                        {ok, Ip} -> {Ip, 0};
+                         _ -> cowboy_req:peer(CowboyReq)
+                    end;
+                _ ->
+                     cowboy_req:peer(CowboyReq)
+             end;
+        nomatch ->
+             cowboy_req:peer(CowboyReq)
+    end.
+
+
 -spec parse_basic_authorization_header(Header :: binary()) -> {ok, string(), string()} | 
 															  {error, access_denied, einvalid_basic_authorization_header | 
 																					 ebasic_authorization_header_required | 
@@ -2359,8 +2428,8 @@ load_from_file_req(Request = #request{url = Url,
 	case validate_safe_path(Filename, Path) of
 		false ->
 			% Path traversal attempt detected - log and reject
-			ems_logger:warn("ems_static_file_service SECURITY: Path traversal attempt blocked. URL: ~p, Attempted path: ~p, IP: ~p", 
-							[Url, Filename, Request#request.ip_bin]),
+			ems_logger:warn("ems_static_file_service SECURITY: Path traversal attempt blocked. URL: ~p, Attempted path: ~p, IP: ~s", 
+							[Url, Filename, ntoa(Request#request.ip)]),
 			{error, Request#request{code = 403, 
 									reason = eforbidden,
 									content_type_out = ?CONTENT_TYPE_JSON,
@@ -2737,8 +2806,9 @@ is_email_institucional(SufixoEmailInstitucional, Email) ->
 -spec get_client_request_by_id_and_secret(#request{}) -> {ok, #client{}} | {error, enoent, atom()}.
 get_client_request_by_id_and_secret(Request = #request{authorization = Authorization,
 													   user_agent = UserAgent,
-													   ip_bin = Peer,
-													   forwarded_for = ForwardedFor}) ->
+													   ip = IpTuple}) ->
+	
+	Peer = ntoa(IpTuple),
 
     try
 		case get_querystring(<<"client_id">>, <<>>, Request) of
@@ -2751,7 +2821,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 				ClientSecret = ems_util:get_querystring(<<"client_secret">>, <<>>, Request),
 				case ems_client:find_by_id_and_secret(ClientId, ClientSecret) of
 					{ok, Client} -> 
-						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+						{ok, Client#client{user_agent = UserAgent, peer = Peer}};
 					Error -> 
 						% O ClientId também pode ser passado via header Authorization
 						case Authorization =/= undefined of
@@ -2763,7 +2833,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 										case ClientId2 > 0 of
 											true ->
 												case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-													{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+													{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
 													Error -> Error
 												end;
 											false -> {error, access_denied, einvalid_client_id}
@@ -2784,7 +2854,7 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 								case ClientId2 > 0 of
 									true ->
 										case ems_client:find_by_id_and_secret(ClientId2, ClientSecret2) of
-											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+											{ok, Client} -> {ok, Client#client{user_agent = UserAgent, peer = Peer}};
 											Error -> Error
 										end;
 									false -> {error, access_denied, einvalid_client_id}
@@ -2804,8 +2874,8 @@ get_client_request_by_id_and_secret(Request = #request{authorization = Authoriza
 -spec get_client_request_by_id(#request{}) -> {ok, #client{}} | {error, enoent, atom()}.
 get_client_request_by_id(Request = #request{authorization = Authorization,
 											user_agent = UserAgent,
-											ip_bin = Peer,
-											forwarded_for = ForwardedFor}) ->
+											ip = IpTuple}) ->
+	Peer = ntoa(IpTuple),
     try
 		case get_querystring(<<"client_id">>, <<>>, Request) of
 			<<>> -> ClientId = 0;
@@ -2816,7 +2886,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 			true ->
 				case ems_client:find_by_id(ClientId) of
 					{ok, Client} -> 
-						{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+						{ok, Client#client{user_agent = UserAgent, peer = Peer}};
 					Error -> 
 						ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 						{error, access_denied, enoent}
@@ -2832,7 +2902,7 @@ get_client_request_by_id(Request = #request{authorization = Authorization,
 									true ->
 										case ems_client:find_by_id(ClientId2) of
 											{ok, Client} -> 
-												{ok, Client#client{user_agent = UserAgent, peer = Peer, forwarded_for = ForwardedFor}};
+												{ok, Client#client{user_agent = UserAgent, peer = Peer}};
 											Error -> 
 												ems_logger:error("ems_util get_client_request_by_id_and_secret failed on find_by_id. client_id: ~p. Reason: ~p.", [ClientId, Error]),
 												{error, access_denied, enoent}

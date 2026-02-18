@@ -190,7 +190,7 @@ do_check_load_or_update(State = #state{name = Name,
 	Conf = ems_config:getConfig(),
 	case LastUpdate == undefined orelse do_is_empty(State) of
 		true -> 
-			?DEBUG("~s load checkpoint.", [Name]),
+			ems_logger:debug("~s load checkpoint.", [Name], State#state.log_show_data_loader_activity),
 			case do_load(LastUpdateStr, Conf, State) of
 				ok -> 
 					ems_db:set_param(LastUpdateParamName, NextUpdate),
@@ -201,7 +201,7 @@ do_check_load_or_update(State = #state{name = Name,
 				Error -> Error
 			end;
 		false ->
-			?DEBUG("~s update checkpoint. last update: ~s.", [Name, ems_util:timestamp_str(LastUpdate)]),
+			ems_logger:debug("~s update checkpoint. last update: ~s.", [Name, ems_util:timestamp_str(LastUpdate)], State#state.log_show_data_loader_activity),
 			case do_update(LastUpdate, LastUpdateStr, Conf, State) of
 				ok -> 
 					ems_db:set_param(LastUpdateParamName, NextUpdate),
@@ -223,7 +223,7 @@ do_load(CtrlInsert, Conf, State = #state{name = Name,
 		Filename = do_get_filename(State),
 		case ems_json_scan:scan(Filename, Conf) of
 			{ok, []} -> 
-				?DEBUG("~s did not load any record.", [Name]),
+				ems_logger:debug("~s did not load any record.", [Name], LogShowDataLoaderActivity),
 				ok;
 			{ok, Records} ->
 				case do_clear_table(State) of
@@ -255,7 +255,7 @@ do_update(LastUpdate, CtrlUpdate, Conf, State = #state{name = Name,
 		Filename = do_get_filename(State),
 		case ems_json_scan:scan(Filename, Conf) of
 			{ok, []} -> 
-				?DEBUG("~s did not load any record.", [Name]),
+				ems_logger:debug("~s did not load any record.", [Name], LogShowDataLoaderActivity),
 				ok;
 			{ok, Records} ->
 				{ok, InsertCount, UpdateCount, ErrorCount, DisabledCount, SkipCount} = ems_data_pump:data_pump(Records, list_to_binary(CtrlUpdate), Conf, Name, Middleware, update, 0, 0, 0, 0, 0, SourceType, []),

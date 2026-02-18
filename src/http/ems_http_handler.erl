@@ -14,7 +14,7 @@
 -export([init/2]).
 
 init(CowboyReq, State) ->
-	{_Ip, _Port} = cowboy_req:peer(CowboyReq),
+	{_Ip, _Port} = ems_util:get_real_ip(CowboyReq),
 	Conf = ems_config:getConfig(),
 	case {cowboy_req:scheme(CowboyReq), Conf#config.force_https} of
 		{<<"http">>, true} ->
@@ -34,13 +34,13 @@ init(CowboyReq, State) ->
 	end.
 
 init_rate_limit(CowboyReq, State) ->
-	{Ip, _Port} = cowboy_req:peer(CowboyReq),
+	{Ip, _Port} = ems_util:get_real_ip(CowboyReq),
 	case ems_rate_limiter:check(Ip) of
 		block ->
 			Response = cowboy_req:reply(429, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?ERATE_LIMIT_EXCEEDED, CowboyReq),
 			{ok, Response, State};
 		{tarpit, Delay} ->
-			ems_logger:warn("ems_http_handler tarpit delay ~p ms for IP ~p.", [Delay, Ip]),
+			ems_logger:warn("ems_http_handler tarpit delay ~p ms for IP ~s.", [Delay, ems_util:ntoa(Ip)]),
 			timer:sleep(Delay),
 			case cowboy_req:method(CowboyReq) of
 				<<"OPTIONS">> ->
@@ -107,15 +107,15 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 		Type = binary_to_list(cowboy_req:method(CowboyReq)),
 		Url = binary_to_list(cowboy_req:path(CowboyReq)),
 		Protocol = binary_to_list(cowboy_req:scheme(CowboyReq)),
-		{Ip, _} = cowboy_req:peer(CowboyReq),
-		Ip2 = inet_parse:ntoa(Ip),
+		{Ip, _} = ems_util:get_real_ip(CowboyReq),
+
 		% Extract simple reason to avoid verbose logging
 		case Reason of
 			{error, request, Request = #request{code = Code, response_data = ResponseData, response_header = ResponseHeader}, _} ->
 				Response = cowboy_req:reply(Code, normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq), ResponseData, CowboyReq),
 				ems_logger:log_request(Request);
 			_ ->
-				ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, Ip2, Reason]),
+				ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, ems_util:ntoa(Ip), Reason]),
 				Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
 		end
 	end,
