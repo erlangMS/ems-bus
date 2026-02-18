@@ -1322,7 +1322,7 @@ create_datasource_from_map(Map, Rowid, #config{ems_datasources = GlobalDatasourc
 		
 		put(parse_step, max_pool_size),
 		MaxPoolSize0 = ems_util:parse_integer(maps:get(<<"max_pool_size">>, M, ?MAX_CONNECTION_IDDLE_BY_POOL)),
-		MaxConnectionLimit = ems_db:get_param(max_connection_by_pool, ?MAX_CONNECTION_IDDLE_BY_POOL),
+		MaxConnectionLimit = ems_db:get_param(max_connection_by_pool, ?MAX_CONNECTION_LIMIT_BY_POOL),
 		MaxPoolSize = if MaxPoolSize0 > MaxConnectionLimit -> 
 							ems_logger:warn("ems_db datasource ~s max_pool_size ~p exceeds global limit ~p. Capping to ~p.", [DsName, MaxPoolSize0, MaxConnectionLimit, MaxConnectionLimit]),
 							MaxConnectionLimit;

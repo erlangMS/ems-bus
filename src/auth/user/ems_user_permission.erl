@@ -12,8 +12,7 @@
 -include("include/ems_schema.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
--export([all/0, 
-		 find_by_id/1,		 
+-export([find_by_id/1,		 
 		 find_by_user/1, find_by_user/2,
 		 find_by_user_and_client/2, find_by_user_and_client/3,
 		 find_by_cpf_and_client/3,
@@ -21,7 +20,6 @@
  		 new_from_map/2,
 		 get_table/1,
 		 find/2,
-		 all/1,
 		 find_by_hash/1, find_by_hash2/1, make_hash/2, has_grant_permission/3]).
 
 
@@ -88,14 +86,6 @@ find_by_user_and_client(Id, ClientId, Fields) ->
 
 -spec find_by_user_and_client(non_neg_integer(), non_neg_integer()) -> {ok, list(#user_perfil{})} | {error, enoent}.
 find_by_user_and_client(Id, ClientId) -> find_by_user_and_client(Id, ClientId, []).
-
--spec all() -> {ok, list()}.
-all() -> 
-	{ok, ListaUserDb} = ems_db:all(user_permission_db),
-	{ok, ListaUserFs} = ems_db:all(user_permission_fs),
-	{ok, ListaUserDb ++ ListaUserFs}.
-	
-
 
 -spec find_by_name(binary() | string()) -> {ok, #user_permission{}} | {error, enoent}.
 find_by_name(<<>>) -> {error, enoent};
@@ -205,8 +195,7 @@ find(Table, Id) ->
 		[Record|_] -> {ok, Record}
 	end.
 
--spec all(user_permission_fs | user_permission_db) -> list() | {error, atom()}.
-all(Table) -> ems_db:all(Table).
+
 
 
 find_by_hash(Hash) ->

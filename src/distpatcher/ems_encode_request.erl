@@ -187,11 +187,11 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     UserAgent0 = get_header(<<"user-agent">>, CowboyReq, <<>>),
     UserAgent = UserAgent0,
 
-    % Override URI and Method for Zabbix
-    {UrlFinal, UriFinal, RowidFinal, ParamsUrlFinal, MethodFinal} = case binary:match(UserAgent, <<"Zabbix">>) of
-        nomatch -> 
+    % Override URI and Method for healh probe user agents
+    {UrlFinal, UriFinal, RowidFinal, ParamsUrlFinal, MethodFinal} = case is_health_probe_user_agent(UserAgent) of
+        false -> 
             {Url2, Uri, Rowid, Params_url, Method};
-        _ -> 
+        true -> 
             {RowidZ, ParamsZ} = ems_util:hashsym_and_params("/"),
             {"/", <<"/">>, RowidZ, ParamsZ, <<"GET">>}
     end,
@@ -479,3 +479,10 @@ is_binary_content_type(<<"application/vnd.openxmlformats-officedocument.spreadsh
 is_binary_content_type(<<"image/png">>) -> true;
 is_binary_content_type(<<"image/jpeg">>) -> true;
 is_binary_content_type(_) -> false.
+
+is_health_probe_user_agent(UserAgent) ->
+    case UserAgent of
+        <<"Zabbix", _/binary>> -> true;
+        <<"kube-probe", _/binary>> -> true;
+        _ -> false
+    end.

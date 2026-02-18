@@ -12,8 +12,7 @@
 -include("include/ems_schema.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
--export([all/0, 
-		 find_by_id/1,		 
+-export([find_by_id/1,		 
 		 find_by_user_and_client/2, find_by_user_and_client/3,
 		 find_by_user_and_client_com_permissao/3,
 		 find_by_cpf_and_client_com_permissao/3,
@@ -25,8 +24,7 @@
 		 find_by_name/1, 
  		 new_from_map/2,
 		 get_table/1,
-		 find/2,
-		 all/1]).
+		 find/2]).
 
 
 -spec find_by_id(non_neg_integer()) -> {ok, #user_perfil{}} | {error, enoent}.
@@ -36,11 +34,7 @@ find_by_id(Id) ->
 		_ -> {error, enoent}
 	end.
 
--spec all() -> {ok, list()}.
-all() -> 
-	{ok, ListaUserDb} = ems_db:all(user_perfil_db),
-	{ok, ListaUserFs} = ems_db:all(user_perfil_fs),
-	{ok, ListaUserDb ++ ListaUserFs}.
+
 
 
 -spec find_by_user(non_neg_integer(), list()) -> {ok, list(#user_perfil{})} | {error, enoent}.
@@ -371,6 +365,4 @@ find(Table, Id) ->
 		[Record|_] -> {ok, Record}
 	end.
 
--spec all(user_perfil_fs | user_perfil_db) -> list() | {error, atom()}.
-all(Table) -> ems_db:all(Table).
 

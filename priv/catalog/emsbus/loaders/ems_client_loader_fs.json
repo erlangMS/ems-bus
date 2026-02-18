@@ -8,6 +8,7 @@
 	"async": "false",
 	"type": "KERNEL",
 	"lang" : "erlang",
+ 	"activity_type": "auth",
 	"last_update_param_name" : "ems_client_loader_fs_lastupdate",
 	"update_checkpoint" : 2628000000,
 	"start_timeout" : 2000,

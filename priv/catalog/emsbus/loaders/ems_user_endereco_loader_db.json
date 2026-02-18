@@ -7,6 +7,7 @@
 	"url": "/emsbus/ems_user_endereco_loader_db",
 	"type": "KERNEL",
 	"lang" : "erlang",    
+ 	"activity_type": "auth",
 	"update_checkpoint" : 128000,
 	"check_remove_records" : true,
 	"check_remove_records_checkpoint" : 14400000,

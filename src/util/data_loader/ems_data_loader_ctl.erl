@@ -19,12 +19,15 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/1, handle_info/2, terminate/2, code_change/3, 
-		 permission_to_execute/4, notify_finish_work/9]).
+		 permission_to_execute/4, notify_finish_work/9,
+		 register_activity/1, is_active/2, register_loader/2, sync_activity/0]).
 
 % estado do servidor
 -record(state, {}).
 
 -define(SERVER, ?MODULE).
+
+-define(ACTIVITY_THRESHOLD, 300000).		% 5 minutes (300.000 ms)
 
 %%====================================================================
 %% Server API
@@ -32,11 +35,50 @@
 
 start(_Service) -> 
 	ets:new(ets_dataloader_working_ctl, [set, named_table, public]),
+	ets:new(ets_dataloader_activity_ctl, [set, named_table, public]),
+	ets:new(ets_dataloader_registry_ctl, [bag, named_table, public]),
     gen_server:start({local, ?MODULE}, ?MODULE, [], []).
  
 stop() ->
     gen_server:cast(?SERVER, shutdown).
- 
+
+
+register_activity(ModuleActivity) ->
+	ems_logger:debug("ems_data_loader_ctl register activity by ~p.", [ModuleActivity]),
+	ActivityType = global,
+	Now = ems_util:get_timestamp(),
+	case ets:lookup(ets_dataloader_activity_ctl, ActivityType) of
+		[{_, LastActivity}] when (Now - LastActivity) < ?ACTIVITY_THRESHOLD -> 
+			ets:insert(ets_dataloader_activity_ctl, {ActivityType, Now});
+		_ -> 
+			ets:insert(ets_dataloader_activity_ctl, {ActivityType, Now}),
+			sync_activity()
+	end.
+
+
+is_active(undefined, _) -> true;
+is_active(_, MaxAgeSeconds) ->
+	case ets:lookup(ets_dataloader_activity_ctl, global) of
+		[{_, LastActivity}] -> 
+			(ems_util:get_timestamp() - LastActivity) < (MaxAgeSeconds * 1000);
+		[] -> false
+	end.
+
+
+register_loader(undefined, _) -> ok;
+register_loader(ActivityType, LoaderName) ->
+	ets:insert(ets_dataloader_registry_ctl, {ActivityType, LoaderName}).
+
+
+sync_activity() ->
+	case ets:tab2list(ets_dataloader_registry_ctl) of
+		[] -> ok;
+		Loaders -> 
+			[gen_server:cast(LoaderName, sync) || {_, LoaderName} <- Loaders],
+			ems_logger:info("ems_data_loader_ctl sync_activity."),
+			ok
+	end.
+
 
 permission_to_execute(DataLoader, [], Operation, WaitCount) -> 
 	ets:insert(ets_dataloader_working_ctl, {DataLoader, working, 

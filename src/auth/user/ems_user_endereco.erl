@@ -14,8 +14,7 @@
 
 -export([new_from_map/2,
 		 get_table/1,
-		 find/2,
-		 all/1]).
+		 find/2]).
 
 
 -spec new_from_map(map(), #config{}) -> {ok, #user_endereco{}} | {error, atom()}.
@@ -56,6 +55,4 @@ find(Table, Id) ->
 		[Record|_] -> {ok, Record}
 	end.
 
--spec all(user_endereco_fs | user_endereco_db) -> list() | {error, atom()}.
-all(Table) -> ems_db:all(Table).
 

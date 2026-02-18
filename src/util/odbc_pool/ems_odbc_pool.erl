@@ -185,7 +185,13 @@ handle_info({'EXIT', PidWorker, Reason}, State) ->
    case erlang:erase(PidWorker) of
 		undefined -> 
 			{noreply, State};
-		Datasource ->
+		#service_datasource{id = Id, pid_module_ref = PidModuleRef} = Datasource ->
+			MetricName = get_metric_name(Id),
+			ems_db:dec_counter(MetricName),
+			case PidModuleRef of
+				undefined -> ok;
+				_ -> erlang:erase(PidModuleRef)
+			end,
 			do_remove_pool_when_worker_died(Datasource, Reason),
 			{noreply, State}
 	end.
@@ -202,16 +208,13 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %%====================================================================
 
+get_metric_name(Id) -> list_to_atom("odbc_pool_count_" ++ integer_to_list(Id)).
+
 do_remove_pool_when_worker_died(#service_datasource{id = Id, 
-								   owner = WorkerPid}, Reason) ->
-	case Reason of
-		normal ->
-			Pool = find_pool(Id),
-			Pool2 = queue:filter(fun(Item) -> Item#service_datasource.owner /=  WorkerPid end, Pool),
-			erlang:put(Id, Pool2);
-		_ ->
-			erlang:put(Id, queue:new())
-	end.
+								   owner = WorkerPid}, _Reason) ->
+	Pool = find_pool(Id),
+	Pool2 = queue:filter(fun(Item) -> Item#service_datasource.owner /=  WorkerPid end, Pool),
+	erlang:put(Id, Pool2).
 			
 -spec do_create_connection(#service_datasource{}, pid()) -> {ok, #service_datasource{}} | {error, eunavailable_odbc_connection}.
 do_create_connection(Datasource = #service_datasource{id = Id,
@@ -226,11 +229,14 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 		PoolSize = queue:len(Pool),
 		case PoolSize of
 			0 ->
-				%ConnectionCount = ems_db:current_counter(ConnectionCountMetricName),
-				%case ConnectionCount =< MaxPoolSize of
-				%	true ->
+				MetricName = get_metric_name(Id),
+				ConnectionCount = ems_db:current_counter(MetricName),
+				MaxPoolSize = Datasource#service_datasource.max_pool_size,
+				case ConnectionCount < MaxPoolSize of
+					true ->
 						case ems_odbc_pool_worker:start_link(Datasource) of
 							{ok, WorkerPid} ->
+								ems_db:inc_counter(MetricName),
 								PidModuleRef = erlang:monitor(process, PidModule),
 								Datasource2 = ems_odbc_pool_worker:get_datasource(WorkerPid),
 								Datasource3 = Datasource2#service_datasource{owner = WorkerPid, 
@@ -250,10 +256,10 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 									false -> {error, eunavailable_odbc_connection}
 								end
 						end;
-				%	false -> 
-				%		ems_logger:info("ems_odbc_pool connection limit (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount], LogShowPoolActivity),
-				%		{error, eodbc_connection_limit}	
-				%end;
+					false -> 
+						ems_logger:info("ems_odbc_pool connection limit (Ds: ~p ConnectionCount: ~p).", [Id, ConnectionCount], LogShowPoolActivity),
+						{error, eodbc_connection_limit}	
+				end;
 			_ -> 
 				{{value, Datasource2}, Pool2} = queue:out(Pool),
 				erlang:put(Id, Pool2),

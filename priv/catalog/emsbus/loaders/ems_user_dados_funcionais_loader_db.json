@@ -7,6 +7,7 @@
 	"url": "/emsbus/ems_user_dados_funcionais_loader_db",
 	"type": "KERNEL",
 	"lang" : "erlang",
+ 	"activity_type": "auth",
 	"update_checkpoint" : 120000,
 	"datasource" : "ds_ems_user_loader",
 	"start_timeout" : 70000,

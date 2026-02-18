@@ -25,6 +25,7 @@
 
 -spec find_by_id(non_neg_integer()) -> {ok, #client{}} | {error, enoent}.
 find_by_id(Id) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
 	case mnesia:dirty_read(client_db, Id) of
 		[] -> 
 			case mnesia:dirty_read(client_fs, Id) of
@@ -37,6 +38,7 @@ find_by_id(Id) ->
 
 -spec all() -> {ok, list()}.
 all() -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
 	{ok, ListaUserDb} = ems_db:all(client_db),
 	{ok, ListaUserFs} = ems_db:all(client_fs),
 	{ok, ListaUserDb ++ ListaUserFs}.
@@ -65,6 +67,7 @@ find_by_name(undefined) -> {error, enoent};
 find_by_name(Name) when is_list(Name) -> 
 	find_by_name(list_to_binary(Name));
 find_by_name(Name) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
 	case mnesia:dirty_index_read(client_db, Name, #client.name) of
 		[] ->
 			case mnesia:dirty_index_read(client_fs, Name, #client.name) of
@@ -78,6 +81,7 @@ find_by_name(Name) ->
 -spec to_json(binary() | undefined) -> binary().
 to_json(undefined) -> <<"{}"/utf8>>;
 to_json(Client = #client{json_cache = JsonCache}) ->
+	ems_data_loader_ctl:register_activity(?MODULE),
 	case JsonCache of
 		undefined ->
 			% Cache miss - compute JSON
@@ -97,6 +101,7 @@ to_json(Client = #client{json_cache = JsonCache}) ->
 	
 -spec new_from_map(map(), #config{}) -> {ok, #client{}} | {error, atom()}.
 new_from_map(Map, Conf) ->
+	ems_data_loader_ctl:register_activity(?MODULE),
 	try
 		{ok, #client{
 				id = maps:get(<<"id">>, Map),
@@ -129,23 +134,31 @@ new_from_map(Map, Conf) ->
 
 
 -spec get_table(fs | db) -> client_db | client_fs.
-get_table(db) -> client_db;
-get_table(fs) -> client_fs.
+get_table(db) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
+	client_db;
+get_table(fs) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
+	client_fs.
 
 -spec find(client_fs | client_db, non_neg_integer()) -> {ok, #client{}} | {error, enoent}.
 find(Table, Id) ->
+	ems_data_loader_ctl:register_activity(?MODULE),
 	case mnesia:dirty_read(Table, Id) of
 		[] -> {error, enoent};
 		[Record|_] -> {ok, Record}
 	end.
 
 -spec all(client_fs | client_db) -> list() | {error, atom()}.
-all(Table) -> ems_db:all(Table).
+all(Table) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_db:all(Table).
 
 
 %% middleware functions
 
 insert(Client) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
 	case valida(Client, insert) of
 		ok -> ems_db:insert(Client);
 		Error -> 
@@ -153,12 +166,15 @@ insert(Client) ->
 	end.
 
 update(Client) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
 	case valida(Client, update) of
 		ok -> ems_db:update(Client);
 		Error -> Error
 	end.
 
-delete(Id) -> ems_db:delete(client, Id).
+delete(Id) -> 
+	ems_data_loader_ctl:register_activity(?MODULE),
+	ems_db:delete(client, Id).
 
 valida(_Client, _Operation) -> ok.
 

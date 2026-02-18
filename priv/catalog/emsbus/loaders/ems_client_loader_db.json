@@ -8,6 +8,7 @@
 	"async": true,
 	"type": "KERNEL",
 	"lang": "erlang",
+ 	"activity_type": "auth",
 	"update_checkpoint": 160000,
 	"datasource": "ds_ems_user_loader",
 	"start_timeout": 3000,

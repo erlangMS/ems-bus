@@ -149,6 +149,9 @@
 % Number of datasource entries by odbc connection pool in iddle
 -define(MAX_CONNECTION_IDDLE_BY_POOL, 4).
 
+% Number of datasource entries by odbc connection pool global limit
+-define(MAX_CONNECTION_LIMIT_BY_POOL, 25).
+
 % Timeout to check odbc connection
 -define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 2 minutos
 -define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h

@@ -61,10 +61,17 @@
 				disable_count = 0,
 				skip_count = 0,
 				error_db_count = 0,
-				log_show_data_loader_activity = false
+				log_show_data_loader_activity = false,
+				activity_type,
+				last_sync_time = 0,
+				is_dormant = false
 			}).
 
 -define(SERVER, ?MODULE).
+
+-define(INACTIVITY_TIMEOUT_NORMAL, 180).			% 3 minutes (180s)
+-define(INACTIVITY_TIMEOUT_FORA_EXPEDIENTE, 60).	% 1 minute (60s)
+-define(MANDATORY_SYNC_TIMEOUT, 300000).			% 5 minutes (300.000 ms)
 
 %%====================================================================
 %% Server API
@@ -197,8 +204,12 @@ init(#service{name = Name,
 				   disable_count = 0,
 				   skip_count = 0,
 				   error_db_count = 0,
-				   log_show_data_loader_activity = LogShowDataLoaderActivity
+				   log_show_data_loader_activity = LogShowDataLoaderActivity,
+				   activity_type = maps:get(<<"activity_type">>, Props, undefined),
+				   last_sync_time = ems_util:get_timestamp(),
+				   is_dormant = false
 	},
+	ems_data_loader_ctl:register_loader(State#state.activity_type, erlang:binary_to_atom(Name, utf8)),
 	{ok, State, StartTimeout}.
     
 handle_cast(shutdown, State) ->
@@ -343,13 +354,45 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 														 update_checkpoint = UpdateCheckpoint,
-														 timeout_on_error = TimeoutOnError,
-														 error_checkpoint_metric_name = ErrorCheckpointMetricName,
-														 loading = Loading,
-														 group = DataLoaderGroup,
-														 wait_count = WaitCount,
-														 error_db_count = ErrorDBCount,
-														 log_show_data_loader_activity = LogShowDataLoaderActivity}) ->
+														 log_show_data_loader_activity = LogShowDataLoaderActivity,
+														 activity_type = ActivityType}) ->
+	try
+		InactivityTimeout = get_inactivity_timeout(),
+		Now = ems_util:get_timestamp(),
+		% Mandatory sync every 5 minutes
+		IsMandatorySync = (Now - State#state.last_sync_time) >= ?MANDATORY_SYNC_TIMEOUT,
+		IsActive = IsMandatorySync orelse ems_data_loader_ctl:is_active(ActivityType, InactivityTimeout),
+		case IsActive of
+			true ->
+				case State#state.is_dormant of
+					true -> ems_logger:debug("~s is now awake.", [Name], LogShowDataLoaderActivity);
+					false -> ok
+				end,
+				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = false});
+			false ->
+				case State#state.is_dormant of
+					false -> ems_logger:debug("~s is now dormant.", [Name], LogShowDataLoaderActivity);
+					true -> ok
+				end,
+				ems_logger:debug("~s handle_do_check_load_or_update_checkpoint skip sync due to inactivity on type ~p (timeout ~p).", [Name, ActivityType, InactivityTimeout], LogShowDataLoaderActivity),
+				{noreply, State#state{is_dormant = true}, UpdateCheckpoint}
+		end
+	catch
+		_:ReasonException1 ->
+			ems_logger:error("ems_data_loader handle_do_check_load_or_update_checkpoint activity check exception. Reason: ~p.", [ReasonException1]),
+			{noreply, State, 60000}
+	end.
+
+
+handle_do_check_load_or_update_checkpoint_execute(State = #state{name = Name,
+																 update_checkpoint = UpdateCheckpoint,
+																 timeout_on_error = TimeoutOnError,
+																 error_checkpoint_metric_name = ErrorCheckpointMetricName,
+																 loading = Loading,
+																 group = DataLoaderGroup,
+																 wait_count = WaitCount,
+																 error_db_count = ErrorDBCount,
+																 log_show_data_loader_activity = LogShowDataLoaderActivity}) ->
 	try
 		put(handle_do_check_load_or_update_checkpoint_step, handle_do_check_load_or_update_checkpoint_step_pass1),
 		case ems_data_loader_ctl:permission_to_execute(Name, DataLoaderGroup, check_load_or_update_checkpoint, WaitCount) of
@@ -812,6 +855,14 @@ do_check_remove_records_iterate(Key, Table, TempSet, Count) ->
 -spec do_after_load_or_update_checkpoint(#state{}) -> ok.
 do_after_load_or_update_checkpoint(#state{middleware = Middleware, source_type = SourceType}) ->
 	apply(Middleware, after_load_or_update_checkpoint, [SourceType]).
+
+-spec get_inactivity_timeout() -> integer().
+get_inactivity_timeout() ->
+    {_Date, {Hour, _Minute, _Second}} = calendar:local_time(),
+    if
+        Hour >= 5 andalso Hour < 8 -> ?INACTIVITY_TIMEOUT_NORMAL;
+        true                       -> ?INACTIVITY_TIMEOUT_FORA_EXPEDIENTE
+    end.
 	
 	
 

@@ -8,6 +8,7 @@
 	"async": "false",
 	"type": "KERNEL",
 	"lang" : "erlang",
+ 	"activity_type": "auth",
 	"update_checkpoint" : 2628000000,
 	"start_timeout" : 2500,
 	"middleware" : "ems_user_email_loader_middleware",
