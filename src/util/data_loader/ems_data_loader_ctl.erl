@@ -37,6 +37,10 @@ start(_Service) ->
 	ets:new(ets_dataloader_working_ctl, [set, named_table, public]),
 	ets:new(ets_dataloader_activity_ctl, [set, named_table, public]),
 	ets:new(ets_dataloader_registry_ctl, [bag, named_table, public]),
+	Now = ems_util:get_timestamp(),
+	ets:insert(ets_dataloader_activity_ctl, {global, Now}),
+	ets:insert(ets_dataloader_activity_ctl, {auth, Now}),
+	ets:insert(ets_dataloader_activity_ctl, {catalog, Now}),
     gen_server:start({local, ?MODULE}, ?MODULE, [], []).
  
 stop() ->
