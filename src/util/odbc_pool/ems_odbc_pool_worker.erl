@@ -98,13 +98,15 @@ handle_call({select_count, Sql}, _From, State = #state{query_count = QueryCount}
 	end;
 
 
-handle_call({select, Offset, Limit}, _From, State) ->
+handle_call({select, Offset, Limit}, _From, State = #state{query_count = QueryCount}) ->
 	case do_select(Offset, Limit, State) of
 		{ok, Result, Datasource} -> 
 			{reply, Result, State#state{datasource = Datasource, 
-										last_error = undefined}};
+										last_error = undefined,
+										query_count = QueryCount + 1}};
 		Error -> 
-			{reply, Error, State#state{last_error = Error}}
+			{reply, Error, State#state{last_error = Error,
+									    query_count = QueryCount + 1}}
 	end;
 
 handle_call({param_query, Sql, Params}, _From, State = #state{query_count = QueryCount}) ->

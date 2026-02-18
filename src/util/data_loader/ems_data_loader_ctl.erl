@@ -20,7 +20,7 @@
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3, 
 		 permission_to_execute/4, notify_finish_work/9,
-		 register_activity/1, is_active/2, register_loader/2]).
+		 register_activity/1, is_active/2, get_last_activity/1, register_loader/2]).
 
 % estado do servidor
 -record(state, {}).
@@ -61,6 +61,13 @@ is_active(_, MaxAgeSeconds) ->
 		[{_, LastActivity}] -> 
 			(ems_util:get_timestamp() - LastActivity) < (MaxAgeSeconds * 1000);
 		[] -> false
+	end.
+
+
+get_last_activity(_) ->
+	case ets:lookup(ets_dataloader_activity_ctl, global) of
+		[{_, LastActivity}] -> LastActivity;
+		[] -> 0
 	end.
 
 

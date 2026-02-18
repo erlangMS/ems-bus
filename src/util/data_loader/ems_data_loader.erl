@@ -318,25 +318,33 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 		InactivityTimeout = get_inactivity_timeout(),
 		MandatorySyncTimeout = get_mandatory_sync_timeout(),
 		Now = ems_util:get_timestamp(),
-		% Mandatory sync
+		LastActivity = ems_data_loader_ctl:get_last_activity(ActivityType),
+		ElapsedS = (Now - LastActivity) div 1000,
+		RemainingS = InactivityTimeout - ElapsedS,
+		
+		IsUserActive = ems_data_loader_ctl:is_active(ActivityType, InactivityTimeout),
 		IsMandatorySync = (Now - State#state.last_sync_time) >= MandatorySyncTimeout,
-		IsActive = IsMandatorySync orelse ems_data_loader_ctl:is_active(ActivityType, InactivityTimeout),
-		case IsActive of
-			true ->
+		
+		if
+			IsUserActive ->
 				case State#state.is_dormant of
-					true -> ems_logger:debug("~s is now awake.", [Name], LogShowDataLoaderActivity);
+					true -> ems_logger:debug("~s ~s is now awake.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity);
 					false -> ok
 				end,
 				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = false});
-			false ->
+			IsMandatorySync ->
+				% Sincronização obrigatória por tempo, mas mantém o estado dormente se não houver atividade de usuário
+				ems_logger:debug("~s ~s handle_do_check_load_or_update_checkpoint mandatory sync while dormant.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity),
+				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = true});
+			true ->
 				case State#state.is_dormant of
 					false -> 
-						ems_logger:debug("~s is now dormant.", [Name], LogShowDataLoaderActivity),
+						ems_logger:debug("~s ~s is now dormant (last activity ~ps ago).~s", [?YELLOW_COLOR, Name, ElapsedS, ?RESET_COLOR], LogShowDataLoaderActivity),
 						% Reset last_sync_time to ensure the next mandatory sync only happens after 
 						% a full inactivity period has elapsed since entering dormancy.
 						{noreply, State#state{is_dormant = true, last_sync_time = Now}, UpdateCheckpoint};
 					true -> 
-						ems_logger:debug("~s handle_do_check_load_or_update_checkpoint skip sync due to inactivity (timeout ~p).", [Name, InactivityTimeout], LogShowDataLoaderActivity),
+						ems_logger:debug("~s handle_do_check_load_or_update_checkpoint skip sync due to inactivity (~ps into ~ps timeout, ~ps left).", [Name, ElapsedS, InactivityTimeout, RemainingS], LogShowDataLoaderActivity),
 						{noreply, State#state{is_dormant = true}, UpdateCheckpoint}
 				end
 		end

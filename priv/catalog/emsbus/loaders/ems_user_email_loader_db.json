@@ -1,25 +1,25 @@
 {
-    "name": "ems_user_email_loader_db",
+	"name": "ems_user_email_loader_db",
 	"comment": "Catalog for ems_user_email_loader_db",
 	"owner": "data_loader",
 	"version": "1.0.0",
-	"service" : "ems_data_loader:start",
+	"service": "ems_data_loader:start",
 	"url": "/emsbus/ems_user_email_loader_db",
 	"type": "KERNEL",
-	"lang" : "erlang",
- 	"activity_type": "auth",
-	"update_checkpoint" : 130000,
-	"check_remove_records" : true,
-	"check_remove_records_checkpoint" : 14400000,
-	"datasource" : "ds_ems_user_loader",
-	"start_timeout" : 95000,
-	"middleware" : "ems_user_email_loader_middleware",
-	"group" : [],
-	"pool_size" : 1,
-	"pool_max" : 1,
-	"enable" : false,
-	"sql_load_packet_length" : 2000,
-	"sql_load" : 
+	"lang": "erlang",
+	"activity_type": "auth",
+	"update_checkpoint": 130000,
+	"check_remove_records": true,
+	"check_remove_records_checkpoint": 14400000,
+	"datasource": "ds_ems_user_loader",
+	"start_timeout": 95000,
+	"middleware": "ems_user_email_loader_middleware",
+	"group": [],
+	"pool_size": 1,
+	"pool_max": 1,
+	"enable": false,
+	"sql_load_packet_length": 10000,
+	"sql_load": 
 				"select 
 				   em.EmaCodigo as id,
 				   pfe.PFmPesCodigoPessoa as codigo,
@@ -27,9 +27,7 @@
 				from BDPessoa.dbo.TB_PessoaFisicaEmail pfe with (nolock) 
 					join BDPessoa.dbo.TB_Email em with (nolock) 
 						on pfe.PFmEmaCodigo = em.EmaCodigo 
-				where em.EmaEmail LIKE '_%@__%.__%'",
-
-	"sql_update" : 
+				where em.EmaEmail LIKE '_%@__%.__%'","sql_update": 
 				"select 
 				   em.EmaCodigo as id,
 				   pfe.PFmPesCodigoPessoa as codigo,
@@ -38,7 +36,9 @@
 					join BDPessoa.dbo.TB_Email em with (nolock) 
 						on pfe.PFmEmaCodigo = em.EmaCodigo 
 				where (em.EmaDataAlteracao >= ? or em.EmaDataCadastramento >= ?) and em.EmaEmail LIKE '_%@__%.__%'
-				",
-	"fields" : ["id", "codigo", "email"]
-				
+				","fields": [
+		"id",
+		"codigo",
+		"email"
+	]
 }
