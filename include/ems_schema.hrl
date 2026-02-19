@@ -330,20 +330,21 @@
 				 scope :: binary(),							%%  7 - scope	
 				 version :: binary(),						%%  8 - version
 				 group :: binary(), 						%%  9 - group
-				 state :: binary(),							%%  7 - state
-				 glyphicon :: binary(),						%% 10 - glyphicon
-			     rest_base_url :: binary(),				    %% 11 - rest_base_url
-			     rest_auth_url :: binary(),					%% 12 - rest_auth_url
-			     authorization_owner :: list(binary()),	    %% 13 - authorization_owner		-> permite ao cliente consumir os ws services de owners especificados na lista
-				 user_agent :: atom(),						%% 14 - user_agent
-			     peer :: binary(),							%% 15 - peer
-			     ctrl_path :: string(),						%% 17 - ctrl_path
-			     ctrl_file :: string(),						%% 18 - ctrl_file
-			     ctrl_insert :: binary(),					%% 19 - ctrl_insert				-> Data que foi inserido no banco mnesia
-			     ctrl_update :: binary(), 					%% 20 - ctrl_update				-> Data que foi atualiado no banco mnesia			
-			     ctrl_modified :: binary(),					%% 21 - ctrl_modified			-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
-			     ctrl_hash :: non_neg_integer(),				%% 22 - ctrl_hash 				-> Hash gerado para poder comparar dois registros	
-			     json_cache = undefined :: binary() | undefined	%% 23 - json_cache				-> Cache da serialização JSON do cliente
+				 state :: binary(),							%% 10 - state
+				 glyphicon :: binary(),						%% 11 - glyphicon
+			     rest_base_url :: binary(),				    %% 12 - rest_base_url
+			     rest_auth_url :: binary(),					%% 13 - rest_auth_url
+			     authorization_owner :: list(binary()),	    %% 14 - authorization_owner			-> permite ao cliente consumir os ws services de owners especificados na lista
+				 user_agent :: atom(),						%% 15 - user_agent
+			     peer :: binary(),							%% 16 - peer
+				 forwarded_for :: binary(),				 	%% 17 - forwarded_for (sem uso)
+			     ctrl_path :: string(),						%% 18 - ctrl_path
+			     ctrl_file :: string(),						%% 19 - ctrl_file
+			     ctrl_insert :: binary(),					%% 20 - ctrl_insert					-> Data que foi inserido no banco mnesia
+			     ctrl_update :: binary(), 					%% 21 - ctrl_update					-> Data que foi atualiado no banco mnesia			
+			     ctrl_modified :: binary(),					%% 22 - ctrl_modified				-> Data que foi modificado na fonte onde está cadastrado (em disco ou banco de dados externo)
+			     ctrl_hash :: non_neg_integer(),			%% 23 - ctrl_hash 					-> Hash gerado para poder comparar dois registros	
+			     json_cache = undefined :: binary() | undefined	%% 24 - json_cache				-> Cache da serialização JSON do cliente
 		}).
 
 
@@ -356,8 +357,8 @@
 			   binary_type,									%%  5 - redirect_uri
 			   boolean_type,								%%  6 - active
 			   binary_type,									%%  7 - scope
-			   binary_type,									%%  7 - state
-			   binary_type,									%%  8 - version
+			   binary_type,									%%  8 - state
+			   binary_type,									%%  9 - version
 			   binary_type,									%%  9 - group
 			   binary_type,									%% 10 - glyphicon
 			   binary_type,									%% 11 - rest_base_url
