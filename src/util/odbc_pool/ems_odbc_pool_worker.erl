@@ -199,7 +199,7 @@ handle_info({check_valid_connection, QueryCount}, State = #state{datasource = #s
 			{noreply, State#state{check_valid_connection_ref = CheckValidConnectionRef}};
 		false ->
 			Now = ems_util:get_timestamp(),
-			case (Now - State#state.last_idle_time) >= 300000 of
+			case (Now - State#state.last_idle_time) >= ?ODBC_IDLE_CONNECTION_THRESHOLD of
 				true ->
 					erlang:cancel_timer(CurrentCloseIdleConnectionRef),
 					ems_logger:info("ems_odbc_pool_worker ~p shutdown during check_valid_connection due to idle limit (Ds: ~p QueryCount: ~p).", [self(), Id, QueryCountNow], State#state.datasource#service_datasource.log_show_odbc_pool_activity),

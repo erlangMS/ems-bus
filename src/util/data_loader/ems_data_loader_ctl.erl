@@ -27,8 +27,6 @@
 
 -define(SERVER, ?MODULE).
 
--define(ACTIVITY_THRESHOLD, 300000).		% 5 minutes (300.000 ms)
-
 %%====================================================================
 %% Server API
 %%====================================================================
@@ -39,8 +37,6 @@ start(_Service) ->
 	ets:new(ets_dataloader_registry_ctl, [bag, named_table, public]),
 	Now = ems_util:get_timestamp(),
 	ets:insert(ets_dataloader_activity_ctl, {global, Now}),
-	ets:insert(ets_dataloader_activity_ctl, {auth, Now}),
-	ets:insert(ets_dataloader_activity_ctl, {catalog, Now}),
     gen_server:start({local, ?MODULE}, ?MODULE, [], []).
  
 stop() ->
@@ -48,42 +44,37 @@ stop() ->
 
 
 register_activity(ModuleActivity) ->
-	% A atividade é atribuída a uma TAG para que diferentes loaders
-	% possam vigiar apenas atividades relevantes ao seu domínio (ex: auth).
-	% Se o ModuleActivity não definir uma tag, usa 'global'.
-	ActivityTag = get_activity_tag(ModuleActivity),
+	% A atividade agora é global para simplificar o sistema.
+	% O parâmetro ModuleActivity é usado apenas para debug.
 	Now = ems_util:get_timestamp(),
-	case ets:lookup(ets_dataloader_activity_ctl, ActivityTag) of
-		[{_, LastActivity}] when (Now - LastActivity) < ?ACTIVITY_THRESHOLD -> 
-			ets:insert(ets_dataloader_activity_ctl, {ActivityTag, Now});
+	case ets:lookup(ets_dataloader_activity_ctl, global) of
+		[{_, LastActivity}] when (Now - LastActivity) >= ?DATA_LOADER_ACTIVITY_THRESHOLD -> 
+			ets:insert(ets_dataloader_activity_ctl, {global, Now}),
+			sync_activity(global, ModuleActivity);
 		_ -> 
-			ets:insert(ets_dataloader_activity_ctl, {ActivityTag, Now}),
-			sync_activity(ActivityTag, ModuleActivity)
+			ets:insert(ets_dataloader_activity_ctl, {global, Now})
 	end.
 
 
-is_active(undefined, _) -> true;
-is_active(ActivityTag0, MaxAgeSeconds) ->
-	ActivityTag = normalize_tag(ActivityTag0),
-	case ets:lookup(ets_dataloader_activity_ctl, ActivityTag) of
+is_active(_ActivityTag, MaxAgeSeconds) ->
+	case ets:lookup(ets_dataloader_activity_ctl, global) of
 		[{_, LastActivity}] -> 
 			(ems_util:get_timestamp() - LastActivity) < (MaxAgeSeconds * 1000);
 		[] -> false
 	end.
 
 
-get_last_activity(ActivityTag0) ->
-	ActivityTag = normalize_tag(ActivityTag0),
-	case ets:lookup(ets_dataloader_activity_ctl, ActivityTag) of
+get_last_activity(_ActivityTag) ->
+	case ets:lookup(ets_dataloader_activity_ctl, global) of
 		[{_, LastActivity}] -> LastActivity;
 		[] -> 0
 	end.
 
 
-register_loader(undefined, _) -> ok;
-register_loader(ActivityType, LoaderName) ->
-	ems_logger:debug("ems_data_loader_ctl register_loader ~p ~p.", [ActivityType, LoaderName]),
-	ets:insert(ets_dataloader_registry_ctl, {ActivityType, LoaderName}).
+register_loader(_ActivityType, LoaderName) ->
+	% Todos os loaders são registrados sob a tag 'global' para que respondam a qualquer atividade do sistema.
+	ems_logger:debug("ems_data_loader_ctl register_loader ~p.", [LoaderName]),
+	ets:insert(ets_dataloader_registry_ctl, {global, LoaderName}).
 
 
 sync_activity(ActivityTag, ModuleActivity) ->
@@ -94,15 +85,6 @@ sync_activity(ActivityTag, ModuleActivity) ->
 			ems_logger:debug("ems_data_loader_ctl sync_activity tag ~p module ~p. Loaders: ~p.", [ActivityTag, ModuleActivity, Loaders]),
 			ok
 	end.
-
-
-get_activity_tag(auth) -> auth;
-get_activity_tag(catalog) -> catalog;
-get_activity_tag(_) -> global.
-
-normalize_tag(Tag) when is_binary(Tag) -> binary_to_atom(Tag, utf8);
-normalize_tag(Tag) when is_list(Tag) -> list_to_atom(Tag);
-normalize_tag(Tag) -> Tag.
 
 
 permission_to_execute(DataLoader, [], Operation, WaitCount) -> 

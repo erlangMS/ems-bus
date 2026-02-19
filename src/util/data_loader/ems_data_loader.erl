@@ -328,18 +328,18 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 		if
 			IsUserActive ->
 				case State#state.is_dormant of
-					true -> ems_logger:debug("~s ~s is now awake.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity);
+					true -> ems_logger:debug("~s~s is now awake.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity);
 					false -> ok
 				end,
 				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = false});
 			IsMandatorySync ->
 				% Sincronização obrigatória por tempo, mas mantém o estado dormente se não houver atividade de usuário
-				ems_logger:debug("~s ~s handle_do_check_load_or_update_checkpoint mandatory sync while dormant.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity),
+				ems_logger:debug("~s~s handle_do_check_load_or_update_checkpoint mandatory sync while dormant.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity),
 				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = true});
 			true ->
 				case State#state.is_dormant of
 					false -> 
-						ems_logger:debug("~s ~s is now dormant (last activity ~ps ago).~s", [?YELLOW_COLOR, Name, ElapsedS, ?RESET_COLOR], LogShowDataLoaderActivity),
+						ems_logger:debug("~s~s is now dormant (last activity ~ps ago).~s", [?YELLOW_COLOR, Name, ElapsedS, ?RESET_COLOR], LogShowDataLoaderActivity),
 						% Reset last_sync_time to ensure the next mandatory sync only happens after 
 						% a full inactivity period has elapsed since entering dormancy.
 						{noreply, State#state{is_dormant = true, last_sync_time = Now}, UpdateCheckpoint};

@@ -154,14 +154,16 @@
 
 % Timeout to check odbc connection
 -define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 2 minutos
--define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h
--define(CLOSE_IDLE_CONNECTION_TIMEOUT, 3600000). % 1h
--define(CONNECTION_LIMIT_QUERYCOUNT_RELEASE, 100).
+-define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 1800000). % 30m
+-define(CLOSE_IDLE_CONNECTION_TIMEOUT, 900000). % 15m
+-define(CONNECTION_LIMIT_QUERYCOUNT_RELEASE, 40).
+-define(ODBC_IDLE_CONNECTION_THRESHOLD, 300000).	% 5 minutes (300.000 ms)
 
 
 % Define the default checkpoint to ems_data_loader and ems_json_loader
 -define(DATA_LOADER_UPDATE_CHECKPOINT, 30000).
 -define(DATA_LOADER_EXCEPTION_TIMEOUT, 30000).
+-define(DATA_LOADER_ACTIVITY_THRESHOLD, 300000).	% 5 minutes (300.000 ms)
 
 %Define the checkpoint to update permission for ems_user_permission_l
 % HTTP access control (CORS) headers

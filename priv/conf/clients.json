@@ -1,10 +1,1 @@
-[
-    {
-        "id": 1,
-        "name": "erlangms@unb.br",
-        "description": "erlangms@unb.br",
-        "secret": "CPD",
-        "redirect_uri": "/callback",
-        "active": true
-    }
-]
+[]

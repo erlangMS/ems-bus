@@ -8,10 +8,10 @@
 	"async": true,
 	"type": "KERNEL",
 	"lang": "erlang",
- 	"activity_type": "auth",
-	"update_checkpoint": 160000,
+	"activity_type": "auth",
+	"update_checkpoint": 60000,
 	"datasource": "ds_ems_user_loader",
-	"start_timeout": 3000,
+	"start_timeout": 5000,
 	"middleware": "ems_client_loader_middleware",
 	"pool_size": 1,
 	"pool_max": 1,
@@ -19,44 +19,29 @@
 	"sql_load_packet_length": 0,
 	"sql_load":
 			"select s.SisId as id,
-			   rtrim(s.SisSistema) as Name,
-			   coalesce(s.SisAuthSecret, 'CPD') as Secret,
-			   rtrim(s.SisUrl) as RedirectUri,
-			   rtrim(s.SisDescricao) as Description,
-			   s.SisSituacao as Active,
-			   s.SisAuthScope,
-			   s.SisGroup,
-			   s.SisGlyphIcon,
+				rtrim(s.SisSistema) as Name,
+				coalesce(s.SisAuthSecret, 'CPD') as Secret,
+				rtrim(s.SisUrl) as RedirectUri,
+				s.SisSituacao as Active,
+				s.SisAuthScope,
+				s.SisGroup,
+	null,
+	null,
+				s.SisAuthorizationOwner  
+				from BDAcesso.dbo.TB_Sistemas s with (nolock)","sql_update":
+				"select s.SisId as id,
+				rtrim(s.SisSistema) as Name,
+				coalesce(s.SisAuthSecret, 'CPD') as Secret,
+				rtrim(s.SisUrl) as RedirectUri,
+				s.SisSituacao as Active,
+				s.SisAuthScope,
+				s.SisGroup,
 	null,
 	null,
 			   s.SisAuthorizationOwner  
-			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
-			","sql_update":
-			"select s.SisId as id,
-			   rtrim(s.SisSistema) as Name,
-			   coalesce(s.SisAuthSecret, 'CPD') as Secret,
-			   rtrim(s.SisUrl) as RedirectUri,
-			   rtrim(s.SisDescricao) as Description,
-			   s.SisSituacao as Active,
-			   s.SisAuthScope,
-			   s.SisGroup,
-			   s.SisGlyphIcon,
-	null,
-	null,
-			   s.SisAuthorizationOwner  
-			from BDAcesso.dbo.TB_Sistemas s with (nolock) 
-			","fields": [
-		"id",
-		"name",
-		"secret",
-		"redirect_uri",
-		"description",
-		"active",
-		"scope",
-		"group",
-		"glyphicon",
-		"rest_base_url",
-		"rest_auth_url",
-		"authorization_owner"
-	]
+			from BDAcesso.dbo.TB_Sistemas s with (nolock)","fields": ["id","name","secret","redirect_uri","active","scope","group",
+	"rest_base_url",
+	"rest_auth_url",
+	"authorization_owner"
+]
 }

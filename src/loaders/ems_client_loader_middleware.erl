@@ -75,13 +75,13 @@ insert_or_update(Map, CtrlDate, Conf, SourceType, _Operation) ->
 												 name = NewClient#client.name,
 												 secret = NewClient#client.secret,
 												 redirect_uri = NewClient#client.redirect_uri,
-												 description = NewClient#client.description,
+												 description = <<"">>,
 												 scope = NewClient#client.scope,
 												 state = NewClient#client.state,
 												 active = NewClient#client.active,
 												 version = NewClient#client.version,
 												 group = NewClient#client.group,
-												 glyphicon = NewClient#client.glyphicon,
+												 glyphicon = <<"">>,
 												 rest_base_url = case NewClient#client.rest_base_url of
 																	undefined -> Conf#config.rest_base_url;
 																	null -> Conf#config.rest_base_url;
