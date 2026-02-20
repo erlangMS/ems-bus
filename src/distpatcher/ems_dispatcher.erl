@@ -19,13 +19,13 @@ check_result_cache(ReqHash, Worker, Timestamp2, Url, Debug) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
 		[] -> 
 			case Debug of
-				true -> ems_logger:info("ems_dispatcher result_cache miss (not found). url: ~p", [Url]);
+				true -> ems_logger:info(?COLOR_YELLOW ++ "ems_dispatcher result_cache miss (not found). url: ~p" ++ ?COLOR_RESET, [Url]);
 				false -> ok
 			end,
 			false; 
 		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> 
 			case Debug of
-				true -> ems_logger:info("ems_dispatcher result_cache miss (expired). url: ~p", [Url]);
+				true -> ems_logger:info(?COLOR_YELLOW ++ "ems_dispatcher result_cache miss (expired). url: ~p" ++ ?COLOR_RESET, [Url]);
 				false -> ok
 			end,
 			false;
@@ -59,7 +59,7 @@ check_result_cache2(ReqHash, Worker, Timestamp2, Count, Url, Debug) ->
 		[] -> false; 
 		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> 
 			case Debug of
-				true -> ems_logger:info("ems_dispatcher result_cache miss (expired retry). url: ~p", [Url]);
+				true -> ems_logger:info(?COLOR_YELLOW ++ "ems_dispatcher result_cache miss (expired retry). url: ~p" ++ ?COLOR_RESET, [Url]);
 				false -> ok
 			end,
 			false;
@@ -75,7 +75,7 @@ check_result_cache2(ReqHash, Worker, Timestamp2, Count, Url, Debug) ->
 				{'DOWN', MonitorRef, process, OwnerPid, _Reason} -> 
 					% The owner process died, so we must assume cache miss and try to execute
 					case Debug of
-						true -> ems_logger:info("ems_dispatcher result_cache miss (owner died). url: ~p", [Url]);
+						true -> ems_logger:info(?COLOR_YELLOW ++ "ems_dispatcher result_cache miss (owner died). url: ~p" ++ ?COLOR_RESET, [Url]);
 						false -> ok
 					end,
 					false
@@ -114,6 +114,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 								    worker_send = WorkerSend,
  								    url_masked = UrlMasked, 
 									url = Url,
+									referer = Referer,
 									user_agent = UserAgent,
 									content_type_in = ContentType
 				},
@@ -126,7 +127,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 					false -> ResultCacheOrig
 				  end,
 	try
-		ems_logger:info("ems_dispatcher call Method: ~p ContentType: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~s.", [Type, ContentType, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip)]),
+		ems_logger:info(?COLOR_CYAN ++ "ems_dispatcher ~s: ContentType: ~s url_masked: ~p url: ~p user_agent: ~s IP: ~s referer: ~s." ++ ?COLOR_RESET, [Type, ContentType, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), Referer]),
 		UserAgentDeniedList = ems_db:get_param(user_agent_denied_list, []),
 		case ems_util:allow_user_agent(UserAgent, UserAgentDeniedList) of
 			true ->
@@ -144,21 +145,21 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 														   access_token = AccessToken},
 								case Type of
 									<<"HEAD">> -> 
-										{ok, request, Request2#request{code = 200, 
+										{ok, request, Request2#request{code = ?HTTP_OK, 
 																	   latency = Latency}
 										};
 									<<"GET">> ->
 										case check_result_cache(ReqHash, WorkerSend, T1, Url, Debug) of
 											{true, RequestCache} -> 
 												case Debug of
-													true -> ems_logger:info("ems_dispatcher result_cache hit");
+													true -> ems_logger:info(?COLOR_GREEN ++ "ems_dispatcher result_cache hit" ++ ?COLOR_RESET);
 													false -> ok
 												end,
 												ResponseHeader = RequestCache#request.response_header,
 												case IfNoneMatch =/= <<>> orelse IfModifiedSince =/= <<>> of
 													true ->
 														{ok, request, Request2#request{result_cache = true,
-																					   code = 304,
+																					   code = ?HTTP_NOT_MODIFIED,
 																					   reason = enot_modified,
 																					   reason_detail = RequestCache#request.reason_detail,
 																					   content_type_out = RequestCache#request.content_type_out,
@@ -202,7 +203,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 								Latency = ems_util:get_milliseconds() - T1,
 								case Type of
 									<<"HEAD">> -> 
-										{ok, request, Request#request{code = 200, 
+										{ok, request, Request#request{code = ?HTTP_OK, 
 																	  latency = Latency}};
 									 _ -> 
 										% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log
@@ -210,7 +211,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 											{ok, UserFound} -> User = UserFound;
 											_ -> User = undefined
 										end,
-										{error, request, Request#request{code = 400, 
+										{error, request, Request#request{code = ?HTTP_BAD_REQUEST, 
 																		 content_type_out = ?CONTENT_TYPE_JSON,
 																		 reason = Reason, 
 																		 reason_detail = ReasonDetail,
@@ -227,7 +228,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 							{ok, UserFound} -> User = UserFound;
 							_ -> User = undefined
 						end,
-						{error, request, Request#request{code = 400, 
+						{error, request, Request#request{code = ?HTTP_BAD_REQUEST, 
 														 content_type_out = ?CONTENT_TYPE_JSON,
 														 reason = access_denied, 
 														 reason_detail = host_denied,
@@ -238,7 +239,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 			false ->
 				ems_logger:info("ems_dispatcher unauthorized User-Agent"),
 				Latency = ems_util:get_milliseconds() - T1,
-				RequestUA = Request#request{code = 400, 
+				RequestUA = Request#request{code = ?HTTP_BAD_REQUEST, 
 										   content_type_out = ?CONTENT_TYPE_JSON,
 										   reason = access_denied, 
 										   reason_detail = user_agent_denied,
@@ -251,7 +252,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 		_:ReasonException -> 
 			ems_logger:error("ems_dispatcher dispatch_request exception url_masked: ~p url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - T1,
-			{error, request, Request#request{code = 500, 
+			{error, request, Request#request{code = ?HTTP_INTERNAL_SERVER_ERROR, 
 											 reason = edispatch_request_exception, 
 											 response_data = ems_schema:to_json({error, ReasonException}), 
 											 latency = LatencyException}}
@@ -260,7 +261,7 @@ dispatch_request(Request = #request{req_hash = ReqHash,
 dispatch_service_work(Request = #request{type = Type,
 										  url = Url,
 										  ip = Ip,
-										  url_masked = UrlMasked, 
+										  url_masked = _UrlMasked, 
 										  user_agent = UserAgent},
 					  #service{host = '',
 							    lang = <<"erlang">>,
@@ -270,7 +271,7 @@ dispatch_service_work(Request = #request{type = Type,
  					  Debug) ->
 	try
 		case Debug of
-			true -> ems_logger:info("ems_dispatcher send ~s to service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~s.", [Type, ModuleName, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip)]);
+			true -> ems_logger:info("ems_dispatcher send ~s to service: ~p url: ~p  user_agent: ~p IP: ~s.", [Type, ModuleName, Url, UserAgent, ems_util:ntoa(Ip)]);
 			false -> ok
 		end,
 		%% Retornos possíveis:
@@ -296,9 +297,9 @@ dispatch_service_work(Request = #request{type = Type,
 		end
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_service_work_local exception. url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - Request#request.t1,
-			{error, request, Request#request{code = 500, 
+			{error, request, Request#request{code = ?HTTP_INTERNAL_SERVER_ERROR, 
 											 reason = edispatch_service_work_local_exception, 
 											 response_data = ems_schema:to_json({error, ReasonException}), 
 											 latency = LatencyException}}
@@ -315,7 +316,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 										  params_url = ParamsMap,
 										  querystring_map = QuerystringMap,
 										  ip = Ip,
-										  url_masked = UrlMasked, 
+										  url_masked = _UrlMasked, 
 										  user_agent = UserAgent},
 					  Service = #service{
 										 module_name = ModuleName,
@@ -345,9 +346,9 @@ dispatch_service_work(Request = #request{rid = Rid,
 		dispatch_service_work_send(Request, Service, Debug, Msg)
 	catch
 		_:ReasonException -> 
-			ems_logger:error("ems_dispatcher dispatch_service_work exception. url_masked: ~p url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
+			ems_logger:error("ems_dispatcher dispatch_service_work exception. url: ~p  user_agent: ~p IP: ~s Reason: ~p.", [Url, UserAgent, ems_util:ntoa(Ip), ReasonException]),
 			LatencyException = ems_util:get_milliseconds() - Request#request.t1,
-			{error, request, Request#request{code = 500, 
+			{error, request, Request#request{code = ?HTTP_INTERNAL_SERVER_ERROR, 
 											 reason = edispatch_service_work_exception, 
 											 response_data = ems_schema:to_json({error, ReasonException}), 
 											 latency = LatencyException}}
@@ -356,7 +357,7 @@ dispatch_service_work(Request = #request{rid = Rid,
 
 dispatch_service_work_send(Request = #request{type = Type, 
 											  t1 = T1,
-											  url_masked = UrlMasked, 
+											  url_masked = _UrlMasked, 
 											  url = Url,
 											  user_agent = UserAgent,
 											  ip = Ip},
@@ -373,14 +374,14 @@ dispatch_service_work_send(Request = #request{type = Type,
 			case Debug of
 				true -> 
 					ems_logger:info("get_work_node Host ~p  HostName: ~p  ModuleName: ~p", [Host, HostName, ModuleName]),
-					ems_logger:info("ems_dispatcher send ~s to Wildfly service: ~p url_masked: ~p url: ~p  user_agent: ~p IP: ~s with timeout ~pms.", [Type, {Module, Node}, UrlMasked, Url, UserAgent, ems_util:ntoa(Ip), TimeoutService]);
+					ems_logger:info("ems_dispatcher send ~s to Wildfly service: ~p url: ~p  user_agent: ~p IP: ~s with timeout ~pms.", [Type, {Module, Node}, Url, UserAgent, ems_util:ntoa(Ip), TimeoutService]);
 				false -> ok
 			end,
 			dispatch_service_work_receive(Request, Service, Node, TimeoutService, 0, Debug);
 		_Error ->  
-			ems_logger:info("ems_dispatcher failed to get work node. url_masked: ~p url: ~p  user_agent: ~p IP: ~s.", [UrlMasked, Url, UserAgent, ems_util:ntoa(Ip)]),
+			ems_logger:info("ems_dispatcher failed to get work node. url: ~p  user_agent: ~p IP: ~s.", [Url, UserAgent, ems_util:ntoa(Ip)]),
 			Latency = ems_util:get_milliseconds() - T1,
-			{error, request, Request#request{code = 400,
+			{error, request, Request#request{code = ?HTTP_BAD_REQUEST,
 											 reason = eunavailable_service,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ?EUNAVAILABLE_SERVICE_JSON,
@@ -439,7 +440,7 @@ dispatch_service_work_receive(Request = #request{rid = Rid, t1 = T1},
 						false -> ok
 					end,
 					Latency = ems_util:get_milliseconds() - T1,
-					{error, request, Request#request{code = 503,
+					{error, request, Request#request{code = ?HTTP_SERVICE_UNAVAILABLE,
 													 reason = etimeout_service,
 													 reason_detail = edispatch_service_work_receive_exception,
 													 content_type_out = ?CONTENT_TYPE_JSON,
@@ -499,7 +500,7 @@ dispatch_middleware_function(Request = #request{reason = ok,
 						{ok, request, Request2#request{latency = Latency}}
 				end;
 			{error, Reason2} = Error ->
-				{error, request, Request#request{code = 500,
+				{error, request, Request#request{code = ?HTTP_INTERNAL_SERVER_ERROR,
 												 reason = Reason2,
 												 content_type_out = ?CONTENT_TYPE_JSON,
 												 response_data = ems_schema:to_json(Error),
@@ -507,7 +508,7 @@ dispatch_middleware_function(Request = #request{reason = ok,
 		end
 	catch 
 		_Exception:Error2 -> 
-			{error, request, Request#request{code = 500,
+			{error, request, Request#request{code = ?HTTP_INTERNAL_SERVER_ERROR,
 											 reason = Error2,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ems_schema:to_json(Error2),

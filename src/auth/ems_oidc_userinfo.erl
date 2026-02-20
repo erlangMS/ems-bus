@@ -48,14 +48,14 @@ execute(Request) ->
 					#user{} ->
 						return_user_info(ResOwner);
 					_ ->
-						{error, Request#request{code = 401, response_data = <<"{\"error\": \"invalid_token_user\"}">>}}
+						{error, Request#request{code = ?HTTP_UNAUTHORIZED, response_data = ?EINVALID_TOKEN_USER_JSON}}
 				end;
 			_ ->
-				{error, Request#request{code = 401, response_data = <<"{\"error\": \"invalid_token\"}">>}}
+				{error, Request#request{code = ?HTTP_UNAUTHORIZED, response_data = ?EINVALID_TOKEN_JSON}}
 		end
 	catch
 		_:_ ->
-			{error, Request#request{code = 401, response_data = <<"{\"error\": \"unauthorized\"}">>}}
+		{error, Request#request{code = ?HTTP_UNAUTHORIZED, response_data = ?EUNAUTHORIZED_JSON}}
 	end.
 
 parse_bearer_token(<<"Bearer ", Token/binary>>) -> Token;
@@ -75,7 +75,7 @@ return_user_info(User) ->
 	ResponseData = ems_util:json_encode(Claims),
 	
 	{ok, #request{
-		code = 200,
+		code = ?HTTP_OK,
 		content_type_out = <<"application/json">>,
 		response_data = ResponseData
 	}}.

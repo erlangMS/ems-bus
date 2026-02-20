@@ -666,10 +666,10 @@ sanitize_context_for_load(Context) -> Context.
 sanitize_context_item_save({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user ->
     case tuple_size(User) of
         48 -> 
-             ems_logger:info("DEBUG: Sanitizing #user for SAVE. Size 48 -> 47"),
+             %ems_logger:info("DEBUG: Sanitizing #user for SAVE. Size 48 -> 47"),
              {<<"resource_owner">>, erlang:delete_element(48, User)};
         49 -> 
-             ems_logger:info("DEBUG: Sanitizing #user for SAVE. Size 49 -> 47"),
+             %ems_logger:info("DEBUG: Sanitizing #user for SAVE. Size 49 -> 47"),
              User1 = erlang:delete_element(49, User),
              {<<"resource_owner">>, erlang:delete_element(48, User1)};
         _ ->
@@ -678,7 +678,7 @@ sanitize_context_item_save({<<"resource_owner">>, User}) when is_tuple(User), el
 sanitize_context_item_save({<<"client">>, Client}) when is_tuple(Client), element(1, Client) == client ->
     case tuple_size(Client) of
         25 -> 
-             ems_logger:info("DEBUG: Sanitizing #client for SAVE. Size 25 -> 24"),
+             %ems_logger:info("DEBUG: Sanitizing #client for SAVE. Size 25 -> 24"),
              {<<"client">>, erlang:delete_element(25, Client)};
         _ ->
              {<<"client">>, Client}
@@ -691,10 +691,10 @@ sanitize_context_item_save(Item) -> Item.
 sanitize_context_item_load({<<"resource_owner">>, User}) when is_tuple(User), element(1, User) == user ->
     case tuple_size(User) of
         47 -> 
-             ems_logger:info("DEBUG: Sanitizing #user for LOAD. Size 47 -> 48"),
+             %ems_logger:info("DEBUG: Sanitizing #user for LOAD. Size 47 -> 48"),
              {<<"resource_owner">>, erlang:append_element(User, undefined)};
         49 -> 
-             ems_logger:info("DEBUG: Sanitizing #user for LOAD. Size 49 -> 48"),
+             %ems_logger:info("DEBUG: Sanitizing #user for LOAD. Size 49 -> 48"),
              {<<"resource_owner">>, erlang:delete_element(49, User)};
         _ ->
              {<<"resource_owner">>, User}
@@ -704,14 +704,14 @@ sanitize_context_item_load({<<"client">>, Client}) when is_tuple(Client), elemen
     Client1 = case tuple_size(Client) >= 15 andalso is_binary(element(15, Client)) of
         true -> 
             LegacyUA = parse_user_agent_legacy(element(15, Client)),
-            ems_logger:info("DEBUG: Sanitizing #client.user_agent for LOAD."),
+            %ems_logger:info("DEBUG: Sanitizing #client.user_agent for LOAD."),
             setelement(15, Client, LegacyUA);
         false -> Client
     end,
 
     case tuple_size(Client1) of
         24 -> 
-             ems_logger:info("DEBUG: Sanitizing #client for LOAD. Size 24 -> 25"),
+             %ems_logger:info("DEBUG: Sanitizing #client for LOAD. Size 24 -> 25"),
              {<<"client">>, erlang:append_element(Client1, undefined)};
         _ ->
              {<<"client">>, Client1}
@@ -721,7 +721,7 @@ sanitize_context_item_load(Item) -> Item.
 
 parse_user_agent_legacy(UserAgentBin) ->
     UA = string:to_lower(binary_to_list(UserAgentBin)),
-    ems_logger:info("DEBUG: parse_user_agent_legacy Input: ~p Lower: ~p", [UserAgentBin, UA]),
+    %ems_logger:info("DEBUG: parse_user_agent_legacy Input: ~p Lower: ~p", [UserAgentBin, UA]),
     case string:str(UA, "firefox") > 0 of
         true -> browser_firefox;
         false ->

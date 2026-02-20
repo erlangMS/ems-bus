@@ -38,7 +38,8 @@ new_from_cowboy_req(CowboyReq, WorkerSend, State) ->
 %%====================================================================
 
 step1_init(CowboyReq, WorkerSend, State) ->
-    put(encode_request_cowboy_step, step1_init),
+    RID = erlang:system_time(),
+    T1  = trunc(RID / 1.0e6),
     Uri = iolist_to_binary(cowboy_req:uri(CowboyReq)),
     Url = binary_to_list(cowboy_req:path(CowboyReq)),
     
@@ -46,24 +47,20 @@ step1_init(CowboyReq, WorkerSend, State) ->
     case ems_util:check_url_denylist(Url) of
         true ->
             ems_logger:warn("Tarpit: Detected malicious request to ~s from client. Delaying response by ~p ms.", [Url, ?HTTP_TARPIT_DELAY]),
-            timer:sleep(?HTTP_TARPIT_DELAY),
-            
-            % Malicious Request - return 409 Conflict (as requested)
-            Latency = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            ems_tarpit:tarpit_hard(),
+            % Malicious Request - return 409 Conflict
             Request = #request{
-                rid = erlang:system_time(),
+                rid = RID,
                 type = cowboy_req:method(CowboyReq),
                 url = Url,
                 uri = Uri,
-                t1 = trunc(erlang:system_time() / 1.0e6),
-                code = 409,
+                t1 = T1,
+                code = ?HTTP_CONFLICT,
                 reason = emalicious_request,
-                response_data = iolist_to_binary([
-                    <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}"/utf8>>
-                ]),
-                content_type_out = <<"application/json; charset=utf-8">>,
+                response_data = ?EMALICIOUS_REQUEST_JSON,
+                content_type_out = ?CONTENT_TYPE_JSON_UTF8,
                 response_header = ?HTTP_HEADERS_DEFAULT,
-                latency = Latency
+                latency = ems_util:get_milliseconds() - T1
             },
             erlang:throw({error, request, Request, CowboyReq});
         false ->
@@ -74,45 +71,38 @@ step1_init(CowboyReq, WorkerSend, State) ->
     UriSize = byte_size(Uri),
     case UriSize > ?HTTP_MAX_URI_LENGTH of
         true ->
-            % URI too long - return 414 URI Too Long
-            Latency2 = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            % URI too long - likely a DoS attack; apply tarpit and return 414
+            ems_logger:warn("Tarpit: Detected URI too long (~p bytes) from client. Delaying response by ~p ms.", [UriSize, ?HTTP_TARPIT_DELAY]),
+            ems_tarpit:tarpit_hard(),
             Request2 = #request{
-                rid = erlang:system_time(),
+                rid = RID,
                 type = cowboy_req:method(CowboyReq),
                 url = Url,
                 uri = Uri,
-                t1 = trunc(erlang:system_time() / 1.0e6),
-                code = 414,
+                t1 = T1,
+                code = ?HTTP_URI_TOO_LONG,
                 reason = euri_too_long,
-                response_data = iolist_to_binary([
-                    <<"{\"error\":\"uri_too_long\",\"message\":\"URI length ">>, 
-                    integer_to_binary(UriSize), 
-                    <<" bytes exceeds maximum allowed ">>, 
-                    integer_to_binary(?HTTP_MAX_URI_LENGTH), 
-                    <<" bytes\"}">>
-                ]),
-                content_type_out = <<"application/json; charset=utf-8">>,
+                response_data = ?EURI_TOO_LONG_JSON,
+                content_type_out = ?CONTENT_TYPE_JSON_UTF8,
                 response_header = ?HTTP_HEADERS_DEFAULT,
-                latency = Latency2
+                latency = ems_util:get_milliseconds() - T1
             },
             erlang:throw({error, request, Request2, CowboyReq});
         false ->
             ok
     end,
     
-    step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url).
+    step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url, RID, T1).
 
-step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url) ->
-    put(encode_request_cowboy_step, step2_parse_url),
+step2_parse_url(CowboyReq, WorkerSend, State, Uri, Url, RID, T1) ->
     {UrlMasked, UrlSemPrefix, QuerystringBin, QuerystringMap0} = parse_url_logic(Url, CowboyReq),
     Url2 = ems_util:remove_ult_backslash_url(UrlSemPrefix),
-    step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, UrlMasked, QuerystringBin, QuerystringMap0).
+    step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, UrlMasked, QuerystringBin, QuerystringMap0, RID, T1).
 
-step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, QuerystringBin, QuerystringMap0) ->
-    put(encode_request_cowboy_step, step3_parse_headers),
+step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, UrlMasked, QuerystringBin, QuerystringMap0, RID, T1) ->
     Method = cowboy_req:method(CowboyReq),
     
-    % Validate HTTP method to prevent function_clause errors in catalog lookup
+    % Validate HTTP method
     case Method of
         <<"GET">> -> ok;
         <<"POST">> -> ok;
@@ -121,20 +111,21 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
         <<"OPTIONS">> -> ok;
         <<"HEAD">> -> ok;
         _ -> 
-            % Unsupported method - return 405 Method Not Allowed
-            Latency = ems_util:get_milliseconds() - trunc(erlang:system_time() / 1.0e6),
+            % Unsupported method - likely a scanner probe; apply tarpit and return 405
+            ems_logger:warn("Tarpit: Detected unsupported HTTP method ~s from client. Delaying response by ~p ms.", [Method, ?HTTP_TARPIT_DELAY]),
+            ems_tarpit:tarpit_hard(),
             Request = #request{
-                rid = erlang:system_time(),
+                rid = RID,
                 type = Method,
                 url = Url2,
                 uri = Uri,
-                t1 = trunc(erlang:system_time() / 1.0e6),
-                code = 405,
+                t1 = T1,
+                code = ?HTTP_METHOD_NOT_ALLOWED,
                 reason = emethod_not_allowed,
-                response_data = iolist_to_binary([<<"{\"error\":\"method_not_allowed\",\"message\":\"HTTP method ">>, Method, <<" is not supported\"}">>]),
-                content_type_out = <<"application/json; charset=utf-8">>,
+                response_data = ?EMETHOD_NOT_ALLOWED_JSON,
+                content_type_out = ?CONTENT_TYPE_JSON_UTF8,
                 response_header = ?HTTP_HEADERS_DEFAULT,
-                latency = Latency
+                latency = ems_util:get_milliseconds() - T1
             },
             erlang:throw({error, request, Request, CowboyReq})
     end,
@@ -149,16 +140,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
     Version = cowboy_req:version(CowboyReq),
     ContentTypeIn = parse_content_type_header(cowboy_req:header(<<"content-type">>, CowboyReq)),
     Protocol = parse_protocol(cowboy_req:scheme(CowboyReq)),
-    _Port = cowboy_req:port(CowboyReq),
-    
-    % _HttpHeaderDefault = ?HTTP_HEADERS_DEFAULT,
-    _CurrentNode = State#encode_request_state.current_node,
-    
-    % Initialize basic Request record
-    RID = erlang:system_time(),
-    _Timestamp = calendar:local_time(),
-    T1 = trunc(RID / 1.0e6),
-    
+
     % Validate URL path characters before processing to avoid exceptions in hashsym_and_params
     case ems_util:is_valid_url_path(Url2) of
         false ->
@@ -170,10 +152,10 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
                 url = Url2,
                 uri = Uri,
                 t1 = T1,
-                code = 400,
+                code = ?HTTP_BAD_REQUEST,
                 reason = einvalid_url,
-                response_data = <<"{\"error\":\"bad_request\",\"message\":\"Invalid URL format\"}"/utf8>>,
-                content_type_out = <<"application/json; charset=utf-8">>,
+                response_data = ?EINVALID_URL_JSON,
+                content_type_out = ?CONTENT_TYPE_JSON_UTF8,
                 response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = LatencyUrlValidation
             },
@@ -202,6 +184,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
         type = MethodFinal,
         uri = UriFinal,
         url = UrlFinal,
+        url_masked = UrlMasked,
         version = Version,
         content_type_in = ContentTypeIn,
         content_length = 0,
@@ -215,7 +198,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
         authorization = get_header(<<"authorization">>, CowboyReq, <<>>),
         if_modified_since = get_header(<<"if-modified-since">>, CowboyReq, <<>>),
         if_none_match = get_header(<<"if-none-match">>, CowboyReq, <<>>),
-        referer = get_header(<<"referer">>, CowboyReq, <<>>),
+        referer = parse_referer_header(CowboyReq),
         ip = Ip,
         host = Host,
         protocol = Protocol,
@@ -234,7 +217,6 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, _UrlMasked, Queryst
 
 
 step4_lookup_service(CowboyReq, WorkerSend, State, Request) ->
-    put(encode_request_cowboy_step, step4_lookup_service),
     Method = Request#request.type,
     LookupResult = case ems_catalog_lookup:lookup(Request) of
         {_, _, _} = Match -> Match;
@@ -247,7 +229,6 @@ step4_lookup_service(CowboyReq, WorkerSend, State, Request) ->
     step5_process_lookup(CowboyReq, WorkerSend, State, Request, LookupResult).
 
 step5_process_lookup(CowboyReq, WorkerSend, State, Request, LookupResult) ->
-    put(encode_request_cowboy_step, step5_process_lookup),
     case LookupResult of
         {Service, ParamsMap, QuerystringMap} -> 
             step6_read_payload(CowboyReq, WorkerSend, State, Request, Service, ParamsMap, QuerystringMap);
@@ -256,7 +237,6 @@ step5_process_lookup(CowboyReq, WorkerSend, State, Request, LookupResult) ->
     end.
 
 step6_read_payload(CowboyReq, _WorkerSend, _State, Request, Service, ParamsMap, QuerystringMap) ->
-    put(encode_request_cowboy_step, step6_read_payload),
     
     HttpMaxContentLength = case Service#service.http_max_content_length of
         undefined -> 2097152; % Default 2MB
@@ -275,16 +255,10 @@ step6_read_payload(CowboyReq, _WorkerSend, _State, Request, Service, ParamsMap, 
                             [ContentLength, HttpMaxContentLength, Request#request.type, Request#request.url]),
             Latency = ems_util:get_milliseconds() - Request#request.t1,
             RequestError = Request#request{
-                code = 413,
+                code = ?HTTP_PAYLOAD_TOO_LARGE,
                 reason = epayload_too_large,
-                response_data = iolist_to_binary([
-                    <<"{\"error\":\"payload_too_large\",\"message\":\"Content-Length ">>, 
-                    integer_to_binary(ContentLength), 
-                    <<" bytes exceeds maximum allowed ">>, 
-                    integer_to_binary(HttpMaxContentLength), 
-                    <<" bytes\"}">>
-                ]),
-                content_type_out = <<"application/json; charset=utf-8">>,
+                response_data = ?EPAYLOAD_TOO_LARGE_JSON,
+                content_type_out = ?CONTENT_TYPE_JSON_UTF8,
                 response_header = ?HTTP_HEADERS_DEFAULT,
                 latency = Latency
             },
@@ -376,6 +350,16 @@ get_header(Name, Req, Default) ->
         Val -> Val
     end.
 
+%% Referer header is informational only. ?HTTP_MAX_REFERER_LENGTH bytes is
+%% enough to identify the request origin; truncate here so all consumers
+%% of request.referer are transparently protected.
+parse_referer_header(Req) ->
+    case cowboy_req:header(<<"referer">>, Req) of
+        undefined -> <<>>;
+        Val when byte_size(Val) > ?HTTP_MAX_REFERER_LENGTH -> binary:part(Val, 0, ?HTTP_MAX_REFERER_LENGTH);
+        Val -> Val
+    end.
+
 handle_enoent(CowboyReq, Request, _State) ->
     ReqHash = erlang:phash2([Request#request.url, Request#request.querystring_map, 0, Request#request.content_type_in]),
     Latency = ems_util:get_milliseconds() - Request#request.t1,
@@ -390,6 +374,7 @@ handle_enoent(CowboyReq, Request, _State) ->
                  Options};
             true ->
                 ems_db:inc_counter(ems_dispatcher_lookup_enoent),
+                ems_tarpit:tarpit_leve(),
                 {404,
                  ?ENOENT_SERVICE_CONTRACT_JSON,
                  DefaultHeaders}

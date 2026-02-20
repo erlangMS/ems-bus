@@ -27,6 +27,7 @@ start(_StartType, StartArgs) ->
 			ets:new(ets_result_cache_waiting, [duplicate_bag, named_table, public, {write_concurrency, true}]),
 			ets:new(ems_dispatcher_post_time, [set, named_table, public]),
 			ets:new(ctrl_node_dispatch, [set, named_table, public]),
+			ems_tarpit:init(),
 			
 			% Catalog ETS tables
 			ets:new(ets_catalog_re_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),

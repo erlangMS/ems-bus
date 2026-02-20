@@ -83,7 +83,7 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 												CowboyReq2),
 					ok;
 				{error, Reason} = Error ->
-					Request2 = Request#request{code = 400, 
+					Request2 = Request#request{code = ?HTTP_BAD_REQUEST, 
 											   content_type_out = ?CONTENT_TYPE_JSON,
 											   reason = Reason, 
 											   response_data = ems_schema:to_json(Error), 
@@ -116,6 +116,7 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 				ok;
 			_ ->
 				ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, ems_util:ntoa(Ip), Reason]),
+				ems_tarpit:tarpit_leve(),
 				_Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
 		end
 	end,
@@ -159,5 +160,5 @@ normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
 	% Ensure Content-Type is always present (security requirement - prevents MIME sniffing)
 	case maps:is_key(<<"content-type">>, Merged2) of
 		true -> Merged2;
-		false -> Merged2#{<<"content-type">> => <<"application/json; charset=utf-8">>}
+		false -> Merged2#{<<"content-type">> => ?CONTENT_TYPE_JSON_UTF8}
 	end.

@@ -495,7 +495,7 @@ do_check_load_or_update_checkpoint(State = #state{name = Name,
 												  last_update = LastUpdate,
 												  log_show_data_loader_activity = LogShowDataLoaderActivity}) ->
 	% garante que os dados serão atualizados mesmo que as datas não estejam sincronizadas
-	ems_logger:info("~s begin syncronize data...", [Name], LogShowDataLoaderActivity),
+	ems_logger:info("~s begin syncronize.", [Name], LogShowDataLoaderActivity),
 	NextUpdate = ems_util:date_dec_minute(calendar:local_time(), 59), 
 	LastUpdateStr = ems_util:timestamp_str(),
 	Conf = ems_config:getConfig(),

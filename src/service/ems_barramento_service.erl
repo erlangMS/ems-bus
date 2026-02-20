@@ -18,7 +18,7 @@ execute(Request) ->
 	case ems_util:get_param_url(<<"name">>, undefined, Request) of
 		undefined ->
 			ems_logger:error("ems_barramento_service call failed.\nReason: eclient_name_undefined_error."),
-			{error, Request#request{code = 400, 
+			{error, Request#request{code = ?HTTP_BAD_REQUEST, 
 									reason = enoent,
 								    reason_detail = eclient_name_undefined_error,
 									response_data = ?ENOENT_JSON}
@@ -28,9 +28,9 @@ execute(Request) ->
 				{error, _} ->
 					ems_logger:warn("Tarpit: Detected invalid client ~p. Delaying response by ~p ms.", [AppName, ?HTTP_TARPIT_DELAY]),
 					timer:sleep(?HTTP_TARPIT_DELAY),
-					{error, Request#request{code = 409, 
-											reason = emalicious_request,
-											response_data = <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}"/utf8>>}
+					{error, Request#request{code = ?HTTP_CONFLICT, 
+											reason = einvalid_client_barramento,
+											response_data = ?EMALICIOUS_REQUEST_JSON}
 					};
 				{ok, ClientLocal} ->
 					ClientId = ClientLocal#client.id,
@@ -53,7 +53,7 @@ execute(Request) ->
 						<<"\"url_mask\":"/utf8>>, ems_util:boolean_to_binary(Conf#config.rest_url_mask),
 						<<"}"/utf8>>]),
 					ems_logger:info("ems_barramento_service call for app ~p success.", [AppName]),
-					{ok, Request#request{code = 200,
+					{ok, Request#request{code = ?HTTP_OK,
 										 response_data = ContentData}
 					}
 			end

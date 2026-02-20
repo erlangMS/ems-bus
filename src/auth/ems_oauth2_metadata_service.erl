@@ -52,7 +52,7 @@ execute(Request = #request{host = Host}) ->
     % Retorna JSON
     ResponseData = ems_util:json_encode(Metadata),
     Request2 = Request#request{
-        code = 200,
+        code = ?HTTP_OK,
         reason = ok,
         response_data = ResponseData,
         content_type_out = ?CONTENT_TYPE_JSON

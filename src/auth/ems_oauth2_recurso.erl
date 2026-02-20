@@ -22,12 +22,12 @@ execute(Request = #request{access_token = AccessToken}) ->
 												   <<"\"resource_owner\":"/utf8>>, ResourceOwner, <<","/utf8>>,
 												   <<"\"scope\":\""/utf8>>,Scope, <<"\""/utf8>>, 
 											   <<"}"/utf8>>]),
-			{ok, Request#request{code = 200, 
+			{ok, Request#request{code = ?HTTP_OK, 
 								 response_data = ResponseData2,
 								 content_type_out = ?CONTENT_TYPE_JSON}
 			};		
 		_ -> 
-			{error, Request#request{code = 401,  
+			{error, Request#request{code = ?HTTP_UNAUTHORIZED,  
 									reason = access_denied,
 									response_data = ?ACCESS_DENIED_JSON}
 			}

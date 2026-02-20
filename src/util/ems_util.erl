@@ -2430,7 +2430,7 @@ load_from_file_req(Request = #request{url = Url,
 			% Path traversal attempt detected - log and reject
 			ems_logger:warn("ems_static_file_service SECURITY: Path traversal attempt blocked. URL: ~p, Attempted path: ~p, IP: ~s", 
 							[Url, Filename, ntoa(Request#request.ip)]),
-			{error, Request#request{code = 403, 
+			{error, Request#request{code = ?HTTP_FORBIDDEN, 
 									reason = eforbidden,
 									content_type_out = ?CONTENT_TYPE_JSON,
 									response_data = ?EFORBIDDEN_JSON}};
@@ -2455,7 +2455,7 @@ do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, Re
 								<<"expires">> => Expires
 							},
 			case ETag == IfNoneMatchReq orelse LastModified == IfModifiedSinceReq of
-				true -> {ok, Request#request{code = 304, 
+				true -> {ok, Request#request{code = ?HTTP_NOT_MODIFIED, 
 											 reason = enot_modified,
 											 content_type_out = MimeType,
 											 etag = ETag,
@@ -2466,7 +2466,7 @@ do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, Re
 				false ->
 					case file:read_file(Filename) of
 						{ok, FileData} -> 
-							{ok, Request#request{code = 200, 
+							{ok, Request#request{code = ?HTTP_OK, 
 											      reason = ok,
 												  content_type_out = MimeType,
 											      etag = ETag,
@@ -2479,19 +2479,19 @@ do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, Re
 							case Reason of
 								eisdir ->
 									ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: eisdir (hidden as enoent).", [Filename, Url]),
-									{error, Request#request{code = 404, 
+									{error, Request#request{code = ?HTTP_NOT_FOUND, 
 														 reason = enoent,
 														 content_type_out = ?CONTENT_TYPE_JSON,
 														 response_data = ?ENOENT_JSON}};
 								enoent ->
 									ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
-									{error, Request#request{code = 404, 
+									{error, Request#request{code = ?HTTP_NOT_FOUND, 
 														 reason = Reason,
 														 content_type_out = ?CONTENT_TYPE_JSON,
 														 response_data = ?ENOENT_JSON}};
 								_ ->
 									ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
-									{error, Request#request{code = 400, 
+									{error, Request#request{code = ?HTTP_BAD_REQUEST, 
 														 reason = Reason,
 														 content_type_out = ?CONTENT_TYPE_JSON,
 														 response_data = ?ENOENT_JSON}}
@@ -2503,19 +2503,19 @@ do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, Re
 			case Reason of
 				eisdir ->
 					ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: eisdir (hidden as enoent).", [Filename, Url]),
-					{error, Request#request{code = 404, 
+					{error, Request#request{code = ?HTTP_NOT_FOUND, 
 											 reason = enoent,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ?ENOENT_JSON}};
 				enoent ->
 					ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
-					{error, Request#request{code = 404, 
+					{error, Request#request{code = ?HTTP_NOT_FOUND, 
 											 reason = Reason,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ?ENOENT_JSON}};
 				_ ->
 					ems_logger:error("ems_static_file_service read file ~p from url ~p failed. Reason: ~p.", [Filename, Url, Reason]),
-					{error, Request#request{code = 400, 
+					{error, Request#request{code = ?HTTP_BAD_REQUEST, 
 											 reason = Reason,
 											 content_type_out = ?CONTENT_TYPE_JSON,
 											 response_data = ?ENOENT_JSON}}
@@ -2524,7 +2524,7 @@ do_load_from_file(Request, Url, Filename, IfModifiedSinceReq, IfNoneMatchReq, Re
 
 
 save_from_file_req(Request = #request{url = _Url}) ->
-		{ok, Request#request{code = 200, 
+		{ok, Request#request{code = ?HTTP_OK, 
 							 reason = ok,
 							 content_type_out = ?CONTENT_TYPE_JSON,
 							 response_data = ?OK_JSON}

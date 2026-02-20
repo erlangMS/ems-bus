@@ -188,7 +188,7 @@ execute(Request = #request{type = Type,
 														   <<"\"refresh_token_in\":"/utf8>>, ems_util:integer_to_binary_def(Response#response.refresh_token_expires_in, 0), <<","/utf8>>,
 														   <<"\"token_type\":\""/utf8>>, Response#response.token_type, <<"\""/utf8>>,
 													   <<"}"/utf8>>]),
-					Request2 = Request#request{code = 200, 
+					Request2 = Request#request{code = ?HTTP_OK, 
 											    reason = ok,
 											    response_data = ResponseData2,
 											    client = Client,
@@ -210,7 +210,7 @@ execute(Request = #request{type = Type,
 							LocationPath = iolist_to_binary([Config#config.rest_login_url, <<"?">>, QuerystringBin, RedirectUri])
 					end,
 					ems_logger:info("ems_oauth2_authorize redirect to ~p.", [binary_to_list(LocationPath)]),
-					Request2 = Request#request{code = 302, 
+					Request2 = Request#request{code = ?HTTP_MOVED_TEMPORARILY, 
 											   reason = ok,
 											   client = Client,
 											   response_header = ResponseHeader#{<<"location">> => LocationPath}
@@ -222,7 +222,7 @@ execute(Request = #request{type = Type,
 						{ok, UserFound} -> User = UserFound;
 						_ -> User = undefined
 					end,
-					Request2 = Request#request{code = 401, 
+					Request2 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 											   reason = Reason,
 											   reason_detail = ReasonDetail,
 											   response_data = ?ACCESS_DENIED_JSON,
@@ -232,7 +232,7 @@ execute(Request = #request{type = Type,
 	catch
 		_:ReasonException ->
 			ems_logger:error("ems_oauth2_authorize execute exception. Reason: ~p.", [ReasonException]),
-			Request3 = Request#request{code = 401, 
+			Request3 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 									   reason = access_denied,
 									   reason_detail = eparse_oauth2_authorize_execute,
 									   user = undefined,
@@ -256,7 +256,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 								LocationPath = iolist_to_binary([RedirectUri, <<"?code=">>, Code, <<"&">>, QuerystringBin]),
 								%% Retorna 200 com JSON {redirect: ...} para o login.js fazer o redirecionamento
 								ResponseData = iolist_to_binary([<<"{\"redirect\":\"">>, LocationPath, <<"\"}">>]),
-								Request2 = Request#request{code = 200, 
+								Request2 = Request#request{code = ?HTTP_OK, 
 														   reason = ok,
 														   user = User,
 														   client = Client,
@@ -265,7 +265,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 														   response_header = ResponseHeader#{<<"location">> => LocationPath}},
 								{ok, Request2};
 							{error, Reason} ->
-								Request2 = Request#request{code = 401, 
+								Request2 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 														   reason = Reason,
 														   reason_detail = get_code_by_user_and_client_failed,
 														   user = User,
@@ -279,7 +279,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 							{ok, UserFound} -> User = UserFound;
 							_ -> User = undefined
 						end,
-						Request2 = Request#request{code = 401, 
+						Request2 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 												   reason = Reason,
 												   reason_detail = ReasonDetail,
 												   user = User,
@@ -288,7 +288,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 						{error, Request2}
 				end;
 			{error, Reason, ReasonDetail} ->
-				Request2 = Request#request{code = 401, 
+				Request2 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 											reason = Reason,
 											reason_detail = ReasonDetail,
 											user = undefined,
@@ -299,7 +299,7 @@ code_request(Request = #request{response_header = ResponseHeader, querystring = 
 	catch
 		_:ReasonException ->
 			ems_logger:error("ems_oauth2_authorize code_request exception. Reason: ~p.", [ReasonException]),
-			Request3 = Request#request{code = 401, 
+			Request3 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 										reason = access_denied,
 										reason_detail = eparse_code_request_exception,
 										user = undefined,
@@ -314,7 +314,7 @@ user_info(Request = #request{user = User, client = Client}) ->
 		% não vai ser to_resource_owner aqui!!! o json com certeza é diferente
 		UserJson = ems_user:get_user_info(User, Client#client.id),
 		io:format("UserJson is ~p\n", [UserJson]),
-		Request2 = Request#request{code = 200, 
+		Request2 = Request#request{code = ?HTTP_OK, 
 								   reason = ok,
 								   response_data = UserJson,
 								   content_type_out = ?CONTENT_TYPE_JSON},
@@ -322,7 +322,7 @@ user_info(Request = #request{user = User, client = Client}) ->
 	catch
 		_:ReasonException ->
 			ems_logger:error("ems_oauth2_authorize user_info exception. Reason: ~p.", [ReasonException]),
-			Request3 = Request#request{code = 401, 
+			Request3 = Request#request{code = ?HTTP_UNAUTHORIZED, 
 										reason = access_denied,
 										reason_detail = eparse_user_info_exception,
 										user = undefined,

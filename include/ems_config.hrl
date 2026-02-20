@@ -188,8 +188,18 @@
 
 -define(DEFAULT_PASSWD, <<"fEqNCco3Yq9h5ZUglD3CZJT4lBs=">>).
 
+% ANSI terminal colors (for log highlighting) — defined as strings for use with ++ in format strings
+-define(COLOR_RESET,   "\e[0m").
+-define(COLOR_CYAN,    "\e[36m").
+-define(COLOR_GREEN,   "\e[32m").
+-define(COLOR_YELLOW,  "\e[33m").
+-define(COLOR_RED,     "\e[31m").
+-define(COLOR_MAGENTA, "\e[35m").
+-define(COLOR_BOLD,    "\e[1m").
+
 % Mensagens de saída json comuns
 -define(CONTENT_TYPE_JSON, <<"application/json">>).
+-define(CONTENT_TYPE_JSON_UTF8, <<"application/json; charset=utf-8">>).
 
 -define(CACHE_CONTROL_NO_CACHE, <<"no-store, no-cache, must-revalidate, private"/utf8>>).
 
@@ -205,6 +215,14 @@
 -define(HOST_DENIED_JSON, <<"{\"error\": \"host_denied\"}"/utf8>>).
 -define(EFORBIDDEN_JSON, <<"{\"error\": \"eforbidden\"}"/utf8>>).
 -define(ERATE_LIMIT_EXCEEDED, <<"{\"error\": \"erate_limit_exceeded\"}"/utf8>>).
+-define(EMALICIOUS_REQUEST_JSON, <<"{\"error\":\"conflict\",\"message\":\"Request blocked by security policy.\"}"/utf8>>).
+-define(EURI_TOO_LONG_JSON, <<"{\"error\":\"uri_too_long\"}"/utf8>>).
+-define(EMETHOD_NOT_ALLOWED_JSON, <<"{\"error\":\"method_not_allowed\"}"/utf8>>).
+-define(EPAYLOAD_TOO_LARGE_JSON,  <<"{\"error\":\"payload_too_large\"}"/utf8>>).
+-define(EINVALID_URL_JSON,        <<"{\"error\":\"bad_request\",\"message\":\"Invalid URL format\"}"/utf8>>).
+-define(EINVALID_TOKEN_USER_JSON, <<"{\"error\": \"invalid_token_user\"}"/utf8>>).
+-define(EINVALID_TOKEN_JSON,      <<"{\"error\": \"invalid_token\"}"/utf8>>).
+-define(EUNAUTHORIZED_JSON,       <<"{\"error\": \"unauthorized\"}"/utf8>>).
 -define(OAUTH2_DEFAULT_TOKEN_EXPIRY, 3600).  % 1 hour
 -define(OAUTH2_MAX_TOKEN_EXPIRY, 2592000).   % 30 days
 
@@ -237,11 +255,14 @@
 % HTTP
 -define(HTTP_SERVER_PORT, 2381).
 -define(HTTP_MAX_CONNECTIONS, 1024).
--define(HTTP_MAX_CONTENT_LENGTH, 2097152).  % Limite default do conteúdo do payload é de 2MB
--define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  % Permite enviar até 1G se especificado no contrato de serviço
--define(HTTP_MAX_URI_LENGTH, 16384).  % Limite máximo de 16KB para URI (previne ataques de DoS)
--define(HTTP_MAX_QUERYSTRING_LIMIT, 100).  % Limite máximo de 100 parâmetros na querystring (previne ataques de DoS)
--define(HTTP_TARPIT_DELAY, 30000).  % Delay de 30 segundos para requisições maliciosas (Tarpit)
+-define(HTTP_MAX_CONTENT_LENGTH, 2097152).  				% Limite default do conteúdo do payload é de 2MB
+-define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  	% Permite enviar até 1G se especificado no contrato de serviço
+-define(HTTP_MAX_URI_LENGTH, 16384).  						% Limite máximo de 16KB para URI (previne ataques de DoS)
+-define(HTTP_MAX_QUERYSTRING_LIMIT, 100).  					% Limite máximo de 100 parâmetros na querystring (previne ataques de DoS)
+-define(HTTP_MAX_REFERER_LENGTH, 250).  					% Campo informativo; suficiente para identificar a origem da requisição
+-define(HTTP_TARPIT_DELAY, 30000).         					% Hard tarpit: 30 seconds (malicious probes)
+-define(HTTP_TARPIT_SOFT_DELAY, 2000).     					% Soft tarpit: 2 seconds (service not found)
+-define(HTTP_TARPIT_MAX_BLOCKED, 25).     					% Max concurrent threads allowed in tarpit (semaphore limit)
 -define(HTTP_URL_DENY_LIST_RE, [
     "\\.php$", "\\.jsp$", "\\.asp$", "\\.aspx$", "\\.exe$", "\\.pl$", "\\.cgi$", "\\.sh$", "\\.yaml$", "\\.env$"
 ]).
@@ -251,6 +272,21 @@
 -define(RESULT_CACHE_ENABLED_DEFAULT, true).
 -define(HTTP_SERVER_HEADER, <<"Okatsu">>).  % Obfuscated Server header
 -define(HTTP_MAX_CACHE_CONTROL_AGE, 86400).   % 1 day in seconds
+
+% HTTP Status Codes
+-define(HTTP_OK,                    200).
+-define(HTTP_MOVED_TEMPORARILY,     302).
+-define(HTTP_NOT_MODIFIED,          304).
+-define(HTTP_BAD_REQUEST,           400).
+-define(HTTP_UNAUTHORIZED,          401).
+-define(HTTP_FORBIDDEN,             403).
+-define(HTTP_NOT_FOUND,             404).
+-define(HTTP_METHOD_NOT_ALLOWED,    405).
+-define(HTTP_CONFLICT,              409).
+-define(HTTP_PAYLOAD_TOO_LARGE,     413).
+-define(HTTP_URI_TOO_LONG,          414).
+-define(HTTP_INTERNAL_SERVER_ERROR, 500).
+-define(HTTP_SERVICE_UNAVAILABLE,   503).
 -define(HTTP_HEADERS_PROHIBITED_LIST, [
     <<"x-powered-by">>, 
     <<"x-aspnet-version">>, 
