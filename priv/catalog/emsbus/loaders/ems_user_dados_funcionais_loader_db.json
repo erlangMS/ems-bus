@@ -1,28 +1,29 @@
 {
-    "name": "ems_user_dados_funcionais_loader_db",
+	"name": "ems_user_dados_funcionais_loader_db",
 	"comment": "Catalog for ems_user_dados_funcionais_loader_db",
 	"owner": "data_loader",
 	"version": "1.0.0",
-	"service" : "ems_data_loader:start",
+	"service": "ems_data_loader:start",
 	"url": "/emsbus/ems_user_dados_funcionais_loader_db",
 	"type": "KERNEL",
-	"lang" : "erlang",
- 	"activity_type": "auth",
-	"update_checkpoint" : 120000,
-	"datasource" : "ds_ems_user_loader",
-	"start_timeout" : 70000,
-	"middleware" : "ems_user_dados_funcionais_loader_middleware",
-	"group" : [],
-	"pool_size" : 1,
-	"pool_max" : 1,
-	"enable" : false,
-	"sql_load_packet_length" : 3000,
-	"sql_load" : 
+	"lang": "erlang",
+	"activity_type": "auth",
+	"update_checkpoint": 120000,
+	"datasource": "ds_ems_user_loader",
+	"start_timeout": 20000,
+	"middleware": "ems_user_dados_funcionais_loader_middleware",
+	"group": [],
+	"pool_size": 1,
+	"pool_max": 1,
+	"enable": false,
+	"sql_load_packet_length": 3000,
+	"sql_load": 
 				"select 
 					df.MatSipes as id,
 					u.UsuId as user_id, 
-					Isnull(ca.categocargo, 4) as type, 
-					0 as subtype,
+					Isnull(ca.categocargo,
+	4) as type,
+	0 as subtype,
 					case 
 						when c.dtdesliga < Getdate() then 0 
 						else u.UsuSituacao 
@@ -37,13 +38,13 @@
 					   left join sipes.dbo.cargos ca with (nolock) 
 							  ON c.codcargo = ca.codcargo 
 				where df.MatSipes is not null
-                ",
-	"sql_update" : 
+                ","sql_update": 
 				"select 
 					df.MatSipes as id,
 					u.UsuId as user_id, 
-					Isnull(ca.categocargo, 4) as type, 
-					0 as subtype,
+					Isnull(ca.categocargo,
+	4) as type,
+	0 as subtype,
 					case 
 						when c.dtdesliga < Getdate() then 0 
 						else u.UsuSituacao 
@@ -59,9 +60,8 @@
 							ON c.codcargo = ca.codcargo 
 				where df.MatSipes is not null and (u.UsuDataAlteracao >= ? or p.PesDataAlteracao >= ? or 
 												   u.UsuDataCadastramento >= ? or p.PesDataCadastramento >= ?)
-                ",
-
-			
-	"fields" : ["id", "user_id", "type", "subtype", "active"]
-				
+                ","fields": ["id","user_id","type",
+	"subtype",
+	"active"
+]
 }

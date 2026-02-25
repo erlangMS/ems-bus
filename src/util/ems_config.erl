@@ -439,6 +439,10 @@ parse_config(Json, Filename) ->
 		AuthDefaultScopesAtom = ems_util:binlist_to_atomlist(get_p(<<"auth_default_scope">>, Json, ?AUTH_DEFAULT_SCOPE)),
 		ems_db:set_param(auth_default_scope, AuthDefaultScopesAtom),
 
+		put(parse_step, auth_default_scope_ldap),
+		AuthDefaultScopeLdapAtom = ems_util:binlist_to_atomlist(get_p(<<"auth_default_scope_ldap">>, Json, ?AUTH_DEFAULT_SCOPE_LDAP)),
+		ems_db:set_param(auth_default_scope_ldap, AuthDefaultScopeLdapAtom),
+
 		put(parse_step, auth_password_check_between_scopes),
 		AuthPasswordCheckBetweenScope = ems_util:parse_bool(get_p(<<"auth_password_check_between_scope">>, Json, true)),
 		ems_db:set_param(auth_password_check_between_scope, AuthPasswordCheckBetweenScope),
@@ -802,6 +806,7 @@ parse_config(Json, Filename) ->
 				 database_path = DatabasePath,
 				 priv_path = PrivPath,
 				 auth_default_scope = AuthDefaultScopesAtom,
+				 auth_default_scope_ldap = AuthDefaultScopeLdapAtom,
 				 auth_password_check_between_scope = AuthPasswordCheckBetweenScope,
 				 crypto_blowfish_module_path = BlowfishCryptoModPath,
 				 oauth2_resource_owner_find_permission_with_cpf = OAuth2ResourceOwnerFindPermissionWithCPF,

@@ -29,6 +29,7 @@
     <<"oauth2_with_check_constraint">> => false,
     <<"oauth2_refresh_token">> => ?OAUTH2_REFRESH_TOKEN_DEFAULT,
     <<"auth_default_scope">> => [<<"user_fs">>],
+    <<"auth_default_scope_ldap">> => [<<"user_db">>, <<"user_fs">>],
     <<"debug">> => false,
     <<"sufixo_email_institucional">> => <<"@unb.br">>,
     <<"http_max_content_length">> => ?HTTP_MAX_CONTENT_LENGTH_DEFAULT,

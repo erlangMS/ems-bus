@@ -257,8 +257,8 @@ find_by_login_and_scope(undefined, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_scope(Login, AuthScope) ->
 	ems_data_loader_ctl:register_activity(auth),
 	LoginStr = case is_list(Login) of
-					true -> string:to_lower(Login);
-					false -> string:to_lower(binary_to_list(Login))
+					true -> Login;
+					false -> binary_to_list(Login)
 			   end,
 	LoginBin = list_to_binary(LoginStr),
 	find_by_login_and_scope_(LoginBin, AuthScope).
@@ -272,8 +272,8 @@ find_by_login(undefined) -> {error, access_denied, elogin_empty};
 find_by_login(Login) ->
 	ems_data_loader_ctl:register_activity(auth),
 	LoginStr = case is_list(Login) of
-					true -> string:to_lower(Login);
-					false -> string:to_lower(binary_to_list(Login))
+					true -> Login;
+					false -> binary_to_list(Login)
 			   end,
 	LoginBin = list_to_binary(LoginStr),
 	IndexFind = fun(Table) ->
@@ -719,7 +719,7 @@ to_resource_owner(User) ->
 new_from_map(Map, Conf) ->
 	try
 		put(parse_step, login),
-		Login = list_to_binary(string:to_lower(binary_to_list(?UTF8_STRING(maps:get(<<"login">>, Map))))),
+		Login = list_to_binary(binary_to_list(?UTF8_STRING(maps:get(<<"login">>, Map)))),
 
 		put(parse_step, id),
 		Id = maps:get(<<"id">>, Map),
@@ -755,7 +755,7 @@ new_from_map(Map, Conf) ->
 							Password2 = ?UTF8_STRING(Password);
 						_ -> 
 							PasswdCrypto = <<"SHA1">>,
-							Password2 = ems_util:criptografia_sha1(string:to_lower(binary_to_list(?UTF8_STRING(Password))))
+							Password2 = ems_util:criptografia_sha1(binary_to_list(?UTF8_STRING(Password)))
 					end,
 
 		put(parse_step, cpf),

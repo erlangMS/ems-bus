@@ -80,7 +80,7 @@ init({IpAddress,
 				   listener_name = ListenerName,
 				   server_name = ServerName,
 				   auth_allow_user_inative_credentials = AuthAllowUserInativeCredentials,
-				   auth_default_scope = Conf#config.auth_default_scope
+				   auth_default_scope = Conf#config.auth_default_scope_ldap
 			   },
 	Ret = ranch:start_listener(ListenerName, ranch_tcp, #{socket_opts => [{ip, IpAddress}, 
 																	      {port, Port}]}, 

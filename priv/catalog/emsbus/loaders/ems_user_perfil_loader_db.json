@@ -7,7 +7,7 @@
 	"url": "/emsbus/ems_user_perfil_loader_db",
 	"type": "KERNEL",
 	"lang": "erlang",
- 	"activity_type": "auth",
+	"activity_type": "auth",
 	"update_checkpoint": 60000,
 	"check_remove_records": true,
 	"check_remove_records_checkpoint": 3600000,
@@ -40,11 +40,10 @@
 				 join BDAcesso.dbo.TB_Perfil p with (nolock) 
 					 on up.APePerId = p.PerId  
 			where up.APeDataAlteracao >= ? or up.APeDataCadastramento >= ?
-		   ","fields": [
-		"id",
-		"perfil_id",
-		"user_id",
-		"client_id",
-		"name"
-	]
+		   ","fields": ["id",
+	"perfil_id",
+	"user_id",
+	"client_id",
+	"name"
+]
 }

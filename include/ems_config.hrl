@@ -318,6 +318,7 @@
 -define(USER_RESOURCE_OWNER_CACHE_TTL, 300000). % 5 minutos
 
 -define(AUTH_DEFAULT_SCOPE, [<<"user_db">>, <<"user_fs">>]).
+-define(AUTH_DEFAULT_SCOPE_LDAP, [<<"user_db">>, <<"user_fs">>]).
 
 -define(CLIENT_DEFAULT_SCOPE, ems_util:get_auth_default_scope()).
 
@@ -431,6 +432,7 @@
  				 log_path :: string(),
  				 www_path :: string(),
  				 auth_default_scope :: list(atom()),
+ 				 auth_default_scope_ldap :: list(atom()),
  				 auth_password_check_between_scope :: boolean(),
  				 oauth2_jwt_secret :: binary(),
  				 crypto_blowfish_module_path :: string(),

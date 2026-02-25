@@ -74,6 +74,7 @@ start(_StartType, StartArgs) ->
 			ems_logger:info("  rest_use_host_in_redirect: ~p.", [Conf#config.rest_use_host_in_redirect]),
 			ems_logger:info("  auth_allow_user_inative_credentials: ~p.", [Conf#config.auth_allow_user_inative_credentials]),
 			ems_logger:info("  auth_default_scope: ~w.", [Conf#config.auth_default_scope]),
+			ems_logger:info("  auth_default_scope_ldap: ~w.", [Conf#config.auth_default_scope_ldap]),
 			ems_logger:info("  auth_password_check_between_scope: ~p.", [Conf#config.auth_password_check_between_scope]),
 			case ems_db:get_param(use_blowfish_crypto) of
 				true -> ems_logger:info("  crypto_blowfish_module_path: ~p.", [Conf#config.crypto_blowfish_module_path]);
