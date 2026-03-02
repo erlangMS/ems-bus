@@ -257,7 +257,7 @@
 -define(HTTP_MAX_CONNECTIONS, 1024).
 -define(HTTP_MAX_CONTENT_LENGTH, 2097152).  				% Limite default do conteúdo do payload é de 2MB
 -define(HTTP_MAX_CONTENT_LENGTH_BY_SERVICE, 1048576000).  	% Permite enviar até 1G se especificado no contrato de serviço
--define(HTTP_MAX_URI_LENGTH, 16384).  						% Limite máximo de 16KB para URI (previne ataques de DoS)
+-define(HTTP_MAX_URI_LENGTH, 24576).  						% Limite máximo de 24KB para URI (previne ataques de DoS)
 -define(HTTP_MAX_QUERYSTRING_LIMIT, 100).  					% Limite máximo de 100 parâmetros na querystring (previne ataques de DoS)
 -define(HTTP_MAX_REFERER_LENGTH, 250).  					% Campo informativo; suficiente para identificar a origem da requisição
 -define(HTTP_TARPIT_DELAY, 30000).         					% Hard tarpit: 30 seconds (malicious probes)

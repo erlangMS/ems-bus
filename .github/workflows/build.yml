@@ -1,0 +1,19 @@
+name: Build ErlangMS
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Erlang and OS Dependencies
+      run: |
+        ./install-erlang.sh
+        echo "$HOME/.asdf/bin" >> $GITHUB_PATH
+        echo "$HOME/.asdf/shims" >> $GITHUB_PATH
+
+    - name: Compile and Release
+      run: ./build.sh --release
