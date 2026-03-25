@@ -23,54 +23,54 @@ services:
       start_period: 60s
 
   # Dashboard
-  dashboard:
-    image: hub.sti.unb.br/sas/erlangms-dashboard:v2026.1
-    container_name: ems-dashboard
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
-    environment:
-      # Define que vai fazer listener na porta 5000
-      - HTTP_PORT=5000
-      - VERIFY_SSL=False
+  # dashboard:
+  #   image: hub.sti.unb.br/sas/erlangms-dashboard:v2026.1
+  #   container_name: ems-dashboard
+  #   build:
+  #     context: ./dashboard
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     # Define que vai fazer listener na porta 5000
+  #     - HTTP_PORT=5000
+  #     - VERIFY_SSL=False
 
-      # OAuth2 settings
-      - OAUTH2_CLIENT_ID=1
-      - OAUTH2_CLIENT_SECRET=CPD
-      - OAUTH2_AUTHORIZE_URL=http://192.168.1.9:2301/authorize
-      - OAUTH2_TOKEN_URL=http://192.168.1.9:2301/authorize
-      - OAUTH2_REDIRECT_URI=http://192.168.1.9:5000/callback
-      - OAUTH2_SCOPE=user_fs
+  #     # OAuth2 settings
+  #     - OAUTH2_CLIENT_ID=1
+  #     - OAUTH2_CLIENT_SECRET=CPD
+  #     - OAUTH2_AUTHORIZE_URL=http://192.168.1.9:2301/authorize
+  #     - OAUTH2_TOKEN_URL=http://192.168.1.9:2301/authorize
+  #     - OAUTH2_REDIRECT_URI=http://192.168.1.9:5000/callback
+  #     - OAUTH2_SCOPE=user_fs
       
-      # CORS configuration (comma-separated list of allowed origins)
-      - CORS_ALLOWED_ORIGINS=http://192.168.1.9:2301,http://192.168.1.9:5000
+  #     # CORS configuration (comma-separated list of allowed origins)
+  #     - CORS_ALLOWED_ORIGINS=http://192.168.1.9:2301,http://192.168.1.9:5000
       
-      # Flask secret key
-      - FLASK_SESSION_SECRET_KEY=${FLASK_SESSION_SECRET_KEY:-change-this-secret-key-in-production}
+  #     # Flask secret key
+  #     - FLASK_SESSION_SECRET_KEY=${FLASK_SESSION_SECRET_KEY:-change-this-secret-key-in-production}
       
-      # Catalog path
-      - CATALOG_PATH=/app/priv/catalog
+  #     # Catalog path
+  #     - CATALOG_PATH=/app/priv/catalog
 
-      # Session Cookie Configuration
-      - SESSION_COOKIE_SECURE=False
-      - SESSION_COOKIE_SAMESITE=Lax
-    volumes:
-      # Mount catalog directory for read/write access
-      - ./priv/catalog:/app/priv/catalog:rw
-    networks:
-      - erlangms
-    depends_on:
-      ems-bus:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+  #     # Session Cookie Configuration
+  #     - SESSION_COOKIE_SECURE=False
+  #     - SESSION_COOKIE_SAMESITE=Lax
+  #   volumes:
+  #     # Mount catalog directory for read/write access
+  #     - ./priv/catalog:/app/priv/catalog:rw
+  #   networks:
+  #     - erlangms
+  #   depends_on:
+  #     ems-bus:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
 
 networks:
   erlangms:

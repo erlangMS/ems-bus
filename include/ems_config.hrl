@@ -152,7 +152,7 @@
 -define(MAX_CONNECTION_LIMIT_BY_POOL, 25).
 
 % Timeout to check odbc connection
--define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 2 minutos
+-define(CHECK_VALID_CONNECTION_TIMEOUT, 660000). % 11 minutos
 -define(CHECK_VALID_CONNECTION_DAY_TIMEOUT, 1800000). % 30 minutos (somente durante o dia)
 -define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 1800000). % 30m
 -define(CLOSE_IDLE_CONNECTION_TIMEOUT, 900000). % 15m

@@ -293,7 +293,11 @@ do_release_connection(Datasource = #service_datasource{id = Id,
 		erlang:erase(PidModuleRef),
 		Pool = find_pool(Id),
 		PoolSize = queue:len(Pool),
-		MaxIdlePoolSize = Datasource#service_datasource.max_idle_pool_size,
+		MaxIdlePoolSize0 = Datasource#service_datasource.max_idle_pool_size,
+		MaxIdlePoolSize = case ems_data_loader_ctl:is_active(global, ems_data_loader:get_inactivity_timeout()) of
+							  true -> MaxIdlePoolSize0;
+							  false -> 1
+						  end,
 		case erlang:is_process_alive(Owner) of
 			true ->
 				% Only back to the pool if it did not exceed the connection limit or the connection did not give error

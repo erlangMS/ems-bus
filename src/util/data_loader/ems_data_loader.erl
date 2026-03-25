@@ -14,8 +14,7 @@
 -include("include/ems_schema.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
-%% Server API
--export([start/1, stop/0]).
+-export([start/1, stop/0, get_inactivity_timeout/0]).
 
 
 %% gen_server callbacks
