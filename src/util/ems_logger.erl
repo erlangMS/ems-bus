@@ -107,12 +107,12 @@ mode_debug(_) ->
 format_info(Message) when is_list(Message) ->	
 	format_info(list_to_binary(Message));
 format_info(Message) ->	
-	Message2 = iolist_to_binary([?INFO_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message, <<"\n">>]),
+	Message2 = unicode:characters_to_binary([?INFO_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message, <<"\n">>]),
 	io:put_chars(Message2).
 
 format_info(Message, Params) ->	
 	Message2 = io_lib:format(Message, Params),
-	Message3 = iolist_to_binary([?INFO_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message2, <<"\n">>]),
+	Message3 = unicode:characters_to_binary([?INFO_MESSAGE,   ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, Message2, <<"\n">>]),
 	io:put_chars(Message3).
 
 format_info(Msg, Params, true) -> format_info(Msg, Params);
@@ -122,12 +122,12 @@ format_info(_, _, _) -> ok.
 format_warn(Message) when is_list(Message) ->	
 	format_warn(list_to_binary(Message));
 format_warn(Message) ->	
-	Message2 = iolist_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Message, ?WHITE_BRK_COLOR]),
+	Message2 = unicode:characters_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Message, ?WHITE_BRK_COLOR]),
 	io:put_chars(Message2).
 
 format_warn(Message, Params) ->	
 	Message2 = io_lib:format(Message, Params),
-	Message3 = iolist_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Message2, ?WHITE_BRK_COLOR]),
+	Message3 = unicode:characters_to_binary([?WARN_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?WARN_COLOR, Message2, ?WHITE_BRK_COLOR]),
 	io:put_chars(Message3).
 
 
@@ -138,12 +138,12 @@ format_warn(_, _, _) -> ok.
 format_error(Message) when is_list(Message) ->	
 	format_error(list_to_binary(Message));
 format_error(Message) ->	
-	Message2 = iolist_to_binary([?ERROR_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Message, ?WHITE_BRK_COLOR]),
+	Message2 = unicode:characters_to_binary([?ERROR_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Message, ?WHITE_BRK_COLOR]),
 	io:put_chars(standard_error, Message2).
 
 format_error(Message, Params) ->	
 	Message2 = io_lib:format(Message, Params),
-	Message3 = iolist_to_binary([?ERROR_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Message2, ?WHITE_BRK_COLOR]),
+	Message3 = unicode:characters_to_binary([?ERROR_MESSAGE,  ?LIGHT_GREEN_COLOR, ems_util:timestamp_binary(), ?WHITE_SPACE_COLOR, ?RED_COLOR, Message2, ?WHITE_BRK_COLOR]),
 	io:put_chars(standard_error, Message3).
 
 format_error(Msg, Params, true) -> format_error(Msg, Params);
@@ -163,13 +163,13 @@ write_msg(Tipo, Msg)  ->
 	try
 		case Tipo of
 			info  -> 
-				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?INFO_MESSAGE,  Msg, <<"\n">>]);
+				Msg1 = unicode:characters_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?INFO_MESSAGE,  Msg, <<"\n">>]);
 			error -> 
-				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?ERROR_MESSAGE, Msg, <<"\n">>]);
+				Msg1 = unicode:characters_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?ERROR_MESSAGE, Msg, <<"\n">>]);
 			warn  -> 
-				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?WARN_MESSAGE,  Msg, <<"\n">>]);
+				Msg1 = unicode:characters_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?WARN_MESSAGE,  Msg, <<"\n">>]);
 			debug -> 
-				Msg1 = iolist_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?DEBUG_MESSAGE, Msg, <<"\n">>])
+				Msg1 = unicode:characters_to_binary([<<"[">>, ems_clock:local_time_str(), <<"] ">>, ?DEBUG_MESSAGE, Msg, <<"\n">>])
 		end,
 		case Tipo of
 			error -> io:put_chars(standard_error, Msg1);
