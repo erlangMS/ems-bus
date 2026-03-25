@@ -15,8 +15,8 @@
 
 %% @doc Returns the throttle multiplier based on current hour
 %% Schedule:
-%%   06:00-20:00: 1x (normal speed)
-%%   20:00-22:00: 2x (50% slower - off-peak evening)
+%%   06:00-21:00: 1x (normal speed - business hours)
+%%   21:00-22:00: 2x (50% slower - off-peak evening)
 %%   22:00-06:00: 4x (75% slower - night time)
 -spec get_throttle_multiplier() -> 1 | 2 | 4.
 get_throttle_multiplier() ->
@@ -25,10 +25,10 @@ get_throttle_multiplier() ->
 
 %% @doc Returns throttle multiplier for a specific hour
 -spec get_throttle_multiplier(non_neg_integer()) -> 1 | 2 | 4.
-get_throttle_multiplier(Hour) when Hour >= 6 andalso Hour < 20 ->
+get_throttle_multiplier(Hour) when Hour >= 6 andalso Hour < 21 ->
     1;  % Normal speed during business hours
-get_throttle_multiplier(Hour) when Hour >= 20 andalso Hour < 22 ->
-    2;  % 2x slower during evening (20h-22h)
+get_throttle_multiplier(Hour) when Hour >= 21 andalso Hour < 22 ->
+    2;  % 2x slower during evening (21h-22h)
 get_throttle_multiplier(_Hour) ->
     4.  % 4x slower during night (22h-06h)
 

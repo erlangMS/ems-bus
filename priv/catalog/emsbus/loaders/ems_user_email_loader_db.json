@@ -8,7 +8,7 @@
 	"type": "KERNEL",
 	"lang": "erlang",
 	"activity_type": "auth",
-	"update_checkpoint": 130000,
+	"update_checkpoint": 180000,
 	"check_remove_records": true,
 	"check_remove_records_checkpoint": 14400000,
 	"datasource": "ds_ems_user_loader",
@@ -36,9 +36,8 @@
 					join BDPessoa.dbo.TB_Email em with (nolock) 
 						on pfe.PFmEmaCodigo = em.EmaCodigo 
 				where (em.EmaDataAlteracao >= ? or em.EmaDataCadastramento >= ?) and em.EmaEmail LIKE '_%@__%.__%'
-				","fields": [
-		"id",
-		"codigo",
-		"email"
-	]
+				","fields": ["id",
+	"codigo",
+	"email"
+]
 }

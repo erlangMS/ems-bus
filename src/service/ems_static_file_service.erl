@@ -13,8 +13,17 @@
 
 -export([execute/1]).
 
-execute(Request) ->	
-	ems_data_loader_ctl:register_activity(auth),
-	ems_util:load_from_file_req(Request).
-   
-    
+execute(Request = #request{service = #service{authorization = _Authorization}, url = Url}) ->	
+	Result = ems_util:load_from_file_req(Request),
+	case Result of
+		{ok, #request{code = Code}} when Code == ?HTTP_OK orelse Code == ?HTTP_NOT_MODIFIED ->
+			case Url of
+				"/favicon.ico" -> ok;
+				"/robots.txt" -> ok;
+				"/security.txt" -> ok;
+				"/.well-known/security.txt" -> ok;
+				_ -> ems_data_loader_ctl:register_activity(auth)
+			end;
+		_ -> ok
+	end,
+	Result.

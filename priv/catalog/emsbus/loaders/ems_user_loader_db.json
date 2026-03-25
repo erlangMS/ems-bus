@@ -8,7 +8,7 @@
 	"type": "KERNEL",
 	"lang": "erlang",
 	"activity_type": "auth",
-	"update_checkpoint": 17000,
+	"update_checkpoint": 30000,
 	"datasource": "ds_ems_user_loader",
 	"start_timeout": 4000,
 	"middleware": "ems_user_loader_middleware",
@@ -184,8 +184,7 @@
 								  and em.EmaEmail LIKE '_%@__%.__%' 
 								  and pfe.PFmPesCodigoPessoa = u.UsuPesIdPessoa 
 								  and (em.EmaDataAlteracao >= ? or em.EmaDataCadastramento >= ?) )
-			","fields": ["id","codigo","login","name",
-	"cpf",
+			","fields": ["id","codigo","login","name","cpf",
 	"password",
 	"passwd_crypto",
 	"endereco",

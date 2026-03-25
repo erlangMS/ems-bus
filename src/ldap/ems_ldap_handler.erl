@@ -49,7 +49,6 @@ init(Ref, Transport, [State]) ->
 loop(Socket, Transport, State = #state{tcp_allowed_address_t = AllowedAddress}) ->
 	case Transport:recv(Socket, 0, ?LDAP_MAX_SIZE_PACKET) of
 		{ok, Data} ->
-			ems_data_loader_ctl:register_activity(auth),
 			case inet:peername(Socket) of
 				{ok, {IpTuple, Port}} ->
 					IpBin = list_to_binary(inet_parse:ntoa(IpTuple)),
@@ -148,6 +147,7 @@ handle_request({'LDAPMessage', _,
 				{ok, User = #user{active = Active}} -> 
 						case Active orelse AuthAllowUserInativeCredentials of
 							true -> 
+								ems_data_loader_ctl:register_activity(auth),
 								ems_logger:info("ems_ldap_handler handle_request search ~p ~p success from ~s.", [UserLogin, User#user.name, ems_util:ntoa(Ip)]),
 								{ok, ListaPerfil} = ems_user_perfil:find_by_user(User#user.id, [id, name]),
 								ListaPerfil2 = [ maps:get(<<"name">>, R) || R <- ListaPerfil ],
@@ -465,6 +465,7 @@ handle_bind_request(Name,
 						{ok, IsAdmin} -> 
 							BindReqHash = erlang:phash2([Ip, Port]),
 							put(BindReqHash, {IsAdmin, AdminLogin}),
+							ems_data_loader_ctl:register_activity(auth),
 							ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s success from ~s.", [atom_to_list(UidOrCn), Name, ems_util:ntoa(Ip)]),
 							BindResponse = make_bind_response(success, Name);
 						_ ->
@@ -472,6 +473,7 @@ handle_bind_request(Name,
 							  {ok, #user{admin = IsAdmin, ctrl_source_type = Table}} -> 
 								 BindReqHash = erlang:phash2([Ip, Port]),
 								 put(BindReqHash, {IsAdmin, AdminLogin}),
+								 ems_data_loader_ctl:register_activity(auth),
 								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s on table ~p success from ~s.", [atom_to_list(UidOrCn), Name, Table, ems_util:ntoa(Ip)]),
 								 BindResponse = make_bind_response(success, Name);
 							  _-> 
@@ -522,19 +524,23 @@ handle_request_search_login(Name,
 				{ok, User} -> 
 					case BindRequestName of
 						<<>> -> 
+							ems_data_loader_ctl:register_activity(auth),
 							ems_logger:info("ems_ldap_handler handle_request_search_login unbind search ~s ~s success from ~s.", [UserLogin, User#user.name, ems_util:ntoa(Ip)]),
 							ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>]);
 						_ -> 
 							case IsAdmin of
 								true -> 
+									ems_data_loader_ctl:register_activity(auth),
 									ems_logger:info("ems_ldap_handler handle_request_search_login admin search ~p ~p success by ~p from ~s.", [UserLogin, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 									ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 								false -> 
 									case (BindRequestName =:= UserLogin) of
 										true -> 
+											ems_data_loader_ctl:register_activity(auth),
 											ems_logger:info("ems_ldap_handler handle_request_search_login user search ~s success by ~s from ~s.", [UserLogin, BindRequestName, ems_util:ntoa(Ip)]),
 											ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 										false ->
+											ems_data_loader_ctl:register_activity(auth),
 											ems_logger:info("ems_ldap_handler handle_request_search_login restricted search ~s success by ~s from ~s.", [UserLogin, BindRequestName, ems_util:ntoa(Ip)]),
 											ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>])
 									end
@@ -576,6 +582,7 @@ do_find_by_filter(Filter,
 		{ok, [User|_]} -> 
 			case BindRequestName of
 				<<>> -> 
+					ems_data_loader_ctl:register_activity(auth),
 					ems_logger:info("ems_ldap_handler do_find_by_filter unbind search ~p ~p success from ~s.", [Filter, User#user.name, ems_util:ntoa(Ip)]),
 					ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>]);
 				_ -> 
@@ -589,6 +596,7 @@ do_find_by_filter(Filter,
 									ems_logger:info("ems_ldap_handler do_find_by_filter user search ~p ~p success by ~p from ~s.", [Filter, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 									ResultEntry = make_result_entry(User, BindRequestName, AttributesToReturn);
 								false ->
+									ems_data_loader_ctl:register_activity(auth),
 									ems_logger:info("ems_ldap_handler do_find_by_filter restricted search ~p ~p success by ~p from ~s.", [Filter, User#user.name, BindRequestName, ems_util:ntoa(Ip)]),
 									ResultEntry = make_result_entry(User, BindRequestName, [<<"uid">>])
 							end

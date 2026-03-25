@@ -8,7 +8,7 @@
 	"type": "KERNEL",
 	"lang": "erlang",
 	"activity_type": "auth",
-	"update_checkpoint": 17000,
+	"update_checkpoint": 25000,
 	"datasource": "sig_unb",
 	"start_timeout": 8000,
 	"middleware": "ems_user_loader_middleware",

@@ -256,6 +256,10 @@ do_check_grant_permission(Service = #service{name = ServiceName,
 							false -> ems_logger:info("ems_auth_user do_check_grant_permission success grant for restricted service: ~s, user login: ~s, client: ~s, owner: ~s, authorization_owner: ~p.", [binary_to_list(Service#service.url), binary_to_list(UserLogin), ClientName, OwnerStr, AuthorizationOwnerStr])
 						end
 				end,
+				case User =/= public orelse Client =/= public of
+					true -> ems_data_loader_ctl:register_activity(auth);
+					false -> ok
+				end,
 				{ok, Client, User, AccessToken, Scope, State};
 			false -> 
 				case not RestrictedService of

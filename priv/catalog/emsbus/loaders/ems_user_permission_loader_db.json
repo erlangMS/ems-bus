@@ -8,7 +8,7 @@
 	"type": "KERNEL",
 	"lang": "erlang",
 	"activity_type": "auth",
-	"update_checkpoint": 65000,
+	"update_checkpoint": 75000,
 	"check_remove_records": true,
 	"check_remove_records_checkpoint": 3600000,
 	"group": [],
@@ -65,18 +65,17 @@
 			where up.APeDataAlteracao >= ? or up.APeDataCadastramento >= ? or 
 				  pt.PTrDataAlteracao >= ? or pt.PTrDataCadastramento >= ? or 
 				  t.TraDataAlteracao >= ? or t.TraDataCadastramento >= ?
-			","fields": [
-		"id",
-		"user_id",
-		"client_id",
-		"grant_get",
-		"grant_post",
-		"grant_put",
-		"grant_delete",
-		"url",
-		"name",
-		"perfil_id",
-		"position",
-		"glyphicon"
-	]
+			","fields": ["id",
+	"user_id",
+	"client_id",
+	"grant_get",
+	"grant_post",
+	"grant_put",
+	"grant_delete",
+	"url",
+	"name",
+	"perfil_id",
+	"position",
+	"glyphicon"
+]
 }

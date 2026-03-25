@@ -39,7 +39,6 @@ find_by_id(Id, Tables) ->
 
 
 find_by_filter_and_scope(Fields, Filter, TableScope) -> 
-	ems_data_loader_ctl:register_activity(auth),
 	ems_db:find(TableScope, Fields, Filter).
 
 
@@ -176,7 +175,6 @@ find_by_login_and_password(<<>>, _, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_password(_, "", _) -> {error, access_denied, epassword_empty};
 find_by_login_and_password("", _, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_password(Login, Password, Client)  ->
-	ems_data_loader_ctl:register_activity(auth),
 	T1 = ems_util:get_timestamp(),
 	Result = try
 		PasswordStr = case is_list(Password) of
@@ -212,6 +210,7 @@ find_by_login_and_password(Login, Password, Client)  ->
 												 Client2,
 												 AuthPasswordCheckBetweenScope) of
 					{ok, #user{ctrl_source_type = CtrlSourceType} = User} ->
+						ems_data_loader_ctl:register_activity(auth),
 						ems_logger:info("ems_user find_by_login_and_password success (Login: ~s CtrlSourceType: ~w Client: ~p ~s).", [LoginStr, CtrlSourceType, Client2#client.id, binary_to_list(Client2#client.name)]),
 						{ok, User};					
 					Error ->
@@ -255,13 +254,17 @@ find_by_login_and_scope(<<>>, _) -> {error, access_denied, elogin_empty};
 find_by_login_and_scope("", _) -> {error, access_denied, elogin_empty};	
 find_by_login_and_scope(undefined, _) -> {error, access_denied, elogin_empty};	
 find_by_login_and_scope(Login, AuthScope) ->
-	ems_data_loader_ctl:register_activity(auth),
 	LoginStr = case is_list(Login) of
 					true -> Login;
 					false -> binary_to_list(Login)
 			   end,
 	LoginBin = list_to_binary(LoginStr),
-	find_by_login_and_scope_(LoginBin, AuthScope).
+	case find_by_login_and_scope_(LoginBin, AuthScope) of
+		{ok, User} -> 
+			ems_data_loader_ctl:register_activity(auth),
+			{ok, User};
+		Error -> Error
+	end.
 	
 
 
@@ -270,7 +273,6 @@ find_by_login(<<>>) -> {error, access_denied, elogin_empty};
 find_by_login("") -> {error, access_denied, elogin_empty};	
 find_by_login(undefined) -> {error, access_denied, elogin_empty};	
 find_by_login(Login) ->
-	ems_data_loader_ctl:register_activity(auth),
 	LoginStr = case is_list(Login) of
 					true -> Login;
 					false -> binary_to_list(Login)
@@ -282,7 +284,7 @@ find_by_login(Login) ->
 			_ -> {error, enoent}
 		end
 	end,
-	case IndexFind(user_db) of
+	Result = case IndexFind(user_db) of
 		{error, enoent} -> 
 			case IndexFind(user2_db) of
 				{error, enoent} -> 
@@ -302,6 +304,12 @@ find_by_login(Login) ->
 				{ok, Record} -> {ok, Record}
 			end;
 		{ok, Record} -> {ok, Record}
+	end,
+	case Result of
+		{ok, Record2} -> 
+			ems_data_loader_ctl:register_activity(auth),
+			{ok, Record2};
+		Error2 -> Error2
 	end.
 
 
@@ -310,7 +318,6 @@ find_by_cpf(<<>>) -> {error, enoent};
 find_by_cpf("") -> {error, enoent};	
 find_by_cpf(undefined) -> {error, enoent};	
 find_by_cpf(Cpf) ->
-	ems_data_loader_ctl:register_activity(auth),
 	case is_list(Cpf) of
 		true -> 
 			CpfStr = Cpf,
@@ -320,8 +327,8 @@ find_by_cpf(Cpf) ->
 			CpfBin = Cpf
 	end,
 	CpfLen = string:len(CpfStr),
-	case (CpfLen =:= 11 andalso ems_util:is_cpf_valid(CpfStr)) orelse
-		 (CpfLen =:= 14 andalso ems_util:is_cnpj_valid(CpfStr)) of
+	Result = case (CpfLen =:= 11 andalso ems_util:is_cpf_valid(CpfStr)) orelse
+				 (CpfLen =:= 14 andalso ems_util:is_cnpj_valid(CpfStr)) of
 		true ->
 			case mnesia:dirty_index_read(user_db, CpfBin, #user.cpf) of
 				[] -> 
@@ -368,6 +375,12 @@ find_by_cpf(Cpf) ->
 					end;
 				false -> {error, enoent}
 			end
+	end,
+	case Result of
+		{ok, Record3} -> 
+			ems_data_loader_ctl:register_activity(auth),
+			{ok, Record3};
+		Error3 -> Error3
 	end.
 
 -spec find_by_name(binary() | string()) -> {ok, #user{}} | {error, enoent}.
@@ -377,9 +390,10 @@ find_by_name(undefined) -> {error, enoent};
 find_by_name(Name) when is_list(Name) -> 
 	find_by_name(list_to_binary(Name));
 find_by_name(Name) -> 
-	ems_data_loader_ctl:register_activity(auth),
 	case ems_db:find_first(?CLIENT_DEFAULT_SCOPE, [{name, "==", Name}]) of
-		{ok, Record} -> {ok, Record};
+		{ok, Record} -> 
+			ems_data_loader_ctl:register_activity(auth),
+			{ok, Record};
 		_ -> {error, enoent}
 	end.
 	

@@ -9,7 +9,6 @@
 -define(DEBUG(Msg), ems_logger:debug(Msg)).
 -define(DEBUG(Msg, Params), ems_logger:debug(Msg, Params)).
 
-
 %-define(JSON_LIB, jiffy).
 -define(JSON_LIB, native).
 
@@ -154,11 +153,11 @@
 
 % Timeout to check odbc connection
 -define(CHECK_VALID_CONNECTION_TIMEOUT, 120000). % 2 minutos
+-define(CHECK_VALID_CONNECTION_DAY_TIMEOUT, 1800000). % 30 minutos (somente durante o dia)
 -define(MAX_CLOSE_IDLE_CONNECTION_TIMEOUT, 1800000). % 30m
 -define(CLOSE_IDLE_CONNECTION_TIMEOUT, 900000). % 15m
--define(CONNECTION_LIMIT_QUERYCOUNT_RELEASE, 40).
+-define(CONNECTION_LIMIT_QUERYCOUNT_RELEASE, 100).
 -define(ODBC_IDLE_CONNECTION_THRESHOLD, 300000).	% 5 minutes (300.000 ms)
-
 
 % Define the default checkpoint to ems_data_loader and ems_json_loader
 -define(DATA_LOADER_UPDATE_CHECKPOINT, 30000).

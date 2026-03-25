@@ -15,7 +15,6 @@ execute(Request = #request{type = Type,
 						   host = Host,
 						   querystring = QuerystringBin,
 						   service  = Service = #service{oauth2_allow_client_credentials = OAuth2AllowClientCredentials}}) -> 
-	ems_data_loader_ctl:register_activity(auth),
 	try
 		PassportCodeBinBase64 = ems_util:get_querystring(<<"passport">>, <<>>, Request),
 		case parse_passport_code(PassportCodeBinBase64) of
@@ -194,6 +193,7 @@ execute(Request = #request{type = Type,
 											    client = Client,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},		
+					ems_data_loader_ctl:register_activity(auth),
 					{ok, Request2};		
 			{redirect, Client = #client{id = _ClientId, redirect_uri = RedirectUri0}} ->
 					Config = ems_config:getConfig(),
@@ -215,6 +215,7 @@ execute(Request = #request{type = Type,
 											   client = Client,
 											   response_header = ResponseHeader#{<<"location">> => LocationPath}
 											},
+					ems_data_loader_ctl:register_activity(auth),
 					{ok, Request2};
 			{error, Reason, ReasonDetail} ->
 					% Para finalidades de debug, tenta buscar o user pelo login para armazenar no log

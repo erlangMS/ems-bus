@@ -53,12 +53,13 @@
 				log_show_data_loader_activity = false,
 				activity_type,
 				last_sync_time = 0,
-				is_dormant = false
+				is_dormant = false,
+				last_dormant_log_time = 0
 			}).
 
 -define(SERVER, ?MODULE).
 
--define(INACTIVITY_TIMEOUT_NORMAL, 300).			% 5 minutes (300s)
+-define(INACTIVITY_TIMEOUT_NORMAL, 120).			% 2 minutes (120s)
 -define(INACTIVITY_TIMEOUT_FORA_EXPEDIENTE, 60).	% 1 minute (60s)
 
 
@@ -172,7 +173,8 @@ init(#service{name = Name,
 				   log_show_data_loader_activity = LogShowDataLoaderActivity,
 				   activity_type = maps:get(<<"activity_type">>, Props, undefined),
 				   last_sync_time = ems_util:get_timestamp(),
-				   is_dormant = false
+				   is_dormant = false,
+				   last_dormant_log_time = 0
 	},
 	ems_data_loader_ctl:register_loader(State#state.activity_type, erlang:binary_to_atom(Name, utf8)),
 	{ok, State, StartTimeout}.
@@ -270,31 +272,42 @@ handle_info(check_count_records, State = #state{name = Name,
 											    loading = Loading,
 											    group = GroupDataLoader,
 											    wait_count = WaitCount}) ->
-	ems_logger:debug("~s handle check_count_records execute now.", [Name], State#state.log_show_data_loader_activity),
-	case not Loading andalso ems_data_loader_ctl:permission_to_execute(Name, GroupDataLoader, check_count_records, WaitCount) of
-		true ->
-			case do_check_count_checkpoint(State) of
-				{ok, State2} -> 
-					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, undefined),
-					ems_util:flush_messages(),
-					erlang:garbage_collect(self(), [{async, undefined}]),
-					ThrottledTimeout5 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
-					erlang:send_after(ThrottledTimeout5, self(), check_count_records),
-					{noreply, State2#state{wait_count = 0}, UpdateCheckpoint};
-				{error, Reason} -> 
-					ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
-					ems_util:flush_messages(),
-					ThrottledTimeout6 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
-					erlang:send_after(ThrottledTimeout6, self(), check_count_records),
-					?DEBUG("~s check_count_records wait ~pms for next checkpoint while has database connection error. Reason: ~p.", [Name, TimeoutOnError, Reason]),
-					{noreply, State#state{wait_count = 0}, TimeoutOnError}
-			end;
+	{_, {Hour, _, _}} = calendar:local_time(),
+	IsNight = (Hour < 6 orelse Hour >= 21),
+	case IsNight of
 		false ->
-			TimeoutWait = get_timeout_wait(WaitCount),
-			ems_logger:debug("~s handle check_count_records wait ~pms to execute.", [Name, TimeoutWait], State#state.log_show_data_loader_activity),
-			ThrottledTimeout7 = ems_data_loader_throttle:apply_throttle(TimeoutWait),
-			erlang:send_after(ThrottledTimeout7, self(), check_count_records),
-			{noreply, State#state{wait_count = WaitCount + 1}, UpdateCheckpoint}
+			% Durante o dia nao e necessario verificar remocao de registros.
+			% Reagenda para daqui a 1 hora e verifica novamente se ja e noite.
+			ems_logger:debug("~s handle check_count_records skipped during daytime (hour ~p). Next check in 1h.", [Name, Hour], State#state.log_show_data_loader_activity),
+			erlang:send_after(3600000, self(), check_count_records),
+			{noreply, State#state{wait_count = 0}, UpdateCheckpoint};
+		true ->
+			ems_logger:debug("~s handle check_count_records execute now.", [Name], State#state.log_show_data_loader_activity),
+			case not Loading andalso ems_data_loader_ctl:permission_to_execute(Name, GroupDataLoader, check_count_records, WaitCount) of
+				true ->
+					case do_check_count_checkpoint(State) of
+						{ok, State2} ->
+							ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, undefined),
+							ems_util:flush_messages(),
+							erlang:garbage_collect(self(), [{async, undefined}]),
+							ThrottledTimeout5 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
+							erlang:send_after(ThrottledTimeout5, self(), check_count_records),
+							{noreply, State2#state{wait_count = 0}, UpdateCheckpoint};
+						{error, Reason} ->
+							ems_data_loader_ctl:notify_finish_work(Name, check_count_records, WaitCount, 0, 0, 0, 0, 0, Reason),
+							ems_util:flush_messages(),
+							ThrottledTimeout6 = ems_data_loader_throttle:apply_throttle(CheckRemoveRecordsCheckpoint),
+							erlang:send_after(ThrottledTimeout6, self(), check_count_records),
+							?DEBUG("~s check_count_records wait ~pms for next checkpoint while has database connection error. Reason: ~p.", [Name, TimeoutOnError, Reason]),
+							{noreply, State#state{wait_count = 0}, TimeoutOnError}
+					end;
+				false ->
+					TimeoutWait = get_timeout_wait(WaitCount),
+					ems_logger:debug("~s handle check_count_records wait ~pms to execute.", [Name, TimeoutWait], State#state.log_show_data_loader_activity),
+					ThrottledTimeout7 = ems_data_loader_throttle:apply_throttle(TimeoutWait),
+					erlang:send_after(ThrottledTimeout7, self(), check_count_records),
+					{noreply, State#state{wait_count = WaitCount + 1}, UpdateCheckpoint}
+			end
 	end;
 
 handle_info({_Pid, {error, _Reason}}, State = #state{timeout_on_error = TimeoutOnError}) ->
@@ -320,7 +333,6 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 		Now = ems_util:get_timestamp(),
 		LastActivity = ems_data_loader_ctl:get_last_activity(ActivityType),
 		ElapsedS = (Now - LastActivity) div 1000,
-		RemainingS = InactivityTimeout - ElapsedS,
 		
 		IsUserActive = ems_data_loader_ctl:is_active(ActivityType, InactivityTimeout),
 		IsMandatorySync = (Now - State#state.last_sync_time) >= MandatorySyncTimeout,
@@ -328,24 +340,30 @@ handle_do_check_load_or_update_checkpoint(State = #state{name = Name,
 		if
 			IsUserActive ->
 				case State#state.is_dormant of
-					true -> ems_logger:debug("~s~s is now awake.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity);
+					true -> ems_logger:info("~s~s is now awake.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity);
 					false -> ok
 				end,
 				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = false});
 			IsMandatorySync ->
 				% Sincronização obrigatória por tempo, mas mantém o estado dormente se não houver atividade de usuário
-				ems_logger:debug("~s~s handle_do_check_load_or_update_checkpoint mandatory sync while dormant.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity),
+				ems_logger:info("~s~s handle_do_check_load_or_update_checkpoint mandatory sync while dormant.~s", [?YELLOW_COLOR, Name, ?RESET_COLOR], LogShowDataLoaderActivity),
 				handle_do_check_load_or_update_checkpoint_execute(State#state{last_sync_time = Now, is_dormant = true});
 			true ->
 				case State#state.is_dormant of
 					false -> 
-						ems_logger:debug("~s~s is now dormant (last activity ~ps ago).~s", [?YELLOW_COLOR, Name, ElapsedS, ?RESET_COLOR], LogShowDataLoaderActivity),
+						ems_logger:info("~s~s is now dormant (last activity ~ps ago).~s", [?YELLOW_COLOR, Name, ElapsedS, ?RESET_COLOR], LogShowDataLoaderActivity),
 						% Reset last_sync_time to ensure the next mandatory sync only happens after 
 						% a full inactivity period has elapsed since entering dormancy.
-						{noreply, State#state{is_dormant = true, last_sync_time = Now}, UpdateCheckpoint};
+						{noreply, State#state{is_dormant = true, last_sync_time = Now, last_dormant_log_time = Now}, UpdateCheckpoint};
 					true -> 
-						ems_logger:debug("~s handle_do_check_load_or_update_checkpoint skip sync due to inactivity (~ps into ~ps timeout, ~ps left).", [Name, ElapsedS, InactivityTimeout, RemainingS], LogShowDataLoaderActivity),
-						{noreply, State#state{is_dormant = true}, UpdateCheckpoint}
+						ElapsedM = ElapsedS div 60,
+						case Now - State#state.last_dormant_log_time >= 180000 of % 3 minutes
+							true ->
+								ems_logger:info("~s~s dormindo há ~p minutos.~s", [<<"\e[35m">>, Name, ElapsedM, ?RESET_COLOR], LogShowDataLoaderActivity),
+								{noreply, State#state{is_dormant = true, last_dormant_log_time = Now}, UpdateCheckpoint};
+							false ->
+								{noreply, State#state{is_dormant = true}, UpdateCheckpoint}
+						end
 				end
 		end
 	catch
@@ -776,7 +794,7 @@ get_inactivity_timeout() ->
 get_mandatory_sync_timeout() ->
     {_Date, {Hour, _Minute, _Second}} = calendar:local_time(),
     if
-        Hour >= 5 andalso Hour < 21 -> 120000;		% 2 minutes during business hours
+        Hour >= 5 andalso Hour < 21 -> 3600000;		% 1 hour during business hours
         true                       -> 3600000		% 1 hour during night
     end.
 	

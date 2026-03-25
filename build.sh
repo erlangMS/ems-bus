@@ -137,6 +137,20 @@ ensure_rebar() {
     echo "Using rebar: $REBAR"
 }
 
+# Reads the version from docker-compose.yml and propagates to rebar.config and app.src
+sync_version() {
+    local VERSION
+    VERSION=$(grep -oP 'image:.*erlangms:\K[^\s"]+' docker-compose.yml 2>/dev/null | head -1)
+    if [ -z "$VERSION" ]; then
+        echo "sync_version: could not extract version from docker-compose.yml, skipping."
+        return
+    fi
+    echo "sync_version: version detected = $VERSION"
+    sed -i "s|{release, {ems_bus, \"v[^\"]*\"}|{release, {ems_bus, \"$VERSION\"}|" rebar.config
+    sed -i "s|{vsn, \"v[^\"]*\"}|{vsn, \"$VERSION\"}|" src/ems_bus.app.src
+    echo "sync_version: rebar.config and ems_bus.app.src updated to $VERSION"
+}
+
 # ========================== main ==============================
 
 if [ "$1" = "--help" ]; then
@@ -172,6 +186,7 @@ for P in $*; do
 done
 
 check_erlang_version
+sync_version
 
 echo "============================================================================="
 echo "Erlang version: $ERLANG_VERSION_OS"

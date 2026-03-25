@@ -9,7 +9,7 @@
 	"type": "KERNEL",
 	"lang": "erlang",
 	"activity_type": "auth",
-	"update_checkpoint": 60000,
+	"update_checkpoint": 120000,
 	"datasource": "ds_ems_user_loader",
 	"start_timeout": 5000,
 	"middleware": "ems_client_loader_middleware",
@@ -39,7 +39,11 @@
 	null,
 	null,
 			   s.SisAuthorizationOwner  
-			from BDAcesso.dbo.TB_Sistemas s with (nolock)","fields": ["id","name","secret","redirect_uri","active","scope","group",
+			from BDAcesso.dbo.TB_Sistemas s with (nolock)","fields": ["id","name","secret",
+	"redirect_uri",
+	"active",
+	"scope",
+	"group",
 	"rest_base_url",
 	"rest_auth_url",
 	"authorization_owner"

@@ -65,14 +65,19 @@ find_by_name(undefined) -> {error, enoent};
 find_by_name(Name) when is_list(Name) -> 
 	find_by_name(list_to_binary(Name));
 find_by_name(Name) -> 
-	ems_data_loader_ctl:register_activity(auth),
-	case mnesia:dirty_index_read(client_db, Name, #client.name) of
+	Result = case mnesia:dirty_index_read(client_db, Name, #client.name) of
 		[] ->
 			case mnesia:dirty_index_read(client_fs, Name, #client.name) of
 				[] -> {error, enoent};
 				[Record2|_] -> {ok, Record2}
 			end;
 		[Record|_] -> {ok, Record}
+	end,
+	case Result of
+		{ok, Client} -> 
+			ems_data_loader_ctl:register_activity(auth),
+			{ok, Client};
+		Error -> Error
 	end.
 
 

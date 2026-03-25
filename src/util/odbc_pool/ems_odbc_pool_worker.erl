@@ -144,7 +144,7 @@ handle_call({notify_use, #service_datasource{pid_module = PidModule,
 
 handle_call(notify_return_pool, _From, State = #state{datasource = InternalDatasource = #service_datasource{id = Id,
 																											sql_check_valid_connection = SqlCheckValidConnection,
-																											check_valid_connection_timeout = CheckValidConnectionTimeout,
+																											check_valid_connection_timeout = _CheckValidConnectionTimeout,
 																											close_idle_connection_timeout = CloseIdleConnectionTimeout}, 
 													  query_count = QueryCount, 
 													  last_error = LastError}) ->
@@ -157,10 +157,15 @@ handle_call(notify_return_pool, _From, State = #state{datasource = InternalDatas
 					{stop, normal, {ok, QueryCount}, State};
 				false ->
 					ems_logger:debug("ems_odbc_pool_worker notify_return_pool (Ds: ~p QueryCount: ~p).", [Id, QueryCount], InternalDatasource#service_datasource.log_show_odbc_pool_activity),
-					case SqlCheckValidConnection =/= undefined andalso SqlCheckValidConnection =/= "" of
-						true -> CheckValidConnectionRef = erlang:send_after(CheckValidConnectionTimeout, self(), {check_valid_connection, QueryCount});
-						false -> CheckValidConnectionRef = undefined
-					end,
+				case SqlCheckValidConnection =/= undefined andalso SqlCheckValidConnection =/= "" of
+					true ->
+						{_, {HourNow, _, _}} = calendar:local_time(),
+						case (HourNow >= 6 andalso HourNow < 21) of
+							true  -> CheckValidConnectionRef = erlang:send_after(?CHECK_VALID_CONNECTION_DAY_TIMEOUT, self(), {check_valid_connection, QueryCount});
+							false -> CheckValidConnectionRef = undefined  % nao agenda a noite
+						end;
+					false -> CheckValidConnectionRef = undefined
+				end,
 					CloseIdleConnectionRef = erlang:send_after(CloseIdleConnectionTimeout, self(), close_idle_connection),
 					erlang:garbage_collect(),
 					{reply, {ok, QueryCount}, State#state{datasource = InternalDatasource#service_datasource{pid_module = undefined,
@@ -215,11 +220,11 @@ handle_info({check_valid_connection, QueryCount}, State = #state{datasource = #s
 										ems_logger:debug("ems_odbc_pool_worker check_valid_connection failed, shutdown worker immediate (Ds: ~p Worker: ~p QueryCount: ~p Reason: ~p).", [Id, ConnRef, QueryCountNow, Reason], State#state.datasource#service_datasource.log_show_odbc_pool_activity),
 										{stop, shutdown, State#state{close_idle_connection_ref = undefined}};
 									_ -> 
-										{{_, _, _}, {Hour, _, _}} = calendar:local_time(),
-										case not (Hour >= 0 andalso Hour =< 4) of
-											true -> CheckValidConnectionRef = erlang:send_after(CheckValidConnectionTimeout * 10, self(), {check_valid_connection, QueryCount});
-											false -> CheckValidConnectionRef = erlang:send_after(CheckValidConnectionTimeout, self(), {check_valid_connection, QueryCount})
-										end,
+								{_, {HourNow2, _, _}} = calendar:local_time(),
+								case (HourNow2 >= 6 andalso HourNow2 < 21) of
+									true  -> CheckValidConnectionRef = erlang:send_after(?CHECK_VALID_CONNECTION_DAY_TIMEOUT, self(), {check_valid_connection, QueryCount});
+									false -> CheckValidConnectionRef = undefined  % nao reagenda a noite
+								end,
 										{noreply, State#state{check_valid_connection_ref = CheckValidConnectionRef}}
 								end
 							catch
@@ -238,7 +243,10 @@ handle_info(close_idle_connection, State = #state{datasource = #service_datasour
 												  check_valid_connection_ref = CheckValidConnectionRef,
 												  query_count = QueryCount}) ->
    ems_logger:info("ems_odbc_pool_worker close_idle_connection (Ds: ~p QueryCount: ~p).", [Id, QueryCount], LogShowPoolActivity),
-   erlang:cancel_timer(CheckValidConnectionRef),
+   case CheckValidConnectionRef of
+	   undefined -> ok;
+	   _ -> erlang:cancel_timer(CheckValidConnectionRef)
+   end,
    do_disconnect(State),
    {stop, normal, State#state{close_idle_connection_ref = undefined, 
 							  check_valid_connection_ref = undefined}};
