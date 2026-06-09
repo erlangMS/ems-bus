@@ -160,6 +160,7 @@ format_error(_, _, _) -> ok.
 %%====================================================================
 
 write_msg(Tipo, Msg)  ->
+	ems_http_metrics:inc_log(Tipo),
 	try
 		case Tipo of
 			info  -> 

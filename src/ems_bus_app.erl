@@ -28,6 +28,7 @@ start(_StartType, StartArgs) ->
 			ets:new(ems_dispatcher_post_time, [set, named_table, public]),
 			ets:new(ctrl_node_dispatch, [set, named_table, public]),
 			ems_tarpit:init(),
+			ems_http_metrics:new(),
 			
 			% Catalog ETS tables
 			ets:new(ets_catalog_re_db, [set, named_table, public, {read_concurrency, true}, {keypos, #service.rowid}]),

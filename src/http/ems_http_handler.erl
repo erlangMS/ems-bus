@@ -63,24 +63,26 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 	case ems_encode_request:new_from_cowboy_req(CowboyReq, self(), State) of
 		{ok, Request = #request{t1 = T1}, Service, CowboyReq2} -> 
 			case ems_dispatcher:dispatch_request(Request, Service, Debug) of
-				{ok, request, _Request2 = #request{code = Code0,
+				{ok, request, Request2 = #request{code = Code0,
 												  response_header = ResponseHeader,
 												  response_data = ResponseData,
 												  content_type_out = ContentTypeOut}} ->
 					Code = case Code0 of undefined -> 200; _ -> Code0 end,
-					_Response = cowboy_req:reply(Code, 
-												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, ?HTTP_HEADERS_DEFAULT, CowboyReq2), 
-												ResponseData, 
+					_Response = cowboy_req:reply(Code,
+												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
+												ResponseData,
 												CowboyReq2),
+					ems_http_metrics:observe(Request2#request.type, get_service_url(Request2), Code, Request2#request.latency),
 					ok;
-				{error, request, _Request2 = #request{code = Code0,
+				{error, request, Request2 = #request{code = Code0,
 													 response_header = ResponseHeader,
 													 response_data = ResponseData}} ->
 					Code = case Code0 of undefined -> 500; _ -> Code0 end,
-					_Response = cowboy_req:reply(Code, 
+					_Response = cowboy_req:reply(Code,
 												normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
-												ResponseData, 
+												ResponseData,
 												CowboyReq2),
+					ems_http_metrics:observe(Request2#request.type, get_service_url(Request2), Code, Request2#request.latency),
 					ok;
 				{error, Reason} = Error ->
 					Request2 = Request#request{code = ?HTTP_BAD_REQUEST, 
@@ -121,6 +123,10 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 		end
 	end,
 	{ok, _Response, State}.
+
+get_service_url(#request{service = S}) when S =/= undefined -> S#service.url;
+get_service_url(#request{url = Url}) when Url =/= undefined -> list_to_binary(Url);
+get_service_url(_) -> <<"unknown">>.
 
 normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
 	% Extract Origin header from request

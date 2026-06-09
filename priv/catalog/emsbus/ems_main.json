@@ -56,5 +56,9 @@
 	{
 		"catalog": "/emsbus/ems_security_txt_service",
 		"file": "ems_security_txt_service.json"
+	},
+	{
+		"catalog": "/emsbus/ems_prometheus_service",
+		"file": "ems_prometheus_service.json"
 	}
 ]

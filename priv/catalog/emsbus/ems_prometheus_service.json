@@ -1,0 +1,16 @@
+[
+	{
+		"name": "/metrics",
+		"comment": "Prometheus RED metrics endpoint — HTTP histogram, cache, log events, worker pools",
+		"owner": "emsbus",
+		"version": "1.0.0",
+		"service": "ems_prometheus_service:execute",
+		"url": "/metrics",
+		"async": "false",
+		"type": "GET",
+		"authorization": "public",
+		"lang": "erlang",
+		"result_cache": 0,
+		"cache_control": "no-cache, no-store, must-revalidate"
+	}
+]

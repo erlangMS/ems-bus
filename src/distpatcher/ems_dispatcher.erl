@@ -17,29 +17,39 @@
 
 check_result_cache(ReqHash, Worker, Timestamp2, Url, Debug) ->
 	case ets:lookup(ets_result_cache_get, ReqHash) of
-		[] -> 
+		[] ->
 			case Debug of
 				true -> ems_logger:info(?COLOR_YELLOW ++ "ems_dispatcher result_cache miss (not found). url: ~p" ++ ?COLOR_RESET, [Url]);
 				false -> ok
 			end,
-			false; 
-		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache -> 
+			ems_http_metrics:inc_cache_miss(),
+			false;
+		[{_, {Timestamp, _, ResultCache, _, _}}] when Timestamp2 - Timestamp > ResultCache ->
 			case Debug of
 				true -> ems_logger:info(?COLOR_YELLOW ++ "ems_dispatcher result_cache miss (expired). url: ~p" ++ ?COLOR_RESET, [Url]);
 				false -> ok
 			end,
+			ems_http_metrics:inc_cache_miss(),
 			false;
 		[{_, {Timestamp, Request, ResultCache, req_done, _}}] ->
 			case ResultCache == infinity of
-				true -> {true, Request};
+				true ->
+					ems_http_metrics:inc_cache_hit(),
+					{true, Request};
 				false ->
 					case ets:lookup(ems_dispatcher_post_time, Request#request.url) of
 						[{_, PostTime}] ->
 							case PostTime < Timestamp of
-								true -> {true, Request};
-								false -> false
+								true ->
+									ems_http_metrics:inc_cache_hit(),
+									{true, Request};
+								false ->
+									ems_http_metrics:inc_cache_miss(),
+									false
 							end;
-						[] -> {true, Request}
+						[] ->
+							ems_http_metrics:inc_cache_hit(),
+							{true, Request}
 					end
 			end;
 		[{_, {_, _, _, _, _}}] ->
