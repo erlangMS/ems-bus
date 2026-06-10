@@ -30,7 +30,8 @@ RUN apt-get update && \
     apt-get update && \
     ACCEPT_EULA=Y apt-get install -y msodbcsql17 && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    ln -sf /opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.*.so.*.* /opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.so
 
 # Instala dependências do barramento
 RUN apt-get update && \

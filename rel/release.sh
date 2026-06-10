@@ -42,13 +42,6 @@ cd "$WORKING_DIR" || die "Could not change to working directory $WORKING_DIR"
 
 SKIP_BUILD="false"
 
-# Get ErlangMS version in the file src/ems_bus.app.src
-VERSION_RELEASE=$(cat src/ems_bus.app.src | sed -rn  's/^.*\{vsn, "(.+)".*$/\1/p')
-[ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in src/ems_bus.app.src"
-
-RELEASE_FILE="ems-bus-$VERSION_RELEASE.tar.gz"
-
-
 # ***** Clean ******
 clean(){
 	echo "Clean release build..."
@@ -87,11 +80,17 @@ make_release(){
 	./tools/rebar/rebar3 release || die 'Failed to generate release with rebar3 release!'
     ./tools/rebar/rebar3 tar || die 'Failed to generate release tarball with rebar3 tar!'
 
+    # Get ErlangMS version after build.sh has run sync_version
+    VERSION_RELEASE=$(cat src/ems_bus.app.src | sed -rn  's/^.*\{vsn, "(.+)".*$/\1/p')
+    [ -z "$VERSION_RELEASE" ] && die "Could not get version to be generated in src/ems_bus.app.src"
+
+    RELEASE_FILE="ems-bus-$VERSION_RELEASE.tar.gz"
+
     # The tarball is generated in _build/default/rel/ems_bus/ems_bus-VERSION.tar.gz
     # We want to move it to the root or where expected
-    
-    GENERATED_TAR="/tmp/ems-bus/_build/default/rel/ems_bus/ems_bus-$VERSION_RELEASE.tar.gz"
-    
+
+    GENERATED_TAR="$WORKING_DIR/_build/default/rel/ems_bus/ems_bus-$VERSION_RELEASE.tar.gz"
+
     if [ -f "$GENERATED_TAR" ]; then
         cp "$GENERATED_TAR" "$RELEASE_FILE"
         echo "Release generated at $RELEASE_FILE"
@@ -140,7 +139,7 @@ if [ "$SKIP_BUILD" = "false" ]; then
 fi
 
 echo "Cleaning build artifacts..."
-rm -Rf /tmp/ems-bus/_build/default/rel/ems_bus
+rm -Rf "$WORKING_DIR/_build/default/rel/ems_bus"
 
 cd $WORKING_DIR
 echo "Ok!"
