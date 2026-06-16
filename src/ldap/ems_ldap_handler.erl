@@ -457,6 +457,7 @@ handle_bind_request(Name,
 		 (Password =:= <<>>) orelse (PasswordSize < 1) orelse (PasswordSize > 256) of
 		true ->
 			ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~p from ~s.", [Name, ems_util:ntoa(Ip)]),
+			ems_http_metrics:inc_ldap_error(),
 			BindResponse = make_bind_response(invalidCredentials, Name);
 		false ->
 			case ems_util:parse_ldap_name(Name) of
@@ -467,6 +468,7 @@ handle_bind_request(Name,
 							put(BindReqHash, {IsAdmin, AdminLogin}),
 							ems_data_loader_ctl:register_activity(auth),
 							ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s success from ~s.", [atom_to_list(UidOrCn), Name, ems_util:ntoa(Ip)]),
+							ems_http_metrics:inc_ldap_success(),
 							BindResponse = make_bind_response(success, Name);
 						_ ->
 						  case do_authenticate_admin_with_list_users(AdminLogin, Password, State, Ip, Port, TimestampBin) of
@@ -475,15 +477,18 @@ handle_bind_request(Name,
 								 put(BindReqHash, {IsAdmin, AdminLogin}),
 								 ems_data_loader_ctl:register_activity(auth),
 								 ems_logger:info("ems_ldap_handler handle_bind_request bind_~s ~s on table ~p success from ~s.", [atom_to_list(UidOrCn), Name, Table, ems_util:ntoa(Ip)]),
+								 ems_http_metrics:inc_ldap_success(),
 								 BindResponse = make_bind_response(success, Name);
-							  _-> 
+							  _->
 								 ems_logger:error("ems_ldap_handler handle_bind_request bind_~s ~s invalid credential from ~s.", [atom_to_list(UidOrCn), Name, ems_util:ntoa(Ip)]),
+								 ems_http_metrics:inc_ldap_error(),
 								 BindResponse = make_bind_response(insufficientAccessRights, Name)
 						   end
 					end,
 					BindResponse;
-				{error, _Reason} -> 
+				{error, _Reason} ->
 					ems_logger:error("ems_ldap_handler handle_bind_request parse invalid bind request name ~s from ~s.", [Name, ems_util:ntoa(Ip)]),
+					ems_http_metrics:inc_ldap_error(),
 					BindResponse = make_bind_response(invalidCredentials, Name)
 			end
 	end,

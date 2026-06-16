@@ -47,6 +47,7 @@ step1_init(CowboyReq, WorkerSend, State) ->
     case ems_util:check_url_denylist(Url) of
         true ->
             ems_logger:warn("Tarpit: Detected malicious request to ~s from client. Delaying response by ~p ms.", [Url, ?HTTP_TARPIT_DELAY]),
+            ems_http_metrics:inc_tarpit(hard),
             ems_tarpit:tarpit_hard(),
             % Malicious Request - return 409 Conflict
             Request = #request{
@@ -73,6 +74,7 @@ step1_init(CowboyReq, WorkerSend, State) ->
         true ->
             % URI too long - likely a DoS attack; apply tarpit and return 414
             ems_logger:warn("Tarpit: Detected URI too long (~p bytes) from client. Delaying response by ~p ms.", [UriSize, ?HTTP_TARPIT_DELAY]),
+            ems_http_metrics:inc_tarpit(hard),
             ems_tarpit:tarpit_hard(),
             Request2 = #request{
                 rid = RID,
@@ -113,6 +115,7 @@ step3_parse_headers(CowboyReq, WorkerSend, State, Uri, Url2, UrlMasked, Querystr
         _ -> 
             % Unsupported method - likely a scanner probe; apply tarpit and return 405
             ems_logger:warn("Tarpit: Detected unsupported HTTP method ~s from client. Delaying response by ~p ms.", [Method, ?HTTP_TARPIT_DELAY]),
+            ems_http_metrics:inc_tarpit(hard),
             ems_tarpit:tarpit_hard(),
             Request = #request{
                 rid = RID,
@@ -374,6 +377,7 @@ handle_enoent(CowboyReq, Request, _State) ->
                  Options};
             true ->
                 ems_db:inc_counter(ems_dispatcher_lookup_enoent),
+                ems_http_metrics:inc_tarpit(leve),
                 ems_tarpit:tarpit_leve(),
                 {404,
                  ?ENOENT_SERVICE_CONTRACT_JSON,

@@ -194,7 +194,8 @@ execute(Request = #request{type = Type,
 											    user = User,
 											    content_type_out = ?CONTENT_TYPE_JSON},		
 					ems_data_loader_ctl:register_activity(auth),
-					{ok, Request2};		
+					ems_http_metrics:inc_auth_success(),
+					{ok, Request2};
 			{redirect, Client = #client{id = _ClientId, redirect_uri = RedirectUri0}} ->
 					Config = ems_config:getConfig(),
 					% Se passar a querystring redirect_uri  na url, pega este, senão o valor do atributo redirect_uri do #client
@@ -228,17 +229,19 @@ execute(Request = #request{type = Type,
 											   reason_detail = ReasonDetail,
 											   response_data = ?ACCESS_DENIED_JSON,
 											   user = User},
+					ems_http_metrics:inc_auth_error(),
 					{error, Request2}
 		end
 	catch
 		_:ReasonException ->
 			ems_logger:error("ems_oauth2_authorize execute exception. Reason: ~p.", [ReasonException]),
-			Request3 = Request#request{code = ?HTTP_UNAUTHORIZED, 
+			Request3 = Request#request{code = ?HTTP_UNAUTHORIZED,
 									   reason = access_denied,
 									   reason_detail = eparse_oauth2_authorize_execute,
 									   user = undefined,
 									   client = undefined,
 									   response_data = ?ACCESS_DENIED_JSON},
+			ems_http_metrics:inc_auth_error(),
 			{error, Request3}
 	end.
 

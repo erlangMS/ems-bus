@@ -15,6 +15,10 @@
 
 -export([execute/1]).
 
+%% Static label applied to every exposed metric, identifying this
+%% application instance to Prometheus/Grafana alongside other services.
+-define(APP_LABEL, {<<"application">>, <<"app-ems-bus">>}).
+
 
 %%====================================================================
 %% Service entry point
@@ -22,11 +26,15 @@
 
 execute(Request) ->
     Output = iolist_to_binary([
-        collect_http_histogram(),
-        collect_cache_metrics(),
-        collect_log_metrics(),
-        collect_odbc_pool_metrics(),
-        collect_catalog_metrics()
+        safe_collect(fun collect_http_histogram/0),
+        safe_collect(fun collect_cache_metrics/0),
+        safe_collect(fun collect_log_metrics/0),
+        safe_collect(fun collect_auth_metrics/0),
+        safe_collect(fun collect_ldap_metrics/0),
+        safe_collect(fun collect_rate_limit_metrics/0),
+        safe_collect(fun collect_tarpit_metrics/0),
+        safe_collect(fun collect_odbc_pool_metrics/0),
+        safe_collect(fun collect_catalog_metrics/0)
     ]),
     {ok, Request#request{
         code             = 200,
@@ -35,9 +43,14 @@ execute(Request) ->
         response_data    = Output
     }}.
 
+%% Isolates each metric family: a failure collecting one (e.g. mnesia or
+%% an ETS table unavailable) must not blank out the rest of the scrape.
+safe_collect(Fun) ->
+    try Fun() catch _:_ -> [] end.
+
 
 %%====================================================================
-%% Histogram — emsbus_http_requests_seconds
+%% Histogram — http_server_requests_seconds
 %%====================================================================
 
 collect_http_histogram() ->
@@ -46,44 +59,44 @@ collect_http_histogram() ->
         [] -> [];
         _  ->
             [
-                <<"# HELP emsbus_http_requests_seconds HTTP request latency in seconds\n">>,
-                <<"# TYPE emsbus_http_requests_seconds histogram\n">>,
+                <<"# HELP http_server_requests_seconds HTTP request latency in seconds\n">>,
+                <<"# TYPE http_server_requests_seconds histogram\n">>,
                 [format_histogram_labels(LS) || LS <- LabelSets]
             ]
     end.
 
-format_histogram_labels({Method, Uri, Status}) ->
+format_histogram_labels({Method, Uri, Status, Exception}) ->
     StatusBin   = integer_to_binary(Status),
-    BaseLabels  = [{<<"method">>, Method}, {<<"uri">>, Uri}, {<<"status">>, StatusBin}],
-    BucketLines = [format_bucket(BaseLabels, Method, Uri, Status, Le, LeBin)
+    BaseLabels  = [{<<"method">>, Method}, {<<"uri">>, Uri}, {<<"status">>, StatusBin}, {<<"exception">>, Exception}],
+    BucketLines = [format_bucket(BaseLabels, Method, Uri, Status, Exception, Le, LeBin)
                    || {Le, LeBin} <- ems_http_metrics:bucket_defs()],
-    InfCount    = ems_http_metrics:get_counter({bucket, Method, Uri, Status, infinity}),
-    Count       = ems_http_metrics:get_counter({count,  Method, Uri, Status}),
-    SumMicros   = ems_http_metrics:get_counter({sum_micros, Method, Uri, Status}),
+    InfCount    = ems_http_metrics:get_counter({bucket, Method, Uri, Status, Exception, infinity}),
+    Count       = ems_http_metrics:get_counter({count,  Method, Uri, Status, Exception}),
+    SumMicros   = ems_http_metrics:get_counter({sum_micros, Method, Uri, Status, Exception}),
     SumSecs     = SumMicros / 1_000_000,
     [
         BucketLines,
-        format_sample(<<"emsbus_http_requests_seconds_bucket">>,
+        format_sample(<<"http_server_requests_seconds_bucket">>,
                       BaseLabels ++ [{<<"le">>, <<"+Inf">>}], InfCount),
-        format_sample(<<"emsbus_http_requests_seconds_count">>, BaseLabels, Count),
-        format_sample_float(<<"emsbus_http_requests_seconds_sum">>,  BaseLabels, SumSecs)
+        format_sample(<<"http_server_requests_seconds_count">>, BaseLabels, Count),
+        format_sample_float(<<"http_server_requests_seconds_sum">>,  BaseLabels, SumSecs)
     ].
 
-format_bucket(BaseLabels, Method, Uri, Status, Le, LeBin) ->
-    Count = ems_http_metrics:get_counter({bucket, Method, Uri, Status, Le}),
-    format_sample(<<"emsbus_http_requests_seconds_bucket">>,
+format_bucket(BaseLabels, Method, Uri, Status, Exception, Le, LeBin) ->
+    Count = ems_http_metrics:get_counter({bucket, Method, Uri, Status, Exception, Le}),
+    format_sample(<<"http_server_requests_seconds_bucket">>,
                   BaseLabels ++ [{<<"le">>, LeBin}], Count).
 
 
 %%====================================================================
-%% Cache — emsbus_result_cache_requests_total
+%% Cache — cache_requests_total
 %%====================================================================
 
 collect_cache_metrics() ->
     Hit  = ems_http_metrics:get_counter({cache, hit}),
     Miss = ems_http_metrics:get_counter({cache, miss}),
     metric(counter,
-           <<"emsbus_result_cache_requests_total">>,
+           <<"cache_requests_total">>,
            <<"Total result cache lookups by result">>,
            [
                {[{<<"result">>, <<"hit">>}],  Hit},
@@ -92,7 +105,7 @@ collect_cache_metrics() ->
 
 
 %%====================================================================
-%% Log events — emsbus_log_events_total
+%% Log events — logback_events_total
 %%====================================================================
 
 collect_log_metrics() ->
@@ -100,7 +113,7 @@ collect_log_metrics() ->
     Warn  = ems_http_metrics:get_counter({log, warn}),
     Info  = ems_http_metrics:get_counter({log, info}),
     metric(counter,
-           <<"emsbus_log_events_total">>,
+           <<"logback_events_total">>,
            <<"Total log events by level">>,
            [
                {[{<<"level">>, <<"error">>}], Error},
@@ -110,7 +123,65 @@ collect_log_metrics() ->
 
 
 %%====================================================================
-%% ODBC connection pools — emsbus_odbc_pool_connections
+%% OAuth2 — auth_user_success_total / auth_user_error_total
+%%====================================================================
+
+collect_auth_metrics() ->
+    Success = ems_http_metrics:get_counter({auth, success}),
+    Error   = ems_http_metrics:get_counter({auth, error}),
+    [
+        metric(counter, <<"auth_user_success_total">>, <<"Total successful OAuth2 user authentications">>, [{[], Success}]),
+        metric(counter, <<"auth_user_error_total">>,   <<"Total failed OAuth2 user authentications">>,     [{[], Error}])
+    ].
+
+
+%%====================================================================
+%% LDAP — ldap_user_success_total / ldap_user_error_total
+%%====================================================================
+
+collect_ldap_metrics() ->
+    Success = ems_http_metrics:get_counter({ldap, success}),
+    Error   = ems_http_metrics:get_counter({ldap, error}),
+    [
+        metric(counter, <<"ldap_user_success_total">>, <<"Total successful LDAP user authentications">>, [{[], Success}]),
+        metric(counter, <<"ldap_user_error_total">>,   <<"Total failed LDAP user authentications">>,     [{[], Error}])
+    ].
+
+
+%%====================================================================
+%% Rate limiter — rate_limit_total
+%%====================================================================
+
+collect_rate_limit_metrics() ->
+    Tarpit = ems_http_metrics:get_counter({rate_limit, tarpit}),
+    Block  = ems_http_metrics:get_counter({rate_limit, block}),
+    metric(counter,
+           <<"rate_limit_total">>,
+           <<"Total requests throttled by the rate limiter, by action">>,
+           [
+               {[{<<"action">>, <<"tarpit">>}], Tarpit},
+               {[{<<"action">>, <<"block">>}],  Block}
+           ]).
+
+
+%%====================================================================
+%% Tarpit — tarpit_total
+%%====================================================================
+
+collect_tarpit_metrics() ->
+    Leve = ems_http_metrics:get_counter({tarpit, leve}),
+    Hard = ems_http_metrics:get_counter({tarpit, hard}),
+    metric(counter,
+           <<"tarpit_total">>,
+           <<"Total requests delayed by the tarpit defense mechanism, by severity">>,
+           [
+               {[{<<"type">>, <<"leve">>}], Leve},
+               {[{<<"type">>, <<"hard">>}], Hard}
+           ]).
+
+
+%%====================================================================
+%% ODBC connection pools — db_pool_connections
 %%====================================================================
 
 %% Iterates all datasources registered in Mnesia and reports active,
@@ -131,7 +202,7 @@ collect_odbc_pool_metrics() ->
     catch _:_ -> []
     end,
     OdbcDs = [Ds || Ds <- Datasources,
-                    Ds#service_datasource.driver  =/= undefined,
+                    lists:member(Ds#service_datasource.type, [postgresql, sqlserver]),
                     Ds#service_datasource.ds_name =/= undefined,
                     is_integer(Ds#service_datasource.max_pool_size),
                     Ds#service_datasource.max_pool_size > 0],
@@ -139,17 +210,16 @@ collect_odbc_pool_metrics() ->
         [] -> [];
         _  ->
             [
-                <<"# HELP emsbus_odbc_pool_connections ODBC connection pool size by datasource and state\n">>,
-                <<"# TYPE emsbus_odbc_pool_connections gauge\n">>,
-                <<"# HELP emsbus_odbc_pool_connections_max ODBC connection pool maximum size by datasource\n">>,
-                <<"# TYPE emsbus_odbc_pool_connections_max gauge\n">>,
-                [format_odbc_datasource(Ds) || Ds <- OdbcDs]
+                <<"# HELP db_pool_connections Database connection pool size by datasource and state\n">>,
+                <<"# TYPE db_pool_connections gauge\n">>,
+                [format_odbc_pool_connections(Ds) || Ds <- OdbcDs],
+                <<"# HELP db_pool_connections_max Database connection pool maximum size by datasource\n">>,
+                <<"# TYPE db_pool_connections_max gauge\n">>,
+                [format_odbc_pool_connections_max(Ds) || Ds <- OdbcDs]
             ]
     end.
 
-format_odbc_datasource(Ds = #service_datasource{id = Id,
-                                                 ds_name = DsName,
-                                                 max_pool_size = MaxPool}) ->
+format_odbc_pool_connections(Ds = #service_datasource{id = Id, ds_name = DsName}) ->
     Label        = [{<<"datasource">>, DsName}],
     MetricName   = list_to_atom("odbc_pool_count_" ++ integer_to_list(Id)),
     TotalCreated = ems_db:current_counter(MetricName),
@@ -159,12 +229,17 @@ format_odbc_datasource(Ds = #service_datasource{id = Id,
                    end,
     ActiveCount  = max(0, TotalCreated - IdleCount),
     [
-        format_sample(<<"emsbus_odbc_pool_connections">>,
+        format_sample(<<"db_pool_connections">>,
                       Label ++ [{<<"state">>, <<"active">>}], ActiveCount),
-        format_sample(<<"emsbus_odbc_pool_connections">>,
+        format_sample(<<"db_pool_connections">>,
                       Label ++ [{<<"state">>, <<"idle">>}],   IdleCount),
-        format_sample(<<"emsbus_odbc_pool_connections_max">>, Label,         MaxPool)
+        format_sample(<<"db_pool_connections">>,
+                      Label ++ [{<<"state">>, <<"total">>}],  TotalCreated)
     ].
+
+format_odbc_pool_connections_max(#service_datasource{ds_name = DsName, max_pool_size = MaxPool}) ->
+    Label = [{<<"datasource">>, DsName}],
+    format_sample(<<"db_pool_connections_max">>, Label, MaxPool).
 
 
 %%====================================================================
@@ -202,14 +277,12 @@ metric(Type, Name, Help, Samples) ->
         | Lines
     ]).
 
-format_sample(Name, [], Value) ->
-    iolist_to_binary([Name, <<" ">>, integer_to_binary(Value), <<"\n">>]);
 format_sample(Name, Labels, Value) ->
-    iolist_to_binary([Name, <<"{">>, format_labels(Labels), <<"} ">>,
+    iolist_to_binary([Name, <<"{">>, format_labels([?APP_LABEL | Labels]), <<"} ">>,
                       integer_to_binary(Value), <<"\n">>]).
 
 format_sample_float(Name, Labels, Value) ->
-    iolist_to_binary([Name, <<"{">>, format_labels(Labels), <<"} ">>,
+    iolist_to_binary([Name, <<"{">>, format_labels([?APP_LABEL | Labels]), <<"} ">>,
                       float_to_binary(Value, [{decimals, 6}]), <<"\n">>]).
 
 format_labels(Labels) ->

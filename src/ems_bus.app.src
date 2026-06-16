@@ -1,7 +1,7 @@
 {application, ems_bus,
  [
   {description, "ErlangMS"},
-  {vsn, "v2026.4"},
+  {vsn, "v2026v21"},
   {registered, []},
   {applications, [
 					kernel,

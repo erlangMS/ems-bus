@@ -44,6 +44,9 @@ KEEP_DB="false"
 # Release flag
 BUILD_RELEASE="false"
 
+# Sync version only flag
+SYNC_VERSION_ONLY="false"
+
 # The settings may be stored in the /etc/default/erlangms-build
 CONFIG_ARQ="/etc/default/erlangms-build"
 
@@ -71,6 +74,7 @@ help() {
     echo "  --skip-clean=true|false -> Define if rebar clean"
     echo "  --clean                 -> Equal to --skip-clean=true"
     echo "  --release               -> Execute rel/release.sh after build"
+    echo "  --sync-version-only     -> Somente sincroniza a versão baseada na branch e sai"
     echo
     exit 1
 }
@@ -137,6 +141,27 @@ ensure_rebar() {
     echo "Using rebar: $REBAR"
 }
 
+# Validate branch name to prevent building on main/master and enforce version pattern
+validate_branch() {
+    local BRANCH_NAME
+    BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$BRANCH_NAME" = "main" ] || [ "$BRANCH_NAME" = "master" ]; then
+        die "Erro: Não é permitido buildar na branch '$BRANCH_NAME'." 1
+    fi
+    if ! echo "$BRANCH_NAME" | grep -Eq '^v[0-9]{4}v[0-9]+$$'; then
+        die "Erro: A branch '$BRANCH_NAME' não segue o padrão 'vANOvNUMERO' (ex: v2026v21)." 1
+    fi
+    echo "validate_branch: branch validada ($BRANCH_NAME)"
+}
+
+# Updates the version in docker-compose.yml to match the branch name
+set_version_to_branch() {
+    local BRANCH_NAME
+    BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+    sed -i -E "s|image: hub\.sti\.unb\.br/sas/erlangms:.*|image: hub.sti.unb.br/sas/erlangms:$BRANCH_NAME|g" docker-compose.yml
+    echo "set_version_to_branch: docker-compose.yml atualizado para a branch $BRANCH_NAME"
+}
+
 # Reads the version from docker-compose.yml and propagates to rebar.config and app.src
 sync_version() {
     local VERSION
@@ -176,6 +201,8 @@ for P in $*; do
             KEEP_DB="true"
         elif [ "$P" = "--release" ]; then
             BUILD_RELEASE="true"
+        elif [ "$P" = "--sync-version-only" ]; then
+            SYNC_VERSION_ONLY="true"
         elif [ "$P" = "--help" ]; then
             help
         else
@@ -186,7 +213,14 @@ for P in $*; do
 done
 
 check_erlang_version
+validate_branch
+set_version_to_branch
 sync_version
+
+if [ "$SYNC_VERSION_ONLY" = "true" ]; then
+    echo "Sincronização de versão concluída."
+    exit 0
+fi
 
 echo "============================================================================="
 echo "Erlang version: $ERLANG_VERSION_OS"

@@ -37,9 +37,11 @@ init_rate_limit(CowboyReq, State) ->
 	{Ip, _Port} = ems_util:get_real_ip(CowboyReq),
 	case ems_rate_limiter:check(Ip) of
 		block ->
+			ems_http_metrics:inc_rate_limit(block),
 			Response = cowboy_req:reply(429, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?ERATE_LIMIT_EXCEEDED, CowboyReq),
 			{ok, Response, State};
 		{tarpit, Delay} ->
+			ems_http_metrics:inc_rate_limit(tarpit),
 			ems_logger:warn("ems_http_handler tarpit delay ~p ms for IP ~s.", [Delay, ems_util:ntoa(Ip)]),
 			timer:sleep(Delay),
 			case cowboy_req:method(CowboyReq) of
@@ -72,7 +74,7 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 												normalize_headers(ResponseHeader#{<<"content-type">> => ContentTypeOut}, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 												ResponseData,
 												CowboyReq2),
-					ems_http_metrics:observe(Request2#request.type, get_service_url(Request2), Code, Request2#request.latency),
+					ems_http_metrics:observe(Request2#request.type, get_service_url(Request2), Code, get_exception(Request2), Request2#request.latency),
 					ok;
 				{error, request, Request2 = #request{code = Code0,
 													 response_header = ResponseHeader,
@@ -82,7 +84,7 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 												normalize_headers(ResponseHeader, ?HTTP_HEADERS_DEFAULT, CowboyReq2),
 												ResponseData,
 												CowboyReq2),
-					ems_http_metrics:observe(Request2#request.type, get_service_url(Request2), Code, Request2#request.latency),
+					ems_http_metrics:observe(Request2#request.type, get_service_url(Request2), Code, get_exception(Request2), Request2#request.latency),
 					ok;
 				{error, Reason} = Error ->
 					Request2 = Request#request{code = ?HTTP_BAD_REQUEST, 
@@ -118,6 +120,7 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 				ok;
 			_ ->
 				ems_logger:error("ems_http_handler ~s ~s ~s from ~s. Reason: ~p.", [Type, Url, Protocol, ems_util:ntoa(Ip), Reason]),
+				ems_http_metrics:inc_tarpit(leve),
 				ems_tarpit:tarpit_leve(),
 				_Response = cowboy_req:reply(400, normalize_headers(?HTTP_HEADERS_DEFAULT, ?HTTP_HEADERS_DEFAULT, CowboyReq), ?EINVALID_HTTP_REQUEST, CowboyReq)
 		end
@@ -127,6 +130,11 @@ init_common(CowboyReq, State = #encode_request_state{debug = Debug}) ->
 get_service_url(#request{service = S}) when S =/= undefined -> S#service.url;
 get_service_url(#request{url = Url}) when Url =/= undefined -> list_to_binary(Url);
 get_service_url(_) -> <<"unknown">>.
+
+get_exception(#request{reason = ok}) -> <<"None">>;
+get_exception(#request{reason = undefined}) -> <<"None">>;
+get_exception(#request{reason = Reason}) when is_atom(Reason) -> atom_to_binary(Reason, utf8);
+get_exception(_) -> <<"None">>.
 
 normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
 	% Extract Origin header from request
