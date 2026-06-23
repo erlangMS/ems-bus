@@ -26,6 +26,7 @@
 
 execute(Request) ->
     Output = iolist_to_binary([
+        safe_collect(fun collect_vm_metrics/0),
         safe_collect(fun collect_http_histogram/0),
         safe_collect(fun collect_cache_metrics/0),
         safe_collect(fun collect_log_metrics/0),
@@ -234,12 +235,58 @@ collect_odbc_pool_metrics() ->
                 [format_odbc_pool_connections(Ds) || Ds <- OdbcDs],
                 <<"# HELP db_pool_connections_max Database connection pool maximum size by datasource\n">>,
                 <<"# TYPE db_pool_connections_max gauge\n">>,
-                [format_odbc_pool_connections_max(Ds) || Ds <- OdbcDs]
+                [format_odbc_pool_connections_max(Ds) || Ds <- OdbcDs],
+                <<"# HELP db_pool_connections_min Database connection pool minimum size by datasource\n">>,
+                <<"# TYPE db_pool_connections_min gauge\n">>,
+                [format_odbc_pool_connections_min(Ds) || Ds <- OdbcDs],
+                <<"# HELP db_connections_active DB active connections\n">>,
+                <<"# TYPE db_connections_active gauge\n">>,
+                <<"# HELP db_connections_idle DB idle connections\n">>,
+                <<"# TYPE db_connections_idle gauge\n">>,
+                <<"# HELP db_connections DB total connections\n">>,
+                <<"# TYPE db_connections gauge\n">>,
+                [format_db_connections(Ds) || Ds <- OdbcDs],
+                <<"# HELP db_connections_max DB max connections\n">>,
+                <<"# TYPE db_connections_max gauge\n">>,
+                [format_db_connections_max(Ds) || Ds <- OdbcDs],
+                <<"# HELP db_connections_min DB min connections\n">>,
+                <<"# TYPE db_connections_min gauge\n">>,
+                [format_db_connections_min(Ds) || Ds <- OdbcDs],
+                <<"# HELP db_connections_pending Pending threads\n">>,
+                <<"# TYPE db_connections_pending gauge\n">>,
+                <<"# HELP db_connections_timeout_total Connection timeout total count\n">>,
+                <<"# TYPE db_connections_timeout_total counter\n">>,
+                <<"# HELP db_connections_usage_seconds Connection usage time\n">>,
+                <<"# TYPE db_connections_usage_seconds summary\n">>,
+                <<"# HELP db_connections_usage_seconds_max Connection usage time\n">>,
+                <<"# TYPE db_connections_usage_seconds_max gauge\n">>,
+                <<"# HELP db_connections_acquire_seconds Connection acquire time\n">>,
+                <<"# TYPE db_connections_acquire_seconds summary\n">>,
+                <<"# HELP db_connections_acquire_seconds_max Connection acquire time\n">>,
+                <<"# TYPE db_connections_acquire_seconds_max gauge\n">>,
+                <<"# HELP db_connections_creation_seconds Connection creation time\n">>,
+                <<"# TYPE db_connections_creation_seconds summary\n">>,
+                <<"# HELP db_connections_creation_seconds_max Connection creation time\n">>,
+                <<"# TYPE db_connections_creation_seconds_max gauge\n">>,
+                [format_db_connections_extended(Ds) || Ds <- OdbcDs],
+                <<"# HELP jdbc_connections_active JDBC active connections alias\n">>,
+                <<"# TYPE jdbc_connections_active gauge\n">>,
+                <<"# HELP jdbc_connections_idle JDBC idle connections alias\n">>,
+                <<"# TYPE jdbc_connections_idle gauge\n">>,
+                <<"# HELP jdbc_connections JDBC total connections alias\n">>,
+                <<"# TYPE jdbc_connections gauge\n">>,
+                [format_jdbc_connections(Ds) || Ds <- OdbcDs],
+                <<"# HELP jdbc_connections_max JDBC max connections alias\n">>,
+                <<"# TYPE jdbc_connections_max gauge\n">>,
+                [format_jdbc_connections_max(Ds) || Ds <- OdbcDs],
+                <<"# HELP jdbc_connections_min JDBC min connections alias\n">>,
+                <<"# TYPE jdbc_connections_min gauge\n">>,
+                [format_jdbc_connections_min(Ds) || Ds <- OdbcDs]
             ]
     end.
 
 format_odbc_pool_connections(Ds = #service_datasource{id = Id, ds_name = DsName}) ->
-    Label        = [{<<"datasource">>, DsName}],
+    Label        = [{<<"pool">>, DsName}],
     MetricName   = list_to_atom("odbc_pool_count_" ++ integer_to_list(Id)),
     TotalCreated = ems_db:current_counter(MetricName),
     IdleCount    = case catch ems_odbc_pool:connection_pool_size(Ds) of
@@ -257,8 +304,95 @@ format_odbc_pool_connections(Ds = #service_datasource{id = Id, ds_name = DsName}
     ].
 
 format_odbc_pool_connections_max(#service_datasource{ds_name = DsName, max_pool_size = MaxPool}) ->
-    Label = [{<<"datasource">>, DsName}],
+    Label = [{<<"pool">>, DsName}],
     format_sample(<<"db_pool_connections_max">>, Label, MaxPool).
+
+format_odbc_pool_connections_min(#service_datasource{ds_name = DsName}) ->
+    Label = [{<<"pool">>, DsName}],
+    format_sample(<<"db_pool_connections_min">>, Label, 0).
+
+format_db_connections(Ds = #service_datasource{id = Id, ds_name = DsName}) ->
+    Label        = [{<<"pool">>, DsName}],
+    MetricName   = list_to_atom("odbc_pool_count_" ++ integer_to_list(Id)),
+    TotalCreated = ems_db:current_counter(MetricName),
+    IdleCount    = case catch ems_odbc_pool:connection_pool_size(Ds) of
+                       N when is_integer(N) -> N;
+                       _                    -> 0
+                   end,
+    ActiveCount  = max(0, TotalCreated - IdleCount),
+    [
+        format_sample(<<"db_connections_active">>, Label, ActiveCount),
+        format_sample(<<"db_connections_idle">>,   Label, IdleCount),
+        format_sample(<<"db_connections">>,        Label, TotalCreated)
+    ].
+
+format_db_connections_max(#service_datasource{ds_name = DsName, max_pool_size = MaxPool}) ->
+    Label = [{<<"pool">>, DsName}],
+    format_sample(<<"db_connections_max">>, Label, MaxPool).
+
+format_db_connections_min(#service_datasource{ds_name = DsName}) ->
+    Label = [{<<"pool">>, DsName}],
+    format_sample(<<"db_connections_min">>, Label, 0).
+
+format_db_connections_extended(#service_datasource{id = Id, ds_name = DsName}) ->
+    Label = [{<<"pool">>, DsName}],
+    Pending = get_http_counter({db_pending, Id}),
+    Timeout = get_http_counter({db_timeout, Id}),
+    
+    UsageCount = get_http_counter({db_usage_count, Id}),
+    UsageSum = get_http_counter({db_usage_sum, Id}) / 1000000.0,
+    UsageMax = get_http_counter({db_usage_max, Id}) / 1000000.0,
+    
+    AcquireCount = get_http_counter({db_acquire_count, Id}),
+    AcquireSum = get_http_counter({db_acquire_sum, Id}) / 1000000.0,
+    AcquireMax = get_http_counter({db_acquire_max, Id}) / 1000000.0,
+    
+    CreationCount = get_http_counter({db_creation_count, Id}),
+    CreationSum = get_http_counter({db_creation_sum, Id}) / 1000000.0,
+    CreationMax = get_http_counter({db_creation_max, Id}) / 1000000.0,
+    
+    [
+        format_sample(<<"db_connections_pending">>, Label, Pending),
+        format_sample(<<"db_connections_timeout_total">>, Label, Timeout),
+        format_sample(<<"db_connections_usage_seconds_count">>, Label, UsageCount),
+        format_sample_float(<<"db_connections_usage_seconds_sum">>, Label, UsageSum),
+        format_sample_float(<<"db_connections_usage_seconds_max">>, Label, UsageMax),
+        format_sample(<<"db_connections_acquire_seconds_count">>, Label, AcquireCount),
+        format_sample_float(<<"db_connections_acquire_seconds_sum">>, Label, AcquireSum),
+        format_sample_float(<<"db_connections_acquire_seconds_max">>, Label, AcquireMax),
+        format_sample(<<"db_connections_creation_seconds_count">>, Label, CreationCount),
+        format_sample_float(<<"db_connections_creation_seconds_sum">>, Label, CreationSum),
+        format_sample_float(<<"db_connections_creation_seconds_max">>, Label, CreationMax)
+    ].
+
+get_http_counter(Key) ->
+    case catch ets:lookup(ems_http_metrics, Key) of
+        [{_, V}] -> V;
+        _ -> 0
+    end.
+
+format_jdbc_connections(Ds = #service_datasource{id = Id, ds_name = DsName}) ->
+    Label        = [{<<"pool">>, DsName}],
+    MetricName   = list_to_atom("odbc_pool_count_" ++ integer_to_list(Id)),
+    TotalCreated = ems_db:current_counter(MetricName),
+    IdleCount    = case catch ems_odbc_pool:connection_pool_size(Ds) of
+                       N when is_integer(N) -> N;
+                       _                    -> 0
+                   end,
+    ActiveCount  = max(0, TotalCreated - IdleCount),
+    [
+        format_sample(<<"jdbc_connections_active">>, Label, ActiveCount),
+        format_sample(<<"jdbc_connections_idle">>,   Label, IdleCount),
+        format_sample(<<"jdbc_connections">>,        Label, TotalCreated)
+    ].
+
+format_jdbc_connections_max(#service_datasource{ds_name = DsName, max_pool_size = MaxPool}) ->
+    Label = [{<<"pool">>, DsName}],
+    format_sample(<<"jdbc_connections_max">>, Label, MaxPool).
+
+format_jdbc_connections_min(#service_datasource{ds_name = DsName}) ->
+    Label = [{<<"pool">>, DsName}],
+    format_sample(<<"jdbc_connections_min">>, Label, 0).
 
 
 %%====================================================================
@@ -284,12 +418,67 @@ safe_ets_size(Table) ->
 
 
 %%====================================================================
+%% VM Metrics — memory and CPU
+%%====================================================================
+
+collect_vm_metrics() ->
+    Memory = erlang:memory(),
+    Samples = [{[{<<"id">>, atom_to_binary(K, utf8)}], V} || {K, V} <- Memory],
+    MemoryMetrics = metric(gauge, <<"jvm_memory_used_bytes">>, <<"The amount of used memory">>, Samples),
+    
+    ProcessCount = erlang:system_info(process_count),
+
+    CpuMetrics = try
+        application:ensure_all_started(os_mon),
+        CpuUtil = cpu_sup:util(),
+        [
+            metric_float(gauge, <<"system_cpu_usage">>, <<"The recent cpu usage for the whole system">>, [{[], CpuUtil / 100.0}])
+        ]
+    catch _:_ -> []
+    end,
+
+    UptimeMs = element(1, erlang:statistics(wall_clock)),
+    UptimeSecs = UptimeMs / 1000.0,
+    StartTimeSecs = os:system_time(second) - (UptimeMs div 1000),
+    UptimeMetric = metric_float(gauge, <<"process_uptime_seconds">>, <<"The uptime of the Erlang process">>, [{[], UptimeSecs}]),
+    StartTimeMetric = metric(gauge, <<"process_start_time_seconds">>, <<"Start time of the process since unix epoch">>, [{[], StartTimeSecs}]),
+
+    OpenFiles = case filelib:wildcard("/proc/self/fd/*") of
+        [] -> erlang:system_info(port_count);
+        FdList -> length(FdList)
+    end,
+    MaxFiles = erlang:system_info(port_limit),
+    OpenFilesMetric = metric(gauge, <<"process_files_open_files">>, <<"The open file descriptor count">>, [{[], OpenFiles}]),
+    MaxFilesMetric = metric(gauge, <<"process_files_max_files">>, <<"The maximum file descriptor count">>, [{[], MaxFiles}]),
+
+    ThreadPoolSize = erlang:system_info(thread_pool_size),
+    JvmThreadsLive = metric(gauge, <<"jvm_threads_live_threads">>, <<"The current number of live threads">>, [{[], ProcessCount}]),
+    JvmThreadsDaemon = metric(gauge, <<"jvm_threads_daemon_threads">>, <<"The current number of daemon threads">>, [{[], ThreadPoolSize}]),
+
+    [
+        MemoryMetrics, CpuMetrics,
+        UptimeMetric, StartTimeMetric,
+        OpenFilesMetric, MaxFilesMetric,
+        JvmThreadsLive, JvmThreadsDaemon
+    ].
+
+
+%%====================================================================
 %% Formatting helpers
 %%====================================================================
 
 metric(Type, Name, Help, Samples) ->
     TypeBin = atom_to_binary(Type, utf8),
     Lines   = [format_sample(Name, Labels, Value) || {Labels, Value} <- Samples],
+    iolist_to_binary([
+        <<"# HELP ">>, Name, <<" ">>, Help, <<"\n">>,
+        <<"# TYPE ">>, Name, <<" ">>, TypeBin, <<"\n">>
+        | Lines
+    ]).
+
+metric_float(Type, Name, Help, Samples) ->
+    TypeBin = atom_to_binary(Type, utf8),
+    Lines   = [format_sample_float(Name, Labels, Value) || {Labels, Value} <- Samples],
     iolist_to_binary([
         <<"# HELP ">>, Name, <<" ">>, Help, <<"\n">>,
         <<"# TYPE ">>, Name, <<" ">>, TypeBin, <<"\n">>

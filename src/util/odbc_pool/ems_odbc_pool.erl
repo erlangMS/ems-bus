@@ -43,20 +43,30 @@ stop() ->
  
 -spec get_connection(#service_datasource{}) -> {ok, #service_datasource{}} | {error, eunavailable_odbc_connection}.
 get_connection(Datasource = #service_datasource{id = Id}) ->
+	T1 = os:system_time(microsecond),
+	catch ets:update_counter(ems_http_metrics, {db_pending, Id}, 1, {{db_pending, Id}, 0}),
 	try
 		case gen_server:call(?SERVER, {create_connection, Datasource}, 16000) of
 			{ok, _Datasource2} = Result ->
 				ems_logger:debug("ems_odbc_pool get_connection from datasource id ~p.", [Id], Datasource#service_datasource.log_show_odbc_pool_activity),
+				T2 = os:system_time(microsecond),
+				catch ets:update_counter(ems_http_metrics, {db_pending, Id}, -1, {{db_pending, Id}, 0}),
+				catch record_acquire_time(Id, T2 - T1),
+				erlang:put({odbc_connection_acquired_at, Id}, T2),
 				Result;
 			{error, eodbc_restricted_connection} -> 
+				catch ets:update_counter(ems_http_metrics, {db_pending, Id}, -1, {{db_pending, Id}, 0}),
 				ems_logger:error("ems_odbc_pool get_connection eodbc_restricted_connection from datasource id ~p.", [Id]),
 				{error, eodbc_restricted_connection};
 			Error -> 
+				catch ets:update_counter(ems_http_metrics, {db_pending, Id}, -1, {{db_pending, Id}, 0}),
 				ems_logger:error("ems_odbc_pool get_connection eunavailable_odbc_connection from datasource id ~p. Reason: ~p.", [Id, Error]),
 				{error, eunavailable_odbc_connection}
 		end
 	catch
 		_:ReasonException -> %% provavelmente timeout
+			catch ets:update_counter(ems_http_metrics, {db_pending, Id}, -1, {{db_pending, Id}, 0}),
+			catch ets:update_counter(ems_http_metrics, {db_timeout, Id}, 1, {{db_timeout, Id}, 0}),
 			ems_logger:error("ems_odbc_pool get_connection exception from datasource id ~p. Reason: ~p.", [Id, ReasonException]),
 			{error, eunavailable_odbc_connection}
 	end.
@@ -64,6 +74,12 @@ get_connection(Datasource = #service_datasource{id = Id}) ->
 
 -spec release_connection(#service_datasource{}) -> ok.
 release_connection(Datasource = #service_datasource{id = Id}) ->
+	case erlang:erase({odbc_connection_acquired_at, Id}) of
+		undefined -> ok;
+		T1 ->
+			T2 = os:system_time(microsecond),
+			catch record_usage_time(Id, T2 - T1)
+	end,
 	try
 		gen_server:call(?SERVER, {release_connection, Datasource}, 16000)
 	catch 
@@ -234,8 +250,11 @@ do_create_connection(Datasource = #service_datasource{id = Id,
 				MaxPoolSize = Datasource#service_datasource.max_pool_size,
 				case ConnectionCount < MaxPoolSize of
 					true ->
+						T1 = os:system_time(microsecond),
 						case ems_odbc_pool_worker:start_link(Datasource) of
 							{ok, WorkerPid} ->
+								T2 = os:system_time(microsecond),
+								catch record_creation_time(Id, T2 - T1),
 								ems_db:inc_counter(MetricName),
 								PidModuleRef = erlang:monitor(process, PidModule),
 								Datasource2 = ems_odbc_pool_worker:get_datasource(WorkerPid),
@@ -367,3 +386,29 @@ get_connection_pool_size(#service_datasource{id = Id}) ->
 	Pool = find_pool(Id),
 	queue:len(Pool).
 
+%% --- Prometheus Telemetry Helpers ---
+
+record_acquire_time(Id, Micros) ->
+    ets:update_counter(ems_http_metrics, {db_acquire_sum, Id}, Micros, {{db_acquire_sum, Id}, 0}),
+    ets:update_counter(ems_http_metrics, {db_acquire_count, Id}, 1, {{db_acquire_count, Id}, 0}),
+    update_max({db_acquire_max, Id}, Micros).
+
+record_usage_time(Id, Micros) ->
+    ets:update_counter(ems_http_metrics, {db_usage_sum, Id}, Micros, {{db_usage_sum, Id}, 0}),
+    ets:update_counter(ems_http_metrics, {db_usage_count, Id}, 1, {{db_usage_count, Id}, 0}),
+    update_max({db_usage_max, Id}, Micros).
+
+record_creation_time(Id, Micros) ->
+    ets:update_counter(ems_http_metrics, {db_creation_sum, Id}, Micros, {{db_creation_sum, Id}, 0}),
+    ets:update_counter(ems_http_metrics, {db_creation_count, Id}, 1, {{db_creation_count, Id}, 0}),
+    update_max({db_creation_max, Id}, Micros).
+
+update_max(Key, Micros) ->
+    CurrentMax = case ets:lookup(ems_http_metrics, Key) of
+                     [{_, V}] -> V;
+                     [] -> 0
+                 end,
+    if Micros > CurrentMax ->
+           ets:insert(ems_http_metrics, {Key, Micros});
+       true -> ok
+    end.
