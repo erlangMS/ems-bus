@@ -237,12 +237,12 @@ sudo apt-get install -y --no-install-recommends \
     apt-transport-https `# HTTPS transport for APT`
 
 # Add Microsoft repository
-UBUNTU_VERSION=$(lsb_release -rs)
-curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+UBUNTU_VERSION="22.04"
+curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/microsoft.gpg
 curl https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
 
 sudo apt-get update
-ACCEPT_EULA=Y sudo apt-get install -y msodbcsql17 `# Microsoft ODBC Driver 17 for SQL Server`
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17 `# Microsoft ODBC Driver 17 for SQL Server`
 
 echo "Microsoft ODBC Driver 17 installed"
 echo ""

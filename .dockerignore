@@ -1,5 +1,5 @@
 # Git
-.git
+# .git
 .gitignore
 
 # Documentation
@@ -31,5 +31,5 @@ ansible/
 tools/
 
 # Docker
-docker-compose.yml
+# docker-compose.yml
 .dockerignore

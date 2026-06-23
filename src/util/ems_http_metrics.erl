@@ -75,7 +75,15 @@ observe(Method, Uri, Status, Exception, LatencyMs) ->
         ets:update_counter(ems_http_metrics,
                            {sum_micros, Method, Uri, Status, Exception},
                            round(LatencyMs * 1000),
-                           {{sum_micros, Method, Uri, Status, Exception}, 0})
+                           {{sum_micros, Method, Uri, Status, Exception}, 0}),
+        MaxKey = {max_micros, Method, Uri, Status, Exception},
+        CurrentMax = get_counter(MaxKey),
+        LatencyMicros = round(LatencyMs * 1000),
+        if
+            LatencyMicros > CurrentMax ->
+                ets:insert(ems_http_metrics, {MaxKey, LatencyMicros});
+            true -> ok
+        end
     catch
         _:_ -> ok
     end.

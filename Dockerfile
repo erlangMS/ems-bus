@@ -1,3 +1,48 @@
+# ==============================================================================
+# Estagio 1: Builder
+# ==============================================================================
+FROM ubuntu:24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=America/Sao_Paulo
+
+# Instala sudo, lsb-release e utilitários básicos necessários para o script
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    sudo \
+    lsb-release \
+    wget \
+    curl \
+    git \
+    ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Renomeia usuário e grupo ubuntu para erlangms
+RUN groupmod -n erlangms ubuntu && \
+    usermod -l erlangms -d /opt/erlangms -m ubuntu && \
+    echo "erlangms ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER erlangms
+WORKDIR /build
+
+# Copia APENAS o script de instalação e as configurações necessárias para ele
+COPY --chown=erlangms:erlangms install-erlang.sh .
+COPY --chown=erlangms:erlangms priv/conf ./priv/conf
+
+# Executa o script de instalação do Erlang (instala dependências, asdf, Erlang 28).
+# Essa camada pesada agora ficará em cache, mudando apenas se o script mudar!
+RUN ./install-erlang.sh
+
+# Copia o restante do código fonte do projeto
+COPY --chown=erlangms:erlangms . .
+
+# Compila o projeto e gera a release
+RUN bash -c "source /opt/erlangms/.asdf/asdf.sh && ./rel/release.sh"
+
+# ==============================================================================
+# Estagio 2: Runtime
+# ==============================================================================
 FROM ubuntu:24.04
 
 # Definições globais de ambiente
@@ -60,8 +105,10 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copia e instala o barramento
-COPY ./ems-bus.tar.gz /tmp/
+# Copia a release gerada pelo estágio builder
+COPY --from=builder /build/ems-bus.tar.gz /tmp/
+
+# Instala o barramento
 RUN mkdir -p /app && \
     tar -xzf /tmp/ems-bus.tar.gz -C /app && \
     ln -sf /app/lib/ems_bus-*/priv /app/priv && \

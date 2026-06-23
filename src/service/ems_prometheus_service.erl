@@ -39,7 +39,7 @@ execute(Request) ->
     {ok, Request#request{
         code             = 200,
         reason           = ok,
-        content_type_out = <<"text/plain; version=0.0.4; charset=utf-8">>,
+        content_type_out = <<"text/plain; version=0.0.4;charset=utf-8">>,
         response_data    = Output
     }}.
 
@@ -61,13 +61,17 @@ collect_http_histogram() ->
             [
                 <<"# HELP http_server_requests_seconds HTTP request latency in seconds\n">>,
                 <<"# TYPE http_server_requests_seconds histogram\n">>,
-                [format_histogram_labels(LS) || LS <- LabelSets]
+                [format_histogram_labels(LS) || LS <- LabelSets],
+                <<"# HELP http_server_requests_seconds_max HTTP request maximum latency in seconds\n">>,
+                <<"# TYPE http_server_requests_seconds_max gauge\n">>,
+                [format_histogram_max(LS) || LS <- LabelSets]
             ]
     end.
 
 format_histogram_labels({Method, Uri, Status, Exception}) ->
     StatusBin   = integer_to_binary(Status),
-    BaseLabels  = [{<<"method">>, Method}, {<<"uri">>, Uri}, {<<"status">>, StatusBin}, {<<"exception">>, Exception}],
+    Outcome     = status_to_outcome(Status),
+    BaseLabels  = [{<<"method">>, Method}, {<<"uri">>, Uri}, {<<"status">>, StatusBin}, {<<"exception">>, Exception}, {<<"outcome">>, Outcome}],
     BucketLines = [format_bucket(BaseLabels, Method, Uri, Status, Exception, Le, LeBin)
                    || {Le, LeBin} <- ems_http_metrics:bucket_defs()],
     InfCount    = ems_http_metrics:get_counter({bucket, Method, Uri, Status, Exception, infinity}),
@@ -86,6 +90,21 @@ format_bucket(BaseLabels, Method, Uri, Status, Exception, Le, LeBin) ->
     Count = ems_http_metrics:get_counter({bucket, Method, Uri, Status, Exception, Le}),
     format_sample(<<"http_server_requests_seconds_bucket">>,
                   BaseLabels ++ [{<<"le">>, LeBin}], Count).
+
+format_histogram_max({Method, Uri, Status, Exception}) ->
+    StatusBin   = integer_to_binary(Status),
+    Outcome     = status_to_outcome(Status),
+    BaseLabels  = [{<<"method">>, Method}, {<<"uri">>, Uri}, {<<"status">>, StatusBin}, {<<"exception">>, Exception}, {<<"outcome">>, Outcome}],
+    MaxMicros   = ems_http_metrics:get_counter({max_micros, Method, Uri, Status, Exception}),
+    MaxSecs     = MaxMicros / 1_000_000,
+    format_sample_float(<<"http_server_requests_seconds_max">>, BaseLabels, MaxSecs).
+
+status_to_outcome(Status) when Status >= 200, Status < 300 -> <<"SUCCESS">>;
+status_to_outcome(Status) when Status >= 400, Status < 500 -> <<"CLIENT_ERROR">>;
+status_to_outcome(Status) when Status >= 500, Status < 600 -> <<"SERVER_ERROR">>;
+status_to_outcome(Status) when Status >= 300, Status < 400 -> <<"REDIRECTION">>;
+status_to_outcome(Status) when Status >= 100, Status < 200 -> <<"INFORMATIONAL">>;
+status_to_outcome(_) -> <<"UNKNOWN">>.
 
 
 %%====================================================================
