@@ -145,7 +145,8 @@ normalize_headers(Headers, DefaultHeaders, CowboyReq) ->
 		true -> 
 			% Valid domain - allow CORS by echoing the origin
 			ems_logger:debug("CORS: Origin ~p allowed by cors_domain configuration.", [Origin]),
-			#{<<"access-control-allow-origin">> => Origin};
+			#{<<"access-control-allow-origin">> => Origin,
+			  <<"access-control-allow-credentials">> => <<"true">>};
 		false when Origin =:= <<>> ->
 			% No Origin header - not a browser request, no CORS header needed
 			ems_logger:debug("CORS: No Origin header present, skipping CORS headers."),
